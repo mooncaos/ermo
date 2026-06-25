@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ermo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+  :root{
+    --night:#0f0e17; --panel:#1a1826; --panel-2:#232036;
+    --violet:#9b6dff; --amber:#f4b860; --ink:#e8e4f0; --muted:#8a86a0;
+    --danger:#e85d75; --edge:rgba(155,109,255,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--night); color:var(--ink);
+    font-family:Inter,system-ui,sans-serif; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- mundo ---------- */
+  #stage{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:radial-gradient(120% 120% at 50% 0%, #181527 0%, var(--night) 70%);
+  }
+  #game{
+    image-rendering:pixelated; max-width:100vw; max-height:100vh;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 1px var(--edge); border-radius:6px;
+  }
+  #hud{
+    position:fixed; top:14px; left:14px; display:none;
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:10px;
+    padding:9px 12px; font-family:"JetBrains Mono",monospace; font-size:12px;
+    color:var(--muted); line-height:1.7; pointer-events:none;
+  }
+  #hud .on{color:var(--ink)} #hud .dot{color:var(--violet)}
+  #help{
+    position:fixed; bottom:14px; left:14px; display:none; max-width:60vw;
+    font-size:12px; color:var(--muted); letter-spacing:.02em; line-height:1.5;
+    background:rgba(20,18,30,.7); padding:6px 14px; border-radius:12px; border:1px solid var(--edge);
+  }
+  #help kbd{
+    font-family:"JetBrains Mono",monospace; color:var(--ink); background:var(--panel-2);
+    padding:1px 6px; border-radius:5px; border:1px solid var(--edge); font-size:11px;
+  }
+
+  /* ---------- portão / criador ---------- */
+  #gate{
+    position:relative; width:min(92vw,430px); max-height:94vh; overflow-y:auto;
+    padding:34px 32px 30px; text-align:center;
+    background:linear-gradient(180deg,var(--panel) 0%, #141221 100%);
+    border:1px solid var(--edge); border-radius:18px; box-shadow:0 30px 80px rgba(0,0,0,.6);
+  }
+  #gate::-webkit-scrollbar{width:8px} #gate::-webkit-scrollbar-thumb{background:var(--edge); border-radius:8px}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.42em;
+    text-transform:uppercase; color:var(--violet); opacity:.8; margin-bottom:14px;
+  }
+  h1{
+    font-family:Cinzel,serif; font-weight:700; font-size:48px; letter-spacing:.06em; line-height:1;
+    text-shadow:0 0 26px rgba(155,109,255,.45); animation:breathe 5.5s ease-in-out infinite;
+  }
+  @keyframes breathe{50%{text-shadow:0 0 38px rgba(155,109,255,.7)}}
+  @media (prefers-reduced-motion:reduce){h1{animation:none}}
+  .tagline{color:var(--muted); font-size:13.5px; margin-top:12px; line-height:1.5}
+
+  #pcanvas{
+    image-rendering:pixelated; display:block; margin:16px auto 6px; border-radius:14px;
+    background:radial-gradient(80% 80% at 50% 35%, #211d36 0%, #141124 100%);
+    border:1px solid var(--edge);
+  }
+
+  label{
+    display:block; text-align:left; font-size:12px; color:var(--muted);
+    margin:14px 0 7px; letter-spacing:.02em;
+  }
+  #name{
+    width:100%; padding:12px 14px; font-family:Inter,sans-serif; font-size:15px;
+    color:var(--ink); background:#100e1b; border:1px solid var(--edge);
+    border-radius:11px; outline:none; transition:border-color .15s, box-shadow .15s;
+  }
+  #name:focus{border-color:var(--violet); box-shadow:0 0 0 3px rgba(155,109,255,.18)}
+
+  .opt{display:flex; align-items:center; gap:10px; margin-top:13px; text-align:left}
+  .optlbl{
+    flex:0 0 52px; font-size:11px; color:var(--muted); letter-spacing:.04em;
+    text-transform:uppercase; font-family:"JetBrains Mono",monospace;
+  }
+  .row{display:flex; flex-wrap:wrap; gap:7px}
+  .sw{
+    width:26px; height:26px; border-radius:50%; cursor:pointer; padding:0;
+    border:2px solid rgba(255,255,255,.12); transition:transform .1s;
+  }
+  .sw:hover{transform:scale(1.1)}
+  .sw.sel{border-color:var(--amber); box-shadow:0 0 0 2px rgba(244,184,96,.3)}
+  .pill{
+    padding:7px 13px; border-radius:9px; cursor:pointer; font-size:12.5px;
+    font-family:Inter,sans-serif; color:var(--muted);
+    background:#15131f; border:1px solid var(--edge); transition:all .12s;
+  }
+  .pill:hover{color:var(--ink)}
+  .pill.sel{background:rgba(155,109,255,.22); color:var(--ink); border-color:var(--violet)}
+
+  #enter{
+    width:100%; margin-top:22px; padding:14px; cursor:pointer;
+    font-family:Cinzel,serif; font-weight:600; font-size:16px; letter-spacing:.06em;
+    color:#140f06; background:linear-gradient(180deg,var(--amber),#e0a23f);
+    border:none; border-radius:11px; transition:transform .12s, filter .15s, opacity .15s;
+  }
+  #enter:hover{filter:brightness(1.06)} #enter:active{transform:translateY(1px)}
+  #enter:disabled{opacity:.55; cursor:wait; filter:saturate(.6)}
+  #status{min-height:16px; margin-top:12px; font-size:13px; color:var(--muted)}
+  #status.err{color:var(--danger)}
+</style>
+</head>
+<body>
+  <div id="gate">
+    <div class="eyebrow">protótipo multiplayer</div>
+    <h1>ERMO</h1>
+    <p class="tagline">Um vilarejo no crepúsculo.<br>Monte seu viajante e atravesse.</p>
+
+    <canvas id="pcanvas" width="132" height="148"></canvas>
+
+    <label for="name">Nome do viajante</label>
+    <input id="name" maxlength="16" placeholder="ex.: Valdris" autocomplete="off" spellcheck="false">
+
+    <div class="opt"><span class="optlbl">Capa</span><div class="row" id="row-cloak"></div></div>
+    <div class="opt"><span class="optlbl">Pele</span><div class="row" id="row-skin"></div></div>
+    <div class="opt"><span class="optlbl">Cabelo</span><div class="row" id="row-hair"></div></div>
+    <div class="opt"><span class="optlbl">Capuz</span><div class="row" id="row-hood"></div></div>
+    <div class="opt"><span class="optlbl">Chapéu</span><div class="row" id="row-hat"></div></div>
+    <div class="opt"><span class="optlbl">Cajado</span><div class="row" id="row-staff"></div></div>
+
+    <button id="enter">Entrar no Ermo</button>
+    <div id="status"></div>
+  </div>
+
+  <div id="stage"><canvas id="game"></canvas></div>
+  <div id="hud"><span class="dot">●</span> <span class="on" id="online">1</span> online · <span id="coords">x 0, y 0</span></div>
+  <div id="help">Ande com <kbd>W A S D</kbd>, setas, ou o direcional no canto.</div>
+
+  <script src="/static/game.js"></script>
+</body>
+</html>
