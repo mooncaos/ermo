@@ -20,7 +20,7 @@ import time
 
 from . import rules
 from . import items
-from . import valdris
+from . import npcs
 from .world_map import MAP_ROWS, TILE_SIZE, SPAWN_POINTS
 
 # Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
@@ -94,11 +94,9 @@ def public(p):
     }
     if p.get("is_npc"):
         out["npc"] = True
+        out["kind"] = p.get("kind", "person")    # "person" ou "bird"
+        out["solid"] = p.get("solid", True)       # corvo = False (da pra atravessar)
     return out
-
-
-# Quao longe da casa dele o Valdris pode perambular (em tiles, dist. Chebyshev).
-NPC_WANDER_RADIUS = 5
 
 
 def _walkable_near(px, py):
@@ -179,45 +177,48 @@ class World:
 
     # ----------------------------------------------------------------- NPCs
 
-    def spawn_valdris(self):
-        """Coloca o Valdris no vilarejo: um NPC que perambula pelo mapa inicial.
-        E so mais uma entidade em self.players (reusa render e colisao), mas
-        marcada is_npc -> nunca e salva no banco e nunca desconecta."""
-        home = _walkable_near(20, 12)
-        npc = {
-            "id": valdris.NPC_ID,
-            "player_id": None,
-            "x": home[0],
-            "y": home[1],
-            "facing": "down",
-            "name": valdris.NPC_NAME,
-            "look": {
-                "skin": SKINS[0], "cloak": "#9b6dff", "hood": "up",
-                "hat": "none", "hair": HAIRS[0], "staff": False,
-            },
-            "inventory": [],
-            "equipment": {},
-            "_last_move": 0.0,
-            "_dirty": False,
-            "is_npc": True,
-            "_home": home,
-        }
-        self.players[valdris.NPC_ID] = npc
-        return npc
+    def spawn_npcs(self):
+        """Coloca todo o elenco no mundo. Cada NPC e so mais uma entidade em
+        self.players (reusa render e colisao), marcada is_npc -> nunca e salva no
+        banco e nunca desconecta. As propriedades vem do registro em npcs.ROSTER."""
+        for spec in npcs.ROSTER:
+            home = _walkable_near(*spec["home"])
+            self.players[spec["id"]] = {
+                "id": spec["id"],
+                "player_id": None,
+                "x": home[0],
+                "y": home[1],
+                "facing": "down",
+                "name": spec["name"],
+                "look": dict(spec["look"]),
+                "inventory": [],
+                "equipment": {},
+                "_last_move": 0.0,
+                "_dirty": False,
+                "is_npc": True,
+                "solid": spec.get("solid", True),
+                "kind": spec.get("kind", "person"),
+                "_home": home,
+                "_radius": spec.get("radius", 4),
+                "_wanders": spec.get("wanders", True),
+                "_spec": spec,
+            }
+        return [self.players[s["id"]] for s in npcs.ROSTER]
 
-    def wander_valdris(self):
-        """Da um passo do Valdris: direcao aleatoria, passavel, livre e dentro
-        do raio de casa. Devolve o NPC se ele se mexeu/virou (pra rede avisar)."""
-        npc = self.players.get(valdris.NPC_ID)
-        if not npc:
+    def wander_npc(self, npc_id):
+        """Da um passo de um NPC: direcao aleatoria, passavel, livre e dentro do
+        raio de casa dele. Devolve o NPC se mexeu/virou (pra rede avisar)."""
+        npc = self.players.get(npc_id)
+        if not npc or not npc.get("_wanders"):
             return None
         hx, hy = npc["_home"]
+        rad = npc["_radius"]
         dirs = list(rules.DELTAS.keys())
         random.shuffle(dirs)
         for d in dirs:
             dx, dy = rules.DELTAS[d]
             nx, ny = npc["x"] + dx, npc["y"] + dy
-            if max(abs(nx - hx), abs(ny - hy)) > NPC_WANDER_RADIUS:
+            if max(abs(nx - hx), abs(ny - hy)) > rad:
                 continue
             if not rules.is_walkable(nx, ny):
                 continue
@@ -226,9 +227,32 @@ class World:
             npc["facing"] = d
             npc["x"], npc["y"] = nx, ny   # move direto: nao marca _dirty (sem banco)
             return npc
-        # cercado: so vira pra um lado, sem andar
-        npc["facing"] = random.choice(dirs)
+        npc["facing"] = random.choice(dirs)   # cercado: so vira pra um lado
         return npc
+
+    def nearest_npc(self, player, radius):
+        """O NPC mais proximo do jogador dentro do raio (Chebyshev), ou None.
+        Usado pra interacao: voce fala com quem esta colado."""
+        best, bestd = None, radius + 1
+        for p in self.players.values():
+            if not p.get("is_npc"):
+                continue
+            d = max(abs(player["x"] - p["x"]), abs(player["y"] - p["y"]))
+            if d <= radius and d < bestd:
+                best, bestd = p, d
+        return best
+
+    def nearest_smiter(self, player, radius):
+        """O NPC 'justiceiro' mais proximo dentro do raio, ou None. So o Valdris
+        e justiceiro; e ele quem ouve o palavrao e frita o engracadinho."""
+        best, bestd = None, radius + 1
+        for p in self.players.values():
+            if not (p.get("is_npc") and p.get("_spec", {}).get("smiter")):
+                continue
+            d = max(abs(player["x"] - p["x"]), abs(player["y"] - p["y"]))
+            if d <= radius and d < bestd:
+                best, bestd = p, d
+        return best
 
     def near_entity(self, player, entity_id, radius):
         """True se o jogador esta a ate `radius` tiles da entidade (Chebyshev)."""

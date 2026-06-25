@@ -47,10 +47,13 @@ def pick_spawn(world):
 
 
 def _occupied_by_other(world, mover, x, y):
-    """True se OUTRO jogador já está ocupando o tile (x, y)."""
+    """True se OUTRO jogador (solido) ja esta ocupando o tile (x, y).
+    Entidades nao-solidas (ex.: o corvo) sao transparentes pra colisao."""
     for p in world.players.values():
         if p is mover:
             continue
+        if not p.get("solid", True):
+            continue  # corvo e afins: da pra atravessar
         if p["x"] == x and p["y"] == y:
             return True
     return False

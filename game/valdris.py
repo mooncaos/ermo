@@ -81,6 +81,7 @@ _CURSES = {
     # ---- portugues ----
     "merda", "bosta", "porra", "caralho", "carai", "cacete", "buceta",
     "foder", "fodase", "foda", "fodido", "cu", "cuzao", "cuzudo",
+    "fuder", "fudido", "fudendo", "fudeu", "fude", "fudam", "fudase",
     "viado", "veado", "corno", "puta", "putaria", "putinha",
     "arrombado", "otario", "babaca", "desgraca", "desgracado",
     "piranha", "vagabundo", "vagabunda", "escroto", "fdp", "pqp",

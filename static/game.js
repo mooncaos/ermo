@@ -49,10 +49,20 @@ const chatSendBtn = document.getElementById('chat-send');
 const TOKEN_KEY = 'ermo_token';
 
 // ---------- viewport (câmera) ----------
-const VIEW_COLS = 15, VIEW_ROWS = 19;   // tamanho da janela em tiles
+let VIEW_COLS = 15, VIEW_ROWS = 19;     // janela em tiles (ajustada à tela no init)
 const STEP_MS = 130;                    // cadência de passo ao segurar
 const TAU = 55;                         // suavização do tween (ms)
 const WALK_CYCLE = 320;                 // ms por ciclo de caminhada
+
+// No desktop (tela larga) mostramos mais mundo; no celular fica retrato como era.
+// O canvas é escalado por CSS, então só muda QUANTOS tiles aparecem.
+function pickViewport(){
+  let cols = Math.floor((window.innerWidth  * 0.94) / TS);
+  let rows = Math.floor((window.innerHeight * 0.92) / TS);
+  cols = Math.max(15, Math.min(27, cols));
+  rows = Math.max(15, Math.min(19, rows));
+  return { cols, rows };
+}
 
 // ---------- estado ----------
 let socket = null, myId = null;
@@ -243,6 +253,20 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle = COL.door; c.fillRect(px+ts*0.25, py+ts*0.18, ts*0.5, ts*0.82);
       c.fillStyle = COL.doorKnob; c.fillRect(px+ts*0.62, py+ts*0.55, 2, 2);
       break;
+    case 'w':
+      grassBase(c,px,py,ts,gx,gy);
+      for(let i=0;i<4;i++){
+        const stalkX = px + ts*(0.18 + i*0.21) + (rng(gx,gy,i)-0.5)*2.2;
+        const h = ts*(0.42 + rng(gx,gy,i+2)*0.22);
+        const topY = py + ts - h;
+        c.fillStyle = '#b9842b';                       // talo
+        c.fillRect(stalkX, topY, 1.5, h);
+        c.fillStyle = '#e3b347';                       // espiga dourada
+        c.fillRect(stalkX-1.5, topY-1, 4.5, ts*0.2);
+        c.fillStyle = '#f6d680';                       // brilho do grao
+        c.fillRect(stalkX-0.5, topY, 1.5, ts*0.12);
+      }
+      break;
     default: grassBase(c,px,py,ts,gx,gy);
   }
 }
@@ -356,6 +380,39 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
   }
 }
 
+// O corvo: passarinho preto empoleirado, com um pulinho quando se move.
+function drawCrow(c, px, py, ts, facing, moving, walk){
+  const cx = px + ts*0.5;
+  const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*3 : 0;
+  const baseY = py + ts*0.66 - hop;
+  const dir = (facing==='left') ? -1 : 1;     // pra onde aponta o bico
+  c.save();
+  c.globalAlpha = 0.22; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(cx, py+ts*0.82, ts*0.2, ts*0.07, 0, 0, Math.PI*2); c.fill();
+  c.globalAlpha = 1;
+  c.fillStyle = '#15151b';
+  c.beginPath(); c.ellipse(cx, baseY, ts*0.2, ts*0.16, 0, 0, Math.PI*2); c.fill();   // corpo
+  c.beginPath();                                                                      // cauda
+  c.moveTo(cx - dir*ts*0.15, baseY - ts*0.02);
+  c.lineTo(cx - dir*ts*0.36, baseY + ts*0.05);
+  c.lineTo(cx - dir*ts*0.15, baseY + ts*0.1);
+  c.closePath(); c.fill();
+  const hx = cx + dir*ts*0.13, hy = baseY - ts*0.13;
+  c.beginPath(); c.arc(hx, hy, ts*0.1, 0, Math.PI*2); c.fill();                        // cabeca
+  c.fillStyle = '#e0a020';                                                             // bico
+  c.beginPath();
+  c.moveTo(hx + dir*ts*0.07, hy - ts*0.01);
+  c.lineTo(hx + dir*ts*0.22, hy + ts*0.02);
+  c.lineTo(hx + dir*ts*0.07, hy + ts*0.05);
+  c.closePath(); c.fill();
+  c.fillStyle = '#3a3a52';                                                             // leve brilho na asa
+  c.globalAlpha = 0.5;
+  c.beginPath(); c.ellipse(cx - dir*ts*0.03, baseY - ts*0.04, ts*0.09, ts*0.05, 0, 0, Math.PI*2); c.fill();
+  c.globalAlpha = 1;
+  c.fillStyle = '#fff'; c.fillRect(hx + dir*ts*0.015 - 0.8, hy - ts*0.035, 1.8, 1.8);  // olho
+  c.restore();
+}
+
 // ===========================================================================
 //  ÍCONES DE ITENS (mesma fonte de cores do servidor, via catalog)
 // ===========================================================================
@@ -452,7 +509,8 @@ function frame(now){
   for(const p of ordered){
     const sx = p.rx - camX, sy = p.ry - camY;
     if(sx < -TS || sy < -TS || sx > canvas.width+TS || sy > canvas.height+TS) continue;
-    drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
+    if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk);
+    else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
   }
 
   // ---- ciclo de dia e noite: tinte por cima de tudo ----
@@ -478,9 +536,9 @@ function frame(now){
     ctx.save(); ctx.fillStyle = `rgba(155,109,255,${(0.5*(1-k)).toFixed(3)})`;
     ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
   }
-  const npc = getNpc();                       // dica "falar" quando voce esta colado
-  if(npc && meNearNpc() && !bubbles.has(npc.id)){
-    drawTalkHint(ctx, npc.rx - camX + TS/2, npc.ry - camY, now);
+  const hintNpc = nearestNpcWithin(1);         // dica "falar" sobre o NPC colado
+  if(hintNpc && !bubbles.has(hintNpc.id)){
+    drawTalkHint(ctx, hintNpc.rx - camX + TS/2, hintNpc.ry - camY, now);
   }
   bubbles.forEach((b, id)=>{                   // baloes de fala
     if(now > b.until){ bubbles.delete(id); return; }
@@ -539,15 +597,22 @@ function phaseName(t){
 // ===========================================================================
 //  VALDRIS · BALÕES DE FALA · RAIO
 // ===========================================================================
-function getNpc(){
-  for(const p of players.values()) if(p.npc) return p;
+function chebyshev(a, b){ return Math.max(Math.abs(a.x-b.x), Math.abs(a.y-b.y)); }
+function nearestNpcWithin(radius){
+  const me = players.get(myId); if(!me) return null;
+  let best=null, bestd=radius+1;
+  for(const p of players.values()){
+    if(!p.npc) continue;
+    const d = chebyshev(me, p);
+    if(d <= radius && d < bestd){ best=p; bestd=d; }
+  }
+  return best;
+}
+function npcOnTile(tx, ty){
+  for(const p of players.values()) if(p.npc && p.x===tx && p.y===ty) return p;
   return null;
 }
-function chebyshev(a, b){ return Math.max(Math.abs(a.x-b.x), Math.abs(a.y-b.y)); }
-function meNearNpc(){
-  const me = players.get(myId), npc = getNpc();
-  return !!(me && npc && chebyshev(me, npc) <= 1);
-}
+function meNearNpc(){ return !!nearestNpcWithin(1); }
 function tryInteract(){ if(meNearNpc() && socket) socket.emit('interact'); }
 
 // um vizinho passavel e livre do tile (tx,ty), o mais perto de quem chamou
@@ -734,6 +799,8 @@ function connectWithToken(token){
     myId = data.id;
     TS = data.map.tilesize; mapRows = data.map.rows;
     mapW = data.map.width; mapH = data.map.height;
+    const vp = pickViewport();
+    VIEW_COLS = Math.min(vp.cols, mapW); VIEW_ROWS = Math.min(vp.rows, mapH);
     canvas.width = VIEW_COLS*TS; canvas.height = VIEW_ROWS*TS;
     buildMapCanvas();
     players.clear();
@@ -814,7 +881,7 @@ function addPlayer(p){
   players.set(p.id, {
     id:p.id, x:p.x, y:p.y, rx:p.x*TS, ry:p.y*TS,
     facing:p.facing, name:p.name, look:p.look, walk:0, _moving:false,
-    npc: !!p.npc,
+    npc: !!p.npc, kind: p.kind || 'person', solid: (p.solid === false ? false : true),
   });
   updateOnline();
 }
@@ -1033,10 +1100,12 @@ const STEPV = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 function walkableTile(x, y){
   return y >= 0 && y < mapH && x >= 0 && x < mapW && !SOLID_TILES.has(mapRows[y][x]);
 }
-// algum OUTRO viajante esta parado neste tile agora?
+// algum OUTRO viajante (solido) esta parado neste tile agora?
 function occupiedByOther(x, y){
   for(const p of players.values()){
-    if(p.id !== myId && p.x === x && p.y === y) return true;
+    if(p.id === myId) continue;
+    if(p.solid === false) continue;        // corvo e afins: da pra atravessar
+    if(p.x === x && p.y === y) return true;
   }
   return false;
 }
@@ -1103,10 +1172,10 @@ canvas.addEventListener('pointerdown', e => {
   const py = (e.clientY - rect.top) * (canvas.height / rect.height) + camY;
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
 
-  // tocou no Valdris? perto = conversa; longe = anda ate um vizinho dele
-  const npc = getNpc();
-  if(npc && tx === npc.x && ty === npc.y){
-    if(meNearNpc()){ if(socket) socket.emit('interact'); return; }
+  // tocou num NPC? colado = conversa; longe = anda ate um vizinho dele
+  const npc = npcOnTile(tx, ty);
+  if(npc){
+    if(chebyshev(me, npc) <= 1){ if(socket) socket.emit('interact'); return; }
     const dest = nearestFreeNeighbor(npc.x, npc.y, me.x, me.y);
     if(dest){
       const path = findPath(me.x, me.y, dest[0], dest[1]);
