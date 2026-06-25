@@ -158,6 +158,28 @@
     transition:border-color .15s, background .15s;
   }
   #bag-btn:hover{border-color:var(--violet); background:rgba(40,34,60,.9)}
+  #chat-open{
+    position:fixed; top:54px; left:14px; display:none; z-index:6; cursor:pointer;
+    font-family:Inter,sans-serif; font-size:12px; color:var(--ink);
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:999px; padding:7px 14px;
+    transition:border-color .15s;
+  }
+  #chat-open:hover{border-color:var(--violet)}
+  #chatbar{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    display:none; gap:8px; z-index:9; width:min(360px,72vw);
+  }
+  #chat-input{
+    flex:1; min-width:0; padding:11px 14px; font-family:Inter,sans-serif; font-size:15px;
+    color:var(--ink); background:rgba(16,14,27,.96); border:1px solid var(--violet);
+    border-radius:11px; outline:none; box-shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  #chat-send{
+    padding:0 16px; font-family:Cinzel,serif; font-weight:600; font-size:13px; cursor:pointer;
+    color:#140f06; background:linear-gradient(180deg,var(--amber),#e0a23f);
+    border:none; border-radius:11px;
+  }
   #inv{
     position:fixed; inset:0; display:none; z-index:8;
     align-items:center; justify-content:center;
@@ -264,7 +286,13 @@
   <div id="stage"><canvas id="game"></canvas></div>
   <div id="hud"><span class="dot">●</span> <span class="on" id="online">1</span> online · <span id="coords">x 0, y 0</span> · <span id="phase">dia</span></div>
   <div id="logout">sair</div>
-  <div id="help">Ande com <kbd>W A S D</kbd>, setas, <kbd>clique</kbd> no chão, ou o direcional. Mochila: <kbd>I</kbd></div>
+  <div id="help">Ande com <kbd>W A S D</kbd>, setas, <kbd>clique</kbd> ou o direcional · Falar com o Valdris: chegue perto e <kbd>E</kbd> (ou toque nele) · Conversar: <kbd>Enter</kbd> · Mochila: <kbd>I</kbd></div>
+
+  <button id="chat-open">conversar</button>
+  <div id="chatbar">
+    <input id="chat-input" maxlength="120" placeholder="dizer algo…" autocomplete="off" autocapitalize="sentences">
+    <button id="chat-send">enviar</button>
+  </div>
 
   <button id="bag-btn">▣ mochila</button>
   <div id="inv">

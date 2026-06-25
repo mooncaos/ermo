@@ -40,6 +40,12 @@ const equipRow = document.getElementById('equip-row');
 const invClose = document.getElementById('inv-close');
 const toastEl  = document.getElementById('toast');
 
+// chat
+const chatOpenBtn = document.getElementById('chat-open');
+const chatBarEl   = document.getElementById('chatbar');
+const chatInputEl = document.getElementById('chat-input');
+const chatSendBtn = document.getElementById('chat-send');
+
 const TOKEN_KEY = 'ermo_token';
 
 // ---------- viewport (câmera) ----------
@@ -72,6 +78,12 @@ let dayLength = 480;          // segundos por ciclo (o servidor manda o valor re
 let dayOffset = 0;            // diferenca entre relogio do servidor e o nosso
 let dayTime = 0;              // 0..1 dentro do ciclo (0 = meia-noite)
 let lastPhase = '';           // pra so atualizar o HUD quando a fase muda
+
+// ---------- falas (balao), NPC e o raio do Valdris ----------
+const bubbles = new Map();    // id da entidade -> {text, until} (balao acima dela)
+const smites  = new Map();    // id do alvo -> {start} (efeito do raio cosmico)
+const BUBBLE_MS = 4500;       // quanto tempo um balao fica na tela
+const SMITE_MS  = 700;        // duracao do raio + flash
 
 // ===========================================================================
 //  PALETAS + CRIADOR DE PERSONAGEM  (valores iguais aos do servidor)
@@ -453,6 +465,31 @@ function frame(now){
     if(ph !== lastPhase){ phaseEl.textContent = ph; lastPhase = ph; }
   }
 
+  // ---- overlays nitidos por cima do tinte: raio, dica, baloes ----
+  smites.forEach((fx, id)=>{                 // o raio do Valdris no(s) alvo(s)
+    const age = now - fx.start;
+    if(age > SMITE_MS){ smites.delete(id); return; }
+    const p = players.get(id); if(!p) return;
+    drawSmiteFx(ctx, p.rx - camX + TS/2, p.ry - camY + TS, age/SMITE_MS);
+  });
+  const myFx = smites.get(myId);             // se EU levei, flash violeta na tela
+  if(myFx){
+    const k = (now - myFx.start)/SMITE_MS;
+    ctx.save(); ctx.fillStyle = `rgba(155,109,255,${(0.5*(1-k)).toFixed(3)})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
+  }
+  const npc = getNpc();                       // dica "falar" quando voce esta colado
+  if(npc && meNearNpc() && !bubbles.has(npc.id)){
+    drawTalkHint(ctx, npc.rx - camX + TS/2, npc.ry - camY, now);
+  }
+  bubbles.forEach((b, id)=>{                   // baloes de fala
+    if(now > b.until){ bubbles.delete(id); return; }
+    const p = players.get(id); if(!p) return;
+    const sx = p.rx - camX + TS/2, sy = p.ry - camY;
+    if(sx < -120 || sx > canvas.width+120 || sy < -70 || sy > canvas.height+70) return;
+    drawBubble(ctx, sx, sy, b.text);
+  });
+
   if(me) coordsEl.textContent = `x ${me.x}, y ${me.y}`;
   requestAnimationFrame(frame);
 }
@@ -500,6 +537,123 @@ function phaseName(t){
 }
 
 // ===========================================================================
+//  VALDRIS · BALÕES DE FALA · RAIO
+// ===========================================================================
+function getNpc(){
+  for(const p of players.values()) if(p.npc) return p;
+  return null;
+}
+function chebyshev(a, b){ return Math.max(Math.abs(a.x-b.x), Math.abs(a.y-b.y)); }
+function meNearNpc(){
+  const me = players.get(myId), npc = getNpc();
+  return !!(me && npc && chebyshev(me, npc) <= 1);
+}
+function tryInteract(){ if(meNearNpc() && socket) socket.emit('interact'); }
+
+// um vizinho passavel e livre do tile (tx,ty), o mais perto de quem chamou
+function nearestFreeNeighbor(tx, ty, fromX, fromY){
+  const cand = [[tx+1,ty],[tx-1,ty],[tx,ty+1],[tx,ty-1]]
+    .filter(([x,y])=> walkableTile(x,y) && !occupiedByOther(x,y));
+  if(!cand.length) return null;
+  cand.sort((a,b)=> (Math.abs(a[0]-fromX)+Math.abs(a[1]-fromY)) -
+                    (Math.abs(b[0]-fromX)+Math.abs(b[1]-fromY)));
+  return cand[0];
+}
+
+function drawBubble(c, cx, topY, text){
+  c.save();
+  c.font = '600 12px Inter, sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  const maxW = 180;
+  const words = String(text).split(' ');
+  const lines = []; let line = '';
+  for(const w of words){
+    const t = line ? line+' '+w : w;
+    if(c.measureText(t).width > maxW && line){ lines.push(line); line = w; }
+    else line = t;
+  }
+  if(line) lines.push(line);
+  const lh = 15, padX = 9, padY = 6;
+  let tw = 0; for(const l of lines) tw = Math.max(tw, c.measureText(l).width);
+  const w = Math.min(maxW, tw) + padX*2;
+  const h = lines.length*lh + padY*2;
+  const x = cx - w/2, y = topY - h - 9;
+  c.fillStyle = 'rgba(20,18,30,.92)';
+  c.strokeStyle = 'rgba(155,109,255,.5)'; c.lineWidth = 1;
+  roundRect(c, x, y, w, h, 8); c.fill(); c.stroke();
+  c.beginPath();                       // rabicho apontando pra cabeca
+  c.moveTo(cx-5, y+h-0.5); c.lineTo(cx+5, y+h-0.5); c.lineTo(cx, y+h+6); c.closePath();
+  c.fillStyle = 'rgba(20,18,30,.92)'; c.fill();
+  c.fillStyle = '#e8e4f0';
+  lines.forEach((l,i)=> c.fillText(l, cx, y+padY+lh/2 + i*lh));
+  c.restore();
+}
+
+function drawTalkHint(c, cx, topY, now){
+  const bob = Math.sin(now/300)*2;
+  c.save();
+  c.font = '600 11px Inter, sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  const label = 'falar';
+  const w = c.measureText(label).width + 18, h = 18;
+  const y = topY - h - 16 + bob;
+  c.fillStyle = 'rgba(244,184,96,.96)';
+  roundRect(c, cx - w/2, y, w, h, 9); c.fill();
+  c.fillStyle = '#140f06';
+  c.fillText(label, cx, y + h/2);
+  c.restore();
+}
+
+function drawSmiteFx(c, cx, groundY, k){
+  // k: 0..1 (progresso). clarao roxo no alvo + raio em ziguezague vindo do alto.
+  c.save();
+  const alpha = 1 - k;
+  const r = TS*(0.6 + k*1.2);
+  const grd = c.createRadialGradient(cx, groundY-TS*0.3, 2, cx, groundY-TS*0.3, r);
+  grd.addColorStop(0,   `rgba(225,205,255,${0.9*alpha})`);
+  grd.addColorStop(0.4, `rgba(155,109,255,${0.55*alpha})`);
+  grd.addColorStop(1,   'rgba(155,109,255,0)');
+  c.fillStyle = grd;
+  c.beginPath(); c.arc(cx, groundY-TS*0.3, r, 0, Math.PI*2); c.fill();
+  if(k < 0.55){                        // o raio so na primeira metade
+    c.strokeStyle = `rgba(205,175,255,${alpha})`;
+    c.lineWidth = 3; c.shadowColor = '#9b6dff'; c.shadowBlur = 12;
+    c.beginPath();
+    let x = cx + (Math.random()*8-4), y = 0;
+    c.moveTo(x, y);
+    const segs = 6, dy = (groundY - TS*0.4)/segs;
+    for(let i=1;i<=segs;i++){ y = dy*i; x = cx + (Math.random()*18-9); c.lineTo(x, y); }
+    c.stroke();
+  }
+  c.restore();
+}
+
+// ===========================================================================
+//  CHAT
+// ===========================================================================
+function openChat(){
+  if(!started) return;
+  chatBarEl.style.display = 'flex';
+  chatInputEl.focus();
+}
+function closeChat(){
+  chatBarEl.style.display = 'none';
+  chatInputEl.value = '';
+  chatInputEl.blur();
+}
+function sendChat(){
+  const t = chatInputEl.value.trim().slice(0, 120);
+  if(t && socket) socket.emit('chat', { text: t });
+  closeChat();
+}
+if(chatOpenBtn) chatOpenBtn.addEventListener('click', openChat);
+if(chatSendBtn) chatSendBtn.addEventListener('click', sendChat);
+if(chatInputEl) chatInputEl.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); sendChat(); }
+  else if(e.key === 'Escape'){ e.preventDefault(); closeChat(); }
+});
+
+// ===========================================================================
 //  ENTRADA (teclado + direcional na tela)
 // ===========================================================================
 const KEYMAP = {
@@ -531,6 +685,8 @@ function typingInField(e){
 
 window.addEventListener('keydown', e=>{
   if(!started || typingInField(e)) return;
+  if(e.code === 'KeyE'){ e.preventDefault(); tryInteract(); return; }
+  if(e.code === 'Enter'){ e.preventDefault(); openChat(); return; }
   const dir = KEYMAP[e.code]; if(!dir || e.repeat) return;
   e.preventDefault(); pressDir(dir);
 });
@@ -581,6 +737,7 @@ function connectWithToken(token){
     canvas.width = VIEW_COLS*TS; canvas.height = VIEW_ROWS*TS;
     buildMapCanvas();
     players.clear();
+    bubbles.clear(); smites.clear();
     for(const p of data.players) addPlayer(p);
 
     inventory = Array.isArray(data.inventory) ? data.inventory : [];
@@ -600,9 +757,21 @@ function connectWithToken(token){
   socket.on('player_joined', p => addPlayer(p));
   socket.on('player_moved', m=>{
     const p = players.get(m.id); if(!p) return;
+    const jump = Math.abs(m.x - p.x) + Math.abs(m.y - p.y);
     p.x = m.x; p.y = m.y; p.facing = m.facing;
+    if(jump > 2){ p.rx = m.x*TS; p.ry = m.y*TS; }  // teleporte: cola, sem deslizar
   });
-  socket.on('player_left', m=>{ players.delete(m.id); updateOnline(); });
+  socket.on('player_left', m=>{ players.delete(m.id); bubbles.delete(m.id); smites.delete(m.id); updateOnline(); });
+
+  // falas (balao acima da entidade) e o raio do Valdris
+  socket.on('speech', d=>{
+    if(!d || !d.id) return;
+    bubbles.set(d.id, { text: String(d.text||'').slice(0,120), until: performance.now() + BUBBLE_MS });
+  });
+  socket.on('smite', d=>{
+    if(!d || !d.target) return;
+    smites.set(d.target, { start: performance.now() });
+  });
 
   // mochila e itens do chao
   socket.on('inventory', d=>{
@@ -645,10 +814,14 @@ function addPlayer(p){
   players.set(p.id, {
     id:p.id, x:p.x, y:p.y, rx:p.x*TS, ry:p.y*TS,
     facing:p.facing, name:p.name, look:p.look, walk:0, _moving:false,
+    npc: !!p.npc,
   });
   updateOnline();
 }
-function updateOnline(){ onlineEl.textContent = players.size; }
+function updateOnline(){
+  let n = 0; players.forEach(p=>{ if(!p.npc) n++; });
+  onlineEl.textContent = n;
+}
 function enterWorld(){
   booting.style.display = 'none';
   gate.style.display = 'none';
@@ -659,6 +832,7 @@ function enterWorld(){
   help.style.display = 'block';
   logoutB.style.display = 'block';
   bagBtn.style.display = 'block';
+  if(chatOpenBtn) chatOpenBtn.style.display = 'block';
   buildDpad();
   requestAnimationFrame(frame);
 }
@@ -928,6 +1102,19 @@ canvas.addEventListener('pointerdown', e => {
   const px = (e.clientX - rect.left) * (canvas.width / rect.width) + camX;
   const py = (e.clientY - rect.top) * (canvas.height / rect.height) + camY;
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
+
+  // tocou no Valdris? perto = conversa; longe = anda ate um vizinho dele
+  const npc = getNpc();
+  if(npc && tx === npc.x && ty === npc.y){
+    if(meNearNpc()){ if(socket) socket.emit('interact'); return; }
+    const dest = nearestFreeNeighbor(npc.x, npc.y, me.x, me.y);
+    if(dest){
+      const path = findPath(me.x, me.y, dest[0], dest[1]);
+      if(path && path.length){ clickFx = {x:dest[0], y:dest[1], start:performance.now()}; walkPath(path); }
+    }
+    return;
+  }
+
   const path = findPath(me.x, me.y, tx, ty);
   if(path && path.length){
     clickFx = { x: tx, y: ty, start: performance.now() };

@@ -39,12 +39,13 @@ except Exception as exc:  # pragma: no cover
     print("aviso: psycogreen nao aplicado:", exc)
 
 import os
+import random
 import time
 
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 
-from game import db, accounts, items
+from game import db, accounts, items, valdris, rules
 from game.world import World, public
 
 app = Flask(__name__)
@@ -60,6 +61,13 @@ SAVE_EVERY = 5  # segundos entre gravacoes de posicao no banco
 # mesmo entardecer ao mesmo tempo, sem precisar de loop nem estado.
 # 480 = 8 minutos. Quer ver mudar rapido pra testar? Baixa esse numero.
 DAY_LENGTH = 480
+
+# ----- Valdris (o NPC) -----
+NPC_STEP_EVERY = 0.8     # segundos entre cada passo dele perambulando
+NPC_MURMUR_MIN = 15      # ele murmura sozinho a cada 15..20s
+NPC_MURMUR_MAX = 20
+TALK_RADIUS = 1          # precisa estar colado nele pra conversar
+HEAR_RADIUS = 4          # xingou a ate tantos tiles dele -> ele ouve e te frita
 
 
 # ----------------------------------------------------------------- paginas
@@ -159,6 +167,10 @@ def on_connect(auth):
         row.get("inventory"), row.get("equipment"),
     )
 
+    # se a regra do item unico cortou copias (ex.: Portuz), grava o conserto
+    if player.pop("_needs_save", False):
+        _persist_loadout(player)
+
     emit("init", {
         "id": request.sid,
         "map": world.map_payload(),
@@ -234,6 +246,73 @@ def on_unequip(data):
         emit("player_look", {"id": player["id"], "look": player["look"]}, broadcast=True)
 
 
+# ----------------------------------------------------------------- Valdris
+
+def _npc_moved_payload(npc):
+    return {"id": npc["id"], "x": npc["x"], "y": npc["y"], "facing": npc["facing"]}
+
+
+def _face_to(a, b):
+    """Direcao de `a` olhando pra `b` (prioriza o eixo de maior diferenca)."""
+    dx, dy = b["x"] - a["x"], b["y"] - a["y"]
+    if abs(dx) >= abs(dy):
+        return "right" if dx > 0 else "left"
+    return "down" if dy > 0 else "up"
+
+
+def _smite(player):
+    """O Valdris apaga quem xingou perto dele: encara, solta a sentenca, dispara
+    o raio (todo mundo perto ve) e manda o engracadinho pro spawn.
+    NOTA: quando a morte/combate existir, trocar o 'manda pro spawn' por
+    dano/morte de verdade (ja anotado pra quando chegar la)."""
+    npc = world.players.get(valdris.NPC_ID)
+    if npc:
+        npc["facing"] = _face_to(npc, player)
+        socketio.emit("player_moved", _npc_moved_payload(npc))
+        socketio.emit("speech", {"id": npc["id"],
+                                 "text": random.choice(valdris.SMITE_LINES)})
+    socketio.emit("smite", {"target": player["id"], "by": valdris.NPC_ID})
+    sx, sy = rules.pick_spawn(world)
+    player["x"], player["y"], player["facing"] = sx, sy, "down"
+    player["_dirty"] = True  # a nova posicao sera salva no proximo flush
+    socketio.emit("player_moved", {"id": player["id"], "x": sx, "y": sy, "facing": "down"})
+
+
+@socketio.on("interact")
+def on_interact(_data=None):
+    """Jogador apertou pra falar. So responde se estiver colado no Valdris."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    if not world.near_entity(player, valdris.NPC_ID, TALK_RADIUS):
+        return
+    npc = world.players.get(valdris.NPC_ID)
+    if npc:
+        npc["facing"] = _face_to(npc, player)   # ele te olha
+        socketio.emit("player_moved", _npc_moved_payload(npc))
+    socketio.emit("speech", {"id": valdris.NPC_ID,
+                             "text": random.choice(valdris.GREETINGS)})
+
+
+@socketio.on("chat")
+def on_chat(data):
+    """Mensagem de chat. Vira balao acima do jogador pra todo mundo perto.
+    Mas se contiver palavrao E o jogador estiver perto do Valdris, ele frita."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    text = (data or {}).get("text", "")
+    if not isinstance(text, str):
+        return
+    text = text.strip()[:120]
+    if not text:
+        return
+    if valdris.contains_curse(text) and world.near_entity(player, valdris.NPC_ID, HEAR_RADIUS):
+        _smite(player)
+        return
+    socketio.emit("speech", {"id": player["id"], "text": text})
+
+
 @socketio.on("disconnect")
 def on_disconnect():
     player = world.remove_player(request.sid)
@@ -270,6 +349,30 @@ def _respawn_loop():
             print("erro no respawn:", exc)
 
 
+def _npc_wander_loop():
+    """O Valdris perambula pelo vilarejo; cada passo dele vai pra todos."""
+    while True:
+        socketio.sleep(NPC_STEP_EVERY)
+        try:
+            npc = world.wander_valdris()
+            if npc:
+                socketio.emit("player_moved", _npc_moved_payload(npc))
+        except Exception as exc:
+            print("erro no passo do Valdris:", exc)
+
+
+def _npc_murmur_loop():
+    """De tempos em tempos o Valdris murmura uma frase cosmica, sozinho."""
+    while True:
+        socketio.sleep(random.uniform(NPC_MURMUR_MIN, NPC_MURMUR_MAX))
+        try:
+            if valdris.NPC_ID in world.players:
+                socketio.emit("speech", {"id": valdris.NPC_ID,
+                                         "text": random.choice(valdris.MURMURS)})
+        except Exception as exc:
+            print("erro no murmurio do Valdris:", exc)
+
+
 # ------------------------------------------------------------------- boot
 
 def _startup():
@@ -279,8 +382,11 @@ def _startup():
         print("banco pronto.")
     except Exception as exc:
         print("AVISO: banco nao inicializado:", exc)
+    world.spawn_valdris()   # o primeiro habitante do Ermo entra em cena
     socketio.start_background_task(_saver_loop)
     socketio.start_background_task(_respawn_loop)
+    socketio.start_background_task(_npc_wander_loop)
+    socketio.start_background_task(_npc_murmur_loop)
 
 
 _startup()

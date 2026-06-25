@@ -77,8 +77,9 @@ GROUND_SPAWNS = [
     (16, 16, "coin_bronze",  30),
     (24, 16, "coin_gold",    30),
     (15,  9, "coin_silver",  30),
-    (24,  9, "staff_portuz", 45),
 ]
+# Nota: o Cajado do Portuz NAO fica mais no chao. Ele e unico do Portuz (1 so),
+# nao dropa e nao respawna. Isso mata o farm que enchia a mochila de copias.
 
 
 # --------------------------------------------------------------- a mochila
@@ -128,3 +129,27 @@ def sanitize_bag(raw):
                     continue
             out.append({"item": item_id, "qty": q})
     return out
+
+
+# Itens unicos: um jogador so pode ter 1, somando mochila + equipado.
+UNIQUE_ITEMS = {"staff_portuz"}
+
+
+def enforce_uniques(bag, equipment):
+    """Garante no maximo 1 de cada item unico por jogador (mochila + equipado).
+    Conserta contas que acumularam copias (ex.: o Portuz com 5 cajados).
+    Devolve (bag_limpa, mudou)."""
+    equipped = {v for v in (equipment or {}).values() if v}
+    out, seen, changed = [], set(), False
+    for stack in bag:
+        item_id = stack.get("item")
+        if item_id in UNIQUE_ITEMS:
+            if item_id in equipped or item_id in seen:
+                changed = True
+                continue  # ja tem um (equipado ou na mochila): descarta a sobra
+            seen.add(item_id)
+            if int(stack.get("qty", 1)) != 1:
+                stack = {"item": item_id, "qty": 1}
+                changed = True
+        out.append(stack)
+    return out, changed

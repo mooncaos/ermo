@@ -15,11 +15,13 @@ Nao conhece socket nem desenha nada. So estado vivo + operacoes, delegando as
 regras de movimento pra rules.py e a definicao dos itens pra items.py.
 """
 
+import random
 import time
 
 from . import rules
 from . import items
-from .world_map import MAP_ROWS, TILE_SIZE
+from . import valdris
+from .world_map import MAP_ROWS, TILE_SIZE, SPAWN_POINTS
 
 # Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
 CLOAKS = [
@@ -82,7 +84,7 @@ def sanitize_equipment(raw):
 
 def public(p):
     """Versao do jogador segura pra enviar (sem campos internos com _)."""
-    return {
+    out = {
         "id": p["id"],
         "x": p["x"],
         "y": p["y"],
@@ -90,6 +92,26 @@ def public(p):
         "name": p["name"],
         "look": p["look"],
     }
+    if p.get("is_npc"):
+        out["npc"] = True
+    return out
+
+
+# Quao longe da casa dele o Valdris pode perambular (em tiles, dist. Chebyshev).
+NPC_WANDER_RADIUS = 5
+
+
+def _walkable_near(px, py):
+    """Acha um tile passavel perto de (px, py). Robusto a edicoes do mapa."""
+    if rules.is_walkable(px, py):
+        return (px, py)
+    for r in range(1, 10):
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                x, y = px + dx, py + dy
+                if rules.is_walkable(x, y):
+                    return (x, y)
+    return SPAWN_POINTS[0]
 
 
 class World:
@@ -131,6 +153,9 @@ class World:
             "_last_move": 0.0,
             "_dirty": False,
         }
+        # regra do item unico: corrige contas que acumularam copias (Portuz)
+        player["inventory"], player["_needs_save"] = items.enforce_uniques(
+            player["inventory"], player["equipment"])
         self.players[sid] = player
         self.by_player_id[player_id] = sid
         self._sync_look(player)   # a aparencia reflete o que esta equipado
@@ -152,6 +177,67 @@ class World:
             return None
         return rules.apply_move(self, player, direction)
 
+    # ----------------------------------------------------------------- NPCs
+
+    def spawn_valdris(self):
+        """Coloca o Valdris no vilarejo: um NPC que perambula pelo mapa inicial.
+        E so mais uma entidade em self.players (reusa render e colisao), mas
+        marcada is_npc -> nunca e salva no banco e nunca desconecta."""
+        home = _walkable_near(20, 12)
+        npc = {
+            "id": valdris.NPC_ID,
+            "player_id": None,
+            "x": home[0],
+            "y": home[1],
+            "facing": "down",
+            "name": valdris.NPC_NAME,
+            "look": {
+                "skin": SKINS[0], "cloak": "#9b6dff", "hood": "up",
+                "hat": "none", "hair": HAIRS[0], "staff": False,
+            },
+            "inventory": [],
+            "equipment": {},
+            "_last_move": 0.0,
+            "_dirty": False,
+            "is_npc": True,
+            "_home": home,
+        }
+        self.players[valdris.NPC_ID] = npc
+        return npc
+
+    def wander_valdris(self):
+        """Da um passo do Valdris: direcao aleatoria, passavel, livre e dentro
+        do raio de casa. Devolve o NPC se ele se mexeu/virou (pra rede avisar)."""
+        npc = self.players.get(valdris.NPC_ID)
+        if not npc:
+            return None
+        hx, hy = npc["_home"]
+        dirs = list(rules.DELTAS.keys())
+        random.shuffle(dirs)
+        for d in dirs:
+            dx, dy = rules.DELTAS[d]
+            nx, ny = npc["x"] + dx, npc["y"] + dy
+            if max(abs(nx - hx), abs(ny - hy)) > NPC_WANDER_RADIUS:
+                continue
+            if not rules.is_walkable(nx, ny):
+                continue
+            if rules._occupied_by_other(self, npc, nx, ny):
+                continue
+            npc["facing"] = d
+            npc["x"], npc["y"] = nx, ny   # move direto: nao marca _dirty (sem banco)
+            return npc
+        # cercado: so vira pra um lado, sem andar
+        npc["facing"] = random.choice(dirs)
+        return npc
+
+    def near_entity(self, player, entity_id, radius):
+        """True se o jogador esta a ate `radius` tiles da entidade (Chebyshev)."""
+        ent = self.players.get(entity_id)
+        if not ent or not player:
+            return False
+        return max(abs(player["x"] - ent["x"]),
+                   abs(player["y"] - ent["y"])) <= radius
+
     def snapshot(self):
         """Todos os jogadores vivos em formato publico (pro 'init')."""
         return [public(p) for p in self.players.values()]
@@ -160,6 +246,9 @@ class World:
         """Quem se moveu desde o ultimo flush: lista (player_id,x,y,facing)."""
         out = []
         for p in self.players.values():
+            if p.get("is_npc"):
+                p["_dirty"] = False   # NPC nao tem conta, nunca persiste
+                continue
             if p.get("_dirty"):
                 out.append((p["player_id"], p["x"], p["y"], p["facing"]))
                 p["_dirty"] = False
