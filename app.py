@@ -150,7 +150,7 @@ def on_connect(auth):
     player = world.add_player(
         request.sid, player_id,
         row["name"], row["look"], row["x"], row["y"], row.get("facing", "down"),
-        row.get("inventory"),
+        row.get("inventory"), row.get("equipment"),
     )
 
     emit("init", {
@@ -158,6 +158,7 @@ def on_connect(auth):
         "map": world.map_payload(),
         "players": world.snapshot(),
         "inventory": player["inventory"],
+        "equipment": player["equipment"],
         "items": items.catalog(),
         "ground": world.ground_snapshot(),
     })
@@ -191,6 +192,38 @@ def on_move(data):
             "picked": {"item": picked["item"], "name": cat.get("name", ""), "qty": 1},
         })
         emit("item_taken", {"x": picked["x"], "y": picked["y"]}, broadcast=True)
+
+
+def _persist_loadout(player):
+    try:
+        db.save_loadout(player["player_id"], player["inventory"],
+                        player["equipment"], player["look"])
+    except Exception as exc:
+        print("erro salvando equipamento:", exc)
+
+
+@socketio.on("equip")
+def on_equip(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    item_id = (data or {}).get("item")
+    if world.equip(player, item_id):
+        _persist_loadout(player)
+        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        emit("player_look", {"id": player["id"], "look": player["look"]}, broadcast=True)
+
+
+@socketio.on("unequip")
+def on_unequip(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    slot = (data or {}).get("slot")
+    if world.unequip(player, slot):
+        _persist_loadout(player)
+        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        emit("player_look", {"id": player["id"], "look": player["look"]}, broadcast=True)
 
 
 @socketio.on("disconnect")

@@ -16,7 +16,8 @@ ITEMS = {
     "coin_bronze":  {"name": "Moeda de Bronze", "kind": "currency", "stackable": True,  "color": "#cd7f32"},
     "coin_silver":  {"name": "Moeda de Prata",  "kind": "currency", "stackable": True,  "color": "#cbd2d9"},
     "coin_gold":    {"name": "Moeda de Ouro",   "kind": "currency", "stackable": True,  "color": "#f4b860"},
-    "staff_portuz": {"name": "Cajado do Portuz", "kind": "weapon",   "stackable": False, "color": "#9b6dff"},
+    "staff_portuz": {"name": "Cajado do Portuz", "kind": "weapon",   "stackable": False, "color": "#9b6dff",
+                     "slot": "hand", "visual": "staff"},
 }
 
 
@@ -33,11 +34,31 @@ def is_stackable(item_id):
     return bool(it and it["stackable"])
 
 
+# Espacos de equipamento (ordem usada na interface). Por ora, so a mao.
+EQUIP_SLOTS = ["hand"]
+
+
+def slot_of(item_id):
+    it = ITEMS.get(item_id)
+    return it.get("slot") if it else None
+
+
+def is_equippable(item_id):
+    return slot_of(item_id) is not None
+
+
+def shows_staff(item_id):
+    """True se o item equipado deve fazer o personagem segurar um cajado."""
+    it = ITEMS.get(item_id)
+    return bool(it and it.get("visual") == "staff")
+
+
 def catalog():
-    """O que o cliente precisa pra nomear e desenhar cada item."""
+    """O que o cliente precisa pra nomear, desenhar e equipar cada item."""
     return {
         k: {"name": v["name"], "kind": v["kind"],
-            "stackable": v["stackable"], "color": v["color"]}
+            "stackable": v["stackable"], "color": v["color"],
+            "equippable": "slot" in v, "slot": v.get("slot")}
         for k, v in ITEMS.items()
     }
 
@@ -73,6 +94,19 @@ def add_to_bag(bag, item_id, qty=1):
                 return bag
     bag.append({"item": item_id, "qty": qty})
     return bag
+
+
+def remove_from_bag(bag, item_id, qty=1):
+    """Tira qty de item_id da bag. Muta bag. Devolve True se conseguiu."""
+    for i, stack in enumerate(bag):
+        if stack.get("item") == item_id:
+            have = int(stack.get("qty", 0))
+            if have <= qty:
+                bag.pop(i)
+            else:
+                stack["qty"] = have - qty
+            return True
+    return False
 
 
 def sanitize_bag(raw):

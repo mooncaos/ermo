@@ -69,6 +69,17 @@ def sanitize_look(raw, i=0):
     return look
 
 
+def sanitize_equipment(raw):
+    """Mantem so equipamentos validos: item existe e cabe naquele espaco."""
+    eq = {}
+    if isinstance(raw, dict):
+        for slot in items.EQUIP_SLOTS:
+            it = raw.get(slot)
+            if it and items.exists(it) and items.slot_of(it) == slot:
+                eq[slot] = it
+    return eq
+
+
 def public(p):
     """Versao do jogador segura pra enviar (sem campos internos com _)."""
     return {
@@ -105,7 +116,7 @@ class World:
     # ------------------------------------------------------------ jogadores
 
     def add_player(self, sid, player_id, name, look, x, y, facing="down",
-                   inventory=None):
+                   inventory=None, equipment=None):
         """Coloca no mundo um jogador ja carregado do banco."""
         player = {
             "id": sid,                # identidade da conexao (protocolo)
@@ -116,11 +127,13 @@ class World:
             "name": (name or "Viajante")[:16],
             "look": sanitize_look(look),
             "inventory": items.sanitize_bag(inventory or []),
+            "equipment": sanitize_equipment(equipment),
             "_last_move": 0.0,
             "_dirty": False,
         }
         self.players[sid] = player
         self.by_player_id[player_id] = sid
+        self._sync_look(player)   # a aparencia reflete o que esta equipado
         return player
 
     def sid_for_player(self, player_id):
@@ -192,3 +205,35 @@ class World:
                 keep.append((spawn_idx, when))
         self._respawns = keep
         return back
+
+    # ----------------------------------------------------------- equipamento
+
+    def _sync_look(self, player):
+        """A aparencia segue o equipamento (por ora: cajado na mao)."""
+        hand = player["equipment"].get("hand")
+        player["look"]["staff"] = items.shows_staff(hand)
+
+    def equip(self, player, item_id):
+        """Tira o item da mochila e veste no espaco dele. Se o espaco ja tinha
+        algo, o antigo volta pra mochila. Devolve True se equipou."""
+        if not items.is_equippable(item_id):
+            return False
+        if not items.remove_from_bag(player["inventory"], item_id, 1):
+            return False  # nao esta na mochila
+        slot = items.slot_of(item_id)
+        prev = player["equipment"].get(slot)
+        if prev:
+            items.add_to_bag(player["inventory"], prev, 1)
+        player["equipment"][slot] = item_id
+        self._sync_look(player)
+        return True
+
+    def unequip(self, player, slot):
+        """Tira o que esta no espaco e devolve pra mochila. True se tirou."""
+        item_id = player["equipment"].get(slot)
+        if not item_id:
+            return False
+        del player["equipment"][slot]
+        items.add_to_bag(player["inventory"], item_id, 1)
+        self._sync_look(player)
+        return True

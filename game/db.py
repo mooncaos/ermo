@@ -163,6 +163,17 @@ def save_inventory(player_id, bag):
         )
 
 
+def save_loadout(player_id, inventory, equipment, look):
+    """Grava mochila, equipamento e aparencia juntos (equipar muda os tres)."""
+    with cursor() as cur:
+        cur.execute(
+            """UPDATE players SET inventory=%s, equipment=%s, look=%s, last_seen=now()
+               WHERE id=%s""",
+            (psycopg2.extras.Json(inventory), psycopg2.extras.Json(equipment),
+             psycopg2.extras.Json(look), player_id),
+        )
+
+
 # ----------------------------------------------------------------- sessoes
 
 def _hash_token(token):

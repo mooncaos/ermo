@@ -35,6 +35,7 @@ const btnReg     = document.getElementById('btn-register');
 const bagBtn   = document.getElementById('bag-btn');
 const invEl    = document.getElementById('inv');
 const invGrid  = document.getElementById('inv-grid');
+const equipRow = document.getElementById('equip-row');
 const invClose = document.getElementById('inv-close');
 const toastEl  = document.getElementById('toast');
 
@@ -55,9 +56,15 @@ let started = false;
 
 // ---------- inventario / itens ----------
 let inventory = [];           // mochila local: lista de pilhas {item, qty}
+let equipment = {};           // equipamento local: slot -> item_id
 const catalog = {};           // definicoes de itens vindas do servidor
 const ground = new Map();     // "x,y" -> item_id (itens no chao agora)
 let invOpen = false;
+
+// ---------- clique pra andar ----------
+let autoPath = [];            // direcoes restantes do trajeto clicado
+let autoTimer = null;
+let clickFx = null;           // marcador visual do destino {x,y,start}
 
 // ===========================================================================
 //  PALETAS + CRIADOR DE PERSONAGEM  (valores iguais aos do servidor)
@@ -102,7 +109,6 @@ function buildCreator(){
   buildSwatches('row-hair',  HAIRS,  'hair');
   buildPills('row-hood', [['up','Pra cima'],['down','Pra baixo']], 'hood');
   buildPills('row-hat',  [['none','Nenhum'],['wizard','Mago'],['cap','Boné']], 'hat');
-  buildPills('row-staff',[[false,'Não'],[true,'Sim']], 'staff');
 }
 
 // pré-visualização: o herói andando enquanto você escolhe
@@ -408,6 +414,21 @@ function frame(now){
     drawItemIcon(ctx, sx+TS/2, sy+TS*0.5 - 2 + bob, TS, itemId, true);
   });
 
+  // marcador do destino clicado (some sozinho)
+  if(clickFx){
+    const age = now - clickFx.start;
+    if(age > 520){ clickFx = null; }
+    else {
+      const k = age/520;
+      const mx = clickFx.x*TS - camX + TS/2, my = clickFx.y*TS - camY + TS/2;
+      ctx.save();
+      ctx.globalAlpha = (1-k)*0.85;
+      ctx.strokeStyle = '#9b6dff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(mx, my, 4 + k*TS*0.5, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   const ordered = [...players.values()].sort((a,b)=> (a.ry - b.ry));
   for(const p of ordered){
     const sx = p.rx - camX, sy = p.ry - camY;
@@ -428,6 +449,7 @@ const KEYMAP = {
 };
 const held = []; let ticker = null;
 function pressDir(dir){
+  stopAuto();                 // controle manual cancela o caminhar do clique
   if(!held.includes(dir)){
     held.push(dir); sendMove(dir);
     if(!ticker) ticker = setInterval(()=>{ if(held.length) sendMove(held[held.length-1]); }, STEP_MS);
@@ -503,6 +525,7 @@ function connectWithToken(token){
     for(const p of data.players) addPlayer(p);
 
     inventory = Array.isArray(data.inventory) ? data.inventory : [];
+    equipment = data.equipment || {};
     Object.keys(catalog).forEach(k=> delete catalog[k]);
     Object.assign(catalog, data.items || {});
     ground.clear();
@@ -526,6 +549,16 @@ function connectWithToken(token){
   });
   socket.on('item_taken',   d=> ground.delete(d.x+','+d.y) );
   socket.on('item_spawned', d=> ground.set(d.x+','+d.y, d.item) );
+
+  // equipamento
+  socket.on('loadout', d=>{
+    inventory = Array.isArray(d.bag) ? d.bag : inventory;
+    equipment = d.equipment || {};
+    refreshInventory();
+  });
+  socket.on('player_look', d=>{
+    const p = players.get(d.id); if(p && d.look) p.look = d.look;
+  });
 
   // token recusado pelo servidor: limpa e volta pro login
   socket.on('auth_error', ()=>{
@@ -657,7 +690,41 @@ if(pctx) requestAnimationFrame(previewLoop);
 //  MOCHILA (inventário)
 // ===========================================================================
 const INV_SLOTS = 20;
+const EQUIP_SLOTS = ['hand'];
+const SLOT_LABELS = { hand: 'Mão' };
+
+function equipItem(itemId){ if(socket) socket.emit('equip', { item: itemId }); }
+function unequipSlot(slot){ if(socket) socket.emit('unequip', { slot }); }
+
+function refreshEquip(){
+  if(!equipRow) return;
+  equipRow.innerHTML = '';
+  for(const slot of EQUIP_SLOTS){
+    const cell = document.createElement('div'); cell.className = 'eq-slot';
+    const box = document.createElement('div'); box.className = 'slot';
+    const itemId = equipment[slot];
+    if(itemId){
+      box.classList.add('full');
+      const def = catalog[itemId];
+      box.title = (def ? def.name : itemId) + ' — clique pra tirar';
+      const c = document.createElement('canvas'); c.width = 48; c.height = 48;
+      drawItemIcon(c.getContext('2d'), 24, 24, 48, itemId, false);
+      box.appendChild(c);
+      box.style.cursor = 'pointer';
+      box.addEventListener('click', ()=> unequipSlot(slot));
+    } else {
+      box.classList.add('eq-empty');
+      box.title = 'Vazio';
+    }
+    const label = document.createElement('span'); label.className = 'eq-label';
+    label.textContent = SLOT_LABELS[slot] || slot;
+    cell.appendChild(box); cell.appendChild(label);
+    equipRow.appendChild(cell);
+  }
+}
+
 function refreshInventory(){
+  refreshEquip();
   if(!invGrid) return;
   invGrid.innerHTML = '';
   if(!inventory.length){
@@ -675,13 +742,18 @@ function refreshInventory(){
     if(stack){
       slot.classList.add('full');
       const def = catalog[stack.item];
-      slot.title = def ? def.name : stack.item;
+      const eqp = def && def.equippable;
+      slot.title = (def ? def.name : stack.item) + (eqp ? ' — clique pra equipar' : '');
       const c = document.createElement('canvas'); c.width = 44; c.height = 44;
       drawItemIcon(c.getContext('2d'), 22, 22, 44, stack.item, false);
       slot.appendChild(c);
       if(stack.qty > 1){
         const q = document.createElement('span'); q.className = 'qty';
         q.textContent = stack.qty; slot.appendChild(q);
+      }
+      if(eqp){
+        slot.style.cursor = 'pointer';
+        slot.addEventListener('click', ()=> equipItem(stack.item));
       }
     }
     invGrid.appendChild(slot);
@@ -712,4 +784,71 @@ window.addEventListener('keydown', e=>{
   if(!started || typingInField(e)) return;
   if(e.code === 'KeyI'){ e.preventDefault(); toggleInv(); }
   else if(e.code === 'Escape' && invOpen){ e.preventDefault(); toggleInv(false); }
+});
+
+// ===========================================================================
+//  CLIQUE PRA ANDAR (mouse / toque no mapa)
+//  - acha o menor caminho ate o tile clicado, desviando de obstaculos (BFS)
+//  - emite os passos no mesmo ritmo do teclado; o servidor valida cada um
+// ===========================================================================
+const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H']);  // iguais ao servidor
+function walkableTile(x, y){
+  return y >= 0 && y < mapH && x >= 0 && x < mapW && !SOLID_TILES.has(mapRows[y][x]);
+}
+function findPath(sx, sy, tx, ty){
+  if(!walkableTile(tx, ty)) return null;
+  if(sx === tx && sy === ty) return [];
+  const key = (x, y) => x + ',' + y;
+  const start = key(sx, sy);
+  const came = new Map([[start, null]]);
+  const q = [[sx, sy]]; let head = 0, found = false;
+  const DIRS = [['up',0,-1], ['down',0,1], ['left',-1,0], ['right',1,0]];
+  while(head < q.length){
+    const [cx, cy] = q[head++];
+    if(cx === tx && cy === ty){ found = true; break; }
+    for(const [d, dx, dy] of DIRS){
+      const nx = cx + dx, ny = cy + dy;
+      if(!walkableTile(nx, ny)) continue;
+      const nk = key(nx, ny);
+      if(came.has(nk)) continue;
+      came.set(nk, [key(cx, cy), d]);
+      q.push([nx, ny]);
+    }
+  }
+  if(!found) return null;
+  const dirs = []; let cur = key(tx, ty);
+  while(cur !== start){
+    const e = came.get(cur); if(!e) return null;
+    dirs.unshift(e[1]); cur = e[0];
+  }
+  return dirs;
+}
+function stopAuto(){
+  autoPath = [];
+  if(autoTimer){ clearInterval(autoTimer); autoTimer = null; }
+}
+function walkPath(dirs){
+  stopAuto();
+  if(!dirs || !dirs.length) return;
+  autoPath = dirs.slice();
+  const step = () => {
+    if(!autoPath.length){ stopAuto(); return; }
+    sendMove(autoPath.shift());
+  };
+  step();                                  // primeiro passo imediato
+  autoTimer = setInterval(step, STEP_MS);  // o resto no ritmo de caminhada
+}
+canvas.addEventListener('pointerdown', e => {
+  if(!started || invOpen) return;
+  const me = players.get(myId); if(!me) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * (canvas.width / rect.width) + camX;
+  const py = (e.clientY - rect.top) * (canvas.height / rect.height) + camY;
+  const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
+  const path = findPath(me.x, me.y, tx, ty);
+  if(path && path.length){
+    clickFx = { x: tx, y: ty, start: performance.now() };
+    walkPath(path);
+  }
 });
