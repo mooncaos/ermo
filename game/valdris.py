@@ -1,14 +1,14 @@
 """
-VALDRIS — o primeiro habitante do Ermo.
+VALDRIS — o excentrico do Ermo, senhor das terras do sudeste.
 
-Jovem por fora (parou de envelhecer aos 25), anciao por dentro (874 anos),
-forasteiro recem-caido nos nossos Ermos: confuso, deslocado, procurando o
-caminho de volta. Perambula pelo vilarejo murmurando coisas cosmicas pro nada;
-quando voce chega perto e fala com ele, ele te olha e pergunta as coisas de
-quem nao sabe onde caiu.
+Nada de velho, nada de confuso: o Valdris e excentrico ate o osso. Conversa com
+as pedras, guarda trovao em pote, conta o infinito por esporte. Sabe exatamente
+onde esta e o que faz; o mundo e que e estreito demais pro jeito dele. Perambula
+pelos campos e pelo lago la no sudeste murmurando coisas cosmicas pro nada;
+quando voce chega perto, ele te encara e solta um enigma, achando graca.
 
-E tem um limite: xingou perto dele (em PT/EN/ES/FR), ele te apaga com uma
-magia cosmica. Perdeu o mundo dele, nao os modos.
+E tem um limite: xingou perto dele (em PT/EN/ES/FR), ele te apaga com uma magia
+cosmica. Excentrico, nao surdo: vulgaridade no campo dele, nao passa.
 
 Aqui mora so o CONTEUDO (as falas) e a deteccao de palavrao. O comportamento
 (andar, falar, punir) e orquestrado em app.py; o estado do NPC vive em world.py.
@@ -24,45 +24,46 @@ NPC_NAME = "Valdris"
 
 # Murmurios soltos, cosmicos: ele fala SOZINHO enquanto perambula. Sem "voce".
 MURMURS = [
-    "este nao e o meu ceu. as estrelas estao todas no lugar errado.",
-    "no meu mundo isso aqui nao existia. ou existia, e eu que nao existia ainda.",
-    "acordei neste vilarejo sem ter dormido nele.",
-    "meu rosto e jovem e isso confunde todo mundo, inclusive eu.",
-    "conheco o cansaco de oitocentos anos, mas este chao e novo pra mim.",
-    "se um corvo falar comigo, vou fingir que nao entendi.",
-    "uma vez fui vento por uma tarde inteira.",
     "guardei um trovao num pote. e melhor nao abrir o pote.",
     "as pedras tambem sonham, so que bem devagar.",
     "contei ate o infinito uma vez. parei no meio porque deu fome.",
-    "874 anos e ainda nao aprendi a assoviar.",
-    "ontem o sol nasceu quadrado. ninguem comentou nada.",
-    "acho que morri numa terca. mas foi rapidinho.",
-    "tem um nome na ponta da minha lingua. nao e o meu.",
-    "a agua daquele lago me deve dinheiro.",
-    "parei de envelhecer aos 25. a cabeca nao recebeu o aviso.",
-    "voce tambem escuta a batata pensando, ou sou so eu?",
+    "ontem o sol nasceu quadrado. achei elegante.",
+    "a agua daquele lago me deve dinheiro. e sabe disso.",
+    "voce tambem escuta a batata pensando, ou e privilegio meu?",
+    "uma vez fui vento por uma tarde inteira. recomendo.",
+    "ja conversei com cada espiga daquele trigo. tem uma que mente.",
+    "o lago e um espelho preguicoso: me copia sempre com atraso.",
+    "dei nome pra todas as nuvens. aquela ali e a Gertrudes.",
+    "se um corvo falar comigo, vou fingir que entendi de proposito.",
+    "plantei uma pergunta ali atras. semana que vem nasce a resposta.",
+    "o silencio daqui tem sotaque. voce nao acha?",
+    "guardo segredos que ainda nem aconteceram.",
+    "tem dias que eu ando ao contrario so pra desafiar a paisagem.",
+    "a sombra daquela arvore me deve uma desculpa.",
+    "eu nao durmo. so pisco bem devagar por umas horas.",
 ]
 
 # Falas de quando VOCE chega perto e interage: forasteiro perdido, pedem um "voce".
 GREETINGS = [
-    "voce e daqui? como e que se volta?",
-    "voce tambem caiu aqui de algum lugar, ou esse mundo e teu de nascenca?",
-    "como esse 'Ermo' se chama? eu vim de um lugar com outro nome.",
-    "tem um caminho de volta? ou eu sou o tipo de coisa que so vai numa direcao?",
-    "me diz: faz quanto tempo que eu estou aqui? perdi a conta.",
-    "voce tem cara de quem sabe onde fica a saida. sabe?",
-    "se eu te perguntar quem eu sou, voce saberia responder?",
-    "voce e real, ou eu te inventei pra ter com quem falar?",
-    "fica entre nos: eu nao sei como cheguei neste lugar.",
+    "ah, um visitante. diga: voce ja contou os seus proprios passos hoje?",
+    "voce chegou na hora exata. eu so nao sei exata de que.",
+    "responde rapido, sem pensar: de que cor e o vento agora?",
+    "voce tem cara de quem guarda um numero secreto. eu tambem guardo.",
+    "fica entre nos: a sua sombra confia em voce?",
+    "interessante. voce anda como quem ainda nao decidiu existir direito.",
+    "se eu te emprestar um trovao, voce devolve limpo?",
+    "voce veio dos campos, ou os campos e que te cuspiram aqui? curiosidade minha.",
+    "gosto de voce. tem o peso certo pra atravessar uma quinta-feira.",
+    "me diz uma verdade que ninguem sabe, e eu te conto uma que ninguem devia.",
 ]
 
 # O que ele diz no instante em que frita o engracadinho que xingou perto.
 SMITE_LINES = [
-    "essa palavra eu conheco. em todos os meus mundos ela e feia.",
-    "874 anos de paciencia. nao inclui isso.",
-    "no meu mundo, isso se pagava caro.",
-    "eu vim de muito longe pra nao ouvir isso.",
-    "perdi meu mundo. nao perdi os modos.",
+    "essa palavra eu conheco. ela e feia em todos os idiomas que eu inventei.",
+    "nao. aqui no meu campo, isso nao se diz.",
+    "vulgaridade enferruja o cosmos. vai pensar la longe.",
+    "guardei um trovao justamente pra momentos assim.",
+    "a paisagem se ofendeu. e eu concordo com ela.",
 ]
 
 

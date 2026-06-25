@@ -339,6 +339,27 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle = '#ffcf6e';
       c.beginPath(); c.arc(px+ts*0.5, py+ts*0.16, ts*0.15, 0, Math.PI*2); c.fill();
       break;
+    case 'W':                                          // parede de madeira (Sapopemba)
+      c.fillStyle = '#7a4a2a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#5f3a20'; for(let i=0;i<ts;i+=5) c.fillRect(px, py+i, ts, 1.5);  // tabuas
+      c.fillStyle = '#8a5630'; c.fillRect(px,py,ts,2);                                // topo
+      c.fillStyle = '#4d2f1a'; c.fillRect(px, py+ts-3, ts, 3);                        // base
+      c.fillStyle = '#3a2414'; c.fillRect(px+ts*0.5-0.5, py, 1, ts);                  // junta vertical
+      break;
+    case 'V': {                                        // placa I LOVE SAPOPEMBA
+      grassBase(c,px,py,ts,gx,gy);
+      c.fillStyle = '#2e2a22'; c.fillRect(px+ts*0.5-1.5, py+ts*0.5, 3, ts*0.5);       // poste
+      c.fillStyle = '#c0392b'; c.fillRect(px+ts*0.06, py+ts*0.06, ts*0.88, ts*0.48);  // placa vermelha
+      c.fillStyle = '#9c2419'; c.fillRect(px+ts*0.06, py+ts*0.5, ts*0.88, 2);
+      const hx=px+ts*0.5, hy=py+ts*0.27, s=ts*0.13;                                   // coracao branco
+      c.fillStyle = '#fff';
+      c.beginPath();
+      c.arc(hx-s*0.5, hy-s*0.18, s*0.62, 0, Math.PI*2);
+      c.arc(hx+s*0.5, hy-s*0.18, s*0.62, 0, Math.PI*2);
+      c.moveTo(hx-s*1.08, hy); c.lineTo(hx, hy+s*1.15); c.lineTo(hx+s*1.08, hy); c.closePath();
+      c.fill();
+      break;
+    }
     default: grassBase(c,px,py,ts,gx,gy);
   }
 }
@@ -453,7 +474,8 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
 }
 
 // O corvo: passarinho preto empoleirado, com um pulinho quando se move.
-function drawCrow(c, px, py, ts, facing, moving, walk){
+function drawCrow(c, px, py, ts, facing, moving, walk, look){
+  const body = (look && look.feather) || '#15151b';
   const cx = px + ts*0.5;
   const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*3 : 0;
   const baseY = py + ts*0.66 - hop;
@@ -462,7 +484,7 @@ function drawCrow(c, px, py, ts, facing, moving, walk){
   c.globalAlpha = 0.22; c.fillStyle = '#000';
   c.beginPath(); c.ellipse(cx, py+ts*0.82, ts*0.2, ts*0.07, 0, 0, Math.PI*2); c.fill();
   c.globalAlpha = 1;
-  c.fillStyle = '#15151b';
+  c.fillStyle = body;
   c.beginPath(); c.ellipse(cx, baseY, ts*0.2, ts*0.16, 0, 0, Math.PI*2); c.fill();   // corpo
   c.beginPath();                                                                      // cauda
   c.moveTo(cx - dir*ts*0.15, baseY - ts*0.02);
@@ -486,20 +508,24 @@ function drawCrow(c, px, py, ts, facing, moving, walk){
 }
 
 // O Jose (Mestre Cuscuz): gato preto, sorrisao de cheshire, fumaca roxa subindo.
-function drawCat(c, px, py, ts, facing, moving, walk){
+function drawCat(c, px, py, ts, facing, moving, walk, look){
+  const smoke = !look || look.smoke !== false;
+  const grin  = !look || look.grin  !== false;
   const cx = px + ts*0.5;
   const t = performance.now();
   const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*2 : 0;
   const baseY = py + ts*0.7 - hop;
   const dir = (facing==='left') ? -1 : 1;
   c.save();
-  for(let i=0;i<3;i++){                                   // fumaca roxa
-    const ph = (t/700 + i*0.45) % 1;
-    const wy = baseY - ts*0.12 - ph*ts*0.7;
-    const wx = cx + Math.sin(t/500 + i*2)*ts*0.16 + (i-1)*ts*0.12;
-    c.globalAlpha = 0.24*(1-ph);
-    c.fillStyle = '#9b6dff';
-    c.beginPath(); c.arc(wx, wy, ts*(0.11+ph*0.13), 0, Math.PI*2); c.fill();
+  if(smoke){
+    for(let i=0;i<3;i++){                                 // fumaca roxa
+      const ph = (t/700 + i*0.45) % 1;
+      const wy = baseY - ts*0.12 - ph*ts*0.7;
+      const wx = cx + Math.sin(t/500 + i*2)*ts*0.16 + (i-1)*ts*0.12;
+      c.globalAlpha = 0.24*(1-ph);
+      c.fillStyle = '#9b6dff';
+      c.beginPath(); c.arc(wx, wy, ts*(0.11+ph*0.13), 0, Math.PI*2); c.fill();
+    }
   }
   c.globalAlpha = 0.22; c.fillStyle='#000';
   c.beginPath(); c.ellipse(cx, py+ts*0.84, ts*0.2, ts*0.06, 0,0,Math.PI*2); c.fill();
@@ -521,10 +547,80 @@ function drawCat(c, px, py, ts, facing, moving, walk){
   c.fillStyle = '#15151b';
   c.fillRect(cx-ts*0.07-0.5, hy-ts*0.05, 1, ts*0.08);
   c.fillRect(cx+ts*0.07-0.5, hy-ts*0.05, 1, ts*0.08);
-  c.strokeStyle = '#f4e6c0'; c.lineWidth = 1.5; c.lineCap='round';                     // sorrisao
-  c.beginPath(); c.arc(cx, hy+ts*0.03, ts*0.1, 0.12*Math.PI, 0.88*Math.PI); c.stroke();
-  c.fillStyle = '#f4e6c0';
-  for(let i=-1;i<=1;i++) c.fillRect(cx+i*ts*0.05-0.6, hy+ts*0.09, 1.4, 1.6);
+  if(grin){
+    c.strokeStyle = '#f4e6c0'; c.lineWidth = 1.5; c.lineCap='round';                   // sorrisao cheshire
+    c.beginPath(); c.arc(cx, hy+ts*0.03, ts*0.1, 0.12*Math.PI, 0.88*Math.PI); c.stroke();
+    c.fillStyle = '#f4e6c0';
+    for(let i=-1;i<=1;i++) c.fillRect(cx+i*ts*0.05-0.6, hy+ts*0.09, 1.4, 1.6);
+  } else {
+    c.strokeStyle = '#0f0f14'; c.lineWidth = 1.2; c.lineCap='round';                    // boquinha normal
+    c.beginPath(); c.arc(cx-ts*0.035, hy+ts*0.07, ts*0.03, 0, Math.PI); c.stroke();
+    c.beginPath(); c.arc(cx+ts*0.035, hy+ts*0.07, ts*0.03, 0, Math.PI); c.stroke();
+  }
+  c.restore();
+}
+
+// Cachorro caramelo (o vira-lata que, nesse mundo, MIA).
+function drawDog(c, px, py, ts, facing, moving, walk, look){
+  const cx = px + ts*0.5;
+  const coat = (look && look.skin) || '#c8843a';
+  const dark = shade(coat, -0.22);
+  const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*2 : 0;
+  const baseY = py + ts*0.64 - hop;
+  const dir = (facing==='left') ? -1 : 1;
+  c.save();
+  c.globalAlpha=0.22; c.fillStyle='#000';
+  c.beginPath(); c.ellipse(cx, py+ts*0.84, ts*0.24, ts*0.06, 0,0,Math.PI*2); c.fill();
+  c.globalAlpha=1;
+  c.strokeStyle = coat; c.lineWidth = ts*0.09; c.lineCap='round';                       // cauda
+  c.beginPath(); c.moveTo(cx - dir*ts*0.18, baseY);
+  c.quadraticCurveTo(cx - dir*ts*0.34, baseY - ts*0.12, cx - dir*ts*0.3, baseY - ts*0.26); c.stroke();
+  c.fillStyle = dark;                                                                    // pernas
+  c.fillRect(cx - dir*ts*0.12, baseY + ts*0.05, ts*0.05, ts*0.16);
+  c.fillRect(cx + dir*ts*0.1,  baseY + ts*0.05, ts*0.05, ts*0.16);
+  c.fillStyle = coat;                                                                    // corpo
+  c.beginPath(); c.ellipse(cx, baseY, ts*0.24, ts*0.16, 0, 0, Math.PI*2); c.fill();
+  const hx = cx + dir*ts*0.2, hy = baseY - ts*0.12;                                      // cabeca
+  c.beginPath(); c.arc(hx, hy, ts*0.14, 0, Math.PI*2); c.fill();
+  c.fillStyle = dark;                                                                    // focinho + orelha
+  c.beginPath(); c.ellipse(hx + dir*ts*0.1, hy + ts*0.04, ts*0.07, ts*0.05, 0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(hx - dir*ts*0.08, hy - ts*0.08, ts*0.05, ts*0.09, dir*0.4, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#1a1a1a';
+  c.beginPath(); c.arc(hx + dir*ts*0.16, hy + ts*0.02, ts*0.025, 0, Math.PI*2); c.fill(); // nariz
+  c.beginPath(); c.arc(hx + dir*ts*0.02, hy - ts*0.02, ts*0.022, 0, Math.PI*2); c.fill(); // olho
+  c.restore();
+}
+
+// Sapo gordo e preto, quase sempre parado num canto da cidade.
+function drawToad(c, px, py, ts, facing, moving, walk, look){
+  const cx = px + ts*0.5;
+  const body = (look && look.skin) || '#26302a';
+  const belly = shade(body, 0.25);
+  const breathe = Math.sin(performance.now()/600)*ts*0.012;
+  const baseY = py + ts*0.74;
+  c.save();
+  c.globalAlpha=0.22; c.fillStyle='#000';
+  c.beginPath(); c.ellipse(cx, py+ts*0.86, ts*0.28, ts*0.06, 0,0,Math.PI*2); c.fill();
+  c.globalAlpha=1;
+  c.fillStyle = body;                                                                    // corpo gordo
+  c.beginPath(); c.ellipse(cx, baseY, ts*0.3, ts*0.2+breathe, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = belly;                                                                   // barriga
+  c.beginPath(); c.ellipse(cx, baseY+ts*0.05, ts*0.18, ts*0.1, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = body;                                                                    // patas
+  c.beginPath(); c.ellipse(cx-ts*0.2, baseY+ts*0.12, ts*0.06, ts*0.04, -0.3,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(cx+ts*0.2, baseY+ts*0.12, ts*0.06, ts*0.04, 0.3,0,Math.PI*2); c.fill();
+  const ey = baseY - ts*0.18;                                                            // olhos esbugalhados
+  c.fillStyle = body;
+  c.beginPath(); c.arc(cx-ts*0.12, ey, ts*0.09, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(cx+ts*0.12, ey, ts*0.09, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#e8d44a';
+  c.beginPath(); c.arc(cx-ts*0.12, ey, ts*0.05, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(cx+ts*0.12, ey, ts*0.05, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#000';
+  c.fillRect(cx-ts*0.12-0.6, ey-ts*0.05, 1.2, ts*0.1);
+  c.fillRect(cx+ts*0.12-0.6, ey-ts*0.05, 1.2, ts*0.1);
+  c.strokeStyle = shade(body,-0.3); c.lineWidth=1.5; c.lineCap='round';                  // boca larga
+  c.beginPath(); c.arc(cx, baseY-ts*0.02, ts*0.16, 0.1*Math.PI, 0.9*Math.PI); c.stroke();
   c.restore();
 }
 
@@ -624,8 +720,10 @@ function frame(now){
   for(const p of ordered){
     const sx = p.rx - camX, sy = p.ry - camY;
     if(sx < -TS || sy < -TS || sx > canvas.width+TS || sy > canvas.height+TS) continue;
-    if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk);
-    else if(p.kind === 'cat') drawCat(ctx, sx, sy, TS, p.facing, p._moving, p.walk);
+    if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
+    else if(p.kind === 'cat') drawCat(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
+    else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
+    else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
   }
 
@@ -1218,7 +1316,7 @@ window.addEventListener('keydown', e=>{
 //  - acha o menor caminho ate o tile clicado, desviando de obstaculos (BFS)
 //  - emite os passos no mesmo ritmo do teclado; o servidor valida cada um
 // ===========================================================================
-const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H', 'M', 'm', 'L']);  // iguais ao servidor
+const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H', 'M', 'm', 'L', 'W', 'V']);  // iguais ao servidor
 const STEPV = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 function walkableTile(x, y){
   return y >= 0 && y < mapH && x >= 0 && x < mapW && !SOLID_TILES.has(mapRows[y][x]);

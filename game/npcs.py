@@ -54,7 +54,7 @@ BENTO_GREETINGS = [
     "se ta perdido, senta um pouco. a pressa nao acha saida nenhuma.",
     "uns chegam aqui achando que e castigo. e so um lugar, moco. da pra viver.",
     "ta com fome? trigo eu tenho de sobra, se quiser.",
-    "o de roxo, o Valdris, te encheu de pergunta? ele e assim. bom sujeito, so inquieto.",
+    "o de roxo, o Valdris, te encheu de enigma? ele e assim. bom sujeito, excentrico que so ele.",
     "nao sei como voce chegou, nem como sair. mas sei plantar. precisa de ajuda, e so falar.",
     "fica a vontade pela vila. so nao pisa no meu trigo... brincadeira, pode pisar, ele aguenta.",
     "ja vi muita gente perdida passar por aqui. quase ninguem acha a saida. mas muita gente acha sossego.",
@@ -163,7 +163,7 @@ JOSE_MURMURS = [
     "ronrom... (ele te observa sumindo aos poucos na fumaca roxa.)",
     "vi o velho de roxo procurando a saida. nao contei a ele. nao vou contar a voce.",
     "todo gato preto da azar, dizem. eu dou respostas. pior, talvez.",
-    "a Beth caiu e ficou. o Valdris caiu e nao para de procurar. eu? eu sempre estive aqui.",
+    "a Beth caiu e ficou. o Valdris ficou pro lado do sudeste, excentrico do jeito dele. eu? eu sempre estive aqui.",
 ]
 JOSE_GREETINGS = [
     "As respostas sao como peixes: quanto mais voce aperta, mais rapido elas escapam.",
@@ -198,7 +198,7 @@ GUI_GREETINGS = [
 # --- Maria Cachorra: a rainha do crime (giria de morro) ---
 MARIA_MURMURS = [
     "essa quebrada e minha de ponta a ponta. ninguem respira sem eu deixar.",
-    "o veio de roxo la no meio... esse e o unico que eu nao mexo. cada um no seu quadrado.",
+    "o cara de roxo la pro sudeste... esse e o unico que eu nao mexo. cada um no seu quadrado.",
     "cade meu bonde que sumiu... bando de vagabundo.",
     "to de olho em todo mundo. ate no maluco que fica encarando ali.",
     "respeito e tudo. quem nao tem, aprende na marra.",
@@ -228,12 +228,13 @@ ROSTER = [
         "name": valdris.NPC_NAME,
         "look": {"skin": "#f1c9a5", "cloak": "#9b6dff", "hood": "up",
                  "hat": "none", "hair": "#2a2233", "staff": False},
-        "home": (20, 12),
-        "radius": 5,
+        "home": (27, 27),
+        "radius": 6,
         "wanders": True,
         "step_every": 0.8,
         "solid": True,
         "kind": "person",
+        "gender": "H",
         "murmurs": valdris.MURMURS,
         "murmur_min": 15, "murmur_max": 20,
         "greetings": valdris.GREETINGS,
@@ -425,3 +426,265 @@ def _menina_spec(m):
     }
 
 ROSTER.extend(_menina_spec(m) for m in ITATINGA_MENINAS)
+
+
+# ============================================================================
+#  SAPOPEMBA DO CAIQUE — regiao sudoeste (cidade satirica de quebrada)
+# ============================================================================
+# 5 comercios de madeira, uma rua de pedra, a placa I LOVE SAPOPEMBA, e uma
+# galera doida. Sem terreno e sem itens (cortados neste update). Cada NPC ja
+# carrega o campo "gender" (H/M) pro futuro update de generos. Os bichos tem
+# som TROCADO de proposito: o gato late, o cachorro mia, o canario pia.
+
+LAZARO_MURMURS = [
+    "Sapopemba do Caique. quem entra, entra por bem.",
+    "ja revistei ate a minha propria sombra hoje.",
+    "parece calmo isso aqui. parece.",
+    "de noite a cidade muda. fica esperto.",
+    "se ouvir grito, e so o Macio. relaxa.",
+]
+LAZARO_GREETINGS = [
+    "alto la. voce esta entrando em Sapopemba. comporta-se.",
+    "forasteiro? a cidade e doida, mas e nossa. seja bem-vindo.",
+    "qualquer treta, fala com o Sr Fernando. ele cuida daqui.",
+    "ta armado? deixa quieto. ninguem quer confusao na porta.",
+]
+
+FERNANDO_MURMURS = [
+    "alguem tem que varrer essa cidade, e sempre sobra pra mim.",
+    "esse cachorro mia e esse gato late. ja desisti de entender.",
+    "o canarinho do Neymar soltou pra fora de novo.",
+    "Sapopemba inteira no meu lombo, viu.",
+    "se quebrou, eu conserto. se sujou, eu limpo.",
+]
+FERNANDO_GREETINGS = [
+    "opa. eu sou o Fernando, caseiro daqui. precisa de algo?",
+    "fica a vontade, mas nao bagunca, que dai sou eu que arrumo.",
+    "se ver o sapo num canto, nao pisa. ele e antigo aqui.",
+    "essa cidade tem as esquisitices dela. voce acostuma.",
+]
+
+SUCURI_MURMURS = [
+    "calmo por fora. meteoro por dentro.",
+    "eu nao corro. o chao que se apressa quando eu passo.",
+    "barba fechada, mente aberta.",
+    "ja fui mais magro. ja fui mais bobo, tambem.",
+    "respeito aqui e de graca. so pegar.",
+]
+SUCURI_GREETINGS = [
+    "fala. eu sou o Sucuri Meteoro. nome grande pra homem grande.",
+    "anda tranquilo por aqui que eu ando tranquilo contigo.",
+    "ce teve coragem de chegar perto. gostei.",
+    "qualquer coisa eu to por aqui. sempre to.",
+]
+
+MACIO_MURMURS = [
+    "aiiii aiiii aiii aii",
+    "AIIII AIIII AIII AII",
+    "aiiiiii... aiii aii aii",
+    "ai ai ai aiiiii aii",
+    "aiii aiii AIII aiiii aii",
+]
+MACIO_GREETINGS = [
+    "aiiii aiiii aiii aii (ele te encara) ...aii",
+    "oi! aiiii aiiii aiii aii",
+    "tudo bem? AIII AII. tudo bem.",
+    "aiii aiii aii... voce tambem ouviu isso?",
+]
+
+ARMEIRO_MURMURS = [
+    "heh heh heh. o que voce vai comprar, estrangeiro?",
+    "tenho Peteco de todo tipo. Peteco curto, Peteco longo.",
+    "uma Mauser C96 raridade. so pra quem tem bom gosto.",
+    "nao vendo bala, vendo confianca.",
+    "chega mais, estrangeiro. nao mordo. quase.",
+]
+ARMEIRO_GREETINGS = [
+    "ahh, estrangeiro! o que ce vai levar hoje?",
+    "Peteco e o que nao falta. e ainda tem a Mauser, joia rara.",
+    "compra dois Peteco e leva um absinto de brinde. fechado?",
+    "sem grana? entao so olha, estrangeiro. mas olha rapido.",
+]
+
+PIADISTA_MURMURS = [
+    "meu terapeuta disse que eu tenho problema com limites. ai eu sumi com ele.",
+    "queria ser enterrado, nao plantado. mas a familia economiza.",
+    "ja morri de rir. literalmente. foi so um susto.",
+    "sou baixinho, mas meu humor e mais baixo ainda.",
+    "comprei um caixao na promocao. tava por um triz.",
+]
+PIADISTA_GREETINGS = [
+    "quer uma piada de humor negro? a resposta eu tambem fiz sumir.",
+    "sou ruivo e anao. a natureza tava de brincadeira, igual eu.",
+    "ri agora, fica triste em casa depois. e de graca.",
+    "ce tem cara de quem aguenta piada pesada. segura essa... nah, melhor nao.",
+]
+
+BALA_MURMURS = [
+    "oi, gato. e pra mim que ce olha ou pro frango?",
+    "todo mundo jura que vem pela sinuca. ta certo, ta certo.",
+    "a vitrine e so vitrine. o resto e conversa.",
+    "Galo de Ouro: entra pelo frango, fica pela bagunca.",
+    "se ce corar, eu finjo que nao vi.",
+]
+BALA_GREETINGS = [
+    "ow, parou. quer jogar uma sinuca ou so veio admirar?",
+    "entra, meu bem. tem frango quentinho e papo torto la dentro.",
+    "eu sou a Bala Shita. perigosa igual o nome, doce igual sobremesa.",
+    "olha mas nao gasta tudo, vai que ce volta amanha.",
+]
+
+# Dona Chica: anda pela cidade e se apresenta como "Lucrecia", + 23 frases
+# completamente desconexas. As 24 servem de murmurio E de saudacao.
+DONA_CHICA_LINES = [
+    "oi, meu nome e Lucrecia.",
+    "voce viu meu guarda-chuva? ele tem opiniao propria.",
+    "as quinta-feira sao todas falsificadas, eu sei disso.",
+    "deixei o feijao no fogo em 1998.",
+    "o padre me deve tres ovos e uma sombrinha.",
+    "se o pombo voltar, diz pra ele que eu mudei de nome.",
+    "amanha e o aniversario do meu sapato.",
+    "eu nao confio em escada que sobe demais.",
+    "a televisao fala de mim quando eu saio de casa.",
+    "tenho uma colher que so funciona as tercas.",
+    "meu nome hoje e outro, mas nao lembro qual.",
+    "o vento roubou minha lista de compras e leu em voz alta.",
+    "voce e o moco da lua? te esperei a noite inteira.",
+    "guardei o domingo numa lata, mas vazou.",
+    "a vizinha virou nevoeiro, foi bonito de ver.",
+    "preciso devolver esse chao pra dona dele.",
+    "tres gatos me prometeram um terreno.",
+    "o relogio anda de costas so pra me irritar.",
+    "eu ja fui rainha de um lugar que nao existe mais.",
+    "voce tambem sente gosto de quarta-feira na boca?",
+    "minha sombra foi almocar e ainda nao voltou.",
+    "o cafe de ontem me mandou um recado pelo gato.",
+    "nao pisa ai, e onde eu guardo os trovoes do Valdris.",
+    "ja te falei meu nome? e Lucrecia. ou era. tanto faz.",
+]
+
+# --- os bichos de som trocado ---
+GATO_MURMURS = ["au au!", "AU! AU AU!", "rrrau... au.", "au au au au!", "au?"]
+GATO_GREETINGS = ["au au! (ele nao abana, e gato)", "AU AU AU!", "au... au au.", "rrau! au!"]
+CACHORRO_MURMURS = ["miau...", "miAU!", "miau miau miau", "miaaau...", "miau?"]
+CACHORRO_GREETINGS = ["miau! (ele quase ronrona)", "miAU miau!", "miau... miau.", "mrrau!"]
+NEYMAR_MURMURS = ["piu piu!", "piiiu!", "piu piu piu piu!", "piu! (irritado)", "piu?"]
+NEYMAR_GREETINGS = ["piu piu piu! (o Neymar te encara feio)", "PIIIU!", "piu... piu piu.", "piu piu!"]
+SAPO_MURMURS = ["croac.", "crooac...", "blerp.", "croac croac.", "croac."]
+SAPO_GREETINGS = ["croac. (ele nao se move)", "crooac...", "blerp. croac.", "croac croac croac."]
+
+
+SAPOPEMBA = [
+    {   # guarda do portao
+        "id": "npc:lazaro", "name": "Lazaro",
+        "look": {"skin": "#a86b3c", "cloak": "#3a4a3a", "hood": "down",
+                 "hat": "cap", "hair": "#2a2233", "staff": False},
+        "home": (15, 16), "radius": 1, "wanders": True, "step_every": 1.4,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": LAZARO_MURMURS, "murmur_min": 16, "murmur_max": 24,
+        "greetings": LAZARO_GREETINGS, "smiter": False,
+    },
+    {   # caseiro da cidade
+        "id": "npc:fernando", "name": "Sr Fernando",
+        "look": {"skin": "#c68642", "cloak": "#6a5a3a", "hood": "down",
+                 "hat": "cap", "hair": "#cfc7bf", "staff": False},
+        "home": (15, 26), "radius": 4, "wanders": True, "step_every": 1.2,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": FERNANDO_MURMURS, "murmur_min": 16, "murmur_max": 24,
+        "greetings": FERNANDO_GREETINGS, "smiter": False,
+    },
+    {   # presenca pesada
+        "id": "npc:sucuri", "name": "Sucuri Meteoro",
+        "look": {"skin": "#4a3b30", "cloak": "#2a2622", "hood": "down",
+                 "hat": "none", "hair": "#1a1410", "staff": False},
+        "home": (9, 23), "radius": 4, "wanders": True, "step_every": 1.3,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": SUCURI_MURMURS, "murmur_min": 18, "murmur_max": 28,
+        "greetings": SUCURI_GREETINGS, "smiter": False,
+    },
+    {   # o que grita aii o tempo todo
+        "id": "npc:macio", "name": "Macio",
+        "look": {"skin": "#a86b3c", "cloak": "#8a7a5a", "hood": "down",
+                 "hat": "cap", "hair": "#3a2f22", "staff": False},
+        "home": (11, 23), "radius": 5, "wanders": True, "step_every": 0.9,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": MACIO_MURMURS, "murmur_min": 6, "murmur_max": 12,
+        "greetings": MACIO_GREETINGS, "smiter": False,
+    },
+    {   # o mercador do RE4, vende Peteco + Mauser C96
+        "id": "npc:armeiro", "name": "Vendedor de Arma",
+        "look": {"skin": "#8d5524", "cloak": "#3a3530", "hood": "up",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (10, 21), "radius": 1, "wanders": True, "step_every": 1.6,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": ARMEIRO_MURMURS, "murmur_min": 14, "murmur_max": 22,
+        "greetings": ARMEIRO_GREETINGS, "smiter": False,
+    },
+    {   # anao ruivo, humor negro absurdo (original)
+        "id": "npc:piadista", "name": "Piadista",
+        "look": {"skin": "#e8b58c", "cloak": "#7a5a3a", "hood": "down",
+                 "hat": "none", "hair": "#c1440e", "staff": False},
+        "home": (6, 23), "radius": 3, "wanders": True, "step_every": 1.1,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": PIADISTA_MURMURS, "murmur_min": 16, "murmur_max": 26,
+        "greetings": PIADISTA_GREETINGS, "smiter": False,
+    },
+    {   # a da vitrine do Galo de Ouro
+        "id": "npc:bala", "name": "Bala Shita",
+        "look": {"skin": "#e8b58c", "cloak": "#e85d75", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (4, 21), "radius": 1, "wanders": True, "step_every": 1.5,
+        "solid": True, "kind": "person", "gender": "M",
+        "murmurs": BALA_MURMURS, "murmur_min": 15, "murmur_max": 24,
+        "greetings": BALA_GREETINGS, "smiter": False,
+    },
+    {   # Dona Chica que se apresenta como Lucrecia
+        "id": "npc:chica", "name": "Dona Chica",
+        "look": {"skin": "#d8a98c", "cloak": "#9b8fb0", "hood": "down",
+                 "hat": "none", "hair": "#cfc7bf", "staff": False},
+        "home": (10, 27), "radius": 7, "wanders": True, "step_every": 1.0,
+        "solid": True, "kind": "person", "gender": "M",
+        "murmurs": DONA_CHICA_LINES, "murmur_min": 10, "murmur_max": 18,
+        "greetings": DONA_CHICA_LINES, "smiter": False,
+    },
+    {   # gato preto que LATE
+        "id": "npc:gato", "name": "gato preto",
+        "look": {"skin": "#15151b", "cloak": "#15151b", "hood": "down",
+                 "hat": "none", "hair": "#15151b", "staff": False,
+                 "smoke": False, "grin": False},
+        "home": (14, 24), "radius": 3, "wanders": True, "step_every": 1.4,
+        "solid": False, "kind": "cat", "gender": "H",
+        "murmurs": GATO_MURMURS, "murmur_min": 12, "murmur_max": 20,
+        "greetings": GATO_GREETINGS, "smiter": False,
+    },
+    {   # cachorro caramelo que MIA
+        "id": "npc:cachorro", "name": "cachorro caramelo",
+        "look": {"skin": "#c8843a", "cloak": "#c8843a", "hood": "down",
+                 "hat": "none", "hair": "#c8843a", "staff": False},
+        "home": (16, 26), "radius": 3, "wanders": True, "step_every": 1.2,
+        "solid": False, "kind": "dog", "gender": "H",
+        "murmurs": CACHORRO_MURMURS, "murmur_min": 12, "murmur_max": 20,
+        "greetings": CACHORRO_GREETINGS, "smiter": False,
+    },
+    {   # Neymar, canarinho pistola, que PIA
+        "id": "npc:neymar", "name": "Neymar",
+        "look": {"skin": "#f4d335", "cloak": "#caa42a", "hood": "down",
+                 "hat": "none", "hair": "#f4d335", "staff": False,
+                 "feather": "#f4d335"},
+        "home": (13, 27), "radius": 2, "wanders": True, "step_every": 1.8,
+        "solid": False, "kind": "bird", "gender": "H",
+        "murmurs": NEYMAR_MURMURS, "murmur_min": 10, "murmur_max": 18,
+        "greetings": NEYMAR_GREETINGS, "smiter": False,
+    },
+    {   # sapo gordo e preto, quase sempre parado
+        "id": "npc:sapo", "name": "sapo",
+        "look": {"skin": "#1e2620", "cloak": "#1e2620", "hood": "down",
+                 "hat": "none", "hair": "#1e2620", "staff": False},
+        "home": (17, 28), "radius": 1, "wanders": True, "step_every": 3.0,
+        "solid": False, "kind": "toad", "gender": "M",
+        "murmurs": SAPO_MURMURS, "murmur_min": 16, "murmur_max": 30,
+        "greetings": SAPO_GREETINGS, "smiter": False,
+    },
+]
+
+ROSTER.extend(SAPOPEMBA)
