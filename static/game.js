@@ -380,13 +380,25 @@ function releaseDir(dir){
 }
 function sendMove(dir){ if(started && socket) socket.emit('move', {dir}); }
 
+// O WASD so vira movimento DENTRO do mundo e fora de um campo de texto.
+// Sem isso, digitar a/s/d/w no email/nome/senha seria engolido pelo jogo.
+function typingInField(e){
+  const el = e.target || document.activeElement;
+  if(!el) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
+}
+
 window.addEventListener('keydown', e=>{
+  if(!started || typingInField(e)) return;
   const dir = KEYMAP[e.code]; if(!dir || e.repeat) return;
   e.preventDefault(); pressDir(dir);
 });
 window.addEventListener('keyup', e=>{
   const dir = KEYMAP[e.code]; if(!dir) return;
-  e.preventDefault(); releaseDir(dir);
+  // sempre solta (evita tecla "presa" se o foco mudar no meio do passo)
+  if(started && !typingInField(e)) e.preventDefault();
+  releaseDir(dir);
 });
 
 function buildDpad(){
