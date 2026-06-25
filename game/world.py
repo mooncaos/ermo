@@ -1,17 +1,24 @@
 """
-O ESTADO DO MUNDO — quem esta dentro AGORA, onde, e com que cara.
+O ESTADO DO MUNDO — quem esta dentro AGORA, onde, com que cara, e o que ha
+largado pelo chao.
 
 Guarda os jogadores CONECTADOS no momento (memoria), separado do banco, que
-guarda o estado PERSISTENTE. Quando alguem entra, a rede carrega a conta do
-banco e chama add_player com esses dados; quando o jogador anda, ele e
-marcado como "sujo" pra um salvador periodico gravar a posicao.
+guarda o estado PERSISTENTE (conta, posicao, mochila). Quando alguem entra, a
+rede carrega a conta do banco e chama add_player com esses dados; quando o
+jogador anda, ele e marcado como "sujo" pra um salvador periodico gravar a
+posicao; quando pisa sobre um item, o mundo passa ele pra mochila.
 
-Nao conhece socket nem desenha nada. So estado vivo + operacoes, delegando
-as regras pra rules.py. A aparencia ("look") continua sendo so um dicionario
-de campos validados, que viaja sozinho pela rede ate todo mundo.
+Os itens no chao tambem moram aqui: onde estao, e quando um item pego deve
+reaparecer (pra dar pra testar e, depois, pra virar mecanica de mundo).
+
+Nao conhece socket nem desenha nada. So estado vivo + operacoes, delegando as
+regras de movimento pra rules.py e a definicao dos itens pra items.py.
 """
 
+import time
+
 from . import rules
+from . import items
 from .world_map import MAP_ROWS, TILE_SIZE
 
 # Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
@@ -30,8 +37,7 @@ HAIRS = ["#2a2233", "#5a3f28", "#8a6a3a", "#d8b25a", "#b6b0be", "#9c3b2e"]
 HATS = ("none", "wizard", "cap")
 HOODS = ("up", "down")
 
-# Compat: nome antigo.
-PLAYER_COLORS = CLOAKS
+PLAYER_COLORS = CLOAKS  # compat
 
 
 def default_look(i=0):
@@ -80,6 +86,13 @@ class World:
         self.players = {}        # sid -> dict do jogador (estado vivo)
         self.by_player_id = {}   # player_id (conta) -> sid
 
+        # itens no chao: (x, y) -> {"item": id, "spawn": indice em GROUND_SPAWNS}
+        self.ground = {}
+        # reaparecimentos pendentes: lista de (indice_spawn, quando_reaparece)
+        self._respawns = []
+        for i, (x, y, item_id, _r) in enumerate(items.GROUND_SPAWNS):
+            self.ground[(x, y)] = {"item": item_id, "spawn": i}
+
     def map_payload(self):
         """O mapa que vai pro cliente no 'init' (fonte unica da verdade)."""
         return {
@@ -89,7 +102,10 @@ class World:
             "height": len(MAP_ROWS),
         }
 
-    def add_player(self, sid, player_id, name, look, x, y, facing="down"):
+    # ------------------------------------------------------------ jogadores
+
+    def add_player(self, sid, player_id, name, look, x, y, facing="down",
+                   inventory=None):
         """Coloca no mundo um jogador ja carregado do banco."""
         player = {
             "id": sid,                # identidade da conexao (protocolo)
@@ -99,6 +115,7 @@ class World:
             "facing": facing or "down",
             "name": (name or "Viajante")[:16],
             "look": sanitize_look(look),
+            "inventory": items.sanitize_bag(inventory or []),
             "_last_move": 0.0,
             "_dirty": False,
         }
@@ -112,7 +129,6 @@ class World:
     def remove_player(self, sid):
         player = self.players.pop(sid, None)
         if player:
-            # so limpa o indice se ele ainda aponta pra este sid
             if self.by_player_id.get(player["player_id"]) == sid:
                 self.by_player_id.pop(player["player_id"], None)
         return player
@@ -135,3 +151,44 @@ class World:
                 out.append((p["player_id"], p["x"], p["y"], p["facing"]))
                 p["_dirty"] = False
         return out
+
+    # ----------------------------------------------------------- itens/chao
+
+    def ground_snapshot(self):
+        """Itens ativos no chao agora (pra mandar no 'init')."""
+        return [{"x": x, "y": y, "item": g["item"]}
+                for (x, y), g in self.ground.items()]
+
+    def try_pickup(self, player):
+        """Se o jogador esta sobre um item, pega: tira do chao, poe na mochila,
+        agenda o reaparecimento. Devolve {item,x,y} se pegou, senao None."""
+        tile = (player["x"], player["y"])
+        g = self.ground.get(tile)
+        if not g:
+            return None
+        item_id = g["item"]
+        del self.ground[tile]
+
+        # agenda o reaparecimento deste ponto
+        _x, _y, _id, respawn = items.GROUND_SPAWNS[g["spawn"]]
+        self._respawns.append((g["spawn"], time.time() + respawn))
+
+        items.add_to_bag(player["inventory"], item_id, 1)
+        return {"item": item_id, "x": tile[0], "y": tile[1]}
+
+    def due_respawns(self, now):
+        """Reativa os itens cujo tempo de reaparecer chegou. Devolve a lista
+        (x, y, item_id) dos que voltaram, pra rede avisar todo mundo."""
+        if not self._respawns:
+            return []
+        back, keep = [], []
+        for spawn_idx, when in self._respawns:
+            if when <= now:
+                x, y, item_id, _r = items.GROUND_SPAWNS[spawn_idx]
+                if (x, y) not in self.ground:  # nao reativa se o tile ja tem algo
+                    self.ground[(x, y)] = {"item": item_id, "spawn": spawn_idx}
+                    back.append((x, y, item_id))
+            else:
+                keep.append((spawn_idx, when))
+        self._respawns = keep
+        return back

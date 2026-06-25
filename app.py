@@ -39,11 +39,12 @@ except Exception as exc:  # pragma: no cover
     print("aviso: psycogreen nao aplicado:", exc)
 
 import os
+import time
 
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 
-from game import db, accounts
+from game import db, accounts, items
 from game.world import World, public
 
 app = Flask(__name__)
@@ -149,12 +150,16 @@ def on_connect(auth):
     player = world.add_player(
         request.sid, player_id,
         row["name"], row["look"], row["x"], row["y"], row.get("facing", "down"),
+        row.get("inventory"),
     )
 
     emit("init", {
         "id": request.sid,
         "map": world.map_payload(),
         "players": world.snapshot(),
+        "inventory": player["inventory"],
+        "items": items.catalog(),
+        "ground": world.ground_snapshot(),
     })
     emit("player_joined", public(player), broadcast=True, include_self=False)
 
@@ -163,13 +168,29 @@ def on_connect(auth):
 def on_move(data):
     direction = (data or {}).get("dir")
     player = world.try_move(request.sid, direction)
-    if player:
-        emit("player_moved", {
-            "id": player["id"],
-            "x": player["x"],
-            "y": player["y"],
-            "facing": player["facing"],
-        }, broadcast=True)
+    if not player:
+        return
+
+    emit("player_moved", {
+        "id": player["id"],
+        "x": player["x"],
+        "y": player["y"],
+        "facing": player["facing"],
+    }, broadcast=True)
+
+    # pisou sobre um item? pega.
+    picked = world.try_pickup(player)
+    if picked:
+        try:
+            db.save_inventory(player["player_id"], player["inventory"])
+        except Exception as exc:
+            print("erro salvando inventario:", exc)
+        cat = items.get(picked["item"]) or {}
+        emit("inventory", {
+            "bag": player["inventory"],
+            "picked": {"item": picked["item"], "name": cat.get("name", ""), "qty": 1},
+        })
+        emit("item_taken", {"x": picked["x"], "y": picked["y"]}, broadcast=True)
 
 
 @socketio.on("disconnect")
@@ -197,6 +218,17 @@ def _saver_loop():
             print("erro no salvamento periodico:", exc)
 
 
+def _respawn_loop():
+    """Faz os itens pegos reaparecerem no chao e avisa todos os clientes."""
+    while True:
+        socketio.sleep(2)
+        try:
+            for (x, y, item_id) in world.due_respawns(time.time()):
+                socketio.emit("item_spawned", {"x": x, "y": y, "item": item_id})
+        except Exception as exc:
+            print("erro no respawn:", exc)
+
+
 # ------------------------------------------------------------------- boot
 
 def _startup():
@@ -207,6 +239,7 @@ def _startup():
     except Exception as exc:
         print("AVISO: banco nao inicializado:", exc)
     socketio.start_background_task(_saver_loop)
+    socketio.start_background_task(_respawn_loop)
 
 
 _startup()

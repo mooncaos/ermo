@@ -154,6 +154,15 @@ def save_positions(rows):
         )
 
 
+def save_inventory(player_id, bag):
+    """Grava a mochila do jogador (lista de pilhas) na coluna inventory."""
+    with cursor() as cur:
+        cur.execute(
+            "UPDATE players SET inventory=%s, last_seen=now() WHERE id=%s",
+            (psycopg2.extras.Json(bag), player_id),
+        )
+
+
 # ----------------------------------------------------------------- sessoes
 
 def _hash_token(token):

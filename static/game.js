@@ -31,6 +31,13 @@ const regPass    = document.getElementById('reg-pass');
 const btnLogin   = document.getElementById('btn-login');
 const btnReg     = document.getElementById('btn-register');
 
+// mochila / inventario
+const bagBtn   = document.getElementById('bag-btn');
+const invEl    = document.getElementById('inv');
+const invGrid  = document.getElementById('inv-grid');
+const invClose = document.getElementById('inv-close');
+const toastEl  = document.getElementById('toast');
+
 const TOKEN_KEY = 'ermo_token';
 
 // ---------- viewport (câmera) ----------
@@ -45,6 +52,12 @@ let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null;
 let camX = 0, camY = 0;
 const players = new Map();
 let started = false;
+
+// ---------- inventario / itens ----------
+let inventory = [];           // mochila local: lista de pilhas {item, qty}
+const catalog = {};           // definicoes de itens vindas do servidor
+const ground = new Map();     // "x,y" -> item_id (itens no chao agora)
+let invOpen = false;
 
 // ===========================================================================
 //  PALETAS + CRIADOR DE PERSONAGEM  (valores iguais aos do servidor)
@@ -319,6 +332,40 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
 }
 
 // ===========================================================================
+//  ÍCONES DE ITENS (mesma fonte de cores do servidor, via catalog)
+// ===========================================================================
+function drawItemIcon(c, cx, cy, size, itemId, glow){
+  const def = catalog[itemId]; if(!def) return;
+  const col = def.color || '#cccccc';
+  if(glow){
+    c.save(); c.globalAlpha = 0.28; c.fillStyle = col;
+    c.beginPath(); c.arc(cx, cy, size*0.4, 0, Math.PI*2); c.fill(); c.restore();
+  }
+  if(def.kind === 'currency'){
+    const r = size*0.3;
+    c.fillStyle = shade(col,-0.3);
+    c.beginPath(); c.arc(cx, cy, r+1.5, 0, Math.PI*2); c.fill();        // borda
+    c.fillStyle = col;
+    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI*2); c.fill();            // corpo
+    c.strokeStyle = shade(col,-0.42); c.lineWidth = 1;
+    c.beginPath(); c.arc(cx, cy, r*0.6, 0, Math.PI*2); c.stroke();      // anel interno
+    c.fillStyle = shade(col,0.28);
+    c.beginPath(); c.arc(cx - r*0.3, cy - r*0.32, r*0.34, 0, Math.PI*2); c.fill(); // brilho
+  } else {
+    const h = size*0.6, w = Math.max(2, size*0.08);
+    c.fillStyle = '#5a3f28';
+    c.fillRect(cx - w/2, cy - h*0.3, w, h*0.85);                        // cabo
+    const oy = cy - h*0.4, orb = size*0.17;
+    c.save(); c.globalAlpha = 0.5; c.fillStyle = col;
+    c.beginPath(); c.arc(cx, oy, orb*1.5, 0, Math.PI*2); c.fill(); c.restore(); // halo
+    c.fillStyle = shade(col,0.12);
+    c.beginPath(); c.arc(cx, oy, orb, 0, Math.PI*2); c.fill();          // orbe
+    c.fillStyle = '#ffffff';
+    c.beginPath(); c.arc(cx - orb*0.28, oy - orb*0.28, orb*0.34, 0, Math.PI*2); c.fill(); // brilho
+  }
+}
+
+// ===========================================================================
 //  LOOP DE RENDER (com câmera)
 // ===========================================================================
 let lastT = performance.now();
@@ -348,6 +395,18 @@ function frame(now){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   if(mapCanvas) ctx.drawImage(mapCanvas, camX, camY, canvas.width, canvas.height,
                                           0, 0, canvas.width, canvas.height);
+
+  // itens no chao (debaixo dos jogadores)
+  ground.forEach((itemId, key)=>{
+    const c = key.indexOf(','); const gx = +key.slice(0,c), gy = +key.slice(c+1);
+    const sx = gx*TS - camX, sy = gy*TS - camY;
+    if(sx < -TS || sy < -TS || sx > canvas.width+TS || sy > canvas.height+TS) return;
+    const bob = Math.sin(now/420 + gx*1.3 + gy*0.7)*2.2;
+    ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(sx+TS/2, sy+TS*0.8, TS*0.22, TS*0.09, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    drawItemIcon(ctx, sx+TS/2, sy+TS*0.5 - 2 + bob, TS, itemId, true);
+  });
 
   const ordered = [...players.values()].sort((a,b)=> (a.ry - b.ry));
   for(const p of ordered){
@@ -442,6 +501,14 @@ function connectWithToken(token){
     buildMapCanvas();
     players.clear();
     for(const p of data.players) addPlayer(p);
+
+    inventory = Array.isArray(data.inventory) ? data.inventory : [];
+    Object.keys(catalog).forEach(k=> delete catalog[k]);
+    Object.assign(catalog, data.items || {});
+    ground.clear();
+    for(const it of (data.ground||[])) ground.set(it.x+','+it.y, it.item);
+    refreshInventory();
+
     enterWorld();
   });
   socket.on('player_joined', p => addPlayer(p));
@@ -450,6 +517,15 @@ function connectWithToken(token){
     p.x = m.x; p.y = m.y; p.facing = m.facing;
   });
   socket.on('player_left', m=>{ players.delete(m.id); updateOnline(); });
+
+  // mochila e itens do chao
+  socket.on('inventory', d=>{
+    inventory = Array.isArray(d.bag) ? d.bag : inventory;
+    refreshInventory();
+    if(d.picked) toastItem(d.picked);
+  });
+  socket.on('item_taken',   d=> ground.delete(d.x+','+d.y) );
+  socket.on('item_spawned', d=> ground.set(d.x+','+d.y, d.item) );
 
   // token recusado pelo servidor: limpa e volta pro login
   socket.on('auth_error', ()=>{
@@ -486,6 +562,7 @@ function enterWorld(){
   hud.style.display = 'block';
   help.style.display = 'block';
   logoutB.style.display = 'block';
+  bagBtn.style.display = 'block';
   buildDpad();
   requestAnimationFrame(frame);
 }
@@ -575,3 +652,64 @@ if(pctx) requestAnimationFrame(previewLoop);
   if(token){ showBooting(); connectWithToken(token); }
   else { showGate(); loginEmail.focus(); }
 })();
+
+// ===========================================================================
+//  MOCHILA (inventário)
+// ===========================================================================
+const INV_SLOTS = 20;
+function refreshInventory(){
+  if(!invGrid) return;
+  invGrid.innerHTML = '';
+  if(!inventory.length){
+    const e = document.createElement('div');
+    e.className = 'inv-empty';
+    e.textContent = 'Mochila vazia. Ache itens espalhados pelo mundo.';
+    invGrid.appendChild(e);
+    return;
+  }
+  const n = Math.max(INV_SLOTS, inventory.length);
+  for(let i=0;i<n;i++){
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    const stack = inventory[i];
+    if(stack){
+      slot.classList.add('full');
+      const def = catalog[stack.item];
+      slot.title = def ? def.name : stack.item;
+      const c = document.createElement('canvas'); c.width = 44; c.height = 44;
+      drawItemIcon(c.getContext('2d'), 22, 22, 44, stack.item, false);
+      slot.appendChild(c);
+      if(stack.qty > 1){
+        const q = document.createElement('span'); q.className = 'qty';
+        q.textContent = stack.qty; slot.appendChild(q);
+      }
+    }
+    invGrid.appendChild(slot);
+  }
+}
+function toggleInv(force){
+  invOpen = (force === undefined) ? !invOpen : force;
+  invEl.classList.toggle('open', invOpen);
+  if(invOpen) refreshInventory();
+}
+function toastItem(picked){
+  if(!toastEl) return;
+  toastEl.innerHTML = '';
+  const c = document.createElement('canvas'); c.width = 26; c.height = 26;
+  drawItemIcon(c.getContext('2d'), 13, 13, 26, picked.item, false);
+  toastEl.appendChild(c);
+  const s = document.createElement('span');
+  s.textContent = 'Pegou: ' + (picked.name || picked.item);
+  toastEl.appendChild(s);
+  toastEl.classList.add('show');
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(()=> toastEl.classList.remove('show'), 2200);
+}
+if(bagBtn)   bagBtn.addEventListener('click', ()=> toggleInv());
+if(invClose) invClose.addEventListener('click', ()=> toggleInv(false));
+if(invEl)    invEl.addEventListener('click', e=>{ if(e.target === invEl) toggleInv(false); });
+window.addEventListener('keydown', e=>{
+  if(!started || typingInField(e)) return;
+  if(e.code === 'KeyI'){ e.preventDefault(); toggleInv(); }
+  else if(e.code === 'Escape' && invOpen){ e.preventDefault(); toggleInv(false); }
+});
