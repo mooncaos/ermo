@@ -49,6 +49,23 @@
     transition:color .15s, border-color .15s;
   }
   #logout:hover{color:var(--ink); border-color:var(--violet)}
+  #zoom-ctl{
+    position:fixed; top:52px; right:14px; display:none; z-index:6;
+    align-items:center; gap:7px; padding:5px 7px;
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:999px;
+    font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted);
+  }
+  #zoom-ctl button{
+    width:26px; height:26px; line-height:1; cursor:pointer; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); background:rgba(40,36,58,.55);
+    border:1px solid var(--edge); border-radius:50%; font-size:17px;
+    transition:border-color .15s, background .15s;
+  }
+  #zoom-ctl button:hover{border-color:var(--violet); background:rgba(50,44,72,.7)}
+  #zoom-ctl button:active{transform:scale(.93)}
+  #zoom-pct{min-width:40px; text-align:center; user-select:none}
   #help{
     position:fixed; bottom:14px; left:14px; display:none; max-width:60vw;
     font-size:12px; color:var(--muted); letter-spacing:.02em; line-height:1.5;
@@ -286,6 +303,11 @@
   <div id="stage"><canvas id="game"></canvas></div>
   <div id="hud"><span class="dot">●</span> <span class="on" id="online">1</span> online · <span id="coords">x 0, y 0</span> · <span id="phase">dia</span></div>
   <div id="logout">sair</div>
+  <div id="zoom-ctl">
+    <button id="zoom-out" type="button" aria-label="diminuir zoom">−</button>
+    <span id="zoom-pct">100%</span>
+    <button id="zoom-in" type="button" aria-label="aumentar zoom">+</button>
+  </div>
   <div id="help">Ande com <kbd>W A S D</kbd>, setas, <kbd>clique</kbd> ou o direcional · Falar com os moradores: chegue perto e <kbd>E</kbd> (ou toque) · Conversar: <kbd>Enter</kbd> · Mochila: <kbd>I</kbd></div>
 
   <button id="chat-open">conversar</button>

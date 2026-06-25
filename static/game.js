@@ -48,20 +48,51 @@ const chatSendBtn = document.getElementById('chat-send');
 
 const TOKEN_KEY = 'ermo_token';
 
-// ---------- viewport (câmera) ----------
-let VIEW_COLS = 15, VIEW_ROWS = 19;     // janela em tiles (ajustada à tela no init)
+// ---------- viewport + zoom (câmera) ----------
+let VIEW_COLS = 15, VIEW_ROWS = 19;     // janela em tiles (ajustada à tela/zoom)
 const STEP_MS = 130;                    // cadência de passo ao segurar
 const TAU = 55;                         // suavização do tween (ms)
 const WALK_CYCLE = 320;                 // ms por ciclo de caminhada
 
-// No desktop (tela larga) mostramos mais mundo; no celular fica retrato como era.
-// O canvas é escalado por CSS, então só muda QUANTOS tiles aparecem.
+// Zoom: o servidor manda o tamanho-base do tile; aqui multiplicamos por um fator.
+// Mais zoom = tile maior = personagem grande, menos mundo. Menos zoom = mais mundo.
+let BASE_TS = 32;
+const ZOOM_LEVELS = [0.7, 0.85, 1.0, 1.2, 1.45, 1.75];
+let zoom = 1.0;
+try { const z = parseFloat(localStorage.getItem('ermo_zoom')); if (z && z >= 0.5 && z <= 2.5) zoom = z; } catch(e){}
+
+// Enche a tela com o máximo de tiles que cabem no TS atual (limitado ao mapa).
 function pickViewport(){
-  let cols = Math.floor((window.innerWidth  * 0.94) / TS);
-  let rows = Math.floor((window.innerHeight * 0.92) / TS);
-  cols = Math.max(15, Math.min(27, cols));
-  rows = Math.max(15, Math.min(19, rows));
+  let cols = Math.floor((window.innerWidth  * 0.96) / TS);
+  let rows = Math.floor((window.innerHeight * 0.94) / TS);
+  cols = Math.max(9,  Math.min(cols, mapW || 40));
+  rows = Math.max(11, Math.min(rows, mapH || 30));
   return { cols, rows };
+}
+function nearestZoomIndex(z){
+  let bi = 0, bd = Infinity;
+  ZOOM_LEVELS.forEach((lv, i) => { const d = Math.abs(lv - z); if (d < bd){ bd = d; bi = i; } });
+  return bi;
+}
+function updateZoomLabel(){
+  const el = document.getElementById('zoom-pct');
+  if (el) el.textContent = Math.round(zoom * 100) + '%';
+}
+// Aplica um nível de zoom: redimensiona, redesenha o mapa e reancora todo mundo.
+function applyZoom(z){
+  zoom = Math.min(ZOOM_LEVELS[ZOOM_LEVELS.length - 1], Math.max(ZOOM_LEVELS[0], z));
+  TS = Math.round(BASE_TS * zoom);
+  const vp = pickViewport();
+  VIEW_COLS = vp.cols; VIEW_ROWS = vp.rows;
+  if (canvas){ canvas.width = VIEW_COLS * TS; canvas.height = VIEW_ROWS * TS; }
+  if (mapW) buildMapCanvas();
+  for (const p of players.values()){ p.rx = p.x * TS; p.ry = p.y * TS; }  // sem deslizar
+  try { localStorage.setItem('ermo_zoom', String(zoom)); } catch(e){}
+  updateZoomLabel();
+}
+function zoomStep(dir){   // +1 aproxima, -1 afasta
+  const i = nearestZoomIndex(zoom);
+  applyZoom(ZOOM_LEVELS[Math.min(ZOOM_LEVELS.length - 1, Math.max(0, i + dir))]);
 }
 
 // ---------- estado ----------
@@ -797,12 +828,9 @@ function connectWithToken(token){
 
   socket.on('init', data=>{
     myId = data.id;
-    TS = data.map.tilesize; mapRows = data.map.rows;
+    BASE_TS = data.map.tilesize; mapRows = data.map.rows;
     mapW = data.map.width; mapH = data.map.height;
-    const vp = pickViewport();
-    VIEW_COLS = Math.min(vp.cols, mapW); VIEW_ROWS = Math.min(vp.rows, mapH);
-    canvas.width = VIEW_COLS*TS; canvas.height = VIEW_ROWS*TS;
-    buildMapCanvas();
+    applyZoom(zoom);   // define TS, viewport, dimensiona o canvas e desenha o mapa
     players.clear();
     bubbles.clear(); smites.clear();
     for(const p of data.players) addPlayer(p);
@@ -900,6 +928,7 @@ function enterWorld(){
   logoutB.style.display = 'block';
   bagBtn.style.display = 'block';
   if(chatOpenBtn) chatOpenBtn.style.display = 'block';
+  { const zc = document.getElementById('zoom-ctl'); if(zc) zc.style.display = 'flex'; updateZoomLabel(); }
   buildDpad();
   requestAnimationFrame(frame);
 }
@@ -1190,3 +1219,19 @@ canvas.addEventListener('pointerdown', e => {
     walkPath(path);
   }
 });
+
+// zoom com o scroll do mouse (desktop)
+canvas.addEventListener('wheel', e => {
+  if(!started) return;
+  e.preventDefault();
+  zoomStep(e.deltaY < 0 ? +1 : -1);
+}, { passive: false });
+
+// botões de zoom (+ / −) — funcionam no PC e no toque
+{
+  const zi = document.getElementById('zoom-in');
+  const zo = document.getElementById('zoom-out');
+  if(zi) zi.addEventListener('click', e => { e.preventDefault(); zoomStep(+1); });
+  if(zo) zo.addEventListener('click', e => { e.preventDefault(); zoomStep(-1); });
+  updateZoomLabel();
+}
