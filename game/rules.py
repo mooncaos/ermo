@@ -46,6 +46,16 @@ def pick_spawn(world):
     return random.choice(free)
 
 
+def _occupied_by_other(world, mover, x, y):
+    """True se OUTRO jogador já está ocupando o tile (x, y)."""
+    for p in world.players.values():
+        if p is mover:
+            continue
+        if p["x"] == x and p["y"] == y:
+            return True
+    return False
+
+
 def apply_move(world, player, direction):
     """
     Tenta mover um jogador numa direção.
@@ -63,6 +73,10 @@ def apply_move(world, player, direction):
     nx, ny = player["x"] + dx, player["y"] + dy
 
     if not is_walkable(nx, ny):
+        return None
+
+    # colisão entre jogadores: não pisa em cima de outro viajante
+    if _occupied_by_other(world, player, nx, ny):
         return None
 
     player["x"], player["y"] = nx, ny

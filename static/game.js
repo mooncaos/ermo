@@ -16,6 +16,7 @@ const help    = document.getElementById('help');
 const logoutB = document.getElementById('logout');
 const onlineEl= document.getElementById('online');
 const coordsEl= document.getElementById('coords');
+const phaseEl = document.getElementById('phase');
 const statusEl= document.getElementById('status');
 
 // abas + campos de conta
@@ -65,6 +66,12 @@ let invOpen = false;
 let autoPath = [];            // direcoes restantes do trajeto clicado
 let autoTimer = null;
 let clickFx = null;           // marcador visual do destino {x,y,start}
+
+// ---------- ciclo de dia e noite ----------
+let dayLength = 480;          // segundos por ciclo (o servidor manda o valor real)
+let dayOffset = 0;            // diferenca entre relogio do servidor e o nosso
+let dayTime = 0;              // 0..1 dentro do ciclo (0 = meia-noite)
+let lastPhase = '';           // pra so atualizar o HUD quando a fase muda
 
 // ===========================================================================
 //  PALETAS + CRIADOR DE PERSONAGEM  (valores iguais aos do servidor)
@@ -436,8 +443,60 @@ function frame(now){
     drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
   }
 
+  // ---- ciclo de dia e noite: tinte por cima de tudo ----
+  dayTime = (((Date.now()/1000) + dayOffset) % dayLength) / dayLength;
+  if(dayTime < 0) dayTime += 1;
+  const tint = dayTint(dayTime);
+  if(tint){ ctx.fillStyle = tint; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  if(phaseEl){
+    const ph = phaseName(dayTime);
+    if(ph !== lastPhase){ phaseEl.textContent = ph; lastPhase = ph; }
+  }
+
   if(me) coordsEl.textContent = `x ${me.x}, y ${me.y}`;
   requestAnimationFrame(frame);
+}
+
+// ===========================================================================
+//  DIA E NOITE — cor do ceu ao longo do ciclo (0 = meia-noite, .5 = meio-dia)
+// ===========================================================================
+// Cada ponto: [instante 0..1, [r, g, b, alpha]]. Entre dois pontos a cor e o
+// alpha sao interpolados, entao o mundo escurece e clareia de leve. O
+// crepusculo (entardecer) e o auge roxo-ambar, a cara do Ermo.
+const SKY = [
+  [0.00, [18, 22, 60, 0.58]],    // meia-noite: azul-violeta fundo
+  [0.20, [40, 40, 95, 0.42]],    // madrugada
+  [0.26, [255, 150, 110, 0.24]], // amanhecer quente
+  [0.34, [255, 255, 255, 0.0]],  // manha: ceu limpo
+  [0.52, [255, 255, 255, 0.0]],  // meio-dia: ceu limpo
+  [0.68, [255, 184, 92, 0.14]],  // tarde dourada
+  [0.78, [196, 92, 120, 0.32]],  // crepusculo: rosa-violeta
+  [0.86, [70, 48, 110, 0.46]],   // anoitecer
+  [1.00, [18, 22, 60, 0.58]],    // volta pra meia-noite
+];
+function dayTint(t){
+  for(let i = 0; i < SKY.length - 1; i++){
+    const a = SKY[i], b = SKY[i+1];
+    if(t >= a[0] && t <= b[0]){
+      const k = (t - a[0]) / ((b[0] - a[0]) || 1);
+      const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * k);
+      const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * k);
+      const bl= Math.round(a[1][2] + (b[1][2] - a[1][2]) * k);
+      const al= a[1][3] + (b[1][3] - a[1][3]) * k;
+      if(al <= 0.001) return null;
+      return `rgba(${r},${g},${bl},${al.toFixed(3)})`;
+    }
+  }
+  return null;
+}
+function phaseName(t){
+  if(t < 0.23) return 'noite';
+  if(t < 0.30) return 'amanhecer';
+  if(t < 0.50) return 'manhã';
+  if(t < 0.66) return 'tarde';
+  if(t < 0.80) return 'crepúsculo';
+  if(t < 0.88) return 'anoitecer';
+  return 'noite';
 }
 
 // ===========================================================================
@@ -531,6 +590,10 @@ function connectWithToken(token){
     ground.clear();
     for(const it of (data.ground||[])) ground.set(it.x+','+it.y, it.item);
     refreshInventory();
+
+    // sincroniza o relogio do mundo (dia/noite) com o servidor
+    dayLength = data.day_length || 480;
+    dayOffset = (data.server_now || (Date.now()/1000)) - (Date.now()/1000);
 
     enterWorld();
   });
@@ -792,11 +855,20 @@ window.addEventListener('keydown', e=>{
 //  - emite os passos no mesmo ritmo do teclado; o servidor valida cada um
 // ===========================================================================
 const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H']);  // iguais ao servidor
+const STEPV = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 function walkableTile(x, y){
   return y >= 0 && y < mapH && x >= 0 && x < mapW && !SOLID_TILES.has(mapRows[y][x]);
 }
+// algum OUTRO viajante esta parado neste tile agora?
+function occupiedByOther(x, y){
+  for(const p of players.values()){
+    if(p.id !== myId && p.x === x && p.y === y) return true;
+  }
+  return false;
+}
 function findPath(sx, sy, tx, ty){
-  if(!walkableTile(tx, ty)) return null;
+  // nao da pra parar em cima de obstaculo nem de outro jogador
+  if(!walkableTile(tx, ty) || occupiedByOther(tx, ty)) return null;
   if(sx === tx && sy === ty) return [];
   const key = (x, y) => x + ',' + y;
   const start = key(sx, sy);
@@ -809,6 +881,7 @@ function findPath(sx, sy, tx, ty){
     for(const [d, dx, dy] of DIRS){
       const nx = cx + dx, ny = cy + dy;
       if(!walkableTile(nx, ny)) continue;
+      if(occupiedByOther(nx, ny)) continue;   // contorna quem esta parado
       const nk = key(nx, ny);
       if(came.has(nk)) continue;
       came.set(nk, [key(cx, cy), d]);
@@ -830,10 +903,19 @@ function stopAuto(){
 function walkPath(dirs){
   stopAuto();
   if(!dirs || !dirs.length) return;
+  const me = players.get(myId); if(!me) return;
   autoPath = dirs.slice();
+  // posicao esperada conforme vamos emitindo os passos
+  let ex = me.x, ey = me.y;
   const step = () => {
     if(!autoPath.length){ stopAuto(); return; }
-    sendMove(autoPath.shift());
+    const dir = autoPath[0], d = STEPV[dir];
+    const nx = ex + d[0], ny = ey + d[1];
+    // se um viajante cruzou na frente, para em vez de empacar batendo nele
+    if(occupiedByOther(nx, ny)){ stopAuto(); return; }
+    autoPath.shift();
+    sendMove(dir);
+    ex = nx; ey = ny;
   };
   step();                                  // primeiro passo imediato
   autoTimer = setInterval(step, STEP_MS);  // o resto no ritmo de caminhada

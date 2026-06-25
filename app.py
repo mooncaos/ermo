@@ -55,6 +55,12 @@ world = World()
 
 SAVE_EVERY = 5  # segundos entre gravacoes de posicao no banco
 
+# Ciclo de dia e noite: duracao de UM ciclo completo, em segundos.
+# O horario do mundo sai do relogio (time.time()), entao todo mundo ve o
+# mesmo entardecer ao mesmo tempo, sem precisar de loop nem estado.
+# 480 = 8 minutos. Quer ver mudar rapido pra testar? Baixa esse numero.
+DAY_LENGTH = 480
+
 
 # ----------------------------------------------------------------- paginas
 
@@ -161,6 +167,8 @@ def on_connect(auth):
         "equipment": player["equipment"],
         "items": items.catalog(),
         "ground": world.ground_snapshot(),
+        "day_length": DAY_LENGTH,
+        "server_now": time.time(),
     })
     emit("player_joined", public(player), broadcast=True, include_self=False)
 
