@@ -243,14 +243,28 @@ class World:
         return best
 
     def nearest_smiter(self, player, radius):
-        """O NPC 'justiceiro' mais proximo dentro do raio, ou None. So o Valdris
-        e justiceiro; e ele quem ouve o palavrao e frita o engracadinho."""
+        """O NPC 'justiceiro' mais proximo dentro do raio, ou None. So quem tem
+        smiter=True (o Valdris e a Maria Cachorra) ouve o desacato e te frita."""
         best, bestd = None, radius + 1
         for p in self.players.values():
             if not (p.get("is_npc") and p.get("_spec", {}).get("smiter")):
                 continue
             d = max(abs(player["x"] - p["x"]), abs(player["y"] - p["y"]))
             if d <= radius and d < bestd:
+                best, bestd = p, d
+        return best
+
+    def nearest_player_to(self, npc, radius=None):
+        """O jogador humano (nao-NPC) mais proximo de um NPC, ou None. Usado pro
+        Guilherme te seguir com o olhar."""
+        best, bestd = None, None
+        for p in self.players.values():
+            if p.get("is_npc"):
+                continue
+            d = max(abs(npc["x"] - p["x"]), abs(npc["y"] - p["y"]))
+            if radius is not None and d > radius:
+                continue
+            if bestd is None or d < bestd:
                 best, bestd = p, d
         return best
 

@@ -281,7 +281,8 @@ def _smite(player, npc):
     socketio.emit("player_moved", _npc_moved_payload(npc))
     lines = npc.get("_spec", {}).get("smite_lines") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(lines)})
-    socketio.emit("smite", {"target": player["id"], "by": npc["id"]})
+    color = npc.get("_spec", {}).get("smite_color", "#9b6dff")
+    socketio.emit("smite", {"target": player["id"], "by": npc["id"], "color": color})
     sx, sy = rules.pick_spawn(world)
     player["x"], player["y"], player["facing"] = sx, sy, "down"
     player["_dirty"] = True  # a nova posicao sera salva no proximo flush
@@ -388,6 +389,26 @@ def _npc_murmur_loop(spec):
             print("erro no murmurio de", nid, exc)
 
 
+def _npc_gaze_loop(spec):
+    """NPCs com gazes=True viram pra encarar o jogador mais proximo (o Guilherme
+    te segue com o olhar, mudo). So emite quando a direcao muda."""
+    nid = spec["id"]
+    while True:
+        socketio.sleep(0.5)
+        try:
+            npc = world.players.get(nid)
+            if not npc:
+                continue
+            target = world.nearest_player_to(npc, radius=8)
+            if target:
+                face = _face_to(npc, target)
+                if face != npc["facing"]:
+                    npc["facing"] = face
+                    socketio.emit("player_moved", _npc_moved_payload(npc))
+        except Exception as exc:
+            print("erro no olhar de", nid, exc)
+
+
 # ------------------------------------------------------------------- boot
 
 def _startup():
@@ -405,6 +426,8 @@ def _startup():
             socketio.start_background_task(_npc_wander_loop, spec)
         if spec.get("murmurs"):
             socketio.start_background_task(_npc_murmur_loop, spec)
+        if spec.get("gazes"):
+            socketio.start_background_task(_npc_gaze_loop, spec)
 
 
 _startup()

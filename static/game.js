@@ -640,16 +640,17 @@ function frame(now){
   }
 
   // ---- overlays nitidos por cima do tinte: raio, dica, baloes ----
-  smites.forEach((fx, id)=>{                 // o raio do Valdris no(s) alvo(s)
+  smites.forEach((fx, id)=>{                 // o raio do justiceiro no(s) alvo(s)
     const age = now - fx.start;
     if(age > SMITE_MS){ smites.delete(id); return; }
     const p = players.get(id); if(!p) return;
-    drawSmiteFx(ctx, p.rx - camX + TS/2, p.ry - camY + TS, age/SMITE_MS);
+    drawSmiteFx(ctx, p.rx - camX + TS/2, p.ry - camY + TS, age/SMITE_MS, fx.color);
   });
-  const myFx = smites.get(myId);             // se EU levei, flash violeta na tela
+  const myFx = smites.get(myId);             // se EU levei, flash na cor do golpe
   if(myFx){
     const k = (now - myFx.start)/SMITE_MS;
-    ctx.save(); ctx.fillStyle = `rgba(155,109,255,${(0.5*(1-k)).toFixed(3)})`;
+    const [fr,fg,fb] = hexRgb(myFx.color);
+    ctx.save(); ctx.fillStyle = `rgba(${fr},${fg},${fb},${(0.5*(1-k)).toFixed(3)})`;
     ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore();
   }
   const hintNpc = nearestNpcWithin(1);         // dica "falar" sobre o NPC colado
@@ -785,20 +786,28 @@ function drawTalkHint(c, cx, topY, now){
   c.restore();
 }
 
-function drawSmiteFx(c, cx, groundY, k){
-  // k: 0..1 (progresso). clarao roxo no alvo + raio em ziguezague vindo do alto.
+function hexRgb(hex){
+  hex = (hex || '#9b6dff').replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex,16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function drawSmiteFx(c, cx, groundY, k, color){
+  // k: 0..1 (progresso). clarao no alvo + raio em ziguezague, na cor do justiceiro.
+  const [r0,g0,b0] = hexRgb(color);
+  const lr = Math.round(r0+(255-r0)*0.6), lg = Math.round(g0+(255-g0)*0.6), lb = Math.round(b0+(255-b0)*0.6);
   c.save();
   const alpha = 1 - k;
   const r = TS*(0.6 + k*1.2);
   const grd = c.createRadialGradient(cx, groundY-TS*0.3, 2, cx, groundY-TS*0.3, r);
-  grd.addColorStop(0,   `rgba(225,205,255,${0.9*alpha})`);
-  grd.addColorStop(0.4, `rgba(155,109,255,${0.55*alpha})`);
-  grd.addColorStop(1,   'rgba(155,109,255,0)');
+  grd.addColorStop(0,   `rgba(${lr},${lg},${lb},${0.9*alpha})`);
+  grd.addColorStop(0.4, `rgba(${r0},${g0},${b0},${0.55*alpha})`);
+  grd.addColorStop(1,   `rgba(${r0},${g0},${b0},0)`);
   c.fillStyle = grd;
   c.beginPath(); c.arc(cx, groundY-TS*0.3, r, 0, Math.PI*2); c.fill();
   if(k < 0.55){                        // o raio so na primeira metade
-    c.strokeStyle = `rgba(205,175,255,${alpha})`;
-    c.lineWidth = 3; c.shadowColor = '#9b6dff'; c.shadowBlur = 12;
+    c.strokeStyle = `rgba(${lr},${lg},${lb},${alpha})`;
+    c.lineWidth = 3; c.shadowColor = color || '#9b6dff'; c.shadowBlur = 12;
     c.beginPath();
     let x = cx + (Math.random()*8-4), y = 0;
     c.moveTo(x, y);
@@ -950,7 +959,7 @@ function connectWithToken(token){
   });
   socket.on('smite', d=>{
     if(!d || !d.target) return;
-    smites.set(d.target, { start: performance.now() });
+    smites.set(d.target, { start: performance.now(), color: d.color || '#9b6dff' });
   });
 
   // mochila e itens do chao
