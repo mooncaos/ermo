@@ -569,6 +569,100 @@ function drawCat(c, px, py, ts, facing, moving, walk, look){
   c.restore();
 }
 
+// "O Gato Branco e Grande": a aparicao do Pofnir. Gato grande, branco e etereo,
+// com brilho frio e placa de nome. (Funcao propria pra nao tocar no Jose.)
+function drawApparition(c, px, py, ts, facing, moving, walk, name){
+  const cx = px + ts*0.5;
+  const t = performance.now();
+  const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*2 : 0;
+  const bob = Math.sin(t/650)*1.6 + hop;        // flutua de leve, mesmo parado
+  const S   = ts*1.8;                            // bem maior que um gato normal
+  const baseY = py + ts*0.82 - bob;
+  const dir = (facing==='left') ? -1 : 1;
+  const FUR='#f4f5fc', SHADE='#d6daf0', EAR='#e7b6c8', EYE='#ecd797', GLOW='#dfe6ff';
+  c.save();
+  c.globalAlpha = 0.97;
+  // sombra no chao
+  c.globalAlpha = 0.20; c.fillStyle='#000';
+  c.beginPath(); c.ellipse(cx, py+ts*0.9, ts*0.26, ts*0.07, 0,0,Math.PI*2); c.fill();
+  c.globalAlpha = 0.97;
+  // brilho frio em volta (aura)
+  const gy = baseY - S*0.26;
+  const grd = c.createRadialGradient(cx, gy, S*0.05, cx, gy, S*0.72);
+  grd.addColorStop(0, 'rgba(223,230,255,0.40)');
+  grd.addColorStop(1, 'rgba(223,230,255,0)');
+  c.fillStyle = grd;
+  c.beginPath(); c.arc(cx, gy, S*0.72, 0, Math.PI*2); c.fill();
+  // cauda emplumada subindo atras
+  c.strokeStyle = FUR; c.lineWidth = S*0.18; c.lineCap='round';
+  c.beginPath();
+  c.moveTo(cx - dir*S*0.16, baseY);
+  c.quadraticCurveTo(cx - dir*S*0.44, baseY - S*0.12, cx - dir*S*0.36, baseY - S*0.46);
+  c.stroke();
+  c.fillStyle = FUR;                                   // ponta fofa
+  c.beginPath(); c.arc(cx - dir*S*0.36, baseY - S*0.48, S*0.12, 0, Math.PI*2); c.fill();
+  // corpo
+  c.fillStyle = FUR;
+  c.beginPath(); c.ellipse(cx, baseY - S*0.04, S*0.24, S*0.22, 0, 0, Math.PI*2); c.fill();
+  // juba/peito fofo (cara de Maine Coon)
+  c.fillStyle = '#fbfcff';
+  c.beginPath(); c.ellipse(cx, baseY - S*0.1, S*0.17, S*0.14, 0, 0, Math.PI*2); c.fill();
+  // cabeca
+  const hy = baseY - S*0.3;
+  c.fillStyle = FUR;
+  c.beginPath(); c.arc(cx, hy, S*0.2, 0, Math.PI*2); c.fill();
+  // orelhas + tufos
+  for(const sgn of [-1, 1]){
+    c.fillStyle = FUR;
+    c.beginPath();
+    c.moveTo(cx+sgn*S*0.18, hy-S*0.1);
+    c.lineTo(cx+sgn*S*0.06, hy-S*0.14);
+    c.lineTo(cx+sgn*S*0.14, hy-S*0.33);
+    c.closePath(); c.fill();
+    c.fillStyle = EAR;                                  // interno rosado
+    c.beginPath();
+    c.moveTo(cx+sgn*S*0.155, hy-S*0.13);
+    c.lineTo(cx+sgn*S*0.10, hy-S*0.15);
+    c.lineTo(cx+sgn*S*0.14, hy-S*0.27);
+    c.closePath(); c.fill();
+    c.strokeStyle = FUR; c.lineWidth = 1.4; c.lineCap='round';   // tufo na ponta
+    c.beginPath(); c.moveTo(cx+sgn*S*0.14, hy-S*0.32);
+    c.lineTo(cx+sgn*S*0.17, hy-S*0.4); c.stroke();
+  }
+  // olhos calmos (gota dourada, pupila fina) + brilho
+  c.fillStyle = EYE;
+  c.beginPath(); c.ellipse(cx-S*0.08, hy-S*0.0, S*0.05, S*0.06, 0, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(cx+S*0.08, hy-S*0.0, S*0.05, S*0.06, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#3a3550';
+  c.fillRect(cx-S*0.08-0.6, hy-S*0.05, 1.2, S*0.1);
+  c.fillRect(cx+S*0.08-0.6, hy-S*0.05, 1.2, S*0.1);
+  c.fillStyle = '#ffffff';
+  c.fillRect(cx-S*0.095, hy-S*0.04, 1.1, 1.1);
+  c.fillRect(cx+S*0.065, hy-S*0.04, 1.1, 1.1);
+  // narizinho
+  c.fillStyle = EAR;
+  c.beginPath();
+  c.moveTo(cx-S*0.03, hy+S*0.07); c.lineTo(cx+S*0.03, hy+S*0.07);
+  c.lineTo(cx, hy+S*0.1); c.closePath(); c.fill();
+  // bigodes
+  c.strokeStyle = 'rgba(214,218,240,0.9)'; c.lineWidth = 1;
+  for(const sgn of [-1,1]){
+    c.beginPath(); c.moveTo(cx+sgn*S*0.04, hy+S*0.08);
+    c.lineTo(cx+sgn*S*0.24, hy+S*0.05); c.stroke();
+    c.beginPath(); c.moveTo(cx+sgn*S*0.04, hy+S*0.1);
+    c.lineTo(cx+sgn*S*0.23, hy+S*0.11); c.stroke();
+  }
+  // placa de nome
+  if(name){
+    c.globalAlpha = 1;
+    c.font = '600 11px Inter, sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+    const w = c.measureText(name).width + 12; const ty = hy - S*0.42, th = 15;
+    c.fillStyle = 'rgba(15,14,23,.82)'; roundRect(c, cx-w/2, ty-th, w, th, 5); c.fill();
+    c.fillStyle = '#eaf0ff'; c.fillText(name, cx, ty-th/2+1);
+  }
+  c.restore();
+}
+
 // Cachorro caramelo (o vira-lata que, nesse mundo, MIA).
 function drawDog(c, px, py, ts, facing, moving, walk, look){
   const cx = px + ts*0.5;
@@ -733,6 +827,7 @@ function frame(now){
     else if(p.kind === 'cat') drawCat(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
+    else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
     else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
   }
 

@@ -47,6 +47,7 @@ from flask_socketio import SocketIO, emit
 
 from game import db, accounts, items, npcs, rules
 from game.world import World, public
+from game.world_map import MAP_ROWS
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-isto-em-producao")
@@ -66,6 +67,19 @@ DAY_LENGTH = 480
 # Ritmo e falas de cada NPC vivem no registro dele em npcs.ROSTER.
 TALK_RADIUS = 1          # precisa estar colado num NPC pra conversar
 HEAR_RADIUS = 4          # xingou a ate tantos tiles do Valdris -> ele te frita
+
+
+# ----- A aparicao do Pofnir: "O Gato Branco e Grande" -----
+# O unico deus que se manifesta por enquanto. Aparece de noite, raramente, anda
+# pelo mapa e SOME assim que um jogador chega perto. Os numeros sao de tunar.
+GATO_ID       = "gato_branco"            # id interno da entidade
+GATO_NOME     = "O Gato Branco e Grande" # nome que paira sobre ele
+GATO_SUMICO   = 5     # some quando um jogador chega a ate tantos tiles
+GATO_LONGE    = 7     # nasce a no MINIMO tantos tiles de todo jogador
+GATO_VIDA     = 75    # segundos no mundo antes de sumir sozinho (se ninguem chega)
+GATO_RAIO     = 7     # o quanto ele perambula em volta de onde nasceu
+GATO_CHANCE   = 0.10  # chance de surgir a cada verificacao (de noite)
+GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder voltar
 
 
 # ----------------------------------------------------------------- paginas
@@ -462,6 +476,91 @@ def _npc_gaze_loop(spec):
             print("erro no olhar de", nid, exc)
 
 
+# --------------------------------------------------- a aparicao do Pofnir
+
+def _is_night(now=None):
+    """True se o relogio compartilhado do mundo esta na faixa da noite. Usa a
+    MESMA conta do cliente (phaseName): noite = comeco e fim do ciclo."""
+    now = time.time() if now is None else now
+    t = (now % DAY_LENGTH) / DAY_LENGTH
+    return t < 0.23 or t >= 0.88
+
+
+def _far_spawn(players):
+    """Um tile passavel a no minimo GATO_LONGE de TODO jogador (pra ele surgir
+    a distancia, misterioso). Tenta varias vezes; None se nao achar."""
+    h = len(MAP_ROWS)
+    w = len(MAP_ROWS[0])
+    for _ in range(60):
+        x = random.randint(1, w - 2)
+        y = random.randint(1, h - 2)
+        if not rules.is_walkable(x, y):
+            continue
+        if all(max(abs(x - p["x"]), abs(y - p["y"])) >= GATO_LONGE for p in players):
+            return (x, y)
+    return None
+
+
+def _make_gato(spot):
+    """Monta a entidade da aparicao (so mais uma entidade no mundo, is_npc,
+    kind 'apparition' -> o cliente desenha o gato branco grande com placa)."""
+    return {
+        "id": GATO_ID,
+        "player_id": None,
+        "x": spot[0],
+        "y": spot[1],
+        "facing": "down",
+        "name": GATO_NOME,
+        "look": {"giant": True},
+        "inventory": [],
+        "equipment": {},
+        "is_npc": True,
+        "solid": False,            # ninguem chega perto o bastante pra esbarrar
+        "kind": "apparition",
+        "_home": spot,
+        "_radius": GATO_RAIO,
+        "_wanders": True,
+        "_spec": {},
+        "_born": time.time(),
+    }
+
+
+def _pofnir_loop():
+    """O Gato Branco e Grande: de noite, raramente, surge longe; perambula; e
+    SOME assim que um jogador se aproxima (ou amanhece, ou da o tempo dele)."""
+    tick = 0
+    proximo_ok = 0.0
+    while True:
+        socketio.sleep(0.6)
+        tick += 1
+        try:
+            ent = world.players.get(GATO_ID)
+            jogadores = [p for p in world.players.values() if not p.get("is_npc")]
+            if ent is None:
+                # tenta surgir (so de noite, com gente online, no descanso vencido)
+                if (tick % 10 == 0 and jogadores and _is_night()
+                        and time.time() >= proximo_ok
+                        and random.random() < GATO_CHANCE):
+                    spot = _far_spawn(jogadores)
+                    if spot:
+                        world.players[GATO_ID] = _make_gato(spot)
+                        socketio.emit("player_joined", public(world.players[GATO_ID]))
+            else:
+                perto = any(world.near_entity(p, GATO_ID, GATO_SUMICO)
+                            for p in jogadores)
+                venceu = (time.time() - ent.get("_born", 0)) > GATO_VIDA
+                if perto or venceu or not _is_night() or not jogadores:
+                    world.players.pop(GATO_ID, None)
+                    socketio.emit("player_left", {"id": GATO_ID})
+                    proximo_ok = time.time() + GATO_ESPERA
+                elif tick % 2 == 0:
+                    npc = world.wander_npc(GATO_ID)   # reusa _home/_radio/_wanders
+                    if npc:
+                        socketio.emit("player_moved", _npc_moved_payload(npc))
+        except Exception as exc:
+            print("erro no gato branco:", exc)
+
+
 # ------------------------------------------------------------------- boot
 
 def _startup():
@@ -483,6 +582,7 @@ def _startup():
             socketio.start_background_task(_npc_murmur_loop, spec)
         if spec.get("gazes"):
             socketio.start_background_task(_npc_gaze_loop, spec)
+    socketio.start_background_task(_pofnir_loop)   # a aparicao do Pofnir
 
 
 _startup()
