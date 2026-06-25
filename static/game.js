@@ -298,6 +298,47 @@ function drawTile(c, ch, px, py, ts, gx, gy){
         c.fillRect(stalkX-0.5, topY, 1.5, ts*0.12);
       }
       break;
+    case 'p': {                                        // paralelepipedo
+      c.fillStyle = '#6f6a63'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#585249';
+      c.fillRect(px, py+ts*0.5-1, ts, 1.5);
+      const off = (gy%2) ? ts*0.5 : 0;
+      c.fillRect(px+off, py, 1.5, ts*0.5);
+      c.fillRect(px+((off+ts*0.5)%ts), py+ts*0.5, 1.5, ts*0.5);
+      c.fillStyle = '#7d776e'; c.fillRect(px+ts*0.22, py+ts*0.22, 2, 2);
+      break;
+    }
+    case 'M':                                          // parede do cabare
+      c.fillStyle = '#7d2738'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#5e1b2a'; c.fillRect(px, py+ts-3, ts, 3);
+      if(gx%2===0){
+        c.fillStyle = '#3a1620'; c.fillRect(px+ts*0.26, py+ts*0.24, ts*0.48, ts*0.42);
+        c.fillStyle = '#f2c14e'; c.fillRect(px+ts*0.3, py+ts*0.28, ts*0.4, ts*0.34);
+        c.fillStyle = '#c98f3a'; c.fillRect(px+ts*0.5-0.5, py+ts*0.28, 1, ts*0.34);
+      }
+      break;
+    case 'm':                                          // toldo + placa do cabare
+      c.fillStyle = '#5e1b2a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#8a2b3d'; for(let i=0;i<ts;i+=6) c.fillRect(px+i, py, 3, ts*0.55);
+      c.fillStyle = '#3a1620'; c.fillRect(px, py, ts, 2);
+      c.fillStyle = '#e3b34a'; c.fillRect(px, py+ts*0.56, ts, ts*0.2);   // faixa da placa
+      c.fillStyle = '#9c6f28'; c.fillRect(px, py+ts*0.56, ts, 1.5);
+      break;
+    case 'E':                                          // entrada iluminada do cabare
+      c.fillStyle = '#7d2738'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#2a0f16'; c.fillRect(px+ts*0.2, py+ts*0.08, ts*0.6, ts*0.92);
+      c.fillStyle = '#b5533a'; c.fillRect(px+ts*0.27, py+ts*0.16, ts*0.46, ts*0.84);
+      c.fillStyle = '#f2c14e'; c.fillRect(px+ts*0.37, py+ts*0.46, ts*0.26, ts*0.54);
+      break;
+    case 'L':                                          // lampiao
+      grassBase(c,px,py,ts,gx,gy);
+      c.fillStyle = '#2e2a22'; c.fillRect(px+ts*0.5-1.5, py+ts*0.22, 3, ts*0.72);
+      c.fillStyle = '#3a3328'; c.fillRect(px+ts*0.5-4, py+ts*0.16, 8, 4);
+      c.fillStyle = 'rgba(255,207,110,0.22)';
+      c.beginPath(); c.arc(px+ts*0.5, py+ts*0.16, ts*0.34, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#ffcf6e';
+      c.beginPath(); c.arc(px+ts*0.5, py+ts*0.16, ts*0.15, 0, Math.PI*2); c.fill();
+      break;
     default: grassBase(c,px,py,ts,gx,gy);
   }
 }
@@ -444,6 +485,49 @@ function drawCrow(c, px, py, ts, facing, moving, walk){
   c.restore();
 }
 
+// O Jose (Mestre Cuscuz): gato preto, sorrisao de cheshire, fumaca roxa subindo.
+function drawCat(c, px, py, ts, facing, moving, walk){
+  const cx = px + ts*0.5;
+  const t = performance.now();
+  const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*2 : 0;
+  const baseY = py + ts*0.7 - hop;
+  const dir = (facing==='left') ? -1 : 1;
+  c.save();
+  for(let i=0;i<3;i++){                                   // fumaca roxa
+    const ph = (t/700 + i*0.45) % 1;
+    const wy = baseY - ts*0.12 - ph*ts*0.7;
+    const wx = cx + Math.sin(t/500 + i*2)*ts*0.16 + (i-1)*ts*0.12;
+    c.globalAlpha = 0.24*(1-ph);
+    c.fillStyle = '#9b6dff';
+    c.beginPath(); c.arc(wx, wy, ts*(0.11+ph*0.13), 0, Math.PI*2); c.fill();
+  }
+  c.globalAlpha = 0.22; c.fillStyle='#000';
+  c.beginPath(); c.ellipse(cx, py+ts*0.84, ts*0.2, ts*0.06, 0,0,Math.PI*2); c.fill();
+  c.globalAlpha = 1;
+  c.strokeStyle = '#15151b'; c.lineWidth = ts*0.1; c.lineCap='round';   // cauda
+  c.beginPath();
+  c.moveTo(cx - dir*ts*0.15, baseY);
+  c.quadraticCurveTo(cx - dir*ts*0.36, baseY - ts*0.1, cx - dir*ts*0.3, baseY - ts*0.34);
+  c.stroke();
+  c.fillStyle = '#15151b';
+  c.beginPath(); c.ellipse(cx, baseY, ts*0.2, ts*0.18, 0, 0, Math.PI*2); c.fill();   // corpo
+  const hy = baseY - ts*0.22;
+  c.beginPath(); c.arc(cx, hy, ts*0.17, 0, Math.PI*2); c.fill();                       // cabeca
+  c.beginPath(); c.moveTo(cx-ts*0.15,hy-ts*0.1); c.lineTo(cx-ts*0.04,hy-ts*0.12); c.lineTo(cx-ts*0.12,hy-ts*0.27); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(cx+ts*0.15,hy-ts*0.1); c.lineTo(cx+ts*0.04,hy-ts*0.12); c.lineTo(cx+ts*0.12,hy-ts*0.27); c.closePath(); c.fill();
+  c.fillStyle = '#f2c14e';                                                             // olhos
+  c.beginPath(); c.arc(cx-ts*0.07, hy-ts*0.01, ts*0.045, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(cx+ts*0.07, hy-ts*0.01, ts*0.045, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#15151b';
+  c.fillRect(cx-ts*0.07-0.5, hy-ts*0.05, 1, ts*0.08);
+  c.fillRect(cx+ts*0.07-0.5, hy-ts*0.05, 1, ts*0.08);
+  c.strokeStyle = '#f4e6c0'; c.lineWidth = 1.5; c.lineCap='round';                     // sorrisao
+  c.beginPath(); c.arc(cx, hy+ts*0.03, ts*0.1, 0.12*Math.PI, 0.88*Math.PI); c.stroke();
+  c.fillStyle = '#f4e6c0';
+  for(let i=-1;i<=1;i++) c.fillRect(cx+i*ts*0.05-0.6, hy+ts*0.09, 1.4, 1.6);
+  c.restore();
+}
+
 // ===========================================================================
 //  ÍCONES DE ITENS (mesma fonte de cores do servidor, via catalog)
 // ===========================================================================
@@ -541,6 +625,7 @@ function frame(now){
     const sx = p.rx - camX, sy = p.ry - camY;
     if(sx < -TS || sy < -TS || sx > canvas.width+TS || sy > canvas.height+TS) continue;
     if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk);
+    else if(p.kind === 'cat') drawCat(ctx, sx, sy, TS, p.facing, p._moving, p.walk);
     else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
   }
 
@@ -1124,7 +1209,7 @@ window.addEventListener('keydown', e=>{
 //  - acha o menor caminho ate o tile clicado, desviando de obstaculos (BFS)
 //  - emite os passos no mesmo ritmo do teclado; o servidor valida cada um
 // ===========================================================================
-const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H']);  // iguais ao servidor
+const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H', 'M', 'm', 'L']);  // iguais ao servidor
 const STEPV = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 function walkableTile(x, y){
   return y >= 0 && y < mapH && x >= 0 && x < mapW && !SOLID_TILES.has(mapRows[y][x]);

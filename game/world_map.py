@@ -9,6 +9,8 @@ Legenda:
     =  caminho        ~  água (SÓLIDO)      T  árvore (SÓLIDO)
     #  cerca (SÓLIDO) ^  telhado (SÓLIDO)   H  parede (SÓLIDO)   D  porta
     w  trigo (passável: dá pra andar no meio das espigas)
+    p  paralelepípedo (passável)   E  entrada do cabaré (passável)
+    M  parede do cabaré (SÓLIDO)    m  toldo do cabaré (SÓLIDO)   L  lampião (SÓLIDO)
 
 Para crescer: edite MAP_ROWS (ou gere de novo com gen_map.py) e os SPAWN_POINTS.
 O cliente tem uma câmera, então o mapa pode ser bem maior que a tela.
@@ -18,20 +20,20 @@ TILE_SIZE = 32  # pixels por tile
 
 MAP_ROWS = [
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
-    "T...................=..................T",
-    "T................,..=..,.:..,..........T",
-    "T...............,...=.........T..:.T...T",
-    "T....^^^^...........=.....TT...^^^^T.T.T",
-    "T....HHHH.....,.....=....TT.TT.HHHH:...T",
-    "T....HDHH..,,...,...=.....T....HHDH..T.T",
-    "T.................,.=...TT.,T....=...T.T",
-    "T...................=....T..T,.,T=T.T..T",
-    "T..,...:..........,.=.........T..=T.T..T",
-    "T...................=........,.TT=..TT.T",
-    "T.............^^^^..=..........,T=T..T.T",
-    "T.............HHHH..=,...........=.....T",
-    "T.............HDHH..=...........,=.....T",
-    "T........,..........=........,...=.....T",
+    "T...................=..T.....T......T..T",
+    "T................,..=...,T.......,T..T.T",
+    "T...............,...=.T............T.T.T",
+    "T....^^^^...........=.....mmmmmm.....T.T",
+    "T....HHHH.....,.....=.....MMMMMM....T..T",
+    "T....HDHH..,,...,...=.....MMEMMM.....T.T",
+    "T.................,.=....LpppppppL..T..T",
+    "T...................=.....ppppppp....T.T",
+    "T..,...:..........,.=..........pp....T.T",
+    "T...................=..........pp...T..T",
+    "T.............^^^^..=..........pp....T.T",
+    "T.............HHHH..=...,......pp....T.T",
+    "T.............HDHH..=.T........pp.,.T..T",
+    "T........,..........=..T.......pp......T",
     "T======================================T",
     "T..........,....:...=...........:......T",
     "T..:...........,.,..=..:...............T",
@@ -50,7 +52,7 @@ MAP_ROWS = [
 ]
 
 # Tiles que bloqueiam passagem.
-SOLID_CHARS = {"~", "T", "#", "^", "H"}
+SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [

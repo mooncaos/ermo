@@ -90,6 +90,89 @@ CORVO_GREETINGS = [
 ]
 
 
+# ===================== Beth Cuzcuz (cabaré no nordeste) =====================
+# Bolsao urbano aberto no meio do mato. A casa de quem caiu no Ermo e seguiu a
+# vida: a Beth, senhora nordestina dona do cabare, e o espelho exato do Valdris
+# (ele caiu e procura a saida sem parar; ela caiu, levantou e botou o cabare pra
+# rodar). Tom boemio/noir, falas sugestivas, nada explicito; figuras adultas.
+
+BETH_MURMURS = [
+    "ai, esses Ermo... mas o movimento nao para, gracas a Deus.",
+    "Rodolfo! oia a fila ai, meu fio.",
+    "no Sao Joao la da terra e que era bom. mas aqui tambem se ajeita.",
+    "cabare bom nao dorme, meu rei.",
+    "cai nesse fim de mundo e fiz o que sabia fazer. ponto final.",
+]
+BETH_GREETINGS = [
+    "o meu rei, senta ai. num sei como vim parar nesses Ermo, mas bordel bom a gente abre em qualquer canto.",
+    "perdido? rapaz, todo mundo aqui caiu sem querer. eu cai, levantei e botei o cabare pra rodar. a vida segue.",
+    "minhas menina e tratada com respeito, viu? quem esquecer, o Rodolfo bota na memoria.",
+    "isso aqui e um pedacinho do meu Nordeste no meio do nada. fica a vontade, mas se comporta.",
+]
+
+RODOLFO_MURMURS = [
+    "fila andando. sem empurrao.",
+    "olho em todo mundo. todo mundo.",
+    "o chefe e a Beth. e o que a Beth manda, eu faco.",
+]
+RODOLFO_GREETINGS = [
+    "Ta olhando o que? Entra logo ou sai da fila!",
+    "Se arrumar confusao aqui na porta, eu arrumo uma maior!",
+    "O chefe mandou barrar, entao ta barrado. Reclama com as estrelas!",
+]
+
+DIDI_MURMURS = [
+    "ja quebrei uns quinze hoje. ontem. esses dias.",
+    "trabaia cansa. fico aqui de butuca so, viu.",
+    "meu irmao e o forte. eu sou o inteligente. e o bonito.",
+]
+DIDI_GREETINGS = [
+    "Se veio causar problema, pega a senha e entra na fila!",
+    "To de mau humor hoje. Na verdade, todo dia.",
+    "Voce tem ingresso ou so coragem mesmo?",
+]
+
+DALIA_MURMURS = [
+    "a noite e uma crianca...",
+    "todo mundo que entra aqui procura alguma coisa. eu acho rapidinho o que e.",
+]
+DALIA_GREETINGS = [
+    "o quem chegou. senta aqui, forasteiro, que do meu lado a noite passa devagarinho.",
+    "demorou pra aparecer. eu nao, eu tava te esperando.",
+]
+
+MARLENE_MURMURS = [
+    "sera que ainda tem mundo la fora? deixa, nao quero saber.",
+    "a musica boa e a triste. as outras a gente danca so pra esquecer.",
+]
+MARLENE_GREETINGS = [
+    "todo perdido do Ermo passa por aqui uma vez. uns procuram a saida a noite toda. eu ja desisti, fico bem na fumaca.",
+    "senta. fica. la fora nao tem nada que aqui dentro nao console melhor.",
+]
+
+CLEIDE_MURMURS = [
+    "que figura essa que entrou agora... credo.",
+    "se eu ganhasse moeda por cada folgado, ja tava rica.",
+]
+CLEIDE_GREETINGS = [
+    "veio gastar moeda ou gastar meu tempo? um desses eu nao tenho de sobra.",
+    "o, espelho e na parede. quer me olhar de perto, tem preco.",
+]
+
+JOSE_MURMURS = [
+    "ronrom... (ele te observa sumindo aos poucos na fumaca roxa.)",
+    "vi o velho de roxo procurando a saida. nao contei a ele. nao vou contar a voce.",
+    "todo gato preto da azar, dizem. eu dou respostas. pior, talvez.",
+    "a Beth caiu e ficou. o Valdris caiu e nao para de procurar. eu? eu sempre estive aqui.",
+]
+JOSE_GREETINGS = [
+    "As respostas sao como peixes: quanto mais voce aperta, mais rapido elas escapam.",
+    "Eu poderia lhe contar a verdade... mas ela e tao sem graca que prefiro inventar algo melhor.",
+    "No Beth Cuzcuz, todo mundo tem um segredo. Os espertos escondem o proprio. Os tolos escondem o dos outros.",
+    "Procura resposta? Tenho muitas. O preco as vezes e uma moeda, as vezes um favor, as vezes uma boa historia. Hoje... me conta uma.",
+]
+
+
 # ------------------------------------------------------------------- o elenco
 
 ROSTER = [
@@ -141,5 +224,68 @@ ROSTER = [
         "murmur_min": 22, "murmur_max": 36,
         "greetings": CORVO_GREETINGS,
         "smiter": False,
+    },
+    {
+        "id": "npc:beth", "name": "Beth",
+        "look": {"skin": "#8d5524", "cloak": "#e85d75", "hood": "down",
+                 "hat": "none", "hair": "#cfc7bf", "staff": False},
+        "home": (28, 7), "radius": 0, "wanders": False, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": BETH_MURMURS, "murmur_min": 16, "murmur_max": 24,
+        "greetings": BETH_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:rodolfo", "name": "Rodolfo",
+        "look": {"skin": "#c68642", "cloak": "#4a4640", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (27, 7), "radius": 0, "wanders": False, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": RODOLFO_MURMURS, "murmur_min": 20, "murmur_max": 30,
+        "greetings": RODOLFO_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:didi", "name": "Didi",
+        "look": {"skin": "#c68642", "cloak": "#5a4a3a", "hood": "down",
+                 "hat": "cap", "hair": "#2a2233", "staff": False},
+        "home": (29, 7), "radius": 0, "wanders": False, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": DIDI_MURMURS, "murmur_min": 18, "murmur_max": 26,
+        "greetings": DIDI_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:dalia", "name": "Dalia",
+        "look": {"skin": "#e8b58c", "cloak": "#f49ad0", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (27, 8), "radius": 1, "wanders": True, "step_every": 1.4,
+        "solid": True, "kind": "person",
+        "murmurs": DALIA_MURMURS, "murmur_min": 17, "murmur_max": 26,
+        "greetings": DALIA_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:marlene", "name": "Marlene",
+        "look": {"skin": "#f1c9a5", "cloak": "#9b6dff", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (29, 8), "radius": 1, "wanders": True, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": MARLENE_MURMURS, "murmur_min": 18, "murmur_max": 28,
+        "greetings": MARLENE_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:cleide", "name": "Cleide",
+        "look": {"skin": "#c68642", "cloak": "#f4b860", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (31, 8), "radius": 1, "wanders": True, "step_every": 1.4,
+        "solid": True, "kind": "person",
+        "murmurs": CLEIDE_MURMURS, "murmur_min": 17, "murmur_max": 26,
+        "greetings": CLEIDE_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:jose", "name": "Jose",
+        "look": {"skin": "#15151b", "cloak": "#15151b", "hood": "down",
+                 "hat": "none", "hair": "#15151b", "staff": False},
+        "home": (32, 10), "radius": 2, "wanders": True, "step_every": 2.2,
+        "solid": False, "kind": "cat",
+        "murmurs": JOSE_MURMURS, "murmur_min": 20, "murmur_max": 32,
+        "greetings": JOSE_GREETINGS, "smiter": False,
     },
 ]
