@@ -67,4 +67,5 @@ def apply_move(world, player, direction):
 
     player["x"], player["y"] = nx, ny
     player["_last_move"] = now
+    player["_dirty"] = True  # marca pra ser salvo no banco no proximo flush
     return player

@@ -1,27 +1,26 @@
 """
-O ESTADO DO MUNDO — quem está dentro, onde, e com que cara.
+O ESTADO DO MUNDO — quem esta dentro AGORA, onde, e com que cara.
 
-Guarda os jogadores conectados e sabe se serializar pra mandar pro
-cliente. Não conhece a rede (não importa socket nenhum) nem desenha
-nada. Só estado + operações sobre ele, delegando as regras pra rules.py.
+Guarda os jogadores CONECTADOS no momento (memoria), separado do banco, que
+guarda o estado PERSISTENTE. Quando alguem entra, a rede carrega a conta do
+banco e chama add_player com esses dados; quando o jogador anda, ele e
+marcado como "sujo" pra um salvador periodico gravar a posicao.
 
-A APARÊNCIA ("look") de cada jogador é só um dicionário de campos. Ele
-viaja sozinho pela rede até todo mundo, então adicionar customização
-nova no futuro (vida, equipamento, etc.) é só somar campo aqui e saber
-desenhar no cliente. Tudo que vem do cliente passa por sanitize_look,
-pra um cliente malicioso não conseguir injetar valor fora da lista.
+Nao conhece socket nem desenha nada. So estado vivo + operacoes, delegando
+as regras pra rules.py. A aparencia ("look") continua sendo so um dicionario
+de campos validados, que viaja sozinho pela rede ate todo mundo.
 """
 
 from . import rules
 from .world_map import MAP_ROWS, TILE_SIZE
 
-# Paletas de customização (o cliente desenha a partir destes mesmos valores).
+# Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
 CLOAKS = [
     "#9b6dff",  # violeta arcano
-    "#f4b860",  # âmbar
+    "#f4b860",  # ambar
     "#5fd0c5",  # turquesa
     "#e85d75",  # rubi
-    "#7cc4f4",  # céu
+    "#7cc4f4",  # ceu
     "#b6e36a",  # limo
     "#f49ad0",  # rosa
     "#c9a0ff",  # lavanda
@@ -31,7 +30,7 @@ HAIRS = ["#2a2233", "#5a3f28", "#8a6a3a", "#d8b25a", "#b6b0be", "#9c3b2e"]
 HATS = ("none", "wizard", "cap")
 HOODS = ("up", "down")
 
-# Compat: nome antigo ainda usado em algum lugar do código/leitura.
+# Compat: nome antigo.
 PLAYER_COLORS = CLOAKS
 
 
@@ -47,7 +46,7 @@ def default_look(i=0):
 
 
 def sanitize_look(raw, i=0):
-    """Garante um look válido a partir do que o cliente mandou."""
+    """Garante um look valido a partir do que veio (cliente ou banco)."""
     look = default_look(i)
     if isinstance(raw, dict):
         if raw.get("skin") in SKINS:
@@ -65,7 +64,7 @@ def sanitize_look(raw, i=0):
 
 
 def public(p):
-    """Versão do jogador segura pra enviar (sem campos internos com _)."""
+    """Versao do jogador segura pra enviar (sem campos internos com _)."""
     return {
         "id": p["id"],
         "x": p["x"],
@@ -78,11 +77,11 @@ def public(p):
 
 class World:
     def __init__(self):
-        self.players = {}          # sid -> dict do jogador
-        self._join_index = 0
+        self.players = {}        # sid -> dict do jogador (estado vivo)
+        self.by_player_id = {}   # player_id (conta) -> sid
 
     def map_payload(self):
-        """O mapa que vai pro cliente no 'init' (fonte única da verdade)."""
+        """O mapa que vai pro cliente no 'init' (fonte unica da verdade)."""
         return {
             "rows": MAP_ROWS,
             "tilesize": TILE_SIZE,
@@ -90,24 +89,33 @@ class World:
             "height": len(MAP_ROWS),
         }
 
-    def add_player(self, sid, name, look=None):
-        x, y = rules.pick_spawn(self)
-        clean_name = (name or "").strip()[:16] or "Viajante"
+    def add_player(self, sid, player_id, name, look, x, y, facing="down"):
+        """Coloca no mundo um jogador ja carregado do banco."""
         player = {
-            "id": sid,
-            "x": x,
-            "y": y,
-            "facing": "down",
-            "name": clean_name,
-            "look": sanitize_look(look, self._join_index),
+            "id": sid,                # identidade da conexao (protocolo)
+            "player_id": player_id,   # identidade da conta (banco)
+            "x": int(x),
+            "y": int(y),
+            "facing": facing or "down",
+            "name": (name or "Viajante")[:16],
+            "look": sanitize_look(look),
             "_last_move": 0.0,
+            "_dirty": False,
         }
-        self._join_index += 1
         self.players[sid] = player
+        self.by_player_id[player_id] = sid
         return player
 
+    def sid_for_player(self, player_id):
+        return self.by_player_id.get(player_id)
+
     def remove_player(self, sid):
-        return self.players.pop(sid, None)
+        player = self.players.pop(sid, None)
+        if player:
+            # so limpa o indice se ele ainda aponta pra este sid
+            if self.by_player_id.get(player["player_id"]) == sid:
+                self.by_player_id.pop(player["player_id"], None)
+        return player
 
     def try_move(self, sid, direction):
         player = self.players.get(sid)
@@ -116,5 +124,14 @@ class World:
         return rules.apply_move(self, player, direction)
 
     def snapshot(self):
-        """Todos os jogadores em formato público (pra mandar no 'init')."""
+        """Todos os jogadores vivos em formato publico (pro 'init')."""
         return [public(p) for p in self.players.values()]
+
+    def pop_dirty(self):
+        """Quem se moveu desde o ultimo flush: lista (player_id,x,y,facing)."""
+        out = []
+        for p in self.players.values():
+            if p.get("_dirty"):
+                out.append((p["player_id"], p["x"], p["y"], p["facing"]))
+                p["_dirty"] = False
+        return out

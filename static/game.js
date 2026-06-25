@@ -7,16 +7,31 @@
 
 // ---------- elementos ----------
 const gate    = document.getElementById('gate');
+const booting = document.getElementById('booting');
 const stage   = document.getElementById('stage');
 const canvas  = document.getElementById('game');
 const ctx     = canvas.getContext('2d');
 const hud     = document.getElementById('hud');
 const help    = document.getElementById('help');
+const logoutB = document.getElementById('logout');
 const onlineEl= document.getElementById('online');
 const coordsEl= document.getElementById('coords');
-const nameInput = document.getElementById('name');
-const enterBtn  = document.getElementById('enter');
-const statusEl  = document.getElementById('status');
+const statusEl= document.getElementById('status');
+
+// abas + campos de conta
+const tabLogin   = document.getElementById('tab-login');
+const tabReg     = document.getElementById('tab-register');
+const panelLogin = document.getElementById('panel-login');
+const panelReg   = document.getElementById('panel-register');
+const loginEmail = document.getElementById('login-email');
+const loginPass  = document.getElementById('login-pass');
+const regEmail   = document.getElementById('reg-email');
+const regName    = document.getElementById('reg-name');
+const regPass    = document.getElementById('reg-pass');
+const btnLogin   = document.getElementById('btn-login');
+const btnReg     = document.getElementById('btn-register');
+
+const TOKEN_KEY = 'ermo_token';
 
 // ---------- viewport (câmera) ----------
 const VIEW_COLS = 15, VIEW_ROWS = 19;   // tamanho da janela em tiles
@@ -403,9 +418,9 @@ function buildDpad(){
 // ===========================================================================
 //  REDE
 // ===========================================================================
-function connect(name, look){
-  socket = io({ transports:['websocket','polling'] });
-  socket.on('connect', ()=> socket.emit('join', {name, look}) );
+function connectWithToken(token){
+  if(socket){ try{ socket.disconnect(); }catch(e){} }
+  socket = io({ auth:{ token }, transports:['websocket','polling'] });
 
   socket.on('init', data=>{
     myId = data.id;
@@ -423,8 +438,24 @@ function connect(name, look){
     p.x = m.x; p.y = m.y; p.facing = m.facing;
   });
   socket.on('player_left', m=>{ players.delete(m.id); updateOnline(); });
-  socket.on('connect_error', ()=> setStatus('Não consegui conectar ao Ermo. Tente de novo.', true));
-  socket.on('disconnect', ()=>{ if(started) setStatus('Conexão perdida.', true); });
+
+  // token recusado pelo servidor: limpa e volta pro login
+  socket.on('auth_error', ()=>{
+    localStorage.removeItem(TOKEN_KEY);
+    try{ socket.disconnect(); }catch(e){}
+    showGate();
+    setStatus('Sua sessão expirou. Entre de novo.', true);
+  });
+
+  // falha de transporte (nao de senha); se ainda nao entrou, volta pro portao
+  socket.on('connect_error', ()=>{
+    if(!started){
+      try{ socket.disconnect(); }catch(e){}
+      showGate();
+      setStatus('Não consegui conectar ao Ermo. Tente de novo.', true);
+    }
+  });
+  socket.on('disconnect', ()=>{ if(started) setStatus('Conexão perdida. Tentando voltar…'); });
 }
 function addPlayer(p){
   players.set(p.id, {
@@ -435,12 +466,14 @@ function addPlayer(p){
 }
 function updateOnline(){ onlineEl.textContent = players.size; }
 function enterWorld(){
-  if(started) return;
-  started = true;
+  booting.style.display = 'none';
   gate.style.display = 'none';
+  if(started) return;          // reconexao: estado ja refeito pelo 'init'
+  started = true;
   stage.style.display = 'flex';
   hud.style.display = 'block';
   help.style.display = 'block';
+  logoutB.style.display = 'block';
   buildDpad();
   requestAnimationFrame(frame);
 }
@@ -451,18 +484,82 @@ function enterWorld(){
 function setStatus(msg, isErr){
   statusEl.textContent = msg || '';
   statusEl.className = isErr ? 'err' : '';
-  if(isErr){ enterBtn.disabled = false; enterBtn.textContent = 'Entrar no Ermo'; }
+  if(isErr) setBusy(false);
 }
-function doEnter(){
-  const name = nameInput.value.trim() || 'Viajante';
-  enterBtn.disabled = true; enterBtn.textContent = 'Atravessando…';
-  setStatus('Conectando ao Ermo…');
-  connect(name, currentLook);
+function setBusy(busy){ btnLogin.disabled = busy; btnReg.disabled = busy; }
+function showGate(){ booting.style.display='none'; gate.style.display='block'; setBusy(false); }
+function showBooting(){ gate.style.display='none'; booting.style.display='block'; }
+
+// abas
+function selectTab(which){
+  const login = which === 'login';
+  tabLogin.classList.toggle('active', login);
+  tabReg.classList.toggle('active', !login);
+  panelLogin.classList.toggle('active', login);
+  panelReg.classList.toggle('active', !login);
+  setStatus('');
 }
-enterBtn.addEventListener('click', doEnter);
-nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') doEnter(); });
+tabLogin.addEventListener('click', ()=> selectTab('login'));
+tabReg.addEventListener('click', ()=> selectTab('register'));
+
+// chamadas de conta (HTTP)
+async function api(path, body){
+  const r = await fetch(path, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body),
+  });
+  let data = {};
+  try{ data = await r.json(); }catch(e){}
+  if(!r.ok) throw new Error(data.error || 'Falha na conexão.');
+  return data;
+}
+
+async function doLogin(){
+  const email = loginEmail.value.trim(), pass = loginPass.value;
+  if(!email || !pass){ setStatus('Preencha email e senha.', true); return; }
+  setBusy(true); setStatus('Entrando…');
+  try{
+    const { token } = await api('/api/login', { email, password: pass });
+    localStorage.setItem(TOKEN_KEY, token);
+    setStatus('Atravessando…');
+    connectWithToken(token);
+  }catch(err){ setStatus(err.message, true); }
+}
+
+async function doRegister(){
+  const email = regEmail.value.trim();
+  const name = regName.value.trim() || 'Viajante';
+  const pass = regPass.value;
+  if(!email || !pass){ setStatus('Preencha email e senha.', true); return; }
+  if(pass.length < 6){ setStatus('A senha precisa de pelo menos 6 caracteres.', true); return; }
+  setBusy(true); setStatus('Criando sua conta…');
+  try{
+    const { token } = await api('/api/register', { email, name, password: pass, look: currentLook });
+    localStorage.setItem(TOKEN_KEY, token);
+    setStatus('Atravessando…');
+    connectWithToken(token);
+  }catch(err){ setStatus(err.message, true); }
+}
+
+btnLogin.addEventListener('click', doLogin);
+btnReg.addEventListener('click', doRegister);
+loginPass.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+regPass.addEventListener('keydown', e=>{ if(e.key==='Enter') doRegister(); });
+
+// sair: esquece o token e recomeca no portao
+logoutB.addEventListener('click', ()=>{
+  const token = localStorage.getItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  try{ api('/api/logout', { token }); }catch(e){}
+  location.reload();
+});
 
 // ---------- start ----------
 buildCreator();
 if(pctx) requestAnimationFrame(previewLoop);
-nameInput.focus();
+
+(function boot(){
+  const token = localStorage.getItem(TOKEN_KEY);
+  if(token){ showBooting(); connectWithToken(token); }
+  else { showGate(); loginEmail.focus(); }
+})();

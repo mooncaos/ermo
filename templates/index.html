@@ -40,6 +40,14 @@
     color:var(--muted); line-height:1.7; pointer-events:none;
   }
   #hud .on{color:var(--ink)} #hud .dot{color:var(--violet)}
+  #logout{
+    position:fixed; top:14px; right:14px; display:none; z-index:6; cursor:pointer;
+    font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted);
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:10px; padding:8px 12px;
+    transition:color .15s, border-color .15s;
+  }
+  #logout:hover{color:var(--ink); border-color:var(--violet)}
   #help{
     position:fixed; bottom:14px; left:14px; display:none; max-width:60vw;
     font-size:12px; color:var(--muted); letter-spacing:.02em; line-height:1.5;
@@ -50,7 +58,7 @@
     padding:1px 6px; border-radius:5px; border:1px solid var(--edge); font-size:11px;
   }
 
-  /* ---------- portão / criador ---------- */
+  /* ---------- portao (login / cadastro) ---------- */
   #gate{
     position:relative; width:min(92vw,430px); max-height:94vh; overflow-y:auto;
     padding:34px 32px 30px; text-align:center;
@@ -70,23 +78,37 @@
   @media (prefers-reduced-motion:reduce){h1{animation:none}}
   .tagline{color:var(--muted); font-size:13.5px; margin-top:12px; line-height:1.5}
 
-  #pcanvas{
-    image-rendering:pixelated; display:block; margin:16px auto 6px; border-radius:14px;
-    background:radial-gradient(80% 80% at 50% 35%, #211d36 0%, #141124 100%);
-    border:1px solid var(--edge);
+  /* abas */
+  .tabs{
+    display:flex; gap:6px; margin-top:22px; padding:4px;
+    background:#100e1b; border:1px solid var(--edge); border-radius:12px;
   }
+  .tab{
+    flex:1; padding:10px; cursor:pointer; border:none; border-radius:9px;
+    font-family:Inter,sans-serif; font-size:13.5px; font-weight:500;
+    color:var(--muted); background:transparent; transition:all .15s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:rgba(155,109,255,.2); color:var(--ink)}
+
+  .panel{display:none} .panel.active{display:block}
 
   label{
     display:block; text-align:left; font-size:12px; color:var(--muted);
-    margin:14px 0 7px; letter-spacing:.02em;
+    margin:16px 0 7px; letter-spacing:.02em;
   }
-  #name{
+  .field{
     width:100%; padding:12px 14px; font-family:Inter,sans-serif; font-size:15px;
     color:var(--ink); background:#100e1b; border:1px solid var(--edge);
     border-radius:11px; outline:none; transition:border-color .15s, box-shadow .15s;
   }
-  #name:focus{border-color:var(--violet); box-shadow:0 0 0 3px rgba(155,109,255,.18)}
+  .field:focus{border-color:var(--violet); box-shadow:0 0 0 3px rgba(155,109,255,.18)}
 
+  #pcanvas{
+    image-rendering:pixelated; display:block; margin:18px auto 4px; border-radius:14px;
+    background:radial-gradient(80% 80% at 50% 35%, #211d36 0%, #141124 100%);
+    border:1px solid var(--edge);
+  }
   .opt{display:flex; align-items:center; gap:10px; margin-top:13px; text-align:left}
   .optlbl{
     flex:0 0 52px; font-size:11px; color:var(--muted); letter-spacing:.04em;
@@ -107,42 +129,79 @@
   .pill:hover{color:var(--ink)}
   .pill.sel{background:rgba(155,109,255,.22); color:var(--ink); border-color:var(--violet)}
 
-  #enter{
+  .enter{
     width:100%; margin-top:22px; padding:14px; cursor:pointer;
     font-family:Cinzel,serif; font-weight:600; font-size:16px; letter-spacing:.06em;
     color:#140f06; background:linear-gradient(180deg,var(--amber),#e0a23f);
     border:none; border-radius:11px; transition:transform .12s, filter .15s, opacity .15s;
   }
-  #enter:hover{filter:brightness(1.06)} #enter:active{transform:translateY(1px)}
-  #enter:disabled{opacity:.55; cursor:wait; filter:saturate(.6)}
-  #status{min-height:16px; margin-top:12px; font-size:13px; color:var(--muted)}
+  .enter:hover{filter:brightness(1.06)} .enter:active{transform:translateY(1px)}
+  .enter:disabled{opacity:.55; cursor:wait; filter:saturate(.6)}
+  #status{min-height:16px; margin-top:14px; font-size:13px; color:var(--muted)}
   #status.err{color:var(--danger)}
+  .hint{font-size:11.5px; color:var(--muted); opacity:.7; margin-top:8px; text-align:left}
+
+  /* estado de auto-login */
+  #booting{
+    display:none; text-align:center; color:var(--muted); font-size:14px;
+    font-family:"JetBrains Mono",monospace; letter-spacing:.04em;
+  }
+  #booting h1{font-size:42px; margin-bottom:18px}
 </style>
 </head>
 <body>
   <div id="gate">
     <div class="eyebrow">protótipo multiplayer</div>
     <h1>ERMO</h1>
-    <p class="tagline">Um vilarejo no crepúsculo.<br>Monte seu viajante e atravesse.</p>
+    <p class="tagline">Um vilarejo no crepúsculo.<br>Crie sua conta e atravesse.</p>
 
-    <canvas id="pcanvas" width="132" height="148"></canvas>
+    <div class="tabs">
+      <button class="tab active" id="tab-login" type="button">Entrar</button>
+      <button class="tab" id="tab-register" type="button">Criar conta</button>
+    </div>
 
-    <label for="name">Nome do viajante</label>
-    <input id="name" maxlength="16" placeholder="ex.: Valdris" autocomplete="off" spellcheck="false">
+    <!-- LOGIN -->
+    <div class="panel active" id="panel-login">
+      <label for="login-email">Email</label>
+      <input id="login-email" class="field" type="email" autocomplete="email" placeholder="voce@email.com" spellcheck="false">
+      <label for="login-pass">Senha</label>
+      <input id="login-pass" class="field" type="password" autocomplete="current-password" placeholder="••••••••">
+      <button class="enter" id="btn-login" type="button">Entrar no Ermo</button>
+    </div>
 
-    <div class="opt"><span class="optlbl">Capa</span><div class="row" id="row-cloak"></div></div>
-    <div class="opt"><span class="optlbl">Pele</span><div class="row" id="row-skin"></div></div>
-    <div class="opt"><span class="optlbl">Cabelo</span><div class="row" id="row-hair"></div></div>
-    <div class="opt"><span class="optlbl">Capuz</span><div class="row" id="row-hood"></div></div>
-    <div class="opt"><span class="optlbl">Chapéu</span><div class="row" id="row-hat"></div></div>
-    <div class="opt"><span class="optlbl">Cajado</span><div class="row" id="row-staff"></div></div>
+    <!-- CADASTRO -->
+    <div class="panel" id="panel-register">
+      <canvas id="pcanvas" width="132" height="148"></canvas>
 
-    <button id="enter">Entrar no Ermo</button>
+      <label for="reg-email">Email</label>
+      <input id="reg-email" class="field" type="email" autocomplete="email" placeholder="voce@email.com" spellcheck="false">
+      <label for="reg-name">Nome do viajante</label>
+      <input id="reg-name" class="field" maxlength="16" placeholder="ex.: Valdris" autocomplete="off" spellcheck="false">
+      <label for="reg-pass">Senha</label>
+      <input id="reg-pass" class="field" type="password" autocomplete="new-password" placeholder="mín. 6 caracteres">
+
+      <div class="opt"><span class="optlbl">Capa</span><div class="row" id="row-cloak"></div></div>
+      <div class="opt"><span class="optlbl">Pele</span><div class="row" id="row-skin"></div></div>
+      <div class="opt"><span class="optlbl">Cabelo</span><div class="row" id="row-hair"></div></div>
+      <div class="opt"><span class="optlbl">Capuz</span><div class="row" id="row-hood"></div></div>
+      <div class="opt"><span class="optlbl">Chapéu</span><div class="row" id="row-hat"></div></div>
+      <div class="opt"><span class="optlbl">Cajado</span><div class="row" id="row-staff"></div></div>
+
+      <button class="enter" id="btn-register" type="button">Criar conta e entrar</button>
+      <p class="hint">Seu viajante e o lugar onde você parar ficam salvos. Da próxima vez é só entrar.</p>
+    </div>
+
     <div id="status"></div>
+  </div>
+
+  <div id="booting">
+    <h1>ERMO</h1>
+    <div>Atravessando o crepúsculo…</div>
   </div>
 
   <div id="stage"><canvas id="game"></canvas></div>
   <div id="hud"><span class="dot">●</span> <span class="on" id="online">1</span> online · <span id="coords">x 0, y 0</span></div>
+  <div id="logout">sair</div>
   <div id="help">Ande com <kbd>W A S D</kbd>, setas, ou o direcional no canto.</div>
 
   <script src="/static/game.js"></script>
