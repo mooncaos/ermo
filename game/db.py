@@ -88,10 +88,18 @@ def init_schema():
                 facing      TEXT NOT NULL DEFAULT 'down',
                 inventory   JSONB NOT NULL DEFAULT '[]'::jsonb,
                 equipment   JSONB NOT NULL DEFAULT '{}'::jsonb,
+                race        TEXT,
+                ficha       JSONB NOT NULL DEFAULT '{}'::jsonb,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
                 last_seen   TIMESTAMPTZ NOT NULL DEFAULT now()
             );
             """
+        )
+        # migracao: contas antigas ganham as colunas de raca/ficha (idempotente)
+        cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS race TEXT;")
+        cur.execute(
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS "
+            "ficha JSONB NOT NULL DEFAULT '{}'::jsonb;"
         )
         cur.execute(
             """
@@ -112,14 +120,15 @@ def email_exists(email):
         return cur.fetchone() is not None
 
 
-def create_player(email, name, pass_hash, look, x, y, facing="down"):
+def create_player(email, name, pass_hash, look, x, y, facing="down", race=None, ficha=None):
     """Insere um jogador novo e devolve o id. Levanta se o email ja existe."""
     with cursor() as cur:
         cur.execute(
-            """INSERT INTO players (email, name, pass_hash, look, x, y, facing)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """INSERT INTO players (email, name, pass_hash, look, x, y, facing, race, ficha)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                RETURNING id""",
-            (email, name, pass_hash, psycopg2.extras.Json(look), x, y, facing),
+            (email, name, pass_hash, psycopg2.extras.Json(look), x, y, facing,
+             race, psycopg2.extras.Json(ficha or {})),
         )
         return cur.fetchone()[0]
 
@@ -135,7 +144,7 @@ def get_player(player_id):
     """Estado salvo do jogador pra carregar no mundo (sem o pass_hash)."""
     with cursor(dict_rows=True) as cur:
         cur.execute(
-            """SELECT id, email, name, look, x, y, facing, inventory, equipment
+            """SELECT id, email, name, look, x, y, facing, inventory, equipment, race, ficha
                FROM players WHERE id=%s""",
             (player_id,),
         )
@@ -175,6 +184,14 @@ def save_loadout(player_id, inventory, equipment, look):
 
 
 # ----------------------------------------------------------------- sessoes
+
+def save_race(player_id, race, ficha):
+    """Grava a raca escolhida e a ficha derivada dela (fluxo de escolha de raca)."""
+    with cursor() as cur:
+        cur.execute(
+            "UPDATE players SET race=%s, ficha=%s, last_seen=now() WHERE id=%s",
+            (race, psycopg2.extras.Json(ficha or {}), player_id),
+        )
 
 def _hash_token(token):
     # Guardamos so o hash do token, nunca o token em si.

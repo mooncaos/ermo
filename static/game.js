@@ -178,10 +178,19 @@ const FACES = ['down','left','up','right'];
 let pLast = performance.now(), pWalk = 0;
 function previewLoop(now){
   const dt = Math.min(50, now - pLast); pLast = now; pWalk += dt;
-  const ts = 72, face = FACES[Math.floor(now/900) % 4];
-  pctx.clearRect(0,0,pcanvas.width,pcanvas.height);
-  drawCharacter(pctx, pcanvas.width/2 - ts/2, pcanvas.height - ts - 16, ts,
-                currentLook, face, '', false, true, pWalk);
+  const face = FACES[Math.floor(now/900) % 4];
+  const rs = document.getElementById('race');
+  if(rs && rs.classList.contains('open') && racePctx){
+    const rts = 96;
+    racePctx.clearRect(0,0,racePcanvas.width,racePcanvas.height);
+    drawCharacter(racePctx, racePcanvas.width/2 - rts/2, racePcanvas.height - rts - 14, rts,
+                  raceScreenLook, face, '', false, true, pWalk);
+  } else if(pctx){
+    const ts = 72;
+    pctx.clearRect(0,0,pcanvas.width,pcanvas.height);
+    drawCharacter(pctx, pcanvas.width/2 - ts/2, pcanvas.height - ts - 16, ts,
+                  currentLook, face, '', false, true, pWalk);
+  }
   requestAnimationFrame(previewLoop);
 }
 
@@ -1018,6 +1027,25 @@ function connectWithToken(token){
   if(socket){ try{ socket.disconnect(); }catch(e){} }
   socket = io({ auth:{ token }, transports:['websocket','polling'] });
 
+  // versao nova no ar: derruba o cliente velho (recarrega pra pegar a nova).
+  socket.on('version', d=>{
+    if(d && d.v && window.ERMO_VERSION && d.v !== window.ERMO_VERSION){
+      try{ socket.disconnect(); }catch(e){}
+      location.reload();
+    }
+  });
+
+  // conta sem raca (contas antigas): manda escolher antes de entrar, itens preservados.
+  socket.on('need_race', d=>{
+    raceScreenLook = (d && d.look) ? d.look : currentLook;
+    openRaceScreen('choose');
+  });
+  socket.on('race_error', d=>{
+    raceConfirm.disabled = false;
+    raceStatus.className = 'err';
+    raceStatus.textContent = (d && d.reason) ? d.reason : 'Não consegui salvar a raça.';
+  });
+
   socket.on('init', data=>{
     myId = data.id;
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
@@ -1112,6 +1140,8 @@ function updateOnline(){
 function enterWorld(){
   booting.style.display = 'none';
   gate.style.display = 'none';
+  raceScreen.classList.remove('open');
+  pendingReg = null;
   if(started) return;          // reconexao: estado ja refeito pelo 'init'
   started = true;
   stage.style.display = 'flex';
@@ -1173,19 +1203,16 @@ async function doLogin(){
   }catch(err){ setStatus(err.message, true); }
 }
 
-async function doRegister(){
+function doRegister(){
   const email = regEmail.value.trim();
   const name = regName.value.trim() || 'Viajante';
   const pass = regPass.value;
   if(!email || !pass){ setStatus('Preencha email e senha.', true); return; }
   if(pass.length < 6){ setStatus('A senha precisa de pelo menos 6 caracteres.', true); return; }
-  setBusy(true); setStatus('Criando sua conta…');
-  try{
-    const { token } = await api('/api/register', { email, name, password: pass, look: currentLook });
-    localStorage.setItem(TOKEN_KEY, token);
-    setStatus('Atravessando…');
-    connectWithToken(token);
-  }catch(err){ setStatus(err.message, true); }
+  pendingReg = { email, name, pass };   // guarda; cria a conta ao confirmar a raça
+  raceScreenLook = currentLook;
+  setStatus('');
+  openRaceScreen('create');
 }
 
 btnLogin.addEventListener('click', doLogin);
@@ -1200,6 +1227,125 @@ logoutB.addEventListener('click', ()=>{
   try{ api('/api/logout', { token }); }catch(e){}
   location.reload();
 });
+
+// ===========================================================================
+//  TELA DE RAÇAS  (criação nova + escolha obrigatória de contas antigas)
+// ===========================================================================
+const raceScreen   = document.getElementById('race');
+const raceListEl   = document.getElementById('race-list');
+const raceDetailEl = document.getElementById('race-detail');
+const raceSearch   = document.getElementById('race-search');
+const raceConfirm  = document.getElementById('race-confirm');
+const raceBack     = document.getElementById('race-back');
+const raceStatus   = document.getElementById('race-status');
+const racePcanvas  = document.getElementById('race-pcanvas');
+const racePctx     = racePcanvas ? racePcanvas.getContext('2d') : null;
+
+const TIER_DOT = { nucleo:'#3fae5a', expansao:'#3aa6a0', monstruosa:'#d08a3a', cenario:'#9b6dff', avulsa:'#8a8597' };
+
+let raceMode = 'create';            // 'create' (cadastro) ou 'choose' (conta sem raça)
+let selectedRace = null;            // id da raça escolhida
+let pendingReg = null;              // {email,name,pass} entre o portão e a confirmação
+let raceScreenLook = currentLook;   // qual look o preview da tela desenha
+
+function rowLabel(r){ return r.subrace || r.name_pt; }
+
+function renderRaceList(filter){
+  filter = (filter || '').trim().toLowerCase();
+  raceListEl.innerHTML = '';
+  TIER_ORDER.forEach(tier=>{
+    const inTier = RACES.filter(r=> r.tier === tier && (!filter ||
+      (r.name_pt + ' ' + (r.subrace||'') + ' ' + r.name_en).toLowerCase().includes(filter)));
+    if(!inTier.length) return;
+    const h = document.createElement('div'); h.className = 'tier-h';
+    const dot = document.createElement('span'); dot.className = 'tier-dot';
+    dot.style.background = TIER_DOT[tier]; h.appendChild(dot);
+    const lab = document.createElement('span'); lab.style.color = TIER_DOT[tier];
+    lab.textContent = TIER_LABELS[tier]; h.appendChild(lab);
+    raceListEl.appendChild(h);
+    inTier.forEach(r=>{
+      const row = document.createElement('div');
+      row.className = 'race-row' + (r.id === selectedRace ? ' sel' : '');
+      row.dataset.rid = r.id;
+      row.textContent = rowLabel(r);
+      row.addEventListener('click', ()=> selectRace(r.id));
+      raceListEl.appendChild(row);
+    });
+  });
+}
+
+function bonusLine(r){
+  if(r.bonus_flex) return r.bonus_text;             // regra de escolha: mostra tal qual
+  const parts = Object.entries(r.bonus || {}).map(([a,v])=> '+' + v + ' ' + a);
+  return parts.join(', ') || r.bonus_text || '—';
+}
+function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+function selectRace(rid){
+  selectedRace = rid;
+  raceListEl.querySelectorAll('.race-row').forEach(el=> el.classList.remove('sel'));
+  const sel = raceListEl.querySelector('.race-row[data-rid="' + rid + '"]');
+  if(sel) sel.classList.add('sel');
+  const r = RACES.find(x=> x.id === rid); if(!r) return;
+  const nome = r.name_pt + (r.subrace ? ' — ' + r.subrace : '');
+  const dark = (r.darkvision && r.darkvision !== '—') ? r.darkvision : '—';
+  raceDetailEl.innerHTML =
+    '<div class="race-name">' + esc(nome) + '</div>' +
+    '<div class="race-meta"><span class="race-badge" style="background:' + TIER_DOT[r.tier] + '">' +
+      esc(TIER_LABELS[r.tier]) + '</span>' + esc(r.name_en) + (r.source ? ' · ' + esc(r.source) : '') + '</div>' +
+    '<div class="fila"><span class="k">Atributos</span><span class="v">' + esc(bonusLine(r)) + '</span></div>' +
+    '<div class="fila"><span class="k">Tamanho</span><span class="v">' + esc(r.size || '—') + '</span></div>' +
+    '<div class="fila"><span class="k">Deslocamento</span><span class="v">' + esc(r.speed || '—') + '</span></div>' +
+    '<div class="fila"><span class="k">Visão no escuro</span><span class="v">' + esc(dark) + '</span></div>' +
+    '<div class="fila"><span class="k">Idiomas</span><span class="v">' + esc(r.languages || '—') + '</span></div>' +
+    '<div class="fsec">Traços raciais</div><div class="ftext">' + esc(r.traits || '—').replace(/;\s*/g, '<br>') + '</div>' +
+    '<div class="fsec">Descrição</div><div class="ftext">' + esc(r.desc || '') + '</div>';
+  raceConfirm.disabled = false;
+  raceConfirm.textContent = (raceMode === 'choose' ? 'Confirmar ' : 'Escolher ') + rowLabel(r) + ' e entrar';
+}
+
+function openRaceScreen(mode){
+  raceMode = mode;
+  selectedRace = null;
+  raceConfirm.disabled = true;
+  raceConfirm.textContent = 'Escolher raça e entrar';
+  raceStatus.textContent = ''; raceStatus.className = '';
+  raceSearch.value = '';
+  raceBack.style.display = (mode === 'choose') ? 'none' : 'block';
+  gate.style.display = 'none'; booting.style.display = 'none';
+  raceDetailEl.innerHTML = '<div class="race-empty">escolha uma raça à esquerda pra ver a ficha completa</div>';
+  renderRaceList('');
+  raceScreen.classList.add('open');
+}
+function closeRaceScreen(){ raceScreen.classList.remove('open'); }
+
+async function confirmRace(){
+  if(!selectedRace) return;
+  if(raceMode === 'create'){
+    if(!pendingReg){ closeRaceScreen(); showGate(); return; }
+    raceConfirm.disabled = true; raceStatus.className = ''; raceStatus.textContent = 'Criando sua conta…';
+    try{
+      const { token } = await api('/api/register', {
+        email: pendingReg.email, name: pendingReg.name, password: pendingReg.pass,
+        look: currentLook, race: selectedRace,
+      });
+      localStorage.setItem(TOKEN_KEY, token);
+      raceStatus.textContent = 'Atravessando…';
+      closeRaceScreen();
+      connectWithToken(token);
+    }catch(err){
+      raceStatus.className = 'err'; raceStatus.textContent = err.message; raceConfirm.disabled = false;
+    }
+  } else {
+    raceConfirm.disabled = true; raceStatus.className = ''; raceStatus.textContent = 'Salvando sua raça…';
+    if(socket && socket.connected){ socket.emit('choose_race', { race: selectedRace }); }
+    else { raceStatus.className = 'err'; raceStatus.textContent = 'Conexão perdida. Recarregue a página.'; raceConfirm.disabled = false; }
+  }
+}
+
+raceConfirm.addEventListener('click', confirmRace);
+raceBack.addEventListener('click', ()=>{ closeRaceScreen(); showGate(); });
+raceSearch.addEventListener('input', ()=> renderRaceList(raceSearch.value));
 
 // ---------- start ----------
 buildCreator();

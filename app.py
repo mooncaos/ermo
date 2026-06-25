@@ -104,6 +104,7 @@ def api_register():
         data.get("name"),
         data.get("password"),
         data.get("look"),
+        data.get("race"),
     )
     if not ok:
         return jsonify(error=result), 400
@@ -131,32 +132,12 @@ def api_logout():
 
 # ----------------------------------------------------------------- socket
 
-@socketio.on("connect")
-def on_connect(auth):
-    token = auth.get("token") if isinstance(auth, dict) else None
+# Sockets que conectaram mas ainda precisam escolher uma raca (contas antigas).
+_pending_race = {}
 
-    try:
-        player_id = accounts.validate(token)
-    except Exception as exc:
-        print("erro validando token:", exc)
-        emit("auth_error", {"reason": "server"})
-        return
 
-    if not player_id:
-        emit("auth_error", {"reason": "invalid"})
-        return
-
-    try:
-        row = db.get_player(player_id)
-    except Exception as exc:
-        print("erro carregando conta:", exc)
-        emit("auth_error", {"reason": "server"})
-        return
-
-    if not row:
-        emit("auth_error", {"reason": "invalid"})
-        return
-
+def _enter_world(player_id, row):
+    """Coloca a conta (ja com raca definida) no mundo e envia o estado inicial."""
     # Se a mesma conta ja estava conectada (outra aba), derruba a antiga.
     old_sid = world.sid_for_player(player_id)
     if old_sid and old_sid != request.sid:
@@ -191,10 +172,81 @@ def on_connect(auth):
         "equipment": player["equipment"],
         "items": items.catalog(),
         "ground": world.ground_snapshot(),
+        "ficha": row.get("ficha") or {},
         "day_length": DAY_LENGTH,
         "server_now": time.time(),
     })
     emit("player_joined", public(player), broadcast=True, include_self=False)
+
+
+@socketio.on("connect")
+def on_connect(auth):
+    # manda a versao logo de cara: cliente velho (deploy novo no ar) recarrega.
+    emit("version", {"v": _asset_version()})
+    token = auth.get("token") if isinstance(auth, dict) else None
+
+    try:
+        player_id = accounts.validate(token)
+    except Exception as exc:
+        print("erro validando token:", exc)
+        emit("auth_error", {"reason": "server"})
+        return
+
+    if not player_id:
+        emit("auth_error", {"reason": "invalid"})
+        return
+
+    try:
+        row = db.get_player(player_id)
+    except Exception as exc:
+        print("erro carregando conta:", exc)
+        emit("auth_error", {"reason": "server"})
+        return
+
+    if not row:
+        emit("auth_error", {"reason": "invalid"})
+        return
+
+    # Conta sem raca (contas antigas): manda escolher a raca antes de entrar.
+    if not row.get("race"):
+        _pending_race[request.sid] = player_id
+        emit("need_race", {
+            "name": row["name"],
+            "look": row["look"],
+            "inventory": row.get("inventory") or [],
+            "items": items.catalog(),
+        })
+        return
+
+    _enter_world(player_id, row)
+
+
+@socketio.on("choose_race")
+def on_choose_race(data):
+    """Conta antiga escolheu a raca no menu: salva, monta a ficha e entra."""
+    race = (data or {}).get("race")
+    player_id = _pending_race.get(request.sid)
+    if not player_id:
+        emit("auth_error", {"reason": "invalid"})
+        return
+
+    ok, result = accounts.set_race(player_id, race)
+    if not ok:
+        emit("race_error", {"reason": result})
+        return
+
+    _pending_race.pop(request.sid, None)
+    try:
+        row = db.get_player(player_id)
+    except Exception as exc:
+        print("erro recarregando conta:", exc)
+        emit("auth_error", {"reason": "server"})
+        return
+    if not row:
+        emit("auth_error", {"reason": "invalid"})
+        return
+
+    _enter_world(player_id, row)
 
 
 @socketio.on("move")
@@ -327,6 +379,7 @@ def on_chat(data):
 
 @socketio.on("disconnect")
 def on_disconnect():
+    _pending_race.pop(request.sid, None)
     player = world.remove_player(request.sid)
     if player:
         # salva a posicao final na hora de sair

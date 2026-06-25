@@ -12,7 +12,7 @@ import secrets
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from . import db
+from . import db, races
 from .world import sanitize_look
 from .world_map import SPAWN_POINTS
 
@@ -30,7 +30,7 @@ def _default_spawn():
     return SPAWN_POINTS[0]
 
 
-def register(email, name, password, look):
+def register(email, name, password, look, race=None):
     """Cria uma conta. Devolve (True, token) ou (False, mensagem_de_erro)."""
     email = (email or "").strip().lower()
     name = (name or "").strip()[:MAX_NAME]
@@ -42,20 +42,41 @@ def register(email, name, password, look):
         return False, "A senha precisa de pelo menos %d caracteres." % MIN_PASS
     if not name:
         name = "Viajante"
+    if not races.is_valid_race(race):
+        return False, "Escolha uma raca valida."
     if db.email_exists(email):
         return False, "Ja existe uma conta com esse email."
 
     pass_hash = generate_password_hash(password, method="pbkdf2:sha256")
     clean_look = sanitize_look(look)
+    ficha = races.build_ficha(race)
     x, y = _default_spawn()
     try:
-        player_id = db.create_player(email, name, pass_hash, clean_look, x, y)
+        player_id = db.create_player(
+            email, name, pass_hash, clean_look, x, y, race=race, ficha=ficha
+        )
     except Exception:
         return False, "Nao consegui criar a conta. Tente de novo."
 
     token = _new_token()
     db.create_session(player_id, token)
     return True, token
+
+
+def set_race(player_id, race):
+    """Define a raca de uma conta ja existente (fluxo forcado de escolha).
+
+    Devolve (True, ficha) ou (False, mensagem). Os itens/posicao da conta nao
+    sao tocados: so a raca e a ficha derivada dela entram.
+    """
+    if not races.is_valid_race(race):
+        return False, "Escolha uma raca valida."
+    ficha = races.build_ficha(race)
+    try:
+        db.save_race(player_id, race, ficha)
+    except Exception:
+        return False, "Nao consegui salvar a raca. Tente de novo."
+    return True, ficha
 
 
 def login(email, password):
