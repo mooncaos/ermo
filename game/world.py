@@ -182,6 +182,8 @@ class World:
         self.players (reusa render e colisao), marcada is_npc -> nunca e salva no
         banco e nunca desconecta. As propriedades vem do registro em npcs.ROSTER."""
         for spec in npcs.ROSTER:
+            if not spec.get("active", True):
+                continue   # NPC dormente (ex.: meninas guardadas pra economia)
             home = _walkable_near(*spec["home"])
             self.players[spec["id"]] = {
                 "id": spec["id"],
@@ -203,7 +205,7 @@ class World:
                 "_wanders": spec.get("wanders", True),
                 "_spec": spec,
             }
-        return [self.players[s["id"]] for s in npcs.ROSTER]
+        return [self.players[s["id"]] for s in npcs.ROSTER if s["id"] in self.players]
 
     def wander_npc(self, npc_id):
         """Da um passo de um NPC: direcao aleatoria, passavel, livre e dentro do

@@ -356,3 +356,72 @@ ROSTER = [
         "smiter": True, "smite_lines": MARIA_SMITE, "smite_color": "#e24b4a",
     },
 ]
+
+
+# === As 9 meninas de Itatinga do Gui (valor em BRONZE, pra economia futura) ===
+# So as 3 primeiras entram agora (active=True), espalhadas perto da Maria. As
+# outras 6 ficam active=False: criadas e dormentes, prontas pra soltar quando a
+# gente fizer a moeda (provavelmente morando dentro das casas, junto com os
+# interiores que vem com a Sapopemba). O campo "bronze" ja fica guardado.
+ITATINGA_MENINAS = [
+    {"name": "Melissa", "bronze": 500, "desc": "ruiva natural, tracos marcantes (favorita da zona)",
+     "skin": "#f1c9a5", "hair": "#b5533a", "cloak": "#e85d75", "home": (10, 6), "active": True,
+     "greet": ["o, a favorita da zona em pessoa. eu custo o meu valor, e valho cada bronze, viu?",
+               "ruiva de verdade, dessas que nao se acha em outro mundo. mas aqui, com bronze, se acha."],
+     "murmur": ["numero um da quebrada. a Maria que confirma.", "ser a favorita cansa, mas paga bem."]},
+    {"name": "Yasmin", "bronze": 450, "desc": "padrao VIP, tracos simetricos, alta procura",
+     "skin": "#e8b58c", "hair": "#2a2233", "cloak": "#c9a0ff", "home": (6, 10), "active": True,
+     "greet": ["padrao VIP, meu bem. tem fila, mas pra quem tem bronze a fila anda.",
+               "alta procura por aqui. capricha no bronze que eu capricho em voce."],
+     "murmur": ["tanta gente querendo, e tao pouco bronze rolando..."]},
+    {"name": "Valentina", "bronze": 400, "desc": "loira, estilo capa de revista",
+     "skin": "#f1c9a5", "hair": "#e3b347", "cloak": "#7cc4f4", "home": (13, 10), "active": True,
+     "greet": ["loira de capa de revista, e olha que aqui nem revista tem. sortudo, ne?",
+               "elegancia tem preco, e o meu ta na tabela. paga em bronze."],
+     "murmur": ["esse fim de mundo nao merece tanto glamour. mas paga bem."]},
+    {"name": "Isabelle", "bronze": 350, "desc": "morena iluminada, simpatia e elegancia",
+     "skin": "#c68642", "hair": "#2a2233", "cloak": "#f49ad0", "home": (5, 7), "active": False,
+     "greet": ["oi, sumido. morena com simpatia e raro de achar, ainda mais nesses Ermo.",
+               "elegancia e um sorriso, e o que eu ofereco. o bronze a gente combina."],
+     "murmur": ["simpatia tambem e trabalho, viu."]},
+    {"name": "Giovanna", "bronze": 300, "desc": "alternativa, tatuada e estilosa",
+     "skin": "#e8b58c", "hair": "#2a2233", "cloak": "#5fd0c5", "home": (13, 6), "active": False,
+     "greet": ["tatuada, estilosa, e nem ai pro que acham. ce curte diferente? entao senta.",
+               "o povo paga bronze por padraozinho, mas o barato bom e o diferente, mo."],
+     "murmur": ["cada tattoo minha tem uma historia. nenhuma de graca."]},
+    {"name": "Beatriz", "bronze": 250, "desc": "universitaria, meiga e classica",
+     "skin": "#f1c9a5", "hair": "#5a3f28", "cloak": "#b6e36a", "home": (12, 9), "active": False,
+     "greet": ["oi! cai aqui faz pouco tempo, ainda to me achando nesses Ermo. mas sou de boa.",
+               "meiga e classica, sem misterio. o bronze e justo."],
+     "murmur": ["queria so terminar a facul... ai cai aqui. a vida e isso."]},
+    {"name": "Camila", "bronze": 200, "desc": "bronzeada, estilo praiana",
+     "skin": "#8d5524", "hair": "#5a3f28", "cloak": "#f4b860", "home": (8, 12), "active": False,
+     "greet": ["salve! pena que aqui nao tem praia, eu sou de praia. mas o bronzeado eu trouxe.",
+               "estilo praiana mesmo sem mar. paga o bronze e a gente finge que tem onda."],
+     "murmur": ["saudade do mar... esse Ermo nao tem nem um riacho decente."]},
+    {"name": "Amanda", "bronze": 150, "desc": "cacheada, sorriso marcante e carismatica",
+     "skin": "#c68642", "hair": "#2a2233", "cloak": "#f49ad0", "home": (10, 12), "active": False,
+     "greet": ["o esse sorriso! cacheada e carismatica, custo pouco e rendo muito, mo.",
+               "sou a mais simpatica da casa, dizem. e a mais em conta tambem."],
+     "murmur": ["um sorriso abre mais porta que bronze. quase."]},
+    {"name": "Juliana", "bronze": 100, "desc": "basica, atraente e comunicativa",
+     "skin": "#e8b58c", "hair": "#2a2233", "cloak": "#b6e36a", "home": (9, 14), "active": False,
+     "greet": ["oi, oi! eu sou a mais em conta, mas converso que e uma beleza. cem bronze e a noite rende.",
+               "basica? sou pratica. cem bronze e a gente se entende rapidinho."],
+     "murmur": ["barato e bom, papo bom de graca."]},
+]
+
+def _menina_spec(m):
+    return {
+        "id": "npc:menina_" + m["name"].lower(),
+        "name": m["name"],
+        "look": {"skin": m["skin"], "cloak": m["cloak"], "hood": "down",
+                 "hat": "none", "hair": m["hair"], "staff": False},
+        "home": m["home"], "radius": 1, "wanders": True, "step_every": 1.5,
+        "solid": True, "kind": "person", "active": m.get("active", False),
+        "bronze": m["bronze"], "desc": m["desc"],
+        "murmurs": m.get("murmur", []), "murmur_min": 18, "murmur_max": 28,
+        "greetings": m["greet"], "smiter": False,
+    }
+
+ROSTER.extend(_menina_spec(m) for m in ITATINGA_MENINAS)

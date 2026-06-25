@@ -422,6 +422,8 @@ def _startup():
     socketio.start_background_task(_saver_loop)
     socketio.start_background_task(_respawn_loop)
     for spec in npcs.ROSTER:
+        if not spec.get("active", True):
+            continue   # dormente: sem loops ate ser ativado
         if spec.get("wanders", True):
             socketio.start_background_task(_npc_wander_loop, spec)
         if spec.get("murmurs"):
