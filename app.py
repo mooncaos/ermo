@@ -43,11 +43,11 @@ import random
 import time
 
 from flask import Flask, render_template, request, jsonify, make_response
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from game import db, accounts, items, npcs, rules, valdris
 from game.world import World, public
-from game.world_map import MAP_ROWS
+from game.world_map import MAP_ROWS, map_rows
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-isto-em-producao")
@@ -163,7 +163,8 @@ def _enter_world(player_id, row):
                                     old["y"], old["facing"])])
             except Exception:
                 pass
-        emit("player_left", {"id": old_sid}, broadcast=True, include_self=False)
+            emit("player_left", {"id": old_sid},
+                 room=old.get("map", "ermo"), include_self=False)
         try:
             socketio.server.disconnect(old_sid)
         except Exception:
@@ -179,19 +180,65 @@ def _enter_world(player_id, row):
     if player.pop("_needs_save", False):
         _persist_loadout(player)
 
+    mp = player.get("map", "ermo")
+    join_room(mp)   # passa a receber so os eventos do mapa onde esta
+
     emit("init", {
         "id": request.sid,
-        "map": world.map_payload(),
-        "players": world.snapshot(),
+        "map": world.map_payload(mp),
+        "players": world.entities_in(mp),
         "inventory": player["inventory"],
         "equipment": player["equipment"],
         "items": items.catalog(),
-        "ground": world.ground_snapshot(),
+        "ground": world.ground_snapshot() if mp == "ermo" else [],
         "ficha": row.get("ficha") or {},
         "day_length": DAY_LENGTH,
         "server_now": time.time(),
     })
-    emit("player_joined", public(player), broadcast=True, include_self=False)
+    emit("player_joined", public(player), room=mp, include_self=False)
+
+
+def _go_to(sid, target_map, x, y):
+    """Move um jogador de mapa: sai da sala antiga, entra na nova, e recebe o
+    mapa + as entidades de la. Os outros do mapa antigo o veem sair; os do novo,
+    chegar. Usa a API direta do servidor (sid explicito) pra funcionar TAMBEM
+    fora de um contexto de requisicao (ex.: a partir de uma tarefa de fundo)."""
+    player = world.players.get(sid)
+    if not player:
+        return
+    old_map = player.get("map", "ermo")
+    socketio.emit("player_left", {"id": sid}, room=old_map, skip_sid=sid)
+    try:
+        socketio.server.leave_room(sid, old_map, namespace="/")
+    except Exception as exc:
+        print("aviso leave_room:", exc)
+
+    world.set_map(sid, target_map, x, y)
+    try:
+        socketio.server.enter_room(sid, target_map, namespace="/")
+    except Exception as exc:
+        print("aviso enter_room:", exc)
+
+    socketio.emit("map_change", {
+        "map": world.map_payload(target_map),
+        "players": world.entities_in(target_map),
+        "ground": world.ground_snapshot() if target_map == "ermo" else [],
+        "you": {"id": sid, "x": player["x"], "y": player["y"],
+                "facing": player["facing"]},
+    }, to=sid)
+    socketio.emit("player_joined", public(player), room=target_map, skip_sid=sid)
+
+
+def _corvo_portal(sid):
+    """Mostra a fala do corvo e, um instante depois, abre o portal pro Salao.
+    Roda em tarefa de fundo (fora do contexto de requisicao), por isso chama o
+    _go_to direto, que ja e independente de contexto."""
+    socketio.sleep(0.5)
+    try:
+        sx, sy = rules.pick_spawn(world, "salao")
+        _go_to(sid, "salao", sx, sy)
+    except Exception as exc:
+        print("erro na entrada do Salao pelo corvo:", exc)
 
 
 @socketio.on("connect")
@@ -271,14 +318,21 @@ def on_move(data):
     if not player:
         return
 
+    mp = player.get("map", "ermo")
     emit("player_moved", {
         "id": player["id"],
         "x": player["x"],
         "y": player["y"],
         "facing": player["facing"],
-    }, broadcast=True)
+    }, room=mp)
 
-    # pisou sobre um item? pega.
+    # pisou no portal do Salao? volta pro Ermo (no ponto de onde saiu).
+    if mp == "salao" and map_rows("salao")[player["y"]][player["x"]] == "O":
+        ret = world.ermo_return(request.sid) or rules.pick_spawn(world, "ermo")
+        _go_to(request.sid, "ermo", ret[0], ret[1])
+        return
+
+    # pisou sobre um item? pega. (so existe item no chao no Ermo)
     picked = world.try_pickup(player)
     if picked:
         try:
@@ -290,7 +344,7 @@ def on_move(data):
             "bag": player["inventory"],
             "picked": {"item": picked["item"], "name": cat.get("name", ""), "qty": 1},
         })
-        emit("item_taken", {"x": picked["x"], "y": picked["y"]}, broadcast=True)
+        emit("item_taken", {"x": picked["x"], "y": picked["y"]}, room=mp)
 
 
 def _persist_loadout(player):
@@ -310,7 +364,8 @@ def on_equip(data):
     if world.equip(player, item_id):
         _persist_loadout(player)
         emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
-        emit("player_look", {"id": player["id"], "look": player["look"]}, broadcast=True)
+        emit("player_look", {"id": player["id"], "look": player["look"]},
+             room=player.get("map", "ermo"))
 
 
 @socketio.on("unequip")
@@ -322,7 +377,8 @@ def on_unequip(data):
     if world.unequip(player, slot):
         _persist_loadout(player)
         emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
-        emit("player_look", {"id": player["id"], "look": player["look"]}, broadcast=True)
+        emit("player_look", {"id": player["id"], "look": player["look"]},
+             room=player.get("map", "ermo"))
 
 
 # ----------------------------------------------------------------- NPCs
@@ -344,31 +400,46 @@ def _smite(player, npc):
     o raio (todo mundo perto ve) e manda o engracadinho pro spawn.
     NOTA: quando a morte/combate existir, trocar o 'manda pro spawn' por
     dano/morte de verdade (ja anotado pra quando chegar la)."""
+    mp = player.get("map", "ermo")
     npc["facing"] = _face_to(npc, player)
-    socketio.emit("player_moved", _npc_moved_payload(npc))
+    socketio.emit("player_moved", _npc_moved_payload(npc), room=mp)
     lines = npc.get("_spec", {}).get("smite_lines") or ["..."]
-    socketio.emit("speech", {"id": npc["id"], "text": random.choice(lines)})
+    socketio.emit("speech", {"id": npc["id"], "text": random.choice(lines)}, room=mp)
     color = npc.get("_spec", {}).get("smite_color", "#9b6dff")
-    socketio.emit("smite", {"target": player["id"], "by": npc["id"], "color": color})
-    sx, sy = rules.pick_spawn(world)
+    socketio.emit("smite", {"target": player["id"], "by": npc["id"], "color": color},
+                  room=mp)
+    sx, sy = rules.pick_spawn(world, mp)
     player["x"], player["y"], player["facing"] = sx, sy, "down"
     player["_dirty"] = True  # a nova posicao sera salva no proximo flush
-    socketio.emit("player_moved", {"id": player["id"], "x": sx, "y": sy, "facing": "down"})
+    socketio.emit("player_moved", {"id": player["id"], "x": sx, "y": sy,
+                                   "facing": "down"}, room=mp)
 
 
 @socketio.on("interact")
 def on_interact(_data=None):
-    """Jogador apertou pra falar: responde o NPC em que ele estiver colado."""
+    """Jogador apertou pra falar: responde o NPC em que ele estiver colado.
+    Caso especial: falar com o corvo no Ermo abre o portal pro Salao das Classes
+    (entrada provisoria; depois o corvo abre dialogo sozinho)."""
     player = world.players.get(request.sid)
     if not player:
         return
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
         return
+    mp = player.get("map", "ermo")
     npc["facing"] = _face_to(npc, player)   # ele te olha
-    socketio.emit("player_moved", _npc_moved_payload(npc))
+    socketio.emit("player_moved", _npc_moved_payload(npc), room=mp)
+
+    # o corvo (Jeans) e o guia: te leva ao Salao das Classes
+    if npc["id"] == "npc:corvo" and mp == "ermo":
+        socketio.emit("speech", {"id": npc["id"],
+            "text": "Vem comigo, forasteiro. O Salao das Classes te espera. Atravessa o portal."},
+            room=mp)
+        socketio.start_background_task(_corvo_portal, request.sid)
+        return
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
-    socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)})
+    socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 
 
 @socketio.on("chat")
@@ -389,7 +460,8 @@ def on_chat(data):
     if smiter and npcs.contains_curse(text):
         _smite(player, smiter)
         return
-    socketio.emit("speech", {"id": player["id"], "text": text})
+    socketio.emit("speech", {"id": player["id"], "text": text},
+                  room=player.get("map", "ermo"))
 
 
 @socketio.on("disconnect")
@@ -397,13 +469,19 @@ def on_disconnect():
     _pending_race.pop(request.sid, None)
     player = world.remove_player(request.sid)
     if player:
-        # salva a posicao final na hora de sair
+        mp = player.get("map", "ermo")
+        # salva a posicao final do ERMO. Se saiu estando no Salao, grava o ponto
+        # de onde ele entrou (nunca coordenada do Salao).
+        if mp == "ermo":
+            px, py = player["x"], player["y"]
+        else:
+            ret = player.get("_ermo_return")
+            px, py = ret if ret else rules.pick_spawn(world, "ermo")
         try:
-            db.save_positions([(player["player_id"], player["x"],
-                                player["y"], player["facing"])])
+            db.save_positions([(player["player_id"], px, py, player["facing"])])
         except Exception as exc:
             print("erro salvando saida:", exc)
-        emit("player_left", {"id": request.sid}, broadcast=True)
+        emit("player_left", {"id": request.sid}, room=mp, include_self=False)
 
 
 # --------------------------------------------------------------- salvador
@@ -424,7 +502,8 @@ def _respawn_loop():
         socketio.sleep(2)
         try:
             for (x, y, item_id) in world.due_respawns(time.time()):
-                socketio.emit("item_spawned", {"x": x, "y": y, "item": item_id})
+                socketio.emit("item_spawned", {"x": x, "y": y, "item": item_id},
+                              room="ermo")
         except Exception as exc:
             print("erro no respawn:", exc)
 
@@ -446,7 +525,8 @@ def _npc_wander_loop(spec):
             if npc is None:
                 npc = world.wander_npc(nid)
             if npc:
-                socketio.emit("player_moved", _npc_moved_payload(npc))
+                socketio.emit("player_moved", _npc_moved_payload(npc),
+                              room=spec.get("map", "ermo"))
         except Exception as exc:
             print("erro no passo de", nid, exc)
 
@@ -460,7 +540,8 @@ def _npc_murmur_loop(spec):
         socketio.sleep(random.uniform(lo, hi))
         try:
             if lines and nid in world.players:
-                socketio.emit("speech", {"id": nid, "text": random.choice(lines)})
+                socketio.emit("speech", {"id": nid, "text": random.choice(lines)},
+                              room=spec.get("map", "ermo"))
         except Exception as exc:
             print("erro no murmurio de", nid, exc)
 
@@ -480,7 +561,8 @@ def _npc_gaze_loop(spec):
                 face = _face_to(npc, target)
                 if face != npc["facing"]:
                     npc["facing"] = face
-                    socketio.emit("player_moved", _npc_moved_payload(npc))
+                    socketio.emit("player_moved", _npc_moved_payload(npc),
+                                  room=spec.get("map", "ermo"))
         except Exception as exc:
             print("erro no olhar de", nid, exc)
 
@@ -521,6 +603,7 @@ def _make_gato(spot):
         "facing": "down",
         "name": GATO_NOME,
         "look": {"giant": True},
+        "map": "ermo",
         "inventory": [],
         "equipment": {},
         "is_npc": True,
@@ -544,7 +627,8 @@ def _pofnir_loop():
         tick += 1
         try:
             ent = world.players.get(GATO_ID)
-            jogadores = [p for p in world.players.values() if not p.get("is_npc")]
+            jogadores = [p for p in world.players.values()
+                         if not p.get("is_npc") and p.get("map", "ermo") == "ermo"]
             if ent is None:
                 # tenta surgir (so de noite, com gente online, no descanso vencido)
                 if (tick % 10 == 0 and jogadores and _is_night()
@@ -553,19 +637,21 @@ def _pofnir_loop():
                     spot = _far_spawn(jogadores)
                     if spot:
                         world.players[GATO_ID] = _make_gato(spot)
-                        socketio.emit("player_joined", public(world.players[GATO_ID]))
+                        socketio.emit("player_joined",
+                                      public(world.players[GATO_ID]), room="ermo")
             else:
                 perto = any(world.near_entity(p, GATO_ID, GATO_SUMICO)
                             for p in jogadores)
                 venceu = (time.time() - ent.get("_born", 0)) > GATO_VIDA
                 if perto or venceu or not _is_night() or not jogadores:
                     world.players.pop(GATO_ID, None)
-                    socketio.emit("player_left", {"id": GATO_ID})
+                    socketio.emit("player_left", {"id": GATO_ID}, room="ermo")
                     proximo_ok = time.time() + GATO_ESPERA
                 elif tick % 2 == 0:
                     npc = world.wander_npc(GATO_ID)   # reusa _home/_radio/_wanders
                     if npc:
-                        socketio.emit("player_moved", _npc_moved_payload(npc))
+                        socketio.emit("player_moved", _npc_moved_payload(npc),
+                                      room="ermo")
         except Exception as exc:
             print("erro no gato branco:", exc)
 

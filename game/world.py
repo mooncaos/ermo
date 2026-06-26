@@ -21,7 +21,7 @@ import time
 from . import rules
 from . import items
 from . import npcs
-from .world_map import MAP_ROWS, TILE_SIZE, SPAWN_POINTS
+from .world_map import MAP_ROWS, TILE_SIZE, SPAWN_POINTS, map_rows, map_dims, get_map
 
 # Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
 CLOAKS = [
@@ -99,17 +99,18 @@ def public(p):
     return out
 
 
-def _walkable_near(px, py):
-    """Acha um tile passavel perto de (px, py). Robusto a edicoes do mapa."""
-    if rules.is_walkable(px, py):
+def _walkable_near(px, py, mp="ermo"):
+    """Acha um tile passavel perto de (px, py) NO mapa dado. Robusto a edicoes."""
+    if rules.is_walkable(px, py, mp):
         return (px, py)
     for r in range(1, 10):
         for dx in range(-r, r + 1):
             for dy in range(-r, r + 1):
                 x, y = px + dx, py + dy
-                if rules.is_walkable(x, y):
+                if rules.is_walkable(x, y, mp):
                     return (x, y)
-    return SPAWN_POINTS[0]
+    sp = get_map(mp)["spawns"]
+    return sp[0] if sp else (1, 1)
 
 
 class World:
@@ -124,13 +125,16 @@ class World:
         for i, (x, y, item_id, _r) in enumerate(items.GROUND_SPAWNS):
             self.ground[(x, y)] = {"item": item_id, "spawn": i}
 
-    def map_payload(self):
-        """O mapa que vai pro cliente no 'init' (fonte unica da verdade)."""
+    def map_payload(self, mp="ermo"):
+        """O mapa que vai pro cliente no 'init'/troca de mapa (fonte da verdade)."""
+        rows = map_rows(mp)
+        w, h = map_dims(mp)
         return {
-            "rows": MAP_ROWS,
+            "rows": rows,
             "tilesize": TILE_SIZE,
-            "width": len(MAP_ROWS[0]),
-            "height": len(MAP_ROWS),
+            "width": w,
+            "height": h,
+            "map": mp,
         }
 
     # ------------------------------------------------------------ jogadores
@@ -146,6 +150,7 @@ class World:
             "facing": facing or "down",
             "name": (name or "Viajante")[:16],
             "look": sanitize_look(look),
+            "map": "ermo",            # jogador sempre nasce/reconecta no Ermo
             "inventory": items.sanitize_bag(inventory or []),
             "equipment": sanitize_equipment(equipment),
             "_last_move": 0.0,
@@ -184,7 +189,8 @@ class World:
         for spec in npcs.ROSTER:
             if not spec.get("active", True):
                 continue   # NPC dormente (ex.: meninas guardadas pra economia)
-            home = _walkable_near(*spec["home"])
+            mp = spec.get("map", "ermo")
+            home = _walkable_near(spec["home"][0], spec["home"][1], mp)
             self.players[spec["id"]] = {
                 "id": spec["id"],
                 "player_id": None,
@@ -193,6 +199,7 @@ class World:
                 "facing": "down",
                 "name": spec["name"],
                 "look": dict(spec["look"]),
+                "map": mp,
                 "inventory": [],
                 "equipment": {},
                 "_last_move": 0.0,
@@ -213,6 +220,7 @@ class World:
         npc = self.players.get(npc_id)
         if not npc or not npc.get("_wanders"):
             return None
+        mp = npc.get("map", "ermo")
         hx, hy = npc["_home"]
         rad = npc["_radius"]
         dirs = list(rules.DELTAS.keys())
@@ -222,7 +230,7 @@ class World:
             nx, ny = npc["x"] + dx, npc["y"] + dy
             if max(abs(nx - hx), abs(ny - hy)) > rad:
                 continue
-            if not rules.is_walkable(nx, ny):
+            if not rules.is_walkable(nx, ny, mp):
                 continue
             if rules._occupied_by_other(self, npc, nx, ny):
                 continue
@@ -240,11 +248,12 @@ class World:
         threat = self.players.get(threat_id)
         if not npc or not threat:
             return None
+        mp = npc.get("map", "ermo")
         cur = max(abs(npc["x"] - threat["x"]), abs(npc["y"] - threat["y"]))
         best, bestd = None, cur
         for d, (dx, dy) in rules.DELTAS.items():
             nx, ny = npc["x"] + dx, npc["y"] + dy
-            if not rules.is_walkable(nx, ny):
+            if not rules.is_walkable(nx, ny, mp):
                 continue
             if rules._occupied_by_other(self, npc, nx, ny):
                 continue
@@ -263,6 +272,8 @@ class World:
         for p in self.players.values():
             if not p.get("is_npc"):
                 continue
+            if p.get("map", "ermo") != player.get("map", "ermo"):
+                continue
             d = max(abs(player["x"] - p["x"]), abs(player["y"] - p["y"]))
             if d <= radius and d < bestd:
                 best, bestd = p, d
@@ -274,6 +285,8 @@ class World:
         best, bestd = None, radius + 1
         for p in self.players.values():
             if not (p.get("is_npc") and p.get("_spec", {}).get("smiter")):
+                continue
+            if p.get("map", "ermo") != player.get("map", "ermo"):
                 continue
             d = max(abs(player["x"] - p["x"]), abs(player["y"] - p["y"]))
             if d <= radius and d < bestd:
@@ -287,6 +300,8 @@ class World:
         for p in self.players.values():
             if p.get("is_npc"):
                 continue
+            if p.get("map", "ermo") != npc.get("map", "ermo"):
+                continue
             d = max(abs(npc["x"] - p["x"]), abs(npc["y"] - p["y"]))
             if radius is not None and d > radius:
                 continue
@@ -295,9 +310,11 @@ class World:
         return best
 
     def near_entity(self, player, entity_id, radius):
-        """True se o jogador esta a ate `radius` tiles da entidade (Chebyshev)."""
+        """True se o jogador esta a ate `radius` tiles da entidade (mesmo mapa)."""
         ent = self.players.get(entity_id)
         if not ent or not player:
+            return False
+        if ent.get("map", "ermo") != player.get("map", "ermo"):
             return False
         return max(abs(player["x"] - ent["x"]),
                    abs(player["y"] - ent["y"])) <= radius
@@ -306,12 +323,41 @@ class World:
         """Todos os jogadores vivos em formato publico (pro 'init')."""
         return [public(p) for p in self.players.values()]
 
+    def entities_in(self, mp):
+        """So as entidades (jogadores + NPCs) que estao NO mapa `mp`, em formato
+        publico. Usado no 'init' e na troca de mapa pra mandar so o que importa."""
+        return [public(p) for p in self.players.values()
+                if p.get("map", "ermo") == mp]
+
+    def set_map(self, sid, mp, x, y):
+        """Move um jogador pra outro mapa, numa posicao. Ao SAIR do Ermo, lembra
+        onde ele estava pra poder voltar pro mesmo lugar."""
+        p = self.players.get(sid)
+        if not p:
+            return None
+        if mp != "ermo" and p.get("map", "ermo") == "ermo":
+            p["_ermo_return"] = (p["x"], p["y"])   # guarda o ponto no Ermo
+        p["map"] = mp
+        p["x"], p["y"] = int(x), int(y)
+        p["facing"] = "down"
+        return p
+
+    def ermo_return(self, sid):
+        """Onde o jogador estava no Ermo antes de ir pro Salao (ou None)."""
+        p = self.players.get(sid)
+        return p.get("_ermo_return") if p else None
+
     def pop_dirty(self):
-        """Quem se moveu desde o ultimo flush: lista (player_id,x,y,facing)."""
+        """Quem se moveu desde o ultimo flush: lista (player_id,x,y,facing).
+        So persiste posicao do ERMO (o Salao e transitorio: ao reconectar o
+        jogador volta pro Ermo, no ultimo ponto valido de la)."""
         out = []
         for p in self.players.values():
             if p.get("is_npc"):
                 p["_dirty"] = False   # NPC nao tem conta, nunca persiste
+                continue
+            if p.get("map", "ermo") != "ermo":
+                p["_dirty"] = False   # nao salva posicao do Salao
                 continue
             if p.get("_dirty"):
                 out.append((p["player_id"], p["x"], p["y"], p["facing"]))

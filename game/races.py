@@ -2486,6 +2486,28 @@ def get_race(rid):
     return RACE_BY_ID.get(rid)
 
 
+# ---- atributos iniciais: o personagem NASCE com os da raca ----
+BASE_ATTR_ORDER = ["FOR", "DES", "CON", "INT", "SAB", "CAR"]
+STD_ARRAY = [15, 14, 13, 12, 10, 8]
+
+
+def base_attrs(rid):
+    """Os 6 atributos com que o personagem NASCE, vindos da raca: o array padrao
+    [15,14,13,12,10,8] distribuido na ordem de prioridade da raca (quem ela
+    favorece no bonus pega os maiores valores). O numero do bonus racial NAO e
+    somado: a colocacao no array ja e o efeito da raca. (A classe da bonus depois.)"""
+    r = RACE_BY_ID.get(rid)
+    bonus = (r.get("bonus") or {}) if r else {}
+    ranked = sorted(BASE_ATTR_ORDER,
+                    key=lambda a: (-bonus.get(a, 0), BASE_ATTR_ORDER.index(a)))
+    return {a: STD_ARRAY[i] for i, a in enumerate(ranked)}
+
+
+def attr_mod(v):
+    """Modificador 5e do atributo: floor((v-10)/2)."""
+    return (v - 10) // 2
+
+
 def build_ficha(rid):
     """Monta a ficha do personagem a partir da raça escolhida.
 
@@ -2499,6 +2521,7 @@ def build_ficha(rid):
     nome = r["name_pt"] + (f" ({r['subrace']})" if r.get("subrace") else "")
     return {
         "race_id": r["id"],
+        "attrs": base_attrs(rid),
         "race_name": nome,
         "tier": r["tier"],
         "bonus": r["bonus"],

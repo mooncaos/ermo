@@ -255,3 +255,40 @@ APARICOES = {
     },
     # os outros 11 deuses ficam so na lore por enquanto.
 }
+
+# -----------------------------------------------------------------------------
+#  O CORVO  -  nome secreto e papel de guia  (segredo)
+# -----------------------------------------------------------------------------
+# O corvo (deus das dimensoes, ver os 12) tem um NOME VERDADEIRO que os jogadores
+# nunca sabem: JEANS. Alem de deus-fofoqueiro que viaja todos os mundos, ele e o
+# GUIA do sistema de classes: e o primeiro a abrir dialogo com quem nasce, fala
+# do Salao das Classes e abre o portal pra la. Esta ACIMA do sistema (nao
+# patrocina classe nenhuma).
+CORVO = {
+    "nome_publico": "Corvo",
+    "nome_secreto": "Jeans",
+    "papel": "guia do sistema de classes; abre o portal pro Salao.",
+    "deus_de": "dimensoes (um dos 12).",
+}
+
+# -----------------------------------------------------------------------------
+#  O SALAO DAS CLASSES  -  mapa separado, 12 mestres  (semi-segredo)
+# -----------------------------------------------------------------------------
+# Mapa proprio ("salao"), alcancado pelo portal do corvo. Cada uma das 12 classes
+# oficiais de D&D 5e tem um mestre, e cada mestre serve um DEUS (cosmologia). O
+# Mago e o unico SEM deus: serve ao cosmo e aos livros. Vargo (morte) e o corvo
+# NAO patrocinam classe (o corvo guia; Vargo fica pra uma subclasse de morte).
+CLASSE_DEUS = {
+    "Barbaro": "Korgath",      # furia/guerra
+    "Guerreiro": "Bragor",     # forja/disciplina
+    "Paladino": "Valiria",     # luz/juramento
+    "Ladino": "Nhare",         # sorte/fuga
+    "Monge": "Martur",         # paciencia/tempo
+    "Patrulheiro": "Facalan",  # caca/mato
+    "Mago": None,              # NENHUM: o cosmo e os livros
+    "Feiticeiro": "Drazun",    # sangue draconico
+    "Bruxo": "Nherith",        # pacto/lua/loucura
+    "Bardo": "Jose",           # prazer/arte/palco
+    "Clerigo": "Valiria",      # cura/luz
+    "Druida": "Facalan",       # natureza selvagem
+}

@@ -317,6 +317,34 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle = '#7d776e'; c.fillRect(px+ts*0.22, py+ts*0.22, 2, 2);
       break;
     }
+    case 'o':                                          // piso do Salao (pedra polida)
+      c.fillStyle = '#322d47'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#3b3556'; c.fillRect(px, py, ts, ts*0.5);   // brilho de cima
+      c.fillStyle = '#2a2640';                                   // juntas
+      c.fillRect(px, py+ts-2, ts, 2); c.fillRect(px+ts-2, py, 2, ts);
+      c.fillStyle = '#4a4368';
+      c.fillRect(px+ts*0.2+rng(gx,gy,1)*ts*0.5, py+ts*0.2+rng(gx,gy,2)*ts*0.5, 2, 2);
+      break;
+    case 'c':                                          // tapete/corredor central
+      c.fillStyle = '#4a2d8f'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#5e3bb0'; c.fillRect(px+1, py, ts-2, ts);   // corpo do tapete
+      c.fillStyle = '#7d5bd0';                                   // bordas
+      c.fillRect(px, py, 2, ts); c.fillRect(px+ts-2, py, 2, ts);
+      c.fillStyle = '#f4b860';                                   // detalhe ambar
+      c.fillRect(px+ts*0.5-1, py+ts*0.3, 2, 2);
+      c.fillRect(px+ts*0.5-1, py+ts*0.7, 2, 2);
+      break;
+    case 'O': {                                        // portal de volta (brilho)
+      c.fillStyle = '#1a1730'; c.fillRect(px,py,ts,ts);          // base escura
+      const cx = px+ts*0.5, cy = py+ts*0.5;
+      c.fillStyle = '#6d44c4';                                   // halo violeta
+      c.beginPath(); c.ellipse(cx, cy, ts*0.34, ts*0.42, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#9b6dff';
+      c.beginPath(); c.ellipse(cx, cy, ts*0.22, ts*0.30, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#f4b860';                                   // nucleo ambar
+      c.beginPath(); c.ellipse(cx, cy, ts*0.10, ts*0.16, 0, 0, Math.PI*2); c.fill();
+      break;
+    }
     case 'M':                                          // parede do cabare
       c.fillStyle = '#7d2738'; c.fillRect(px,py,ts,ts);
       c.fillStyle = '#5e1b2a'; c.fillRect(px, py+ts-3, ts, 3);
@@ -1164,6 +1192,22 @@ function connectWithToken(token){
 
     enterWorld();
   });
+
+  // troca de mapa (entrar no Salao / voltar pro Ermo): troca o mapa, as
+  // entidades e o chao, e recoloca a camera no jogador. Mochila/ficha/relogio
+  // continuam como estao.
+  socket.on('map_change', data=>{
+    BASE_TS = data.map.tilesize; mapRows = data.map.rows;
+    mapW = data.map.width; mapH = data.map.height;
+    players.clear();
+    bubbles.clear(); smites.clear();
+    for(const p of data.players) addPlayer(p);
+    ground.clear();
+    for(const it of (data.ground||[])) ground.set(it.x+','+it.y, it.item);
+    applyZoom(zoom);   // redesenha o mapa novo e cola as posicoes (sem deslizar)
+    updateOnline();
+  });
+
   socket.on('player_joined', p => addPlayer(p));
   socket.on('player_moved', m=>{
     const p = players.get(m.id); if(!p) return;
@@ -1176,6 +1220,7 @@ function connectWithToken(token){
   // falas (balao acima da entidade) e o raio do Valdris
   socket.on('speech', d=>{
     if(!d || !d.id) return;
+    if(!players.has(d.id)) return;   // so fala de quem esta no mapa atual
     bubbles.set(d.id, { text: String(d.text||'').slice(0,120), until: performance.now() + BUBBLE_MS });
   });
   socket.on('smite', d=>{
@@ -1374,6 +1419,34 @@ function bonusLine(r){
   const parts = Object.entries(r.bonus || {}).map(([a,v])=> '+' + v + ' ' + a);
   return parts.join(', ') || r.bonus_text || '—';
 }
+
+// Atributos iniciais (igual ao servidor): o array padrao [15,14,13,12,10,8]
+// distribuido pros atributos na ordem de prioridade da raca. A classe da bonus depois.
+const ATTR_ORDER = ['FOR','DES','CON','INT','SAB','CAR'];
+const STD_ARRAY = [15,14,13,12,10,8];
+function baseAttrs(r){
+  const bonus = r.bonus || {};
+  const ranked = ATTR_ORDER.slice().sort((a,b)=>{
+    const d = (bonus[b]||0) - (bonus[a]||0);
+    return d !== 0 ? d : ATTR_ORDER.indexOf(a) - ATTR_ORDER.indexOf(b);
+  });
+  const out = {}; ranked.forEach((a,i)=> out[a] = STD_ARRAY[i]); return out;
+}
+function attrMod(v){ return Math.floor((v-10)/2); }
+function fmtMod(m){ return (m>=0?'+':'') + m; }
+function attrGridHtml(r){
+  const ba = baseAttrs(r);
+  const cell = 'display:inline-block;text-align:center;min-width:48px;margin:3px;padding:6px 4px;background:#1b1830;border:1px solid #34304f;border-radius:8px;';
+  const cells = ATTR_ORDER.map(a=>{
+    const v = ba[a], m = attrMod(v);
+    return '<div style="'+cell+'">'
+      + '<div style="font:700 11px Inter,sans-serif;color:#9b6dff;letter-spacing:.5px">'+a+'</div>'
+      + '<div style="font:700 19px Cinzel,serif;color:#e8e4f0;line-height:1.1">'+v+'</div>'
+      + '<div style="font:600 11px Inter,sans-serif;color:#8a86a0">'+fmtMod(m)+'</div>'
+      + '</div>';
+  }).join('');
+  return '<div style="margin:4px 0 2px">'+cells+'</div>';
+}
 function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 
 function selectRace(rid){
@@ -1388,7 +1461,8 @@ function selectRace(rid){
     '<div class="race-name">' + esc(nome) + '</div>' +
     '<div class="race-meta"><span class="race-badge" style="background:' + TIER_DOT[r.tier] + '">' +
       esc(TIER_LABELS[r.tier]) + '</span>' + esc(r.name_en) + (r.source ? ' · ' + esc(r.source) : '') + '</div>' +
-    '<div class="fila"><span class="k">Atributos</span><span class="v">' + esc(bonusLine(r)) + '</span></div>' +
+    '<div class="fila"><span class="k">Bônus racial</span><span class="v">' + esc(bonusLine(r)) + '</span></div>' +
+    '<div class="fsec">Atributos iniciais (da raça)</div>' + attrGridHtml(r) +
     '<div class="fila"><span class="k">Tamanho</span><span class="v">' + esc(r.size || '—') + '</span></div>' +
     '<div class="fila"><span class="k">Deslocamento</span><span class="v">' + esc(r.speed || '—') + '</span></div>' +
     '<div class="fila"><span class="k">Visão no escuro</span><span class="v">' + esc(dark) + '</span></div>' +

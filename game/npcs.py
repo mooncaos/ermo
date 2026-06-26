@@ -936,3 +936,102 @@ _FEARLESS = {"npc:jose", "npc:corvo", "npc:maria", valdris.NPC_ID}
 for _spec in ROSTER:
     if _spec.get("id") in _FEARLESS:
         _spec["fearless"] = True
+
+
+# ===========================================================================
+#  OS 12 MESTRES DO SALAO DAS CLASSES (mapa "salao")
+# ===========================================================================
+# Cada mestre fica parado na sua estacao, serve um deus (o Mago: nenhum) e, ao
+# interagir, fala da sua classe. A ESCOLHA de classe + o bonus de atributos vem
+# na proxima etapa; por ora o mestre so se apresenta. Como sao do mapa "salao",
+# nao aparecem no Ermo (so quem entra no Salao os ve).
+
+from .world_map import SALAO_MASTER_POS as _SMPOS
+from . import classes as _classes
+
+_MASTER_CLOAK = {
+    "barbaro": "#e2643f", "guerreiro": "#e2845f", "paladino": "#f4d35e",
+    "ladino": "#6fb7e8", "monge": "#7ad0c5", "patrulheiro": "#9bd06a",
+    "mago": "#9b6dff", "feiticeiro": "#c98bff", "bruxo": "#7d5bd0",
+    "bardo": "#e85d9b", "clerigo": "#f0e0a0", "druida": "#8fbf6a",
+}
+_CASTERS = {"mago", "feiticeiro", "bruxo", "bardo", "clerigo", "druida"}
+
+_MASTER_GREETS = {
+    "barbaro": [
+        "Sinto a furia de Korgath fervendo no teu peito, forasteiro. O Barbaro nao pensa: ele quebra. Quer aprender?",
+        "O Punho nao tem templo, tem campo de batalha. Eu, Gorm, ensino quem aguenta a dor a virar arma.",
+    ],
+    "guerreiro": [
+        "Bragor forjou o aco e a disciplina, e o Guerreiro e os dois. Adila te ensina a empunhar qualquer coisa e nao morrer.",
+        "Sem dom divino, sem truque. So treino, suor e a bencao do Forjador. E isso o Guerreiro.",
+    ],
+    "paladino": [
+        "Valiria, a Serena, acende a aurora em quem jura. O Paladino carrega a luz dela na lamina. Tens um juramento?",
+        "Sieg me chamo, sirvo Valiria. Quem se torna Paladino castiga o mal e cura o aliado. Pesado, mas justo.",
+    ],
+    "ladino": [
+        "Nhare e a lebre que ninguem pega: sorte, fuga, a segunda chance. O Ladino vive disso. Ravi te mostra as sombras.",
+        "Nao confunda com roubo. Bem... confunda um pouco. O Ladino acerta onde doi e some. Bencao da lebre.",
+    ],
+    "monge": [
+        "Martur, o jabuti das eras, ensina a paciencia. O Monge e o corpo virado oracao. Yun te ensina a quietude que esmaga.",
+        "Pressa e fraqueza. O jabuti vence o tempo. Quem vira Monge aprende a esperar, e entao golpear.",
+    ],
+    "patrulheiro": [
+        "Facalan, a onca sem dono, corre no mato. O Patrulheiro caca com ela. Tark te ensina a ler o rastro e o vento.",
+        "Nem cidade, nem templo: o verde e meu salao de verdade. A onca aceita quem respeita a cacada.",
+    ],
+    "mago": [
+        "Magia nao pede deus, forasteiro. Pede estudo. O Mago dobra o cosmo com tinta e teimosia. Alaric te abre os livros.",
+        "Os outros mestres rezam. Eu leio. O Mago serve o saber, e o saber nao serve a ninguem. Vais aguentar?",
+    ],
+    "feiticeiro": [
+        "Drazun deixou fogo no teu sangue. O Feiticeiro nao estuda: ele EXPLODE. Idra te ensina a nao queimar a si mesma.",
+        "A magia ja esta em ti, e de nascenca, coisa de escama velha. O Feiticeiro so aprende a soltar.",
+    ],
+    "bruxo": [
+        "Nherith, a coruja da lua, sussurra no escuro. O Bruxo faz pacto: poder agora, conta depois. Mor te apresenta a ela... se ousar.",
+        "Todo poder tem dono, forasteiro. O Bruxo aluga o seu. Eu fiz o pacto, e olha eu aqui. Inteiro. Quase.",
+    ],
+    "bardo": [
+        "Jose, o do prazer e da arte, rege o palco. O Bardo encanta com voz e corda. Lael te ensina que a magia tambem canta.",
+        "Nem todo heroi grita. Alguns cantam, e a guerra para pra ouvir. Isso e o Bardo. Bencao do gato do cabare.",
+    ],
+    "clerigo": [
+        "Valiria cura e ilumina, e o Clerigo e a mao dela no mundo. Bena te ensina a rezar e a fazer a reza valer.",
+        "Fe nao e fraqueza, forasteiro, e a arma mais antiga. Quem vira Clerigo cura, abencoa e, quando precisa, parte o mal ao meio.",
+    ],
+    "druida": [
+        "Facalan corre selvagem, e o Druida corre com ela, de pele e de garra. Salvio te ensina a virar bicho e ouvir o verde.",
+        "A onca tem dois servos: o que caca e o que VIRA mato. O Druida e o segundo. A natureza nao e cenario, e familia.",
+    ],
+}
+
+SALAO_MASTERS = []
+for _c in _classes.CLASSES:
+    _cid = _c["id"]
+    _x, _y = _SMPOS[_cid]
+    SALAO_MASTERS.append({
+        "id": "npc:mestre_" + _cid,
+        "name": _c["master"],
+        "look": {
+            "skin": "#e8b58c",
+            "cloak": _MASTER_CLOAK[_cid],
+            "hood": "up",
+            "hat": "wizard" if _cid == "mago" else "none",
+            "hair": "#2a2233",
+            "staff": _cid in _CASTERS,
+        },
+        "home": (_x, _y),
+        "map": "salao",
+        "radius": 0,
+        "wanders": False,
+        "solid": True,
+        "kind": "person",
+        "gender": "M" if _c["master"].startswith("Mestra") else "H",
+        "class_id": _cid,                 # qual classe esse mestre concede
+        "greetings": list(_MASTER_GREETS[_cid]),
+    })
+
+ROSTER.extend(SALAO_MASTERS)
