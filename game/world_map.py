@@ -505,6 +505,31 @@ FADRAKOR_LITORAL_ROWS = _build_fadrakor_litoral()
 FADRAKOR_SELVA_ROWS   = _build_fadrakor_selva()
 FADRAKOR_VULCAO_ROWS  = _build_fadrakor_vulcao()
 
+
+# ===========================================================================
+#  INTERIORES — uma casa aconchegante reaproveitada por todas as portas.
+#  Chars (solidez global ja bate): 1 piso(passavel)  F parede  b cama  h lareira
+#  k mesa  q bau  2 tapete(passavel)  D porta-saida. O desenho e especifico de
+#  interior no cliente (drawInteriorTile, ativado quando o mapa comeca com casa_).
+# ===========================================================================
+def _build_interior_casa():
+    W, Hh = 15, 11
+    rows = _grid(W, Hh, "1")                              # piso de madeira
+    _border(rows, 0, 0, W-1, Hh-1, "F")                  # paredes de madeira
+    rows[1][6] = "h"; rows[1][7] = "h"; rows[1][8] = "h"  # lareira no topo-centro
+    rows[2][11] = "b"; rows[2][12] = "b"                 # cama 2x2 (canto sup. dir.)
+    rows[3][11] = "b"; rows[3][12] = "b"
+    rows[4][3] = "k"; rows[4][4] = "k"                   # mesa
+    rows[7][2] = "q"                                      # bau
+    rows[5][7] = "2"; rows[5][8] = "2"                   # tapete central 2x2
+    rows[6][7] = "2"; rows[6][8] = "2"
+    rows[Hh-1][7] = "D"                                  # porta de saida (parede de baixo)
+    return ["".join(r) for r in rows]
+
+
+INTERIOR_CASA_ROWS = _build_interior_casa()
+INTERIOR_SPAWN = [(7, 9)]                                 # logo acima da porta, virado pra dentro
+
 RASHARAN_SPAWN = [(50, 86), (49, 86), (51, 86), (50, 87)]   # cemiterio, perto do Jeans
 VALORAN_SPAWN  = [(50, 88), (49, 88), (51, 88), (50, 89)]   # sul, de frente pra nave
 FUNDAMENTO_SPAWN = [(49, 87), (50, 87), (48, 87), (49, 88)]  # entrada sul, de frente pro tapete
@@ -526,6 +551,27 @@ MAPS = {
     "fadrakor_selva":   {"rows": FADRAKOR_SELVA_ROWS,   "spawns": FADRAKOR_SELVA_SPAWN},
     "fadrakor_vulcao":  {"rows": FADRAKOR_VULCAO_ROWS,  "spawns": FADRAKOR_VULCAO_SPAWN},
 }
+
+
+# ---- interiores: cada porta da vila leva a uma casa (a mesma planta, reusada) ----
+# Itatinga (NW): 8 casas, uma menina em cada (Juliana divide com a Amanda).
+# Bento (SE): casa comum (interior generico, vazio). Sapopemba (SW): trancadas.
+CASA_MENINAS = {                                  # mapa da casa -> porta dela no Ermo
+    "casa_melissa":   (3, 3),   "casa_yasmin":    (10, 3),
+    "casa_valentina": (16, 5),  "casa_isabelle":  (6, 6),
+    "casa_giovanna":  (3, 9),   "casa_beatriz":   (10, 11),
+    "casa_camila":    (15, 13), "casa_amanda":    (6, 14),
+}
+for _cm in list(CASA_MENINAS) + ["casa_comum"]:
+    MAPS[_cm] = {"rows": INTERIOR_CASA_ROWS, "spawns": INTERIOR_SPAWN}
+
+INTERIOR_MAPS = set(CASA_MENINAS) | {"casa_comum"}   # "estou dentro de uma casa?"
+
+# porta (x, y) no Ermo -> mapa de interior, ou "LOCKED" (Sapopemba, ainda fechada)
+DOOR_INTERIORS = {pos: name for name, pos in CASA_MENINAS.items()}
+DOOR_INTERIORS[(33, 20)] = "casa_comum"                              # casa do Bento
+for _d in [(4, 20), (10, 20), (14, 20), (3, 26), (10, 26)]:          # Sapopemba (SW)
+    DOOR_INTERIORS[_d] = "LOCKED"
 
 
 # ---- motor de passagem por borda: (mapa, borda) -> (mapa destino, x, y, facing) ----

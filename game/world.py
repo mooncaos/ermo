@@ -145,7 +145,7 @@ class World:
     # ------------------------------------------------------------ jogadores
 
     def add_player(self, sid, player_id, name, look, x, y, facing="down",
-                   inventory=None, equipment=None):
+                   inventory=None, equipment=None, wallet=0):
         """Coloca no mundo um jogador ja carregado do banco."""
         player = {
             "id": sid,                # identidade da conexao (protocolo)
@@ -158,6 +158,7 @@ class World:
             "map": "ermo",            # jogador sempre nasce/reconecta no Ermo
             "inventory": items.sanitize_bag(inventory or []),
             "equipment": sanitize_equipment(equipment),
+            "wallet": int(wallet or 0),   # saldo total em bronze (carteira)
             "_last_move": 0.0,
             "_dirty": False,
         }
@@ -251,6 +252,8 @@ class World:
         npc = self.players.get(npc_id)
         if not npc or not npc.get("_wanders"):
             return None
+        if npc.get("_inside") or npc.get("_going_home"):
+            return None   # ta dormindo ou indo dormir: quem cuida e o night loop
         mp = npc.get("map", "ermo")
         hx, hy = npc["_home"]
         rad = npc["_radius"]
@@ -270,6 +273,30 @@ class World:
             return npc
         npc["facing"] = random.choice(dirs)   # cercado: so vira pra um lado
         return npc
+
+    def step_toward(self, npc_id, tx, ty):
+        """Um passo APROXIMANDO o NPC de (tx,ty), pra tile passavel e livre.
+        Ignora o raio de casa (precisa atravessar a vila ate a porta). Devolve o
+        NPC se mexeu/virou; None se ja chegou ou encurralou. Guloso (sem A*)."""
+        npc = self.players.get(npc_id)
+        if not npc or (npc["x"] == tx and npc["y"] == ty):
+            return None
+        mp = npc.get("map", "ermo")
+        cur = abs(npc["x"] - tx) + abs(npc["y"] - ty)
+        best, bestd = None, cur
+        for d, (dx, dy) in rules.DELTAS.items():
+            nx, ny = npc["x"] + dx, npc["y"] + dy
+            if not rules.is_walkable(nx, ny, mp):
+                continue
+            if rules._occupied_by_other(self, npc, nx, ny):
+                continue
+            dist = abs(nx - tx) + abs(ny - ty)
+            if dist < bestd:
+                best, bestd = (d, nx, ny), dist
+        if best:
+            npc["facing"], npc["x"], npc["y"] = best[0], best[1], best[2]
+            return npc
+        return None
 
     def flee_step(self, npc_id, threat_id):
         """Um passo AFASTANDO o NPC do `threat` (Chebyshev), pra tile passavel e
@@ -358,7 +385,7 @@ class World:
         """So as entidades (jogadores + NPCs) que estao NO mapa `mp`, em formato
         publico. Usado no 'init' e na troca de mapa pra mandar so o que importa."""
         return [public(p) for p in self.players.values()
-                if p.get("map", "ermo") == mp]
+                if p.get("map", "ermo") == mp and not p.get("_inside")]
 
     def set_map(self, sid, mp, x, y):
         """Move um jogador pra outro mapa, numa posicao. Ao SAIR do Ermo, lembra
@@ -414,6 +441,12 @@ class World:
 
         # economia: itens do chao NAO reaparecem mais. Pegou, acabou. (Os que ja
         # estao no mapa continuam la ate alguem pegar.)
+        cat = items.get(item_id) or {}
+        if cat.get("kind") == "currency":
+            # moeda vira SALDO na carteira (total em bronze), nao item de mochila.
+            player["wallet"] = int(player.get("wallet", 0)) + int(cat.get("value", 1))
+            return {"item": item_id, "x": tile[0], "y": tile[1], "currency": True,
+                    "wallet": player["wallet"]}
         items.add_to_bag(player["inventory"], item_id, 1)
         return {"item": item_id, "x": tile[0], "y": tile[1]}
 

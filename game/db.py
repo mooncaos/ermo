@@ -102,6 +102,10 @@ def init_schema():
             "ficha JSONB NOT NULL DEFAULT '{}'::jsonb;"
         )
         cur.execute(
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS "
+            "wallet BIGINT NOT NULL DEFAULT 0;"
+        )
+        cur.execute(
             """
             CREATE TABLE IF NOT EXISTS sessions (
                 token_hash  TEXT PRIMARY KEY,
@@ -144,7 +148,7 @@ def get_player(player_id):
     """Estado salvo do jogador pra carregar no mundo (sem o pass_hash)."""
     with cursor(dict_rows=True) as cur:
         cur.execute(
-            """SELECT id, email, name, look, x, y, facing, inventory, equipment, race, ficha
+            """SELECT id, email, name, look, x, y, facing, inventory, equipment, race, ficha, wallet
                FROM players WHERE id=%s""",
             (player_id,),
         )
@@ -169,6 +173,15 @@ def save_inventory(player_id, bag):
         cur.execute(
             "UPDATE players SET inventory=%s, last_seen=now() WHERE id=%s",
             (psycopg2.extras.Json(bag), player_id),
+        )
+
+
+def save_wallet(player_id, wallet):
+    """Grava o saldo da carteira (total em bronze) na coluna wallet."""
+    with cursor() as cur:
+        cur.execute(
+            "UPDATE players SET wallet=%s, last_seen=now() WHERE id=%s",
+            (int(wallet), player_id),
         )
 
 

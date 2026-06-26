@@ -412,14 +412,25 @@ ITATINGA_MENINAS = [
      "murmur": ["barato e bom, papo bom de graca."]},
 ]
 
+# Cada menina mora na SUA casa (interior proprio). A Juliana divide com a Amanda.
+_MENINA_CASA = {
+    "Melissa": "casa_melissa", "Yasmin": "casa_yasmin", "Valentina": "casa_valentina",
+    "Isabelle": "casa_isabelle", "Giovanna": "casa_giovanna", "Beatriz": "casa_beatriz",
+    "Camila": "casa_camila", "Amanda": "casa_amanda", "Juliana": "casa_amanda",
+}
+_MENINA_IHOME = {"Amanda": (5, 4), "Juliana": (10, 4)}   # roommates em pontos distintos
+
 def _menina_spec(m):
+    casa = _MENINA_CASA.get(m["name"], "casa_comum")
     return {
         "id": "npc:menina_" + m["name"].lower(),
         "name": m["name"],
         "look": {"skin": m["skin"], "cloak": m["cloak"], "hood": "down",
                  "hat": "none", "hair": m["hair"], "staff": False},
-        "home": m["home"], "radius": 1, "wanders": True, "step_every": 1.5,
-        "solid": True, "kind": "person", "active": m.get("active", False),
+        "map": casa,                                  # mora dentro da casa dela
+        "home": _MENINA_IHOME.get(m["name"], (7, 4)), # ponto dentro do interior
+        "radius": 1, "wanders": True, "step_every": 1.6,
+        "solid": True, "kind": "person", "active": True,   # acordam todas
         "bronze": m["bronze"], "desc": m["desc"],
         "murmurs": m.get("murmur", []), "murmur_min": 18, "murmur_max": 28,
         "greetings": m["greet"], "smiter": False,

@@ -17,6 +17,23 @@ const logoutB = document.getElementById('logout');
 const onlineEl= document.getElementById('online');
 const coordsEl= document.getElementById('coords');
 const phaseEl = document.getElementById('phase');
+const purseEl = document.getElementById('purse');
+
+// Carteira: saldo total em bronze, exibido dividido (escala 100:1).
+let walletBronze = 0;
+function fmtWallet(b){
+  b = Math.max(0, Math.floor(b || 0));
+  const o = Math.floor(b/10000), p = Math.floor((b%10000)/100), br = b%100;
+  const parts = [];
+  if(o) parts.push(o+'o');
+  if(p) parts.push(p+'p');
+  parts.push(br+'b');                 // bronze sempre aparece
+  return '🪙 ' + parts.join(' ');
+}
+function updateWallet(b){
+  walletBronze = Math.max(0, Math.floor(b || 0));
+  if(purseEl) purseEl.textContent = fmtWallet(walletBronze);
+}
 const statusEl= document.getElementById('status');
 
 // abas + campos de conta
@@ -293,7 +310,92 @@ function _pofnirQuad(c, px, py, ts, gx, gy, qx, qy){
   drawPofnirBig(c, px - qx*ts, py - qy*ts, ts);
   c.restore();
 }
+// Interiores das casas: chars ganham desenho aconchegante so dentro de casa.
+function drawInteriorTile(c, ch, px, py, ts, gx, gy){
+  const woodFloor = () => {
+    c.fillStyle='#6b4f34'; c.fillRect(px,py,ts,ts);
+    c.fillStyle='#74563a'; c.fillRect(px,py+(((gx+gy)%2))*ts*0.5,ts,ts*0.5);
+    c.strokeStyle='rgba(40,28,16,0.35)'; c.lineWidth=1;
+    const seam=((gx*7+gy*13)%3)*ts*0.33;
+    c.beginPath(); c.moveTo(px,py+ts-0.5); c.lineTo(px+ts,py+ts-0.5);
+    c.moveTo(px+seam,py); c.lineTo(px+seam,py+ts); c.stroke();
+  };
+  switch(ch){
+    case '1': woodFloor(); break;
+    case '2': {                                        // tapete
+      woodFloor();
+      c.fillStyle='#7a2530'; c.fillRect(px+ts*0.03,py+ts*0.03,ts*0.94,ts*0.94);
+      c.strokeStyle='#d9a441'; c.lineWidth=Math.max(1,ts*0.04);
+      c.strokeRect(px+ts*0.12,py+ts*0.12,ts*0.76,ts*0.76);
+      c.fillStyle='rgba(155,109,255,0.55)';
+      c.beginPath(); c.moveTo(px+ts*0.5,py+ts*0.32); c.lineTo(px+ts*0.68,py+ts*0.5);
+      c.lineTo(px+ts*0.5,py+ts*0.68); c.lineTo(px+ts*0.32,py+ts*0.5); c.closePath(); c.fill();
+      break;
+    }
+    case 'F': {                                        // parede de madeira
+      c.fillStyle='#3a2a1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#46341f'; for(let i=0;i<3;i++) c.fillRect(px+i*ts*0.34,py,ts*0.3,ts);
+      c.strokeStyle='rgba(20,12,6,0.6)'; c.lineWidth=1;
+      for(let i=1;i<3;i++){ c.beginPath(); c.moveTo(px+i*ts*0.34-1,py); c.lineTo(px+i*ts*0.34-1,py+ts); c.stroke(); }
+      c.beginPath(); c.moveTo(px,py+ts*0.5); c.lineTo(px+ts,py+ts*0.5); c.stroke();
+      break;
+    }
+    case 'b': {                                        // cama
+      woodFloor();
+      c.fillStyle='#5a3f28'; c.fillRect(px,py+ts*0.1,ts,ts*0.85);
+      c.fillStyle='#caa45a'; c.fillRect(px+ts*0.05,py+ts*0.15,ts*0.9,ts*0.32);
+      c.fillStyle='#9b6dff'; c.fillRect(px+ts*0.05,py+ts*0.45,ts*0.9,ts*0.5);
+      c.strokeStyle='rgba(0,0,0,0.25)'; c.lineWidth=1; c.strokeRect(px+ts*0.05,py+ts*0.15,ts*0.9,ts*0.8);
+      break;
+    }
+    case 'h': {                                        // lareira
+      c.fillStyle='#3a2a1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#5a5560'; c.fillRect(px,py,ts,ts*0.95);
+      c.fillStyle='#6a6570'; for(let i=0;i<3;i++) for(let j=0;j<3;j++) if((i+j)%2) c.fillRect(px+i*ts*0.34,py+j*ts*0.32,ts*0.3,ts*0.28);
+      c.fillStyle='#1a1410'; c.fillRect(px+ts*0.22,py+ts*0.42,ts*0.56,ts*0.53);
+      c.save(); c.globalCompositeOperation='lighter';
+      const g=c.createRadialGradient(px+ts*0.5,py+ts*0.82,1,px+ts*0.5,py+ts*0.82,ts*0.4);
+      g.addColorStop(0,'#ffe24a'); g.addColorStop(0.5,'#ff7a2a'); g.addColorStop(1,'rgba(255,80,20,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(px+ts*0.5,py+ts*0.8,ts*0.3,0,Math.PI*2); c.fill(); c.restore();
+      c.fillStyle='#ff9a3a';
+      c.beginPath(); c.moveTo(px+ts*0.4,py+ts*0.92); c.quadraticCurveTo(px+ts*0.46,py+ts*0.58,px+ts*0.5,py+ts*0.66);
+      c.quadraticCurveTo(px+ts*0.54,py+ts*0.55,px+ts*0.6,py+ts*0.92); c.closePath(); c.fill();
+      break;
+    }
+    case 'k': {                                        // mesa de madeira
+      woodFloor();
+      c.fillStyle='#3a2a1a'; c.fillRect(px+ts*0.18,py+ts*0.55,ts*0.08,ts*0.4); c.fillRect(px+ts*0.74,py+ts*0.55,ts*0.08,ts*0.4);
+      c.fillStyle='#8a6740'; c.fillRect(px+ts*0.06,py+ts*0.32,ts*0.88,ts*0.26);
+      c.fillStyle='#9a7548'; c.fillRect(px+ts*0.06,py+ts*0.32,ts*0.88,ts*0.08);
+      c.strokeStyle='rgba(0,0,0,0.25)'; c.lineWidth=1; c.strokeRect(px+ts*0.06,py+ts*0.32,ts*0.88,ts*0.26);
+      break;
+    }
+    case 'q': {                                        // bau
+      woodFloor();
+      c.fillStyle='#5a3f28'; c.fillRect(px+ts*0.15,py+ts*0.35,ts*0.7,ts*0.55);
+      c.fillStyle='#6a4a2e'; c.beginPath(); c.moveTo(px+ts*0.15,py+ts*0.38);
+      c.quadraticCurveTo(px+ts*0.5,py+ts*0.2,px+ts*0.85,py+ts*0.38);
+      c.lineTo(px+ts*0.85,py+ts*0.5); c.lineTo(px+ts*0.15,py+ts*0.5); c.closePath(); c.fill();
+      c.fillStyle='#c9a24a'; c.fillRect(px+ts*0.15,py+ts*0.48,ts*0.7,ts*0.05); c.fillRect(px+ts*0.46,py+ts*0.35,ts*0.08,ts*0.55);
+      c.fillStyle='#e8d050'; c.fillRect(px+ts*0.47,py+ts*0.55,ts*0.06,ts*0.08);
+      break;
+    }
+    case 'D': {                                        // porta de saida
+      c.fillStyle='#3a2a1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#5a3f28'; c.fillRect(px+ts*0.12,py+ts*0.05,ts*0.76,ts*0.9);
+      c.fillStyle='#6a4a30'; c.fillRect(px+ts*0.16,py+ts*0.1,ts*0.3,ts*0.8); c.fillRect(px+ts*0.54,py+ts*0.1,ts*0.3,ts*0.8);
+      c.fillStyle='#e8d050'; c.beginPath(); c.arc(px+ts*0.74,py+ts*0.5,ts*0.05,0,Math.PI*2); c.fill();
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.25;
+      const g=c.createLinearGradient(px,py+ts,px,py+ts*0.6); g.addColorStop(0,'#ffe24a'); g.addColorStop(1,'rgba(255,226,74,0)');
+      c.fillStyle=g; c.fillRect(px+ts*0.12,py+ts*0.6,ts*0.76,ts*0.35); c.restore();
+      break;
+    }
+    default: woodFloor();
+  }
+}
+
 function drawTile(c, ch, px, py, ts, gx, gy){
+  if(mapName && mapName.indexOf('casa_')===0){ drawInteriorTile(c, ch, px, py, ts, gx, gy); return; }
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;
     case ',':
@@ -2165,7 +2267,8 @@ function frame(now){
   dayTime = (((Date.now()/1000) + dayOffset) % dayLength) / dayLength;
   if(dayTime < 0) dayTime += 1;
   const tint = dayTint(dayTime);
-  if(tint){ ctx.fillStyle = tint; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  const indoors = mapName && mapName.indexOf('casa_') === 0;   // dentro de casa: sempre aconchegante
+  if(tint && !indoors){ ctx.fillStyle = tint; ctx.fillRect(0, 0, canvas.width, canvas.height); }
   if(phaseEl){
     const ph = phaseName(dayTime);
     if(ph !== lastPhase){ phaseEl.textContent = ph; lastPhase = ph; }
@@ -2512,6 +2615,7 @@ function connectWithToken(token){
 
     inventory = Array.isArray(data.inventory) ? data.inventory : [];
     equipment = data.equipment || {};
+    updateWallet(data.wallet || 0);
     Object.keys(catalog).forEach(k=> delete catalog[k]);
     Object.assign(catalog, data.items || {});
     ground.clear();
@@ -2568,6 +2672,10 @@ function connectWithToken(token){
     inventory = Array.isArray(d.bag) ? d.bag : inventory;
     refreshInventory();
     if(d.picked) toastItem(d.picked);
+  });
+  socket.on('wallet', d=>{
+    updateWallet(d.bronze || 0);
+    if(d && d.picked) toastMsg('+ ' + (d.picked.name || 'moeda'));
   });
   socket.on('item_taken',   d=> ground.delete(d.x+','+d.y) );
   socket.on('item_spawned', d=> ground.set(d.x+','+d.y, d.item) );

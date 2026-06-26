@@ -48,7 +48,8 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from game import db, accounts, items, npcs, rules, valdris, classes, races
 from game import secret_worlds, world_map as wm
 from game.world import World, public
-from game.world_map import MAP_ROWS, map_rows, EDGE_LINKS
+from game.world_map import (MAP_ROWS, map_rows, EDGE_LINKS,
+                            DOOR_INTERIORS, INTERIOR_MAPS, INTERIOR_SPAWN)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-isto-em-producao")
@@ -62,7 +63,7 @@ SAVE_EVERY = 5  # segundos entre gravacoes de posicao no banco
 # O horario do mundo sai do relogio (time.time()), entao todo mundo ve o
 # mesmo entardecer ao mesmo tempo, sem precisar de loop nem estado.
 # 480 = 8 minutos. Quer ver mudar rapido pra testar? Baixa esse numero.
-DAY_LENGTH = 480
+DAY_LENGTH = 900
 
 # ----- NPCs (o elenco) -----
 # Ritmo e falas de cada NPC vivem no registro dele em npcs.ROSTER.
@@ -178,7 +179,7 @@ def _enter_world(player_id, row):
     player = world.add_player(
         request.sid, player_id,
         row["name"], row["look"], row["x"], row["y"], row.get("facing", "down"),
-        row.get("inventory"), row.get("equipment"),
+        row.get("inventory"), row.get("equipment"), row.get("wallet", 0),
     )
 
     # se a regra do item unico cortou copias (ex.: Portuz), grava o conserto
@@ -206,6 +207,7 @@ def _enter_world(player_id, row):
         "players": world.entities_in(mp),
         "inventory": player["inventory"],
         "equipment": player["equipment"],
+        "wallet": player.get("wallet", 0),
         "items": items.catalog(),
         "ground": world.ground_snapshot() if mp == "ermo" else [],
         "ficha": ficha,
@@ -354,6 +356,21 @@ def on_move(data):
             tmap, tx, ty, face = link
             _go_to(request.sid, tmap, tx, ty, face)
             return
+    # pisou numa porta 'D'? entra ou sai de casa.
+    if map_rows(mp)[player["y"]][player["x"]] == "D":
+        if mp == "ermo":
+            dest = DOOR_INTERIORS.get((player["x"], player["y"]))
+            if dest == "LOCKED":
+                emit("toast", {"text": "A porta esta trancada."})
+            elif dest:
+                sx, sy = INTERIOR_SPAWN[0]
+                _go_to(request.sid, dest, sx, sy, "up")
+            return
+        if mp in INTERIOR_MAPS:
+            ret = world.ermo_return(request.sid) or rules.pick_spawn(world, "ermo")
+            _go_to(request.sid, "ermo", ret[0], ret[1], "down")
+            return
+
     # pisou no portal dos Ermos (em Rasharan)? volta pro Ermo.
     if mp == "rasharan" and map_rows("rasharan")[player["y"]][player["x"]] == "@":
         ret = world.ermo_return(request.sid) or rules.pick_spawn(world, "ermo")
@@ -363,15 +380,25 @@ def on_move(data):
     # pisou sobre um item? pega. (so existe item no chao no Ermo)
     picked = world.try_pickup(player)
     if picked:
-        try:
-            db.save_inventory(player["player_id"], player["inventory"])
-        except Exception as exc:
-            print("erro salvando inventario:", exc)
         cat = items.get(picked["item"]) or {}
-        emit("inventory", {
-            "bag": player["inventory"],
-            "picked": {"item": picked["item"], "name": cat.get("name", ""), "qty": 1},
-        })
+        if picked.get("currency"):
+            # moeda foi pra carteira: salva o saldo e avisa o cliente (HUD).
+            try:
+                db.save_wallet(player["player_id"], picked["wallet"])
+            except Exception as exc:
+                print("erro salvando carteira:", exc)
+            emit("wallet", {"bronze": picked["wallet"],
+                            "picked": {"item": picked["item"], "name": cat.get("name", ""),
+                                       "value": cat.get("value", 1)}})
+        else:
+            try:
+                db.save_inventory(player["player_id"], player["inventory"])
+            except Exception as exc:
+                print("erro salvando inventario:", exc)
+            emit("inventory", {
+                "bag": player["inventory"],
+                "picked": {"item": picked["item"], "name": cat.get("name", ""), "qty": 1},
+            })
         emit("item_taken", {"x": picked["x"], "y": picked["y"]}, room=mp)
 
 
@@ -833,7 +860,8 @@ def _npc_murmur_loop(spec):
     while True:
         socketio.sleep(random.uniform(lo, hi))
         try:
-            if lines and nid in world.players:
+            npc = world.players.get(nid)
+            if lines and npc and not npc.get("_inside") and not npc.get("_going_home"):
                 socketio.emit("speech", {"id": nid, "text": random.choice(lines)},
                               room=spec.get("map", "ermo"))
         except Exception as exc:
@@ -850,6 +878,8 @@ def _npc_gaze_loop(spec):
             npc = world.players.get(nid)
             if not npc:
                 continue
+            if npc.get("_inside") or npc.get("_going_home"):
+                continue   # dormindo ou indo dormir: nao encara
             target = world.nearest_player_to(npc, radius=8)
             if target:
                 face = _face_to(npc, target)
@@ -950,6 +980,78 @@ def _pofnir_loop():
             print("erro no gato branco:", exc)
 
 
+# --------------------------------------------------- a vida noturna da vila
+# Ao anoitecer, ~metade dos moradores comuns caminha ate a porta de casa e some
+# la dentro; ao amanhecer, reaparecem na porta. O pessoal do cabare (NE) nao
+# dorme (a noite e o expediente), e as meninas ja moram nos interiores.
+
+def _eligible_sleepers():
+    out = []
+    for sid, p in list(world.players.items()):
+        if not p.get("is_npc") or p.get("map", "ermo") != "ermo":
+            continue
+        spec = p.get("_spec", {})
+        if spec.get("kind") != "person" or not spec.get("wanders") or spec.get("smiter"):
+            continue
+        hx, hy = p.get("_home", (p["x"], p["y"]))
+        if hx >= 23 and hy <= 14:
+            continue   # zona do cabare
+        out.append(sid)
+    return out
+
+
+def _bed_target(p):
+    """A porta 'D' do Ermo mais perto de casa (ate dist 8); senao a propria casa."""
+    hx, hy = p.get("_home", (p["x"], p["y"]))
+    best, bestd = None, 9
+    for (dx, dy) in DOOR_INTERIORS:
+        d = abs(dx - hx) + abs(dy - hy)
+        if d < bestd:
+            best, bestd = (dx, dy), d
+    return best or (hx, hy)
+
+
+def _night_loop():
+    was_night = _is_night()
+    while True:
+        socketio.sleep(2)
+        try:
+            now_night = _is_night()
+            if now_night and not was_night:                 # anoiteceu
+                elig = _eligible_sleepers()
+                random.shuffle(elig)
+                for sid in elig[: max(1, len(elig) // 2)]:
+                    p = world.players.get(sid)
+                    if not p:
+                        continue
+                    p["_going_home"] = True
+                    p["_bed"] = _bed_target(p)
+                    p["_home_tries"] = 0
+            elif was_night and not now_night:               # amanheceu
+                for sid, p in list(world.players.items()):
+                    if p.get("_inside"):
+                        bx, by = p.get("_bed", p.get("_home", (p["x"], p["y"])))
+                        p["x"], p["y"], p["facing"] = bx, by, "down"
+                        p["_inside"] = False
+                        socketio.emit("player_joined", public(p), room="ermo")
+                    p.pop("_going_home", None)               # cancela quem vinha vindo
+            if now_night:                                   # caminhada ate a porta
+                for sid, p in list(world.players.items()):
+                    if not p.get("_going_home"):
+                        continue
+                    bx, by = p.get("_bed", p.get("_home", (p["x"], p["y"])))
+                    if world.step_toward(sid, bx, by):
+                        socketio.emit("player_moved", _npc_moved_payload(p), room="ermo")
+                    p["_home_tries"] = p.get("_home_tries", 0) + 1
+                    if abs(p["x"] - bx) + abs(p["y"] - by) <= 1 or p["_home_tries"] > 45:
+                        p["_going_home"] = False
+                        p["_inside"] = True
+                        socketio.emit("player_left", {"id": sid}, room="ermo")
+            was_night = now_night
+        except Exception as exc:
+            print("erro na vida noturna:", exc)
+
+
 # ------------------------------------------------------------------- boot
 
 def _startup():
@@ -974,6 +1076,7 @@ def _startup():
         if spec.get("gazes"):
             socketio.start_background_task(_npc_gaze_loop, spec)
     socketio.start_background_task(_pofnir_loop)   # a aparicao do Pofnir
+    socketio.start_background_task(_night_loop)     # a vila dorme a noite
 
 
 _startup()
