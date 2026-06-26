@@ -45,7 +45,7 @@ import time
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-from game import db, accounts, items, npcs, rules, valdris, classes, races
+from game import db, accounts, items, npcs, rules, valdris, classes, races, leveling
 from game import secret_worlds, world_map as wm
 from game.world import World, public
 from game.world_map import (MAP_ROWS, map_rows, EDGE_LINKS,
@@ -214,6 +214,7 @@ def _enter_world(player_id, row):
         except Exception as exc:
             print("aviso reconstruindo ficha:", exc)
     player["ficha"] = ficha   # guarda na memoria (saber se ja tem classe etc.)
+    leveling.recompute(ficha)  # garante nivel/vida/proficiencia coerentes com o XP
 
     emit("init", {
         "id": request.sid,
@@ -229,6 +230,73 @@ def _enter_world(player_id, row):
         "server_now": time.time(),
     })
     emit("player_joined", public(player), room=mp, include_self=False)
+
+
+_MAP_NAMES = {
+    "salao": "o Salao das Classes", "rasharan": "Rasharan", "valoran": "Valoran",
+    "fundamento": "o Fundamento", "falanor": "Falanor",
+    "fadrakor_litoral": "o litoral de Fadrakor", "fadrakor_selva": "a selva de Fadrakor",
+    "fadrakor_vulcao": "o vulcao de Fadrakor",
+}
+
+
+def _map_label(mp):
+    if mp.startswith("casa_"):
+        return "uma casa"
+    return _MAP_NAMES.get(mp, mp)
+
+
+def _award_xp(player, amount, reason=""):
+    """Da XP, salva a ficha e avisa o cliente (barra de XP + popup de nivel)."""
+    if not player or amount <= 0:
+        return
+    ficha = player.get("ficha") or {}
+    ficha, leveled, lvl, gained = leveling.grant_xp(ficha, amount)
+    player["ficha"] = ficha
+    try:
+        db.save_ficha(player["player_id"], ficha)
+    except Exception as exc:
+        print("erro salvando ficha (xp):", exc)
+    socketio.emit("xp", {
+        "xp": ficha.get("xp", 0), "level": ficha.get("level", 1),
+        "hp": ficha.get("hp"), "hp_max": ficha.get("hp_max"),
+        "prof": ficha.get("prof"), "gained": gained, "reason": reason,
+    }, to=player["id"])
+    if leveled:
+        socketio.emit("levelup", {
+            "level": lvl, "hp_max": ficha.get("hp_max"), "prof": ficha.get("prof"),
+        }, to=player["id"])
+
+
+def _discover_map(player, mp):
+    """XP de descoberta na 1a visita a um mapa."""
+    amount = leveling.map_xp(mp)
+    if amount <= 0:
+        return
+    ficha = player.get("ficha") or {}
+    seen = ficha.setdefault("seen_maps", [])
+    if mp in seen:
+        return
+    seen.append(mp)
+    player["ficha"] = ficha
+    _award_xp(player, amount, "Descobriu " + _map_label(mp))
+
+
+def _encounter_gods(player):
+    """XP na 1a vez que chega perto de cada deus (so nos mundos secretos)."""
+    mp = player.get("map", "ermo")
+    if mp in ("ermo", "salao") or mp.startswith("casa_"):
+        return
+    ficha = player.get("ficha") or {}
+    met = ficha.setdefault("met_gods", [])
+    for ent in list(world.players.values()):
+        gid = ent.get("id", "")
+        if not gid.startswith("god:") or ent.get("map") != mp or gid in met:
+            continue
+        if world.near_entity(player, gid, 4):
+            met.append(gid)
+            player["ficha"] = ficha
+            _award_xp(player, leveling.GOD_XP, "Encontrou " + ent.get("name", "um deus"))
 
 
 def _go_to(sid, target_map, x, y, facing=None):
@@ -249,6 +317,7 @@ def _go_to(sid, target_map, x, y, facing=None):
     world.set_map(sid, target_map, x, y)
     if facing:
         player["facing"] = facing
+    _discover_map(player, target_map)   # XP de descoberta na 1a visita
     try:
         socketio.server.enter_room(sid, target_map, namespace="/")
     except Exception as exc:
@@ -354,6 +423,8 @@ def on_move(data):
         "y": player["y"],
         "facing": player["facing"],
     }, room=mp)
+
+    _encounter_gods(player)   # XP ao chegar perto de um deus (1a vez)
 
     # pisou no portal do Salao? volta pro Ermo (no ponto de onde saiu).
     if mp == "salao" and map_rows("salao")[player["y"]][player["x"]] == "O":
@@ -672,10 +743,9 @@ def _grant_pofnir_blessing(player):
             "text": "Voce ja carrega a minha bencao, amigo. Uma vez basta entre nos."},
             room="valoran")
         return
-    ficha["hp_max"] = int(ficha.get("hp_max", 0)) + 5
-    ficha["hp"] = int(ficha.get("hp", ficha["hp_max"])) + 5
     ficha["blessing_pofnir"] = True
     player["ficha"] = ficha
+    leveling.recompute(ficha)   # aplica o +5 permanente (e cura o ganho)
     try:
         if player.get("player_id"):
             db.save_ficha(player["player_id"], ficha)
@@ -686,6 +756,7 @@ def _grant_pofnir_blessing(player):
                 "que a sua vida seja mais longa."}, room="valoran")
     emit("ficha", {"ficha": ficha, "blessed": True})
     emit("toast", {"text": "Pofnir te abencoou: +5 de vida maxima!"})
+    _award_xp(player, leveling.SECRET_XP, "Recebeu a bencao do Pofnir")
 
 
 # ---------------------------------------------------------------------------

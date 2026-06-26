@@ -2722,6 +2722,18 @@ function connectWithToken(token){
     }
   });
   socket.on('toast', d=>{ if(d && d.text) toastMsg(d.text); });
+  socket.on('xp', d=>{
+    if(!d) return;
+    if(myFicha){
+      myFicha.xp = d.xp; myFicha.level = d.level;
+      if(d.hp!=null) myFicha.hp = d.hp;
+      if(d.hp_max!=null) myFicha.hp_max = d.hp_max;
+      if(d.prof!=null) myFicha.prof = d.prof;
+      renderFicha();
+    }
+    if(d.gained) toastMsg('+' + d.gained + ' XP' + (d.reason ? ' · ' + d.reason : ''));
+  });
+  socket.on('levelup', d=>{ if(d) showLevelUp(d); });
   socket.on('throne_warn', d=>{ if(d) throneWarn = {cx:d.cx, cy:d.cy, text:d.text||'', start:performance.now()}; });
   socket.on('class_error', d=>{
     toastMsg('Não rolou: ' + ((d && d.reason) || 'erro') , true);
@@ -3278,12 +3290,34 @@ function toggleFicha(force){
   if(fichaPanel) fichaPanel.style.display = fichaPanelOpen ? 'block' : 'none';
   if(fichaPanelOpen) renderFicha();
 }
-function renderFicha(){
-  if(!fichaPanel) return;
-  const f = myFicha || {};
-  const hasClass = !!f.class_id;
-  const attrs = hasClass ? (f.attrs_final||{}) : (f.attrs||{});
-  const cellHtml = ATTR_ORDER.map(a=>{
+// Tabela de XP 5e (espelha o servidor) + progresso no nivel atual.
+const XP_TABLE = [0,0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,
+                  100000,120000,140000,165000,195000,225000,265000,305000,355000];
+function xpProgress(xp){
+  xp = xp||0; let lvl=1;
+  for(let L=2;L<=20;L++){ if(xp>=XP_TABLE[L]) lvl=L; else break; }
+  if(lvl>=20) return {lvl:20, cur:0, need:0, pct:1};
+  const base=XP_TABLE[lvl], nxt=XP_TABLE[lvl+1];
+  return {lvl, cur:xp-base, need:nxt-base, pct:(xp-base)/(nxt-base)};
+}
+// Marcas/titulos (vindas de flags da ficha). Mais virao ao longo do dev.
+const MARCAS = [
+  {flag:'blessing_pofnir', icon:'🛡️', name:'Amigo do Pof', desc:'O Pofnir te abençoou em Valoran. Você carrega um pedaço da luz dele (+5 de vida máxima).'},
+  {flag:'banned_valoran',  icon:'💀', name:'Deixou o Pofnir Ansioso', desc:'Você insistiu no trono do Criador. Foi obliterado e está banido de Valoran.'},
+];
+let fichaTab = 'geral';
+
+function _fichaLine(k,v){
+  return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin:3px 0">'+
+    '<span style="color:#9b95b4">'+k+'</span><span style="color:#e8e4f0;text-align:right">'+esc(v)+'</span></div>';
+}
+function _bar(pct, grad){
+  pct = Math.max(0, Math.min(1, pct||0));
+  return '<div style="height:9px;background:#1b1830;border:1px solid #34304f;border-radius:6px;overflow:hidden">'+
+    '<div style="height:100%;width:'+(pct*100).toFixed(1)+'%;background:'+grad+';border-radius:6px"></div></div>';
+}
+function _attrCells(attrs){
+  return ATTR_ORDER.map(a=>{
     const v = attrs[a]; if(v==null) return '';
     const m = Math.floor((v-10)/2);
     return '<div style="text-align:center;padding:6px 2px;background:#1b1830;border:1px solid #34304f;border-radius:8px">'+
@@ -3291,27 +3325,112 @@ function renderFicha(){
       '<div style="font:700 17px Cinzel,serif;line-height:1.1">'+v+'</div>'+
       '<div style="font:600 10px Inter;color:#8a86a0">'+((m>=0?'+':'')+m)+'</div></div>';
   }).join('');
-  const line = (k,v)=> '<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin:3px 0">'+
-    '<span style="color:#9b95b4">'+k+'</span><span style="color:#e8e4f0;text-align:right">'+esc(v)+'</span></div>';
-  let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
-    '<div style="font:700 16px Cinzel,serif;color:#f4d8a0">Ficha</div>'+
-    '<button id="ficha-x" style="background:none;border:none;color:#9b95b4;font-size:18px;cursor:pointer">×</button></div>';
-  h += line('Raça', f.race_name || '—');
+}
+
+function _fichaGeral(f){
+  const hasClass = !!f.class_id;
+  const attrs = hasClass ? (f.attrs_final||{}) : (f.attrs||{});
+  let h = _fichaLine('Raça', f.race_name || '—');
   if(hasClass){
-    h += line('Classe', f.class_name + (f.god ? ' · ' + f.god : ' · sem deus'));
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 6px">'+
+    h += _fichaLine('Classe', f.class_name + (f.god ? ' · ' + f.god : ' · sem deus'));
+    const pr = xpProgress(f.xp||0);
+    h += '<div style="margin:10px 0 4px;display:flex;justify-content:space-between;align-items:baseline">'+
+      '<span style="font:700 15px Cinzel,serif;color:#f4d8a0">Nível '+(f.level||1)+'</span>'+
+      '<span style="font-size:11px;color:#8a86a0">'+(pr.need? (pr.cur+' / '+pr.need+' XP') : 'máximo')+'</span></div>';
+    h += _bar(pr.pct, 'linear-gradient(90deg,#9b6dff,#c9a0ff)');
+    h += '<div style="margin:10px 0 4px;display:flex;justify-content:space-between;align-items:baseline">'+
       '<span style="color:#9b95b4;font-size:13px">Vida</span>'+
-      '<span style="font:700 16px Cinzel,serif;color:#e85d75">❤ '+(f.hp||'?')+' / '+(f.hp_max||'?')+'</span></div>';
-    h += line('Nível', f.level || 1);
+      '<span style="font:700 14px Cinzel,serif;color:#e85d75">❤ '+(f.hp!=null?f.hp:'?')+' / '+(f.hp_max!=null?f.hp_max:'?')+'</span></div>';
+    h += _bar(f.hp_max? (f.hp/f.hp_max):0, 'linear-gradient(90deg,#e85d75,#ff8aa0)');
+    h += '<div style="margin-top:8px">'+_fichaLine('Proficiência', '+'+(f.prof||2))+'</div>';
   } else {
     h += '<div style="font-size:12.5px;color:#9b95b4;margin:8px 0;line-height:1.4">'+
-      'Sem classe ainda. Fale com o corvo (no Ermo) pra ir ao Salão das Classes e escolher um mestre.</div>';
+      'Sem classe ainda. Fale com o corvo (no Ermo) pra ir ao Salão das Classes e escolher um mestre.'+
+      (f.xp? '<br><br>Você já tem <b style="color:#c9a0ff">'+f.xp+' XP</b> guardado de tanto explorar. Vira nível quando escolher a classe.':'')+'</div>';
   }
-  h += '<div style="font:600 11px Inter;color:#8a86a0;margin:12px 0 6px;letter-spacing:.5px;text-transform:uppercase">'+
+  h += '<div style="font:600 11px Inter;color:#8a86a0;margin:14px 0 6px;letter-spacing:.5px;text-transform:uppercase">'+
     (hasClass?'Atributos (com a classe)':'Atributos (da raça)')+'</div>';
-  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'+cellHtml+'</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'+_attrCells(attrs)+'</div>';
+  return h;
+}
+
+function _fichaPassivas(f){
+  let h = '<div style="font:600 11px Inter;color:#8a86a0;margin:2px 0 6px;letter-spacing:.5px;text-transform:uppercase">Traços de raça</div>';
+  const race = (typeof RACES!=='undefined') ? RACES.find(r=>r.id===f.race) : null;
+  if(race && race.traits){
+    h += race.traits.split(';').map(s=>s.trim()).filter(Boolean).map(t=>{
+      const m = t.match(/^([^(]+?)(\s*\((.+)\))?$/);
+      const nome = m? m[1].trim() : t;
+      const desc = (m && m[3]) ? m[3].trim() : '';
+      return '<div style="margin:0 0 7px;padding:8px 10px;background:#1b1830;border:1px solid #2e2a47;border-radius:9px">'+
+        '<div style="font:700 12.5px Inter;color:#c9a0ff">'+esc(nome)+'</div>'+
+        (desc? '<div style="font-size:11.5px;color:#9b95b4;margin-top:2px;line-height:1.35">'+esc(desc)+'</div>':'')+'</div>';
+    }).join('');
+  } else {
+    h += '<div style="font-size:12px;color:#9b95b4;margin-bottom:8px">Sem traços (ou raça não definida).</div>';
+  }
+  h += '<div style="font:600 11px Inter;color:#8a86a0;margin:12px 0 6px;letter-spacing:.5px;text-transform:uppercase">Habilidades de classe</div>';
+  h += '<div style="font-size:12px;color:#7c7790;line-height:1.4">As habilidades da sua classe aparecem aqui conforme você sobe de nível. (chegando em breve)</div>';
+  return h;
+}
+
+function _fichaMarcas(f){
+  const got = MARCAS.filter(m=> f[m.flag]);
+  if(!got.length){
+    return '<div style="font-size:12.5px;color:#9b95b4;line-height:1.5;padding:8px 0">'+
+      'Nenhuma marca ainda.<br>As marcas são títulos que você ganha pelas suas escolhas e feitos no mundo do Ermo.</div>';
+  }
+  return got.map(m=>
+    '<div style="display:flex;gap:10px;align-items:flex-start;margin:0 0 9px;padding:9px 11px;background:#1b1830;border:1px solid #2e2a47;border-radius:10px">'+
+    '<div style="font-size:20px;line-height:1">'+m.icon+'</div>'+
+    '<div><div style="font:700 13px Cinzel,serif;color:#f4d8a0">'+esc(m.name)+'</div>'+
+    '<div style="font-size:11.5px;color:#9b95b4;margin-top:2px;line-height:1.35">'+esc(m.desc)+'</div></div></div>'
+  ).join('');
+}
+
+function renderFicha(){
+  if(!fichaPanel) return;
+  const f = myFicha || {};
+  const tabBtn = (name,label)=>{
+    const on = fichaTab===name;
+    return '<button data-tab="'+name+'" style="flex:1;padding:7px 4px;font:700 11.5px Inter;cursor:pointer;'+
+      'border:none;border-bottom:2px solid '+(on?'#9b6dff':'transparent')+';background:none;'+
+      'color:'+(on?'#e8e4f0':'#8a86a0')+'">'+label+'</button>';
+  };
+  let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+    '<div style="font:700 16px Cinzel,serif;color:#f4d8a0">Ficha</div>'+
+    '<button id="ficha-x" style="background:none;border:none;color:#9b95b4;font-size:18px;cursor:pointer">×</button></div>';
+  h += '<div style="display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid #2a2742">'+
+    tabBtn('geral','Geral')+tabBtn('passivas','Passivas')+tabBtn('marcas','Marcas')+'</div>';
+  if(fichaTab==='geral') h += _fichaGeral(f);
+  else if(fichaTab==='passivas') h += _fichaPassivas(f);
+  else h += _fichaMarcas(f);
   fichaPanel.innerHTML = h;
   const x = document.getElementById('ficha-x'); if(x) x.onclick = ()=> toggleFicha(false);
+  fichaPanel.querySelectorAll('[data-tab]').forEach(b=>
+    b.onclick = ()=>{ fichaTab = b.getAttribute('data-tab'); renderFicha(); });
+}
+
+function showLevelUp(d){
+  let el = document.getElementById('levelup-pop');
+  if(!el){
+    el = document.createElement('div'); el.id = 'levelup-pop';
+    el.style.cssText = 'position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.7);z-index:9300;'+
+      'padding:22px 30px;border-radius:18px;text-align:center;cursor:pointer;opacity:0;'+
+      'background:radial-gradient(circle at 50% 0,#2a2150,#15131f 78%);border:1px solid #9b6dff;'+
+      'box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 42px rgba(155,109,255,.4);'+
+      'transition:opacity .25s, transform .25s;font-family:Inter,sans-serif;max-width:80vw;';
+    el.onclick = ()=>{ el.style.opacity='0'; el.style.transform='translate(-50%,-50%) scale(.7)'; };
+    document.body.appendChild(el);
+  }
+  el.innerHTML =
+    '<div style="font:700 12px Inter;letter-spacing:2px;color:#c9a0ff;text-transform:uppercase">subiu de nível</div>'+
+    '<div style="font:800 44px Cinzel,serif;color:#f4d8a0;line-height:1.1;margin:2px 0 6px;text-shadow:0 2px 12px rgba(244,216,160,.45)">Nível '+d.level+'</div>'+
+    '<div style="font-size:13px;color:#e8e4f0">❤ vida máxima '+(d.hp_max!=null?d.hp_max:'?')+' · proficiência +'+(d.prof!=null?d.prof:'?')+'</div>'+
+    '<div style="font-size:10.5px;color:#7c7790;margin-top:8px">(toque pra fechar)</div>';
+  requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translate(-50%,-50%) scale(1)'; });
+  clearTimeout(el._t); el._t = setTimeout(()=>{
+    el.style.opacity='0'; el.style.transform='translate(-50%,-50%) scale(.7)'; }, 4200);
 }
 
 function toastMsg(msg, isErr){

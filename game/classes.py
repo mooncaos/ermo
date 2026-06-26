@@ -97,4 +97,7 @@ def apply_class(ficha, class_id, plus2):
     out["level"] = 1
     out["hp_max"] = hp
     out["hp"] = hp
+    out.setdefault("xp", 0)
+    from . import leveling   # local: evita import circular
+    leveling.recompute(out)  # aplica XP ja acumulado (exploracao sem classe)
     return out, None
