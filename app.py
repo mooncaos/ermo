@@ -45,7 +45,7 @@ import time
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit
 
-from game import db, accounts, items, npcs, rules
+from game import db, accounts, items, npcs, rules, valdris
 from game.world import World, public
 from game.world_map import MAP_ROWS
 
@@ -67,6 +67,7 @@ DAY_LENGTH = 480
 # Ritmo e falas de cada NPC vivem no registro dele em npcs.ROSTER.
 TALK_RADIUS = 1          # precisa estar colado num NPC pra conversar
 HEAR_RADIUS = 4          # xingou a ate tantos tiles do Valdris -> ele te frita
+FLEE_RADIUS = 3          # NPC medroso a ate tantos tiles do Valdris -> ele recua
 
 
 # ----- A aparicao do Pofnir: "O Gato Branco e Grande" -----
@@ -429,13 +430,21 @@ def _respawn_loop():
 
 
 def _npc_wander_loop(spec):
-    """Um NPC perambula no ritmo dele; cada passo vai pra todos."""
+    """Um NPC perambula no ritmo dele; cada passo vai pra todos. Se for medroso
+    (nao-fearless) e o Valdris chegar perto, ele FOGE em vez de perambular."""
     nid = spec["id"]
     every = spec.get("step_every", 0.9)
+    fearless = spec.get("fearless", False)
     while True:
         socketio.sleep(every)
         try:
-            npc = world.wander_npc(nid)
+            npc = None
+            if not fearless:
+                val = world.players.get(valdris.NPC_ID)
+                if val and world.near_entity(val, nid, FLEE_RADIUS):
+                    npc = world.flee_step(nid, valdris.NPC_ID)
+            if npc is None:
+                npc = world.wander_npc(nid)
             if npc:
                 socketio.emit("player_moved", _npc_moved_payload(npc))
         except Exception as exc:

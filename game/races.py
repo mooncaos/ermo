@@ -2469,11 +2469,11 @@ RACE_BY_ID = {r["id"]: r for r in RACES}
 # ordem e rótulos dos tiers pro menu
 TIER_ORDER = ["nucleo", "expansao", "monstruosa", "cenario", "avulsa"]
 TIER_LABELS = {
-    "nucleo": "Núcleo (PHB)",
-    "expansao": "Expansão",
-    "monstruosa": "Monstruosa — aval do mestre",
-    "cenario": "De cenário",
-    "avulsa": "Avulsa",
+    "nucleo": "Clássicas",
+    "expansao": "Comuns",
+    "monstruosa": "Exóticas",
+    "cenario": "De outros mundos",
+    "avulsa": "Raras",
 }
 
 

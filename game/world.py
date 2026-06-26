@@ -232,6 +232,30 @@ class World:
         npc["facing"] = random.choice(dirs)   # cercado: so vira pra um lado
         return npc
 
+    def flee_step(self, npc_id, threat_id):
+        """Um passo AFASTANDO o NPC do `threat` (Chebyshev), pra tile passavel e
+        livre. Durante a fuga ignora o raio de casa (ele precisa poder recuar).
+        Devolve o NPC se mexeu/virou. Usado pro medo do Valdris."""
+        npc = self.players.get(npc_id)
+        threat = self.players.get(threat_id)
+        if not npc or not threat:
+            return None
+        cur = max(abs(npc["x"] - threat["x"]), abs(npc["y"] - threat["y"]))
+        best, bestd = None, cur
+        for d, (dx, dy) in rules.DELTAS.items():
+            nx, ny = npc["x"] + dx, npc["y"] + dy
+            if not rules.is_walkable(nx, ny):
+                continue
+            if rules._occupied_by_other(self, npc, nx, ny):
+                continue
+            dist = max(abs(nx - threat["x"]), abs(ny - threat["y"]))
+            if dist > bestd:
+                best, bestd = (d, nx, ny), dist
+        if best:
+            npc["facing"], npc["x"], npc["y"] = best[0], best[1], best[2]
+            return npc
+        return None   # encurralado: nao da pra recuar agora
+
     def nearest_npc(self, player, radius):
         """O NPC mais proximo do jogador dentro do raio (Chebyshev), ou None.
         Usado pra interacao: voce fala com quem esta colado."""
@@ -311,10 +335,8 @@ class World:
         item_id = g["item"]
         del self.ground[tile]
 
-        # agenda o reaparecimento deste ponto
-        _x, _y, _id, respawn = items.GROUND_SPAWNS[g["spawn"]]
-        self._respawns.append((g["spawn"], time.time() + respawn))
-
+        # economia: itens do chao NAO reaparecem mais. Pegou, acabou. (Os que ja
+        # estao no mapa continuam la ate alguem pegar.)
         items.add_to_bag(player["inventory"], item_id, 1)
         return {"item": item_id, "x": tile[0], "y": tile[1]}
 

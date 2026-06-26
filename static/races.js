@@ -2454,4 +2454,4 @@ const RACES = [
 ];
 
 const TIER_ORDER = ["nucleo","expansao","monstruosa","cenario","avulsa"];
-const TIER_LABELS = {nucleo:"Núcleo (PHB)",expansao:"Expansão",monstruosa:"Monstruosa — aval do mestre",cenario:"De cenário",avulsa:"Avulsa"};
+const TIER_LABELS = {nucleo:"Clássicas",expansao:"Comuns",monstruosa:"Exóticas",cenario:"De outros mundos",avulsa:"Raras"};

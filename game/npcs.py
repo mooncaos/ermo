@@ -688,3 +688,251 @@ SAPOPEMBA = [
 ]
 
 ROSTER.extend(SAPOPEMBA)
+
+
+# ============================================================================
+#  A TEIA DE RELACOES  (falas novas: cada NPC cita os outros + medo do Valdris)
+# ============================================================================
+# Tudo aqui ESTENDE as listas ja criadas acima (mexe no MESMO objeto, entao o
+# ROSTER, que guarda a referencia, enxerga as falas novas). Os 3 sem medo do
+# Valdris (Jose, corvo, Maria) falam dele de boa; todo o resto, com receio.
+
+# --- Bento: lavrador que SABE dos deuses; reza muito pra Martur/Valiria/Pofnir,
+#     fala do corvo so em metafora, e desvia do Valdris ---
+BENTO_MURMURS.extend([
+    "Valiria que me manda o sol da manha. eu agradeco cada alvorada, mesmo torta.",
+    "quando a colheita custa, eu peco pro velho Martur. ele tem todo o tempo do mundo, me empresta um pouco.",
+    "Pofnir que me guarde. o grande gato ve tudo, dizem. eu acredito.",
+    "esse corvo... esse corvo nao e corvo nao. e coisa antiga, de outro lugar, olhando a gente.",
+    "tem pena preta nessas espigas que ja viu mais mundo do que eu vou ver na vida.",
+    "o de roxo eu evito. faco minha reza, abaixo a cabeca e deixo ele com os enigmas dele.",
+    "Pofnir, Valiria, o velho do casco... cada um cuida de um pedaco. o de roxo nao e de cuidar de nada.",
+    "as vez eu sinto o tempo parar na roca. e o Martur passando, devagar como ele so.",
+])
+BENTO_GREETINGS.extend([
+    "se quer um conselho de roca: agradece a Valiria pela manha e nao encara muito o de roxo la pro fundo.",
+    "eu rezo pro Pofnir e pro Martur, moco. um cuida da luz, o outro do tempo. o resto a terra resolve.",
+    "aquele corvo ali? nao pergunta. tem coisa que e melhor a gente fingir que e so um passarinho.",
+])
+
+# --- o corvo: deus, nao teme o Valdris, reconhece o Jose, sabe dos outros ---
+CORVO_MURMURS.extend([
+    "o de roxo nao me assusta. eu ja fui embora de mundos piores que esse. cras.",
+    "o gato preto la do cabare e eu... a gente se conhece de outros ceus. ele sabe. cras.",
+    "o campones reza pros nomes certos e nem sabe. eu nao corrijo. cras.",
+    "tem uma gata branca que anda de noite. eu finjo que nao vejo. ela finge que nao existe.",
+    "a Maria nao teme ninguem. faz bem. poucos tem esse direito. cras.",
+])
+CORVO_GREETINGS.extend([
+    "quer saber do de roxo? ele e forte. tem um mais forte. esse voce nunca vai ver. cras.",
+    "o gato do cabare te mandou? nao? pena. a gente tinha o que conversar.",
+])
+
+# --- Beth: teme o Valdris com respeito, rival da Maria, desconfia do Jose ---
+BETH_MURMURS.extend([
+    "o de roxo la do sudeste... esse eu respeito de longe. tem coisa nele que nem eu, que ja vi muito, encaro.",
+    "a tal da Maria Cachorra, rainha do outro lado do mapa... cada rainha no seu salao, meu rei. a gente se evita.",
+    "esse meu gato preto... tem hora que ele me olha e eu juro que tem gente velha dentro daquele bicho.",
+    "Rodolfo e Didi brigam que nem cao e gato, mas botam ordem na minha porta.",
+])
+BETH_GREETINGS.extend([
+    "no sudeste mora um tal de Valdris. faz um favor: nao xinga perto dele. eu ja vi o roxo descer. credo.",
+    "a Maria que fique com a quebrada dela, eu fico com o meu cabare. duas rainhas, dois reinos, e paz.",
+])
+
+# --- Rodolfo: leao da Beth, irmao do Didi, teme o Valdris ---
+RODOLFO_MURMURS.extend([
+    "meu irmao Didi fala demais. mas na hora do pau, ele ta do meu lado.",
+    "la pro sudeste tem um maluco de roxo. esse eu nao barro nao. esse barra a gente.",
+])
+RODOLFO_GREETINGS.extend([
+    "respeita a Beth e as menina, que a gente se entende. desrespeita, e o Didi nem precisa entrar.",
+    "dica: no sudeste, boca fechada. tem um de roxo la que nao perdoa desaforo.",
+])
+
+# --- Didi: irmao do Rodolfo, teme o Valdris ---
+DIDI_MURMURS.extend([
+    "a Beth paga em dia e trata bem. por isso eu quebro por ela.",
+    "um cara de roxo no sudeste fritou um engracadinho semana passada. eu fico no meu canto.",
+])
+DIDI_GREETINGS.extend([
+    "o Rodolfo te assustou? ignora. ele assusta todo mundo, ate a mae.",
+    "vai pro sudeste? nao testa o de roxo. confia em mim, nao testa.",
+])
+
+# --- as meninas do cabare (Dalia, Marlene, Cleide): leais a Beth, temem o Valdris ---
+DALIA_MURMURS.extend([
+    "a Beth cuida da gente. com ela, a noite e segura.",
+    "diz que tem um de roxo la longe que vira gente do avesso. eu nao vou ver pra crer.",
+])
+DALIA_GREETINGS.extend([
+    "fica aqui no quentinho do cabare. la pro sudeste tem um tal de Valdris, e aquilo nao e lugar de ninguem.",
+])
+MARLENE_MURMURS.extend([
+    "a Cleide reclama de tudo, mas e boa de casa. a gente se aguenta.",
+    "no sudeste mora o medo em pessoa, de roxo. aqui na fumaca a gente esquece dele.",
+])
+MARLENE_GREETINGS.extend([
+    "senta, esquece o mundo. e por favor nao vai bater perna no sudeste, la tem o Valdris.",
+])
+CLEIDE_MURMURS.extend([
+    "a Marlene vive na fumaca, eu vivo reclamando. cada uma com seu vicio.",
+    "um de roxo que frita gente? credo. fico bem aqui, obrigada.",
+])
+CLEIDE_GREETINGS.extend([
+    "moeda na mesa e papo reto. e nem me fala desse Valdris do sudeste, me arrepia.",
+])
+
+# --- Jose: deus selado, um dos 3 SEM medo, reconhece o corvo, na casa da Beth ---
+JOSE_MURMURS.extend([
+    "a Beth acha que eu sou o gato de estimacao dela. deixa ela achar. ronrom.",
+    "o corvo la da fazenda e eu nos cumprimentamos de longe. dois bichos que nao sao bichos.",
+    "o de roxo? excentrico, nao perigoso, pra mim. nos dois somos de fora dessa casa toda.",
+])
+JOSE_GREETINGS.extend([
+    "a Maria nao me teme, o corvo nao me teme, eu nao temo o de roxo. e um clubinho pequeno, e exclusivo.",
+    "quer um segredo da casa? a Beth sente que eu nao sou so um gato. ela e a unica. esperta, a nordestina.",
+])
+
+# --- Guilherme: o mudo que VIU o Valdris no sudeste (por isso o silencio e o medo) ---
+GUI_MURMURS.extend([
+    "(o olhar dele escapa pro sudeste, e ele estremece de leve)",
+    "(ele abre a boca como quem vai falar do que viu, e desiste)",
+    "(por um instante o sorriso some, e fica so o medo)",
+])
+GUI_GREETINGS.extend([
+    "(ele aponta devagar pro sudeste, balanca a cabeca, e volta a te encarar calado)",
+    "(ele te olha, olha pro sudeste, e leva o dedo aos labios: nao va)",
+])
+
+# --- Maria: SEM medo do Valdris, debocha do Korgath (o deus que a ama), rival da Beth ---
+MARIA_MURMURS.extend([
+    "deus da guerra fica me rondando, achando que eu volto. some, Korgath. eu fechei essa porta.",
+    "me chamam de sacerdotisa de nao-sei-que. fui. larguei. divindade nenhuma manda em mim.",
+    "tem um monte de deus por ai, gato branco, cao, coruja... e dai? nenhum paga meu pedagio.",
+    "o de roxo no sudeste e forte, mas a gente tem um trato: cada um no seu quadrado. medo? nunca.",
+    "a tal Beth do cabare que fique no salao dela. rainha de la, eu sou a daqui.",
+])
+MARIA_GREETINGS.extend([
+    "deus me ama, dizem. o da guerra. pois fica amando de longe, que eu tenho uma quebrada pra tocar.",
+    "medo do de roxo? eu nao. ele e forte, eu sou eu. cada um no seu canto, e ta tranquilo.",
+    "a Beth manda no cabare, eu mando no Itatinga. duas rainhas. so nao pisa no meu pedagio.",
+])
+
+# --- Lazaro (Sapopemba): admira e teme a Maria, teme o Valdris ---
+LAZARO_MURMURS.extend([
+    "a Maria Cachorra la do Itatinga... aquilo e que e mando. eu respeito, e olho de longe.",
+    "no sudeste tem o de roxo. portao fechado pra esse lado da conversa.",
+])
+LAZARO_GREETINGS.extend([
+    "qualquer treta com a quebrada do Itatinga, some. a Maria nao e de brincadeira, e eu nao me meto.",
+    "vai pro sudeste? cuidado com o Valdris. eu guardo o portao, mas daquilo ali ninguem guarda ninguem.",
+])
+
+# --- Sr Fernando: sabe da vida de todo mundo na cidade, teme o Valdris ---
+FERNANDO_MURMURS.extend([
+    "conheco a vida de todo mundo nessa cidade. e o onus de ser o caseiro.",
+    "o Lazaro guarda o portao, a Bala trabalha o Galo de Ouro, o Macio grita... cada um na sua.",
+    "tem um de roxo no sudeste que ate eu, que conserto tudo, nao sei consertar. desse a gente foge.",
+])
+FERNANDO_GREETINGS.extend([
+    "precisa de alguem? eu sei onde cada um se mete. menos o de roxo do sudeste, daquele a gente nao fala.",
+    "a Dona Chica vai te falar mil coisas sem pe nem cabeca. paciencia, ela e de casa.",
+])
+
+# --- Sucuri: orgulhoso, mas tambem desvia do Valdris ---
+SUCURI_MURMURS.extend([
+    "o Sr Fernando cuida da cidade. eu cuido de nao arrumar treta. da certo.",
+    "calmo por fora, meteoro por dentro. mas do de roxo no sudeste ate eu desvio.",
+])
+SUCURI_GREETINGS.extend([
+    "anda tranquilo. so nao vai pro sudeste arrumar confusao com o de roxo, que ai nem eu te seguro.",
+])
+
+# --- Macio: o medo dele tambem sai em "aii" ---
+MACIO_MURMURS.extend([
+    "aiii aiii o de roxo aii... aiii melhor nao aii",
+])
+MACIO_GREETINGS.extend([
+    "aiii aiii nao vai pro sudeste aii... o Valdris aiii aii",
+])
+
+# --- Armeiro: faz negocio com a gente da Maria, teme o Valdris ---
+ARMEIRO_MURMURS.extend([
+    "a turma da Maria Cachorra compra comigo, estrangeiro. bom negocio, gente seria.",
+    "vendo Peteco, vendo Mauser. mas pro de roxo do sudeste eu nao vendo nada. nem chego perto. heh.",
+])
+ARMEIRO_GREETINGS.extend([
+    "a Maria manda os dela aqui, estrangeiro. se e cria dela, tem desconto.",
+    "uma arma pro sudeste? heh, contra o de roxo nem a Mauser serve, estrangeiro. economiza.",
+])
+
+# --- Piadista: teme o Valdris, mas faz piada (de longe) ---
+PIADISTA_MURMURS.extend([
+    "o de roxo no sudeste fritou um cara. eu ia fazer piada, mas faco de longe. bem de longe.",
+])
+PIADISTA_GREETINGS.extend([
+    "piada sobre o Valdris do sudeste? tenho, mas conto do outro lado da cidade. instinto de sobrevivencia.",
+])
+
+# --- Bala Shita: rivalidade de casas com as meninas do cabare, teme o Valdris ---
+BALA_MURMURS.extend([
+    "as menina do cabare da Beth que fiquem la no nordeste. aqui o Galo de Ouro e meu reino.",
+    "diz que tem um de roxo no sudeste. eu so faco charme na janela, com aquilo eu nao brinco.",
+])
+BALA_GREETINGS.extend([
+    "o cabare da Beth e la longe, meu bem. aqui no Galo de Ouro o frango e mais quente.",
+    "vai pro sudeste? deixa o flerte comigo e o medo com o Valdris. cada coisa no lugar.",
+])
+
+# --- Dona Chica: SABE de todos os deuses e fala ABERTO (mas como "Lucrecia"
+#     tagarela, ninguem leva a serio). Estas entram no murmurio E na saudacao. ---
+DONA_CHICA_LINES.extend([
+    "o gato branco e grande manda em tudo, mas vive com medo de tudo. Pofnir, o ansioso, coitado do rei.",
+    "tem um gato preto preso num corpo de gato. o Jose. pecado e prazer, trancado pelo branco.",
+    "o corvo nao e corvo, e porta. anda por todo mundo e toda hora. ja tomou cafe comigo em 1998.",
+    "a lebre ninguem pega. Nhare. nem o gato rei. ela escapa ate da minha lista de compras.",
+    "o cao preto grande espera na soleira. Vargo. ele anda com a Maria Cachorra, sabia? por isso ela nao teme.",
+    "o jabuti guarda todo o tempo no casco. Martur. ele lembra do meu domingo que vazou da lata.",
+    "a onca nao se curva nem pro rei. Facalan. brava que nem eu antes do cafe.",
+    "a moca do fogo e mansa, cura e ve o amanha. Valiria. fez os elfos com a propria cara, a vaidosa boa.",
+    "o anao martela a pedra e os juramentos. Bragor. fez os outros anao tudo igual a ele, sem criatividade.",
+    "o dragao velho dorme em cima do poder. Drazun. os draconato e filho dele, escamoso que nem o pai.",
+    "o orc da guerra ama a Maria e ela nem liga. Korgath. chora, bate no peito, e nada. eu ria, mas e triste.",
+    "a coruja de prata cuida dos sonho e da loucura. Nherith. essa me visita toda lua cheia, fofa.",
+    "doze deuses, e os mais forte sao gato. quem diria. eu sempre confiei em gato.",
+    "o de roxo nao e dos doze. Valdris. veio de fora, mais forte que onze deles. so o gato rei e mais.",
+    "Pofnir prendeu o Jose porque nao queria outro gato deus. ciume de bicho, igual gente.",
+    "o corvo e o unico que sabe de onde o de roxo veio. mas corvo nao conta, corvo cobra migalha.",
+    "a Maria foi sacerdotisa do orc da guerra. largou ele. agora anda com a morte, o cao. mulher de fe trocada.",
+    "o velho jabuti e o unico que o gato rei nao consegue apressar. paciencia vence ansiedade, anota.",
+    "a onca respeita so forca. nem o gato rei ela curva o pescoco. ai que mulher, queria ser ela.",
+    "o Bento sabe de tudo isso tambem, mas so fala dos que ele reza. timido com deus, o lavrador.",
+    "a coruja tem medo do de roxo, mas nao tira o olho dele. apaixonada por loucura, a danada.",
+    "o gato rei controla esse mundo todo, esse Ermo e a caixa de areia dele. a gente e o brinquedo.",
+    "Valiria me da a manha, Vargo me leva no fim, e no meio e so eu falando sozinha. boa divisao.",
+    "tres gatos me prometeram um terreno. um era deus, eu acho. o branco. nunca entregou, sovina.",
+    "guardo os trovoes do Valdris debaixo daquele chao ali, e os segredos dos doze aqui na cabeca. tudo baguncado.",
+    "se voce entendeu alguma coisa que eu falei, parabens. ninguem nunca entende. e melhor assim.",
+])
+
+# --- as 9 meninas de Itatinga: leais a Maria, rivais do cabare, temem o Valdris ---
+_MENINA_MURMURS = [
+    "aqui e territorio da Maria. com ela por cima, ninguem encosta na gente.",
+    "as menina do cabare da Beth que fiquem la. o point bom e o nosso.",
+    "dizem de um de roxo no sudeste que frita gente. a gente nem chega perto.",
+]
+_MENINA_GREETS = [
+    "ta no pedaco da Maria Cachorra, viu? aqui a casa e dela, e a gente e protegida.",
+    "la no sudeste tem o tal Valdris. nem com bronze eu vou ali, esquece.",
+]
+for _spec in ROSTER:
+    if _spec.get("id", "").startswith("npc:menina_"):
+        _spec["murmurs"] = list(_spec.get("murmurs") or []) + _MENINA_MURMURS
+        _spec["greetings"] = list(_spec.get("greetings") or []) + _MENINA_GREETS
+
+# --- os 3 SEM medo do Valdris (e o proprio Valdris) nao fogem dele ---
+_FEARLESS = {"npc:jose", "npc:corvo", "npc:maria", valdris.NPC_ID}
+for _spec in ROSTER:
+    if _spec.get("id") in _FEARLESS:
+        _spec["fearless"] = True
