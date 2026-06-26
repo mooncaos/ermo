@@ -52,9 +52,10 @@ MAP_ROWS = [
 ]
 
 # Tiles que bloqueiam passagem. (As estatuas do Salao tambem sao solidas:
-# s=humanoide h=lebre j=jabuti f=felino g=dragao b=coruja k=livro P=Pofnir.)
+# s=humanoide h=lebre j=jabuti f=felino g=dragao b=coruja k=livro; Pofnir e uma
+# estatua 2x2 com os quadrantes P Q R U.)
 SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
-               "s", "h", "j", "f", "g", "b", "k", "P"}
+               "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -116,8 +117,10 @@ def _build_salao():
         sy = my - 1 if my < 7 else my + 1
         rows[sy][mx] = SALAO_STATUE_OF[cid]
 
-    # Pofnir de OURO no centro, ladeado por braseiros (o 15,7 fica livre p/ passar)
-    rows[7][14] = "P"
+    # Pofnir de OURO no centro: estatua 2x2 (4 tiles) = quadrantes P Q / R U,
+    # ladeada por dois braseiros. O caminho passa pelas colunas 13 e 16.
+    rows[6][14] = "P"; rows[6][15] = "Q"
+    rows[7][14] = "R"; rows[7][15] = "U"
     rows[7][12] = "L"; rows[7][17] = "L"
 
     rows[13][14] = "O"; rows[13][15] = "O"      # portal de volta no fim do tapete

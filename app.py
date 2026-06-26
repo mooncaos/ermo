@@ -197,6 +197,7 @@ def _enter_world(player_id, row):
             db.save_ficha(player_id, ficha)
         except Exception as exc:
             print("aviso reconstruindo ficha:", exc)
+    player["ficha"] = ficha   # guarda na memoria (saber se ja tem classe etc.)
 
     emit("init", {
         "id": request.sid,
@@ -448,9 +449,10 @@ def on_interact(_data=None):
         })
         return
 
-    # mestre do Salao: oferece a classe dele
+    # mestre do Salao: oferece a classe dele SE o jogador ainda nao tem classe.
+    # Quem ja escolheu (escolha permanente) so ouve a fala padrao.
     cid = npc.get("_spec", {}).get("class_id")
-    if cid and mp == "salao":
+    if cid and mp == "salao" and not (player.get("ficha") or {}).get("class_id"):
         cls = classes.get_class(cid)
         if cls:
             _pending_class[request.sid] = cid
@@ -500,6 +502,7 @@ def on_set_class(data):
         emit("class_error", {"reason": result})
         return
     _pending_class.pop(request.sid, None)
+    player["ficha"] = result   # memoria: a partir de agora ja tem classe
     cls = classes.get_class(cid) or {}
     # o mestre confirma com uma fala
     mid = "npc:mestre_" + cid

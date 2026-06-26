@@ -81,11 +81,14 @@ def set_race(player_id, race):
 
 def set_class(player_id, class_id, plus2):
     """Define a CLASSE da conta: aplica o bonus (+4/+2/+1) na ficha, calcula a
-    vida e grava. Devolve (True, ficha_atualizada) ou (False, mensagem)."""
+    vida e grava. A escolha e PERMANENTE: se ja houver classe, recusa.
+    Devolve (True, ficha_atualizada) ou (False, mensagem)."""
     row = db.get_player(player_id)
     if not row:
         return False, "Conta nao encontrada."
     ficha = row.get("ficha") or {}
+    if ficha.get("class_id"):
+        return False, "Voce ja tem uma classe. A escolha e permanente."
     if not ficha.get("attrs"):
         # conta antiga: ficha sem atributos. Reconstroi da raca, se tiver.
         race = row.get("race")

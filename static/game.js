@@ -235,11 +235,62 @@ function salaoFloor(c, px, py, ts, gx, gy){
   c.fillStyle='#2a2640';
   c.fillRect(px, py+ts-2, ts, 2); c.fillRect(px+ts-2, py, 2, ts);
 }
-// pedestal de pedra das estatuas
+// pedestal de pedra das estatuas (com sombra no chao)
 function pedestal(c, px, py, ts){
-  c.fillStyle='#565160'; c.fillRect(px+ts*0.28, py+ts*0.78, ts*0.44, ts*0.20);
+  c.fillStyle='rgba(0,0,0,0.24)';
+  c.beginPath(); c.ellipse(px+ts*0.5, py+ts*0.95, ts*0.27, ts*0.07, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle='#565160'; c.fillRect(px+ts*0.28, py+ts*0.78, ts*0.44, ts*0.18);
   c.fillStyle='#625c70'; c.fillRect(px+ts*0.28, py+ts*0.76, ts*0.44, ts*0.04);
-  c.fillStyle='#494556'; c.fillRect(px+ts*0.28, py+ts*0.95, ts*0.44, ts*0.03);
+  c.fillStyle='#6f6982'; c.fillRect(px+ts*0.30, py+ts*0.76, ts*0.10, ts*0.18);  // luz
+  c.fillStyle='#494556'; c.fillRect(px+ts*0.28, py+ts*0.93, ts*0.44, ts*0.03);
+}
+// estatua de OURO do Pofnir, desenhada num espaco 2x2 (2ts x 2ts) na origem ox,oy
+function drawPofnirBig(c, ox, oy, ts){
+  const W = ts*2, H = ts*2, cx = ox + ts;
+  for(let i=3;i>=1;i--){                                   // halo dourado em camadas
+    c.fillStyle = 'rgba(244,193,78,'+(0.07*i)+')';
+    c.beginPath(); c.arc(cx, oy+H*0.46, ts*(0.55+0.18*i), 0, Math.PI*2); c.fill();
+  }
+  c.fillStyle = '#a87a28'; c.fillRect(cx-ts*0.80, oy+H*0.82, ts*1.60, H*0.16);   // pedestal
+  c.fillStyle = '#c79233'; c.fillRect(cx-ts*0.80, oy+H*0.80, ts*1.60, H*0.04);
+  c.fillStyle = '#8a6420'; c.fillRect(cx-ts*0.80, oy+H*0.96, ts*1.60, H*0.02);
+  c.fillStyle = '#d8a23f';                                 // cauda peluda
+  c.beginPath(); c.ellipse(cx+ts*0.64, oy+H*0.58, ts*0.16, ts*0.40, -0.5, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#f4c14e';                                 // corpo sentado
+  c.beginPath(); c.ellipse(cx, oy+H*0.64, ts*0.60, ts*0.46, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#ffe08a';                                 // peito claro
+  c.beginPath(); c.ellipse(cx, oy+H*0.66, ts*0.26, ts*0.34, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#e8b43f';                                 // patas
+  c.fillRect(cx-ts*0.28, oy+H*0.78, ts*0.18, ts*0.16);
+  c.fillRect(cx+ts*0.10, oy+H*0.78, ts*0.18, ts*0.16);
+  c.fillStyle = '#f4c14e';                                 // cabeca
+  c.beginPath(); c.arc(cx, oy+H*0.34, ts*0.42, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.moveTo(cx-ts*0.40,oy+H*0.26); c.lineTo(cx-ts*0.22,oy+H*0.02); c.lineTo(cx-ts*0.04,oy+H*0.22); c.closePath(); c.fill();  // orelhas
+  c.beginPath(); c.moveTo(cx+ts*0.40,oy+H*0.26); c.lineTo(cx+ts*0.22,oy+H*0.02); c.lineTo(cx+ts*0.04,oy+H*0.22); c.closePath(); c.fill();
+  c.fillStyle = '#ffe08a';                                 // tufos das orelhas
+  c.beginPath(); c.moveTo(cx-ts*0.30,oy+H*0.20); c.lineTo(cx-ts*0.22,oy+H*0.08); c.lineTo(cx-ts*0.14,oy+H*0.19); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(cx+ts*0.30,oy+H*0.20); c.lineTo(cx+ts*0.22,oy+H*0.08); c.lineTo(cx+ts*0.14,oy+H*0.19); c.closePath(); c.fill();
+  c.fillStyle = '#e8b43f';                                 // bochechas peludas
+  c.beginPath(); c.arc(cx-ts*0.30, oy+H*0.40, ts*0.14, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(cx+ts*0.30, oy+H*0.40, ts*0.14, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#ffe8a0';                                 // realce de luz
+  c.beginPath(); c.arc(cx-ts*0.16, oy+H*0.26, ts*0.10, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#ffe08a';                                 // focinho
+  c.beginPath(); c.ellipse(cx, oy+H*0.41, ts*0.16, ts*0.12, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#6d44c4';                                 // olhos violeta
+  c.beginPath(); c.arc(cx-ts*0.15, oy+H*0.32, ts*0.06, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(cx+ts*0.15, oy+H*0.32, ts*0.06, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#b89bff';
+  c.beginPath(); c.arc(cx-ts*0.13, oy+H*0.30, ts*0.02, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(cx+ts*0.17, oy+H*0.30, ts*0.02, 0, Math.PI*2); c.fill();
+}
+// um quadrante (qx,qy in {0,1}) do Pofnir 2x2: recorta no tile e desenha o todo
+function _pofnirQuad(c, px, py, ts, gx, gy, qx, qy){
+  salaoFloor(c, px, py, ts, gx, gy);
+  c.save();
+  c.beginPath(); c.rect(px, py, ts, ts); c.clip();
+  drawPofnirBig(c, px - qx*ts, py - qy*ts, ts);
+  c.restore();
 }
 function drawTile(c, ch, px, py, ts, gx, gy){
   switch(ch){
@@ -434,24 +485,10 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle='#9b6dff'; c.fillRect(cx-ts*0.012, py+ts*0.35, ts*0.024, ts*0.16);  // brilho do cosmo
       break;
     }
-    case 'P': {                                        // Pofnir de OURO (centro)
-      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
-      c.fillStyle='rgba(244,193,78,0.22)';                       // halo dourado
-      c.beginPath(); c.arc(cx, py+ts*0.5, ts*0.52, 0, Math.PI*2); c.fill();
-      c.fillStyle='#b9892f'; c.fillRect(px+ts*0.22, py+ts*0.80, ts*0.56, ts*0.18);   // pedestal de ouro
-      c.fillStyle='#d8a23f'; c.fillRect(px+ts*0.22, py+ts*0.78, ts*0.56, ts*0.04);
-      c.fillStyle='#f4c14e';                                     // gato dourado (Maine Coon)
-      c.beginPath(); c.ellipse(cx, py+ts*0.60, ts*0.16, ts*0.20, 0,0,Math.PI*2); c.fill();
-      c.beginPath(); c.arc(cx, py+ts*0.38, ts*0.12, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.moveTo(cx-ts*0.12,py+ts*0.32); c.lineTo(cx-ts*0.05,py+ts*0.18); c.lineTo(cx,py+ts*0.32); c.fill();
-      c.beginPath(); c.moveTo(cx+ts*0.12,py+ts*0.32); c.lineTo(cx+ts*0.05,py+ts*0.18); c.lineTo(cx,py+ts*0.32); c.fill();
-      c.fillRect(cx+ts*0.14, py+ts*0.46, ts*0.05, ts*0.26);      // cauda peluda
-      c.fillStyle='#ffe08a'; c.fillRect(cx-ts*0.10, py+ts*0.52, ts*0.05, ts*0.14);   // realce
-      c.fillStyle='#5b3aa0';                                     // olhos
-      c.beginPath(); c.arc(cx-ts*0.05,py+ts*0.38,ts*0.02,0,Math.PI*2); c.fill();
-      c.beginPath(); c.arc(cx+ts*0.05,py+ts*0.38,ts*0.02,0,Math.PI*2); c.fill();
-      break;
-    }
+    case 'P': _pofnirQuad(c,px,py,ts,gx,gy,0,0); break;   // Pofnir 2x2: sup-esq
+    case 'Q': _pofnirQuad(c,px,py,ts,gx,gy,1,0); break;   // sup-dir
+    case 'R': _pofnirQuad(c,px,py,ts,gx,gy,0,1); break;   // inf-esq
+    case 'U': _pofnirQuad(c,px,py,ts,gx,gy,1,1); break;   // inf-dir
     case 'M':                                          // parede do cabare
       c.fillStyle = '#7d2738'; c.fillRect(px,py,ts,ts);
       c.fillStyle = '#5e1b2a'; c.fillRect(px, py+ts-3, ts, 3);
@@ -1834,8 +1871,9 @@ function openClassPicker(offer){
 
   const inst = document.createElement('div');
   inst.innerHTML = '<b style="color:#f4b860">+4</b> em ' + ATTR_NAMES[principal] +
-    ' (fixo). Escolha <b style="color:#9b6dff">2 atributos</b> para <b>+2</b>; os outros 3 ganham +1.';
-  inst.style.cssText = 'font-size:13px;color:#cfc9e0;margin-bottom:12px;line-height:1.4;';
+    ' (fixo). Escolha <b style="color:#9b6dff">2 atributos</b> para <b>+2</b>; os outros 3 ganham +1.' +
+    '<br><span style="color:#e85d75;font-size:12px">A classe é uma escolha permanente.</span>';
+  inst.style.cssText = 'font-size:13px;color:#cfc9e0;margin-bottom:12px;line-height:1.45;';
   box.appendChild(inst);
 
   const grid = document.createElement('div');
@@ -1865,7 +1903,15 @@ function openClassPicker(offer){
   const cancel = _btn('Cancelar', false);
   const ok = _btn('Confirmar', true);
   cancel.onclick = closeClassPicker;
-  ok.onclick = ()=>{ if(chosen.size===2) socket.emit('set_class', { plus2: [...chosen] }); };
+  ok.onclick = ()=>{
+    if(chosen.size!==2) return;
+    showConfirm({
+      title: 'Tornar-se ' + offer.name + ' para sempre?',
+      body: 'Esta escolha é PERMANENTE e não pode ser desfeita. Depois disso os mestres '+
+            'não oferecem mais nenhuma classe. Tem certeza?',
+      ok: 'Sim, para sempre', cancel: 'Voltar',
+    }, ()=> socket.emit('set_class', { plus2: [...chosen] }));
+  };
   row.appendChild(cancel); row.appendChild(ok); box.appendChild(row);
 
   function paint(){
