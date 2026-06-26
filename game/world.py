@@ -96,6 +96,11 @@ def public(p):
         out["npc"] = True
         out["kind"] = p.get("kind", "person")    # "person" ou "bird"
         out["solid"] = p.get("solid", True)       # corvo = False (da pra atravessar)
+    if p.get("kind") == "deity":                  # um deus: desenho grande proprio
+        out["form"] = p.get("form")               # cat_white, elf, owl, crow...
+        out["size"] = p.get("size", 4)            # tiles que ocupa (4 a 6)
+        out["accent"] = p.get("accent")           # cor do efeito ao andar
+        out["eyes"] = p.get("eyes")
     return out
 
 
@@ -213,6 +218,32 @@ class World:
                 "_spec": spec,
             }
         return [self.players[s["id"]] for s in npcs.ROSTER if s["id"] in self.players]
+
+    def spawn_deities(self):
+        """Coloca os deuses nos seus reinos (mapas secretos). Cada deus e uma
+        entidade is_npc com kind 'deity' e desenho grande proprio; eles andam e
+        soltam efeito. As falas e dados vem de secret_worlds.DEITIES."""
+        from game import secret_worlds as sw
+        specs = []
+        for mp, gods in sw.DEITIES.items():
+            for g in gods:
+                home = _walkable_near(g["home"][0], g["home"][1], mp)
+                self.players[g["id"]] = {
+                    "id": g["id"], "player_id": None,
+                    "x": home[0], "y": home[1], "facing": "down",
+                    "name": g["name"], "look": {}, "map": mp,
+                    "inventory": [], "equipment": {},
+                    "_last_move": 0.0, "_dirty": False, "is_npc": True,
+                    "solid": False,                 # deuses: da pra chegar perto
+                    "kind": "deity", "form": g["form"], "size": g.get("size", 4),
+                    "accent": g.get("accent"), "eyes": g.get("eyes"),
+                    "_home": home, "_radius": g.get("radius", 8), "_wanders": True,
+                    "_god": g,
+                }
+                specs.append({"id": g["id"], "map": mp,
+                              "step_every": g.get("step_every", 1.1),
+                              "fearless": True, "wanders": True})
+        return specs
 
     def wander_npc(self, npc_id):
         """Da um passo de um NPC: direcao aleatoria, passavel, livre e dentro do

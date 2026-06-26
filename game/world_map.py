@@ -55,7 +55,8 @@ MAP_ROWS = [
 # s=humanoide h=lebre j=jabuti f=felino g=dragao b=coruja k=livro; Pofnir e uma
 # estatua 2x2 com os quadrantes P Q R U.)
 SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
-               "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U"}
+               "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U",
+               "A", "l", "q", "N", "I", "v", "y"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -133,10 +134,118 @@ SALAO_ROWS = _build_salao()
 SALAO_SPAWN = [(14, 12), (15, 12), (13, 12), (16, 12)]
 
 
+# ===========================================================================
+#  OS MUNDOS SECRETOS — reinos dos deuses (mapas ENORMES, 100x100)
+# ===========================================================================
+# Tiles novos (Rasharan, o hub em terra divina):
+#   a marmore branco da igreja (passavel)   A coluna/parede de marmore (SOLIDO)
+#   l altar de Valiria (SOLIDO)
+#   e chao de floresta noturna (passavel)   n flor-da-lua (passavel, brilha)
+#   d terra de cemiterio (passavel)         q lapide (SOLIDO)
+#   N ninho do Jeans (SOLIDO)               @ portal pros Ermos (passavel)
+# Tiles novos (Valoran, a alcova de luz do Pofnir):
+#   i marmore divino luminoso (passavel)    I pilar dourado (SOLIDO)
+#   u dais de luz (passavel)                v nuvem luminosa (SOLIDO, borda)
+#   x fleco de luz no chao (passavel)       y fonte de luz (SOLIDO)
+# Comum: * portal-estrela -> volta pra Rasharan (passavel)
+
+def _grid(W, H, fill):
+    return [[fill] * W for _ in range(H)]
+
+def _ring(rows, ch):
+    H = len(rows); W = len(rows[0])
+    for x in range(W):
+        rows[0][x] = ch; rows[H - 1][x] = ch
+    for y in range(H):
+        rows[y][0] = ch; rows[y][W - 1] = ch
+
+def _rect(rows, x0, y0, x1, y1, ch):
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            rows[y][x] = ch
+
+def _border(rows, x0, y0, x1, y1, ch):
+    for x in range(x0, x1 + 1):
+        rows[y0][x] = ch; rows[y1][x] = ch
+    for y in range(y0, y1 + 1):
+        rows[y][x0] = ch; rows[y][x1] = ch
+
+
+def _build_rasharan():
+    W = Hh = 100
+    rows = _grid(W, Hh, ".")                  # base de grama
+    _rect(rows, 1, 1, W - 2, 33, "a")         # NORTE: praca de marmore (igreja)
+    _rect(rows, 1, 34, W - 2, 65, "e")        # MEIO: floresta noturna
+    _rect(rows, 1, 66, W - 2, Hh - 2, "d")    # SUL: cemiterio
+    _ring(rows, "T")                          # borda de arvores
+
+    # --- IGREJA BRANCA (norte) ---
+    _border(rows, 36, 5, 63, 31, "A")         # paredes do templo
+    _rect(rows, 37, 6, 62, 30, "a")           # interior de marmore
+    for x in range(40, 60, 3):                # duas colunatas internas
+        rows[12][x] = "A"; rows[24][x] = "A"
+    rows[8][49] = "l"; rows[8][50] = "l"       # altar ao norte
+    for ry in range(31, 34):                   # porta sul (saida do templo)
+        rows[ry][49] = "a"; rows[ry][50] = "a"
+
+    # --- FLORESTA NOTURNA (meio): arvores densas + flores-da-lua, com clareiras ---
+    for y in range(35, 65):
+        for x in range(2, W - 2):
+            d = (x * 7 + y * 13) % 11
+            if d == 0:
+                rows[y][x] = "T"
+            elif d == 5 and (x + y) % 3 == 0:
+                rows[y][x] = "n"
+    _rect(rows, 22, 44, 34, 56, "e")           # clareira da Nherith (28,50)
+    for x in range(2, W - 2):                   # corredor passavel descendo o centro
+        rows[34][x] = "e" if x % 9 else "e"
+    _rect(rows, 48, 31, 51, 67, "e")           # trilha central igreja->cemiterio
+
+    # --- CEMITERIO + NINHO DO JEANS (sul) ---
+    for y in range(69, Hh - 3, 3):             # fileiras de lapides
+        for x in range(6, W - 6, 5):
+            if (x + y) % 7 != 0:
+                rows[y][x] = "q"
+    _rect(rows, 45, 77, 55, 92, "d")           # area limpa do ninho/portal
+    rows[80][50] = "N"                          # ninho do Jeans
+    rows[89][50] = "@"                          # portal pros Ermos
+    return ["".join(r) for r in rows]
+
+
+def _build_valoran():
+    W = Hh = 100
+    rows = _grid(W, Hh, "i")                   # marmore divino por toda parte
+    _ring(rows, "v")                           # borda de nuvens luminosas
+    _rect(rows, 1, 1, 14, 14, "v"); _rect(rows, W - 15, 1, W - 2, 14, "v")
+    _rect(rows, 1, Hh - 15, 14, Hh - 2, "v"); _rect(rows, W - 15, Hh - 15, W - 2, Hh - 2, "v")
+    for y in range(2, Hh - 2):                  # flecos de luz (deco passavel)
+        for x in range(2, W - 2):
+            if (x * 5 + y * 3) % 17 == 0 and rows[y][x] == "i":
+                rows[y][x] = "x"
+    for y in range(18, 86, 4):                  # colunata processional dourada
+        rows[y][42] = "I"; rows[y][57] = "I"
+    _rect(rows, 43, 39, 56, 53, "u")            # dais de luz (lar do Pofnir)
+    rows[39][43] = "y"; rows[39][56] = "y"       # fontes de luz nas quinas do dais
+    rows[53][43] = "y"; rows[53][56] = "y"
+    rows[94][49] = "*"; rows[94][50] = "*"       # portal-estrela (saida -> Rasharan)
+    _rect(rows, 47, 43, 53, 49, "u")             # miolo limpo onde Pofnir habita
+    rows[88][49] = "i"; rows[88][50] = "i"        # chegada do jogador, limpa
+    return ["".join(r) for r in rows]
+
+
+RASHARAN_ROWS = _build_rasharan()
+VALORAN_ROWS = _build_valoran()
+
+RASHARAN_SPAWN = [(50, 86), (49, 86), (51, 86), (50, 87)]   # cemiterio, perto do Jeans
+VALORAN_SPAWN  = [(50, 88), (49, 88), (51, 88), (50, 89)]   # sul, de frente pra nave
+
+
 # ---- registro dos mapas (fonte unica) ----
 MAPS = {
-    "ermo":  {"rows": MAP_ROWS,   "spawns": SPAWN_POINTS},
-    "salao": {"rows": SALAO_ROWS, "spawns": SALAO_SPAWN},
+    "ermo":     {"rows": MAP_ROWS,      "spawns": SPAWN_POINTS},
+    "salao":    {"rows": SALAO_ROWS,    "spawns": SALAO_SPAWN},
+    "rasharan": {"rows": RASHARAN_ROWS, "spawns": RASHARAN_SPAWN},
+    "valoran":  {"rows": VALORAN_ROWS,  "spawns": VALORAN_SPAWN},
 }
 
 

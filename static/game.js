@@ -97,7 +97,7 @@ function zoomStep(dir){   // +1 aproxima, -1 afasta
 
 // ---------- estado ----------
 let socket = null, myId = null;
-let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null;
+let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null, mapName = 'ermo';
 let camX = 0, camY = 0;
 const players = new Map();
 let started = false;
@@ -541,6 +541,178 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.fill();
       break;
     }
+    // ---- RASHARAN (o hub em terra divina) ----
+    case 'a': {                                        // marmore branco da igreja
+      c.fillStyle = '#eef0f6'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#e2e5ef'; c.fillRect(px,py,ts,1); c.fillRect(px,py,1,ts);
+      c.strokeStyle = 'rgba(180,186,205,0.5)'; c.lineWidth = 1;
+      if((gx+gy)%2){ c.beginPath(); c.moveTo(px+ts*0.2,py+ts*0.3); c.lineTo(px+ts*0.7,py+ts*0.6); c.stroke(); }
+      break;
+    }
+    case 'A': {                                        // coluna/parede de marmore
+      c.fillStyle = '#dfe2ec'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#f3f5fb'; c.fillRect(px+ts*0.18,py,ts*0.12,ts);   // caneluras
+      c.fillStyle = '#f3f5fb'; c.fillRect(px+ts*0.52,py,ts*0.12,ts);
+      c.fillStyle = '#c3c8d8'; c.fillRect(px+ts*0.38,py,ts*0.06,ts);
+      c.fillStyle = '#b6bccd'; c.fillRect(px,py+ts-2,ts,2);
+      break;
+    }
+    case 'l': {                                        // altar de Valiria (ouro+luz)
+      c.fillStyle = '#eef0f6'; c.fillRect(px,py,ts,ts);
+      c.save(); c.globalCompositeOperation='lighter';
+      const ag=c.createRadialGradient(px+ts/2,py+ts/2,1,px+ts/2,py+ts/2,ts*0.7);
+      ag.addColorStop(0,'rgba(255,233,176,0.8)'); ag.addColorStop(1,'rgba(255,233,176,0)');
+      c.fillStyle=ag; c.fillRect(px-ts*0.3,py-ts*0.3,ts*1.6,ts*1.6); c.restore();
+      c.fillStyle = '#d9b15a'; c.fillRect(px+ts*0.16,py+ts*0.28,ts*0.68,ts*0.5);
+      c.fillStyle = '#f4d27a'; c.fillRect(px+ts*0.16,py+ts*0.28,ts*0.68,ts*0.1);
+      c.fillStyle = '#fff8e6'; c.fillRect(px+ts*0.44,py+ts*0.1,ts*0.12,ts*0.22);   // chama/vela
+      break;
+    }
+    case 'e': {                                        // chao de floresta noturna
+      c.fillStyle = '#1d2817'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#2f3f26';
+      for(let i=0;i<4;i++){ const rx=(gx*7+i*53)%ts, ry=(gy*11+i*29)%ts; c.fillRect(px+rx,py+ry,2,2); }
+      c.fillStyle = '#36492b'; c.fillRect(px,py,ts,1);
+      break;
+    }
+    case 'n': {                                        // flor-da-lua (brilha)
+      c.fillStyle = '#26331f'; c.fillRect(px,py,ts,ts);
+      c.save(); c.globalCompositeOperation='lighter';
+      const fg=c.createRadialGradient(px+ts/2,py+ts*0.45,1,px+ts/2,py+ts*0.45,ts*0.5);
+      fg.addColorStop(0,'rgba(199,182,255,0.9)'); fg.addColorStop(1,'rgba(199,182,255,0)');
+      c.fillStyle=fg; c.beginPath(); c.arc(px+ts/2,py+ts*0.45,ts*0.5,0,Math.PI*2); c.fill();
+      c.restore();
+      c.fillStyle = '#d9ccff';
+      for(let k=0;k<5;k++){ const a=k*Math.PI*2/5 - Math.PI/2;
+        c.beginPath(); c.ellipse(px+ts/2+Math.cos(a)*ts*0.14, py+ts*0.45+Math.sin(a)*ts*0.14, ts*0.07, ts*0.04, a, 0, Math.PI*2); c.fill(); }
+      c.fillStyle = '#fff'; c.beginPath(); c.arc(px+ts/2,py+ts*0.45,ts*0.05,0,Math.PI*2); c.fill();
+      break;
+    }
+    case 'd': {                                        // terra de cemiterio
+      c.fillStyle = '#3a3730'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#46423a';
+      for(let i=0;i<5;i++){ const rx=(gx*13+i*37)%ts, ry=(gy*7+i*19)%ts; c.fillRect(px+rx,py+ry,2,1); }
+      c.fillStyle = '#312e28'; c.fillRect(px,py+ts-1,ts,1);
+      break;
+    }
+    case 'q': {                                        // lapide
+      c.fillStyle = '#3a3730'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#2a2722'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.8,ts*0.34,ts*0.1,0,0,Math.PI*2); c.fill();
+      c.fillStyle = '#9aa0a8';
+      roundRect(c, px+ts*0.26, py+ts*0.14, ts*0.48, ts*0.66, ts*0.22); c.fill();
+      c.fillStyle = '#7c828a'; c.fillRect(px+ts*0.46,py+ts*0.3,ts*0.08,ts*0.34);   // cruz
+      c.fillRect(px+ts*0.36,py+ts*0.4,ts*0.28,ts*0.08);
+      break;
+    }
+    case 'N': {                                        // ninho do Jeans
+      c.fillStyle = '#3a3730'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#6b4a2a';
+      c.beginPath(); c.ellipse(px+ts/2,py+ts*0.6,ts*0.4,ts*0.26,0,0,Math.PI*2); c.fill();
+      c.fillStyle = '#4d3320';
+      c.beginPath(); c.ellipse(px+ts/2,py+ts*0.58,ts*0.26,ts*0.16,0,0,Math.PI*2); c.fill();
+      c.strokeStyle = '#5a3d24'; c.lineWidth=1.4;
+      for(let k=0;k<6;k++){ const a=k*Math.PI/3; c.beginPath();
+        c.moveTo(px+ts/2+Math.cos(a)*ts*0.2, py+ts*0.6+Math.sin(a)*ts*0.12);
+        c.lineTo(px+ts/2+Math.cos(a)*ts*0.42, py+ts*0.6+Math.sin(a)*ts*0.2); c.stroke(); }
+      break;
+    }
+    case '@': {                                        // portal pros Ermos (volta pra casa)
+      c.fillStyle = '#3a3730'; c.fillRect(px,py,ts,ts);
+      c.save(); c.globalCompositeOperation='lighter';
+      const t=Date.now()/600;
+      const pg=c.createRadialGradient(px+ts/2,py+ts/2,1,px+ts/2,py+ts/2,ts*0.55);
+      pg.addColorStop(0,'rgba(244,184,96,0.9)'); pg.addColorStop(0.6,'rgba(120,200,170,0.5)'); pg.addColorStop(1,'rgba(120,200,170,0)');
+      c.fillStyle=pg; c.beginPath(); c.arc(px+ts/2,py+ts/2,ts*0.55,0,Math.PI*2); c.fill();
+      c.strokeStyle='rgba(255,240,200,0.8)'; c.lineWidth=2;
+      for(let r=0;r<3;r++){ c.beginPath(); c.arc(px+ts/2,py+ts/2,ts*0.16+r*ts*0.12, t+r, t+r+Math.PI*1.3); c.stroke(); }
+      c.restore();
+      break;
+    }
+    // ---- VALORAN (a alcova de luz do Pofnir) ----
+    case 'i': {                                        // marmore divino luminoso
+      c.fillStyle = '#f4f1e6'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#fbf9f0'; c.fillRect(px,py,ts,1); c.fillRect(px,py,1,ts);
+      c.fillStyle = '#e7e0cb'; c.fillRect(px,py+ts-1,ts,1);
+      if((gx*3+gy)%5===0){ c.fillStyle='rgba(244,210,122,0.5)'; c.fillRect(px+ts*0.5,py+ts*0.5,2,2); }
+      break;
+    }
+    case 'I': {                                        // pilar dourado
+      c.fillStyle = '#e7d49a'; c.fillRect(px+ts*0.12,py,ts*0.76,ts);
+      c.fillStyle = '#f6e6ad'; c.fillRect(px+ts*0.22,py,ts*0.14,ts);
+      c.fillStyle = '#f6e6ad'; c.fillRect(px+ts*0.5,py,ts*0.14,ts);
+      c.fillStyle = '#c9ad63'; c.fillRect(px+ts*0.42,py,ts*0.08,ts);
+      c.fillStyle = '#d9b15a'; c.fillRect(px+ts*0.06,py,ts*0.88,ts*0.08);          // capitel
+      c.fillStyle = '#d9b15a'; c.fillRect(px+ts*0.06,py+ts*0.9,ts*0.88,ts*0.1);    // base
+      break;
+    }
+    case 'u': {                                        // dais de luz (lar do Pofnir)
+      c.fillStyle = '#fdf6e3'; c.fillRect(px,py,ts,ts);
+      c.save(); c.globalCompositeOperation='lighter';
+      const dg=c.createRadialGradient(px+ts/2,py+ts/2,1,px+ts/2,py+ts/2,ts*0.8);
+      dg.addColorStop(0,'rgba(255,244,210,0.7)'); dg.addColorStop(1,'rgba(255,244,210,0)');
+      c.fillStyle=dg; c.fillRect(px-ts*0.4,py-ts*0.4,ts*1.8,ts*1.8); c.restore();
+      c.strokeStyle='rgba(214,177,90,0.5)'; c.lineWidth=1;
+      c.strokeRect(px+0.5,py+0.5,ts-1,ts-1);
+      break;
+    }
+    case 'v': {                                        // nuvem luminosa (borda)
+      c.save(); c.globalCompositeOperation='lighter';
+      const vg=c.createRadialGradient(px+ts/2,py+ts/2,1,px+ts/2,py+ts/2,ts*0.75);
+      vg.addColorStop(0,'rgba(255,255,255,0.95)'); vg.addColorStop(0.6,'rgba(214,196,255,0.55)'); vg.addColorStop(1,'rgba(214,196,255,0)');
+      c.fillStyle=vg; c.restore();
+      c.fillStyle='#f3eeff'; 
+      c.beginPath();
+      c.arc(px+ts*0.3,py+ts*0.55,ts*0.3,0,Math.PI*2);
+      c.arc(px+ts*0.62,py+ts*0.45,ts*0.34,0,Math.PI*2);
+      c.arc(px+ts*0.75,py+ts*0.62,ts*0.26,0,Math.PI*2);
+      c.fill();
+      c.fillStyle='rgba(214,196,255,0.5)';
+      c.beginPath(); c.arc(px+ts*0.5,py+ts*0.7,ts*0.3,0,Math.PI*2); c.fill();
+      break;
+    }
+    case 'x': {                                        // fleco de luz no chao
+      c.fillStyle = '#f4f1e6'; c.fillRect(px,py,ts,ts);
+      c.save(); c.globalCompositeOperation='lighter';
+      const t=Date.now()/500 + (gx+gy);
+      const a=0.4+0.4*Math.abs(Math.sin(t));
+      c.globalAlpha=a; c.fillStyle='#fff7da'; c.strokeStyle='#fff7da'; c.lineWidth=1.4;
+      const sxx=px+ts/2, syy=py+ts/2, r=ts*0.2;
+      c.beginPath(); c.moveTo(sxx-r,syy); c.lineTo(sxx+r,syy); c.moveTo(sxx,syy-r); c.lineTo(sxx,syy+r); c.stroke();
+      c.beginPath(); c.arc(sxx,syy,1.6,0,Math.PI*2); c.fill();
+      c.restore();
+      break;
+    }
+    case 'y': {                                        // fonte de luz / braseiro
+      c.fillStyle = '#f4f1e6'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#d9b15a'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.74,ts*0.3,ts*0.12,0,0,Math.PI*2); c.fill();
+      c.fillStyle = '#c9a24a'; c.fillRect(px+ts*0.4,py+ts*0.5,ts*0.2,ts*0.26);
+      c.save(); c.globalCompositeOperation='lighter';
+      const t=Date.now()/300;
+      const pg=c.createRadialGradient(px+ts/2,py+ts*0.36,1,px+ts/2,py+ts*0.36,ts*0.36);
+      pg.addColorStop(0,'rgba(255,255,235,0.95)'); pg.addColorStop(0.5,'rgba(255,233,176,0.6)'); pg.addColorStop(1,'rgba(255,233,176,0)');
+      c.fillStyle=pg;
+      const h=ts*0.3*(0.85+0.15*Math.sin(t));
+      c.beginPath(); c.ellipse(px+ts/2,py+ts*0.4-h*0.3,ts*0.12,h,0,0,Math.PI*2); c.fill();
+      c.restore();
+      break;
+    }
+    case '*': {                                        // portal-estrela (volta pra Rasharan)
+      c.fillStyle = (mapName==='valoran') ? '#f4f1e6' : '#3a3730';
+      c.fillRect(px,py,ts,ts);
+      c.save(); c.globalCompositeOperation='lighter';
+      const t=Date.now()/700;
+      const sg=c.createRadialGradient(px+ts/2,py+ts/2,1,px+ts/2,py+ts/2,ts*0.7);
+      sg.addColorStop(0,'rgba(255,248,220,0.95)'); sg.addColorStop(0.5,'rgba(214,177,90,0.6)'); sg.addColorStop(1,'rgba(214,177,90,0)');
+      c.fillStyle=sg; c.beginPath(); c.arc(px+ts/2,py+ts/2,ts*0.7,0,Math.PI*2); c.fill();
+      c.translate(px+ts/2,py+ts/2); c.rotate(t*0.4);
+      c.fillStyle='#fff7da';
+      c.beginPath();
+      for(let k=0;k<10;k++){ const ang=k*Math.PI/5 - Math.PI/2; const rad=(k%2? ts*0.14: ts*0.34);
+        const fx=Math.cos(ang)*rad, fy=Math.sin(ang)*rad; if(k===0)c.moveTo(fx,fy); else c.lineTo(fx,fy); }
+      c.closePath(); c.fill();
+      c.restore();
+      break;
+    }
     default: grassBase(c,px,py,ts,gx,gy);
   }
 }
@@ -551,6 +723,278 @@ function buildMapCanvas(){
   for(let y=0;y<mapH;y++)
     for(let x=0;x<mapW;x++)
       drawTile(c, mapRows[y][x], x*TS, y*TS, TS, x, y);
+}
+
+// ===========================================================================
+//  OS DEUSES — desenhos grandes (4x4 a 6x6), com aura e efeito ao andar.
+//  Cada deus se revela com o nome por cima. So aparecem nos reinos secretos.
+// ===========================================================================
+function _deityAura(c, cx, cy, R, color, moving){
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(cx, cy, R*0.1, cx, cy, R*1.2);
+  g.addColorStop(0, color + 'cc'); g.addColorStop(0.45, color + '3a'); g.addColorStop(1, color + '00');
+  c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R*1.2, 0, Math.PI*2); c.fill();
+  c.restore();
+}
+function _deitySparkles(c, cx, cy, R, color, moving){
+  const t = Date.now()/1000;
+  const n = moving ? 9 : 5;
+  c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = color;
+  for(let i=0;i<n;i++){
+    const a = t*1.3 + i*(Math.PI*2/n);
+    const rr = R*(0.72 + 0.22*Math.sin(t*2+i));
+    const x = cx + Math.cos(a)*rr;
+    const y = cy + Math.sin(a)*rr*0.65 + Math.sin(t*1.5+i)*2;
+    const s = (moving?1.7:1.1) * (0.6 + 0.4*Math.sin(t*3+i));
+    c.globalAlpha = 0.5 + 0.4*Math.sin(t*2.5+i);
+    c.beginPath(); c.arc(x, y, Math.max(0.5,s), 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+}
+function _deityName(c, cx, topY, name, color){
+  if(!name) return;
+  c.save();
+  c.font = '600 12px Cinzel, Georgia, serif'; c.textAlign = 'center';
+  const w = c.measureText(name).width;
+  c.fillStyle = 'rgba(8,8,16,0.55)';
+  roundRect(c, cx - w/2 - 9, topY - 14, w + 18, 19, 6); c.fill();
+  c.fillStyle = color || '#fff'; c.shadowColor = color || '#fff'; c.shadowBlur = 9;
+  c.fillText(name, cx, topY); c.restore();
+}
+function drawDeity(c, sx, sy, ts, p){
+  const N = p.size || 4;
+  const span = N*ts;
+  const cx = sx + ts*0.5;
+  const cy = sy + ts*0.5;
+  const R = span*0.46;
+  const moving = !!p._moving;
+  const accent = p.accent || '#ffffff';
+  const bob = moving ? Math.sin(((p.walk||0)/WALK_CYCLE)*Math.PI*2)*3
+                     : Math.sin(Date.now()/700)*1.6;
+  _deityAura(c, cx, cy + bob, R, accent, moving);
+  c.save(); c.translate(cx, cy + bob);
+  if(p.form === 'cat_white') drawPofnirGod(c, R, p.eyes || '#34d17a');
+  else if(p.form === 'elf')  drawValiriaGod(c, R, accent);
+  else if(p.form === 'owl')  drawNherithGod(c, R, accent);
+  else if(p.form === 'crow') drawJeansGod(c, R, accent);
+  else { c.fillStyle = accent; c.beginPath(); c.arc(0,0,R*0.5,0,Math.PI*2); c.fill(); }
+  c.restore();
+  _deitySparkles(c, cx, cy + bob, R, accent, moving);
+  _deityName(c, cx, cy - R - 6 + bob, p.name || '', accent);
+}
+
+// --- Pofnir: o Maine Coon branco supremo, olhos verdes, com halo dourado ---
+function _pofnirTail(c, S){
+  c.save(); c.fillStyle = '#f2f2f8';
+  c.beginPath();
+  c.moveTo(S*0.4, S*0.4);
+  c.quadraticCurveTo(S*1.05, S*0.22, S*0.98, -S*0.42);
+  c.quadraticCurveTo(S*0.92, -S*0.74, S*0.7, -S*0.52);
+  c.quadraticCurveTo(S*0.82, -S*0.18, S*0.55, S*0.22);
+  c.closePath(); c.fill();
+  c.fillStyle = '#e3e4ee'; c.globalAlpha = 0.6;
+  c.beginPath();
+  c.moveTo(S*0.5, S*0.3);
+  c.quadraticCurveTo(S*0.95, S*0.1, S*0.9, -S*0.4);
+  c.quadraticCurveTo(S*0.86, -S*0.2, S*0.6, S*0.18);
+  c.closePath(); c.fill();
+  c.restore();
+}
+function drawPofnirGod(c, R, eyes){
+  const S = R;
+  // halo dourado (supremo)
+  c.save(); c.globalCompositeOperation = 'lighter';
+  c.strokeStyle = 'rgba(255,230,150,0.9)'; c.lineWidth = Math.max(2, S*0.05);
+  c.shadowColor = '#ffe09a'; c.shadowBlur = 12;
+  c.beginPath(); c.ellipse(0, -S*1.04, S*0.5, S*0.16, 0, 0, Math.PI*2); c.stroke();
+  c.restore();
+  // sombra
+  c.save(); c.globalAlpha = 0.25; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0, S*0.92, S*0.62, S*0.16, 0, 0, Math.PI*2); c.fill(); c.restore();
+  _pofnirTail(c, S);
+  const white = '#f7f7fb', shade = '#dfe0ea';
+  // corpo
+  c.fillStyle = white;
+  c.beginPath(); c.ellipse(0, S*0.32, S*0.58, S*0.62, 0, 0, Math.PI*2); c.fill();
+  // tufos do peito
+  c.fillStyle = '#ffffff';
+  for(let i=-2;i<=2;i++){
+    c.beginPath(); c.moveTo(i*S*0.17, S*0.02);
+    c.lineTo(i*S*0.17 - S*0.06, S*0.52); c.lineTo(i*S*0.17 + S*0.06, S*0.52);
+    c.closePath(); c.fill();
+  }
+  c.fillStyle = shade; c.globalAlpha = 0.45;
+  c.beginPath(); c.ellipse(S*0.34, S*0.36, S*0.18, S*0.48, 0, 0, Math.PI*2); c.fill();
+  c.globalAlpha = 1;
+  // cabeca
+  c.fillStyle = white;
+  c.beginPath(); c.ellipse(0, -S*0.34, S*0.46, S*0.4, 0, 0, Math.PI*2); c.fill();
+  // bochechas/tufos
+  c.beginPath(); c.moveTo(-S*0.42,-S*0.34); c.lineTo(-S*0.64,-S*0.2); c.lineTo(-S*0.4,-S*0.1); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.42,-S*0.34); c.lineTo(S*0.64,-S*0.2); c.lineTo(S*0.4,-S*0.1); c.closePath(); c.fill();
+  // orelhas
+  function ear(dx){
+    c.fillStyle = white;
+    c.beginPath(); c.moveTo(dx - S*0.07, -S*0.6); c.lineTo(dx + S*0.04, -S*0.98); c.lineTo(dx + S*0.18, -S*0.58); c.closePath(); c.fill();
+    c.fillStyle = '#e7bcd0';
+    c.beginPath(); c.moveTo(dx + 0.0, -S*0.64); c.lineTo(dx + S*0.06, -S*0.88); c.lineTo(dx + S*0.12, -S*0.62); c.closePath(); c.fill();
+    c.strokeStyle = '#fff'; c.lineWidth = Math.max(1, S*0.02);
+    c.beginPath(); c.moveTo(dx + S*0.04, -S*0.98); c.lineTo(dx + S*0.06, -S*1.08); c.stroke();
+  }
+  ear(-S*0.26); ear(S*0.1);
+  // olhos verdes (a assinatura)
+  function eye(dx){
+    c.fillStyle = '#0c1a12';
+    c.beginPath(); c.ellipse(dx, -S*0.34, S*0.13, S*0.16, 0, 0, Math.PI*2); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(dx,-S*0.34,1,dx,-S*0.34,S*0.16);
+    g.addColorStop(0, eyes); g.addColorStop(0.7, eyes); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.ellipse(dx,-S*0.34,S*0.12,S*0.15,0,0,Math.PI*2); c.fill();
+    c.restore();
+    c.fillStyle = '#06120a';
+    c.beginPath(); c.ellipse(dx,-S*0.34,S*0.035,S*0.12,0,0,Math.PI*2); c.fill();
+    c.fillStyle = '#fff';
+    c.beginPath(); c.arc(dx - S*0.045, -S*0.4, S*0.03, 0, Math.PI*2); c.fill();
+  }
+  eye(-S*0.2); eye(S*0.2);
+  // nariz
+  c.fillStyle = '#e88aa0';
+  c.beginPath(); c.moveTo(-S*0.05,-S*0.17); c.lineTo(S*0.05,-S*0.17); c.lineTo(0,-S*0.1); c.closePath(); c.fill();
+  // boca
+  c.strokeStyle = 'rgba(150,130,140,0.8)'; c.lineWidth = Math.max(1, S*0.015);
+  c.beginPath();
+  c.moveTo(0,-S*0.1); c.lineTo(0,-S*0.05);
+  c.moveTo(0,-S*0.05); c.quadraticCurveTo(-S*0.08,-S*0.01,-S*0.12,-S*0.05);
+  c.moveTo(0,-S*0.05); c.quadraticCurveTo(S*0.08,-S*0.01,S*0.12,-S*0.05); c.stroke();
+  // bigodes
+  c.strokeStyle = 'rgba(255,255,255,0.85)'; c.lineWidth = 1;
+  for(const s of [-1,1]) for(let k=0;k<3;k++){
+    c.beginPath(); c.moveTo(s*S*0.08, -S*0.12 + k*S*0.03);
+    c.lineTo(s*S*0.52, -S*0.2 + k*S*0.05); c.stroke();
+  }
+}
+
+// --- Valiria: a elfa da aurora, manto branco e ouro ---
+function drawValiriaGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.22; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0, S*0.95, S*0.5, S*0.14, 0, 0, Math.PI*2); c.fill(); c.restore();
+  // manto
+  c.fillStyle = '#fbf6ea';
+  c.beginPath(); c.moveTo(0,-S*0.2); c.lineTo(-S*0.45, S*0.95); c.lineTo(S*0.45, S*0.95); c.closePath(); c.fill();
+  c.strokeStyle = '#e9dcbf'; c.lineWidth = Math.max(1, S*0.02);
+  c.beginPath(); c.moveTo(0,-S*0.1); c.lineTo(0,S*0.92);
+  c.moveTo(-S*0.18,S*0.2); c.lineTo(-S*0.28,S*0.9);
+  c.moveTo(S*0.18,S*0.2); c.lineTo(S*0.28,S*0.9); c.stroke();
+  c.fillStyle = accent; c.fillRect(-S*0.44, S*0.86, S*0.88, S*0.06);   // barra dourada
+  // estola dourada
+  c.fillStyle = accent; c.globalAlpha = 0.9;
+  c.beginPath(); c.moveTo(0,-S*0.18); c.lineTo(-S*0.34,S*0.5); c.lineTo(-S*0.24,S*0.5);
+  c.lineTo(0,-S*0.05); c.lineTo(S*0.24,S*0.5); c.lineTo(S*0.34,S*0.5); c.closePath(); c.fill();
+  c.globalAlpha = 1;
+  // cabelo atras
+  c.fillStyle = '#d9b15a';
+  c.beginPath(); c.ellipse(0,-S*0.45,S*0.3,S*0.42,0,0,Math.PI*2); c.fill();
+  // rosto
+  c.fillStyle = '#f3d4b3';
+  c.beginPath(); c.ellipse(0,-S*0.5,S*0.2,S*0.24,0,0,Math.PI*2); c.fill();
+  // orelhas pontudas
+  for(const s of [-1,1]){
+    c.beginPath(); c.moveTo(s*S*0.18,-S*0.52); c.lineTo(s*S*0.33,-S*0.66); c.lineTo(s*S*0.2,-S*0.42); c.closePath(); c.fill();
+  }
+  // mechas na testa
+  c.fillStyle = '#e7c267';
+  c.beginPath(); c.moveTo(-S*0.2,-S*0.62); c.quadraticCurveTo(0,-S*0.8,S*0.2,-S*0.62);
+  c.lineTo(S*0.18,-S*0.5); c.quadraticCurveTo(0,-S*0.6,-S*0.18,-S*0.5); c.closePath(); c.fill();
+  // olhos serenos
+  c.fillStyle = '#7a5a3a';
+  c.beginPath(); c.ellipse(-S*0.08,-S*0.5,S*0.026,S*0.018,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(S*0.08,-S*0.5,S*0.026,S*0.018,0,0,Math.PI*2); c.fill();
+  // chama da aurora na mao
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const fx = S*0.42, fy = S*0.3;
+  const g = c.createRadialGradient(fx,fy,1,fx,fy,S*0.22);
+  g.addColorStop(0,'#fff'); g.addColorStop(0.5,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(fx,fy,S*0.22,0,Math.PI*2); c.fill(); c.restore();
+}
+
+// --- Nherith: a coruja de prata, olhos de lua ---
+function drawNherithGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.22; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.92,S*0.5,S*0.14,0,0,Math.PI*2); c.fill(); c.restore();
+  const silver = '#cfd3e6', dark = '#9aa0be';
+  c.fillStyle = silver;
+  c.beginPath(); c.ellipse(0,S*0.15,S*0.52,S*0.62,0,0,Math.PI*2); c.fill();
+  // asas
+  c.fillStyle = dark;
+  c.beginPath(); c.ellipse(-S*0.42,S*0.2,S*0.16,S*0.46,0.2,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(S*0.42,S*0.2,S*0.16,S*0.46,-0.2,0,Math.PI*2); c.fill();
+  // escamas do peito
+  c.fillStyle = '#e7eaf6'; c.globalAlpha = 0.7;
+  for(let r=0;r<3;r++) for(let k=-2;k<=2;k++){
+    c.beginPath(); c.arc(k*S*0.18, S*0.05+r*S*0.18, S*0.07, Math.PI, 0); c.fill();
+  }
+  c.globalAlpha = 1;
+  // tufos de orelha
+  c.fillStyle = dark;
+  c.beginPath(); c.moveTo(-S*0.28,-S*0.42); c.lineTo(-S*0.42,-S*0.74); c.lineTo(-S*0.14,-S*0.5); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.28,-S*0.42); c.lineTo(S*0.42,-S*0.74); c.lineTo(S*0.14,-S*0.5); c.closePath(); c.fill();
+  // disco facial
+  c.fillStyle = '#e9ecf7';
+  c.beginPath(); c.ellipse(0,-S*0.28,S*0.44,S*0.4,0,0,Math.PI*2); c.fill();
+  // olhos enormes (lua)
+  for(const s of [-1,1]){
+    const ex = s*S*0.2;
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(ex,-S*0.28,1,ex,-S*0.28,S*0.2);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.6,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(ex,-S*0.28,S*0.2,0,Math.PI*2); c.fill(); c.restore();
+    c.fillStyle = '#fbfcff'; c.beginPath(); c.arc(ex,-S*0.28,S*0.15,0,Math.PI*2); c.fill();
+    c.fillStyle = '#1a1430'; c.beginPath(); c.arc(ex,-S*0.28,S*0.08,0,Math.PI*2); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(ex-S*0.03,-S*0.32,S*0.025,0,Math.PI*2); c.fill();
+  }
+  // bico
+  c.fillStyle = '#e0b050';
+  c.beginPath(); c.moveTo(-S*0.05,-S*0.2); c.lineTo(S*0.05,-S*0.2); c.lineTo(0,-S*0.04); c.closePath(); c.fill();
+  // garras
+  c.fillStyle = '#e0b050';
+  c.fillRect(-S*0.18,S*0.74,S*0.1,S*0.08); c.fillRect(S*0.08,S*0.74,S*0.1,S*0.08);
+}
+
+// --- Jeans: o corvo-deus, negro com brilho violeta ---
+function drawJeansGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.25; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.9,S*0.45,S*0.13,0,0,Math.PI*2); c.fill(); c.restore();
+  const black = '#14141d';
+  // cauda
+  c.fillStyle = black;
+  c.beginPath(); c.moveTo(-S*0.1,S*0.2); c.lineTo(-S*0.52,S*0.55); c.lineTo(S*0.05,S*0.45); c.closePath(); c.fill();
+  // corpo
+  c.beginPath(); c.ellipse(0,S*0.18,S*0.4,S*0.5,0,0,Math.PI*2); c.fill();
+  // asa
+  c.fillStyle = '#1d1b2e';
+  c.beginPath(); c.ellipse(S*0.12,S*0.2,S*0.28,S*0.42,-0.2,0,Math.PI*2); c.fill();
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.5; c.fillStyle = accent;
+  c.beginPath(); c.ellipse(S*0.1,S*0.1,S*0.2,S*0.3,-0.2,0,Math.PI*2); c.fill(); c.restore();
+  // cabeca
+  c.fillStyle = black;
+  c.beginPath(); c.arc(0,-S*0.4,S*0.3,0,Math.PI*2); c.fill();
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.4; c.fillStyle = accent;
+  c.beginPath(); c.arc(-S*0.08,-S*0.48,S*0.12,0,Math.PI*2); c.fill(); c.restore();
+  // bico
+  c.fillStyle = '#1a1a22';
+  c.beginPath(); c.moveTo(-S*0.02,-S*0.46); c.lineTo(-S*0.52,-S*0.36); c.lineTo(-S*0.02,-S*0.28); c.closePath(); c.fill();
+  c.fillStyle = '#0d0d12';
+  c.beginPath(); c.moveTo(-S*0.02,-S*0.4); c.lineTo(-S*0.52,-S*0.36); c.lineTo(-S*0.02,-S*0.33); c.closePath(); c.fill();
+  // olho esperto
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(S*0.1,-S*0.46,1,S*0.1,-S*0.46,S*0.1);
+  g.addColorStop(0,'#fff'); g.addColorStop(0.6,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(S*0.1,-S*0.46,S*0.1,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(S*0.1,-S*0.46,S*0.045,0,Math.PI*2); c.fill();
+  c.fillStyle = '#1a1430'; c.beginPath(); c.arc(S*0.1,-S*0.46,S*0.02,0,Math.PI*2); c.fill();
 }
 
 // ===========================================================================
@@ -994,8 +1438,10 @@ function frame(now){
   const ordered = [...players.values()].sort((a,b)=> (a.ry - b.ry));
   for(const p of ordered){
     const sx = p.rx - camX, sy = p.ry - camY;
-    if(sx < -TS || sy < -TS || sx > canvas.width+TS || sy > canvas.height+TS) continue;
-    if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
+    const cull = (p.size ? p.size*TS : TS);
+    if(sx < -cull || sy < -cull || sx > canvas.width+cull || sy > canvas.height+cull) continue;
+    if(p.kind === 'deity') drawDeity(ctx, sx, sy, TS, p);
+    else if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'cat') drawCat(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
@@ -1316,7 +1762,7 @@ function connectWithToken(token){
   socket.on('init', data=>{
     myId = data.id;
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
-    mapW = data.map.width; mapH = data.map.height;
+    mapW = data.map.width; mapH = data.map.height; mapName = data.map.map || 'ermo';
     applyZoom(zoom);   // define TS, viewport, dimensiona o canvas e desenha o mapa
     players.clear();
     bubbles.clear(); smites.clear();
@@ -1344,7 +1790,7 @@ function connectWithToken(token){
   // continuam como estao.
   socket.on('map_change', data=>{
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
-    mapW = data.map.width; mapH = data.map.height;
+    mapW = data.map.width; mapH = data.map.height; mapName = data.map.map || 'ermo';
     players.clear();
     bubbles.clear(); smites.clear();
     for(const p of data.players) addPlayer(p);
@@ -1414,8 +1860,10 @@ function connectWithToken(token){
                  '! Vida ' + (myFicha.hp || '?') + '.');
         if(!fichaPanelOpen) toggleFicha(true);   // abre a ficha pra ver o resultado
       }
+      if(d.blessed && !fichaPanelOpen) toggleFicha(true);   // bencao: mostra a vida nova
     }
   });
+  socket.on('toast', d=>{ if(d && d.text) toastMsg(d.text); });
   socket.on('class_error', d=>{
     toastMsg('Não rolou: ' + ((d && d.reason) || 'erro') , true);
   });
@@ -1443,6 +1891,7 @@ function addPlayer(p){
     id:p.id, x:p.x, y:p.y, rx:p.x*TS, ry:p.y*TS,
     facing:p.facing, name:p.name, look:p.look, walk:0, _moving:false,
     npc: !!p.npc, kind: p.kind || 'person', solid: (p.solid === false ? false : true),
+    form: p.form, size: p.size, accent: p.accent, eyes: p.eyes,
   });
   updateOnline();
 }

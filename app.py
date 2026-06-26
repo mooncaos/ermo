@@ -46,6 +46,7 @@ from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from game import db, accounts, items, npcs, rules, valdris, classes, races
+from game import secret_worlds, world_map as wm
 from game.world import World, public
 from game.world_map import MAP_ROWS, map_rows
 
@@ -336,6 +337,17 @@ def on_move(data):
         _go_to(request.sid, "ermo", ret[0], ret[1])
         return
 
+    # pisou no portal-estrela? volta pra Rasharan (o hub dos mundos secretos).
+    if map_rows(mp)[player["y"]][player["x"]] == "*":
+        sx, sy = rules.pick_spawn(world, "rasharan")
+        _go_to(request.sid, "rasharan", sx, sy)
+        return
+    # pisou no portal dos Ermos (em Rasharan)? volta pro Ermo.
+    if mp == "rasharan" and map_rows("rasharan")[player["y"]][player["x"]] == "@":
+        ret = world.ermo_return(request.sid) or rules.pick_spawn(world, "ermo")
+        _go_to(request.sid, "ermo", ret[0], ret[1])
+        return
+
     # pisou sobre um item? pega. (so existe item no chao no Ermo)
     picked = world.try_pickup(player)
     if picked:
@@ -466,6 +478,18 @@ def on_interact(_data=None):
             })
             return
 
+    # um deus no seu reino: solta uma fala de lore (+ falas extras se voce for da
+    # classe que ele patrona)
+    god = npc.get("_god")
+    if god:
+        falas = list(god.get("falas") or [])
+        pc = (player.get("ficha") or {}).get("class_id")
+        if pc and pc in (god.get("patron_classes") or []):
+            falas = falas + list(god.get("falas_class") or [])
+        socketio.emit("speech", {"id": npc["id"],
+            "text": random.choice(falas) if falas else "..."}, room=mp)
+        return
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 
@@ -480,6 +504,24 @@ def on_confirm_ok(data):
     if action == "go_salao" and player.get("map", "ermo") == "ermo":
         sx, sy = rules.pick_spawn(world, "salao")
         _go_to(request.sid, "salao", sx, sy)
+        return
+
+    # mundos secretos: viagem confirmada
+    if action and action.startswith("secret_go:"):
+        target = action.split(":", 1)[1]
+        if (target in wm.MAPS
+                and secret_worlds.FROM_OF.get(target) == player.get("map", "ermo")):
+            sx, sy = rules.pick_spawn(world, target)
+            _go_to(request.sid, target, sx, sy)
+        return
+    # Valoran: segunda confirmacao (a casa do Gato Branco de Olhos Verdes)
+    if action == "secret_dbl:valoran" and player.get("map", "ermo") == "rasharan":
+        emit("confirm", {
+            "action": "secret_go:valoran",
+            "title": "Voce quer ver mesmo o Gato Branco de Olhos Verdes?",
+            "body": "Nao desvie os olhos depois. Confirma a entrada em Valoran?",
+            "ok": "Confirmo", "cancel": "Recuo"})
+        return
 
 
 @socketio.on("set_class")
@@ -513,6 +555,65 @@ def on_set_class(data):
     emit("ficha", {"ficha": result, "just_set": True})
 
 
+def _gatekeeper_near(player):
+    """True se o jogador esta a <=5 tiles do guia que abre os mundos secretos:
+    o corvo no Ermo, o Jeans (deus) em Rasharan."""
+    mp = player.get("map", "ermo")
+    gid = {"ermo": "npc:corvo", "rasharan": "god:jeans"}.get(mp)
+    return bool(gid and world.near_entity(player, gid, 5))
+
+
+def _offer_secret_trip(player, ph):
+    """O guia confirma a viagem. Valoran pede confirmacao DUPLA."""
+    mp = player.get("map", "ermo")
+    guide = "npc:corvo" if mp == "ermo" else "god:jeans"
+    if ph.get("double"):   # Valoran
+        socketio.emit("speech", {"id": guide,
+            "text": secret_worlds.VALORAN_JEANS_LINE}, room=mp)
+        emit("confirm", {
+            "action": "secret_dbl:valoran",
+            "title": "A alcova do Gato Branco",
+            "body": "Valoran e o reino do Pofnir. La dentro nem o Jeans te ajuda. "
+                    "Quer mesmo ir?",
+            "ok": "Quero ir", "cancel": "Agora nao"})
+        return
+    socketio.emit("speech", {"id": guide, "text": "Podemos ir, caro amigo?"}, room=mp)
+    emit("confirm", {
+        "action": "secret_go:" + ph["map"],
+        "title": "Atravessar?",
+        "body": "A palavra abriu o caminho. Vamos juntos ao reino?",
+        "ok": "Vamos", "cancel": "Fico"})
+
+
+def _grant_pofnir_blessing(player):
+    """A bencao maxima: +5 de vida maxima, definitiva e so uma vez."""
+    ficha = player.get("ficha") or {}
+    if not ficha.get("class_id") or "hp_max" not in ficha:
+        socketio.emit("speech", {"id": "god:pofnir",
+            "text": "Voce ainda nao trilhou um caminho. Volte com uma classe, e eu te abencoo."},
+            room="valoran")
+        return
+    if ficha.get("blessing_pofnir"):
+        socketio.emit("speech", {"id": "god:pofnir",
+            "text": "Voce ja carrega a minha bencao, amigo. Uma vez basta entre nos."},
+            room="valoran")
+        return
+    ficha["hp_max"] = int(ficha.get("hp_max", 0)) + 5
+    ficha["hp"] = int(ficha.get("hp", ficha["hp_max"])) + 5
+    ficha["blessing_pofnir"] = True
+    player["ficha"] = ficha
+    try:
+        if player.get("player_id"):
+            db.save_ficha(player["player_id"], ficha)
+    except Exception as exc:
+        print("erro salvando bencao do Pofnir:", exc)
+    socketio.emit("speech", {"id": "god:pofnir",
+        "text": "Entao esta dito: voce e meu amigo. Leve um pedaco da minha luz, "
+                "que a sua vida seja mais longa."}, room="valoran")
+    emit("ficha", {"ficha": ficha, "blessed": True})
+    emit("toast", {"text": "Pofnir te abencoou: +5 de vida maxima!"})
+
+
 @socketio.on("chat")
 def on_chat(data):
     """Mensagem de chat. Vira balao acima do jogador pra todo mundo perto.
@@ -531,6 +632,19 @@ def on_chat(data):
     if smiter and npcs.contains_curse(text):
         _smite(player, smiter)
         return
+
+    # --- mundos secretos: a frase certa perto do guia abre o caminho ---
+    ph = secret_worlds.match_phrase(text)
+    if (ph and player.get("map", "ermo") == ph["from"]
+            and ph["map"] in wm.MAPS and _gatekeeper_near(player)):
+        _offer_secret_trip(player, ph)
+        return
+    # --- bencao do Pofnir: dita perto dele, em Valoran ---
+    if (secret_worlds.is_blessing(text) and player.get("map") == "valoran"
+            and world.near_entity(player, "god:pofnir", 7)):
+        _grant_pofnir_blessing(player)
+        return
+
     socketio.emit("speech", {"id": player["id"], "text": text},
                   room=player.get("map", "ermo"))
 
@@ -738,6 +852,8 @@ def _startup():
     except Exception as exc:
         print("AVISO: banco nao inicializado:", exc)
     world.spawn_npcs()   # o elenco inteiro entra em cena
+    for dspec in world.spawn_deities():   # os deuses nos seus reinos secretos
+        socketio.start_background_task(_npc_wander_loop, dspec)
     socketio.start_background_task(_saver_loop)
     socketio.start_background_task(_respawn_loop)
     for spec in npcs.ROSTER:
