@@ -144,6 +144,18 @@ let autoTimer = null;
 let clickFx = null;           // marcador visual do destino {x,y,start}
 let throneWarn = null;        // aparicao do Pofnir avisando no trono {cx,cy,text,start}
 
+// ---------- camada de atmosfera (sutil) + efeitos ----------
+let vfx = [];                 // efeitos de combate ativos {kind,x0,y0,x1,y1,color,t0,life}
+let particles = [];           // motas de ambiente (vaga-lumes/poeira) em coords de mundo
+let pofnirSpot = null;        // {x,y} canto sup-esq da estatua do Pofnir (overlay de luz)
+let bloomCanvas = null, bloomCtx = null, bloomW = 0, bloomH = 0;
+const ATMO = {                // tudo discreto (intensidade "sutil")
+  vignette: 0.30,            // escurecimento das bordas
+  pool: 0.085,              // poca de luz quente em volta de voce
+  bloom: 0.42,              // forca do brilho geral
+  particlesMax: 26,         // teto de motas em tela
+};
+
 // ---------- ciclo de dia e noite ----------
 let dayLength = 480;          // segundos por ciclo (o servidor manda o valor real)
 let dayOffset = 0;            // diferenca entre relogio do servidor e o nosso
@@ -2400,56 +2412,95 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
   const frame = cyc < 0.5 ? 0 : 1;
   const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.4 : 0;
 
-  // sombra (no chão, sem balanço)
-  c.fillStyle = 'rgba(0,0,0,.28)';
-  c.beginPath(); c.ellipse(cx, py+ts*0.86, ts*0.26, ts*0.09, 0, 0, Math.PI*2); c.fill();
+  const skin = look.skin, cloak = look.cloak;
+  const skinDk = shade(skin,-0.16), skinLt = shade(skin,0.15);
+  const cloakDk = shade(cloak,-0.30), cloakLt = shade(cloak,0.15);
+  const ink = shade(cloak,-0.60);              // contorno escuro derivado da capa
+  const hood = cloakDk;
 
-  // botas (alternam ao andar)
-  const bootCol = shade(look.cloak,-0.5);
+  // sombra no chão (sem balanço)
+  c.fillStyle = 'rgba(0,0,0,.26)';
+  c.beginPath(); c.ellipse(cx, py+ts*0.87, ts*0.25, ts*0.085, 0, 0, Math.PI*2); c.fill();
+
+  // botas (alternam ao andar) com brilho
   const baseFy = py+ts*0.74 + bob;
   const lf = baseFy + (moving ? (frame ? -1.5 : 1.5) : 0);
   const rf = baseFy + (moving ? (frame ? 1.5 : -1.5) : 0);
+  const bootCol = shade(cloak,-0.5);
   c.fillStyle = bootCol;
-  c.fillRect(cx-ts*0.16, lf, ts*0.1, ts*0.13);
-  c.fillRect(cx+ts*0.06, rf, ts*0.1, ts*0.13);
+  roundRect(c, cx-ts*0.16, lf, ts*0.11, ts*0.14, 2); c.fill();
+  roundRect(c, cx+ts*0.05, rf, ts*0.11, ts*0.14, 2); c.fill();
+  c.fillStyle = shade(bootCol,0.20);
+  c.fillRect(cx-ts*0.15, lf+1, ts*0.09, 1.5);
+  c.fillRect(cx+ts*0.06, rf+1, ts*0.09, 1.5);
 
   if(look.staff) drawStaff(c, cx, py, ts, bob);
 
-  const hood = shade(look.cloak,-0.30);
   const bodyTop = py+ts*0.42 + bob, bodyH = ts*0.40, bodyW = ts*0.44;
 
-  // corpo (capa)
-  c.fillStyle = look.cloak;
-  roundRect(c, cx-bodyW/2, bodyTop, bodyW, bodyH, 4); c.fill();
-  c.strokeStyle = hood; c.lineWidth = 1; c.stroke();
+  // ---- corpo (capa): preenche, sombreia embaixo, luz no peito, contorno ----
+  c.fillStyle = cloak;
+  roundRect(c, cx-bodyW/2, bodyTop, bodyW, bodyH, 5); c.fill();
+  c.save(); roundRect(c, cx-bodyW/2, bodyTop, bodyW, bodyH, 5); c.clip();
+  c.fillStyle = cloakDk; c.fillRect(cx-bodyW/2, bodyTop+bodyH*0.56, bodyW, bodyH*0.44);   // sombra base
+  c.fillStyle = cloakLt; c.fillRect(cx-bodyW*0.30, bodyTop+2, bodyW*0.24, bodyH*0.5);     // luz no peito
+  c.restore();
+  c.strokeStyle = ink; c.lineWidth = 1.4;
+  roundRect(c, cx-bodyW/2, bodyTop, bodyW, bodyH, 5); c.stroke();
 
-  // cabeça
-  const hx = cx, hy = py+ts*0.34 + bob, hr = ts*0.20;
-  c.fillStyle = look.skin;
+  // ---- cabeça + pescoço ----
+  const hr = ts*0.205, hy = py+ts*0.335 + bob, hx = cx;
+  c.fillStyle = skinDk; c.fillRect(hx-ts*0.055, hy+hr*0.52, ts*0.11, ts*0.08);            // pescoço
+  c.fillStyle = skin;
   c.beginPath(); c.arc(hx, hy, hr, 0, Math.PI*2); c.fill();
+  c.save(); c.beginPath(); c.arc(hx,hy,hr,0,Math.PI*2); c.clip();
+  c.fillStyle = skinDk; c.beginPath(); c.ellipse(hx, hy+hr*0.55, hr, hr*0.55, 0, 0, Math.PI*2); c.fill();  // queixo
+  c.fillStyle = skinLt; c.beginPath(); c.ellipse(hx-hr*0.30, hy-hr*0.35, hr*0.5, hr*0.4, 0, 0, Math.PI*2); c.fill(); // testa
+  c.restore();
+  c.strokeStyle = ink; c.lineWidth = 1.2; c.beginPath(); c.arc(hx, hy, hr, 0, Math.PI*2); c.stroke();
 
+  // ---- cabelo / capuz ----
   if(look.hood==='up'){
     c.fillStyle = hood;
-    c.beginPath(); c.arc(hx, hy, hr+1, Math.PI, Math.PI*2); c.fill();
-    c.fillRect(hx-hr-1, hy-1, (hr+1)*2, 2);
+    c.beginPath(); c.arc(hx, hy, hr+1.5, Math.PI*0.92, Math.PI*2.08); c.fill();
+    c.fillRect(hx-hr-1.5, hy-1, (hr+1.5)*2, 2.5);
+    c.strokeStyle = ink; c.lineWidth=1.2; c.beginPath(); c.arc(hx, hy, hr+1.5, Math.PI*0.92, Math.PI*2.08); c.stroke();
+    c.strokeStyle = shade(hood,0.16); c.lineWidth=1.4;                                    // luz na borda do capuz
+    c.beginPath(); c.arc(hx, hy, hr+0.4, Math.PI*1.12, Math.PI*1.6); c.stroke();
   } else {
+    const hairDk = shade(look.hair,-0.22), hairLt = shade(look.hair,0.18);
     c.fillStyle = look.hair;
-    c.beginPath(); c.arc(hx, hy-hr*0.15, hr*0.95, Math.PI, 0); c.fill();
-    c.fillRect(hx-hr*0.95, hy-hr*0.15-1, hr*1.9, 2);
-    c.fillStyle = hood;
+    c.beginPath(); c.arc(hx, hy-hr*0.12, hr*0.98, Math.PI, 0); c.fill();
+    c.fillRect(hx-hr*0.98, hy-hr*0.12-1, hr*1.96, 3);
+    c.fillStyle = hairDk; c.fillRect(hx-hr*0.98, hy-hr*0.12+1.5, hr*1.96, 1.5);
+    c.strokeStyle = hairLt; c.lineWidth=1.6;                                              // mecha de luz
+    c.beginPath(); c.arc(hx, hy-hr*0.12, hr*0.7, Math.PI*1.08, Math.PI*1.5); c.stroke();
+    c.fillStyle = hood;                                                                   // gola
     roundRect(c, cx-bodyW*0.34, bodyTop-2, bodyW*0.68, 5, 3); c.fill();
   }
 
-  // olhos conforme direção
-  c.fillStyle = '#2a2233'; const ey = hy + hr*0.18;
+  // ---- olhos conforme direção ----
+  const ey = hy + hr*0.16;
   if(facing==='up'){
-    c.fillStyle = (look.hood==='up') ? hood : look.hair;
+    c.fillStyle = (look.hood==='up') ? hood : shade(look.hair,-0.08);
     c.beginPath(); c.arc(hx, hy, hr*0.99, 0, Math.PI*2); c.fill();
-  } else if(facing==='left'){ c.fillRect(hx-hr*0.55, ey, 2, 2); }
-  else if(facing==='right'){ c.fillRect(hx+hr*0.35, ey, 2, 2); }
-  else { c.fillRect(hx-hr*0.45, ey, 2, 2); c.fillRect(hx+hr*0.20, ey, 2, 2); }
+    c.strokeStyle = ink; c.lineWidth=1.1; c.beginPath(); c.arc(hx, hy, hr, 0, Math.PI*2); c.stroke();
+  } else {
+    c.fillStyle = '#2a2233';
+    if(facing==='left'){ c.fillRect(hx-hr*0.5, ey, 2.2, 2.6); }
+    else if(facing==='right'){ c.fillRect(hx+hr*0.3, ey, 2.2, 2.6); }
+    else { c.fillRect(hx-hr*0.42, ey, 2.2, 2.6); c.fillRect(hx+hr*0.2, ey, 2.2, 2.6); }
+  }
 
   if(look.hat && look.hat!=='none') drawHat(c, hx, hy-hr*0.95, hr, look.hat, look.cloak, facing);
+
+  // ---- luz de borda (rim light) no alto-esquerda ----
+  if(facing!=='up'){
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.16; c.strokeStyle='#ffffff'; c.lineWidth=1.2;
+    c.beginPath(); c.arc(hx, hy, hr-0.4, Math.PI*1.06, Math.PI*1.54); c.stroke();
+    c.beginPath(); c.moveTo(cx-bodyW/2+1.6, bodyTop+3); c.lineTo(cx-bodyW/2+1.6, bodyTop+bodyH*0.58); c.stroke();
+    c.restore();
+  }
 
   // placa de nome (ancorada, sem balanço)
   if(name){
@@ -2740,6 +2791,204 @@ function drawItemIcon(c, cx, cy, size, itemId, glow){
 }
 
 // ===========================================================================
+//  CAMADA DE ATMOSFERA (sombras, vinheta, poca de luz, particulas, bloom)
+//  + VFX de combate (projetil de magia, impacto, corte, cura, buff, marca)
+//  + luz divina do Pofnir. Tudo desenhado por cima no frame(), sem mexer nos
+//  tiles ja assados nem na arte dos personagens.
+// ===========================================================================
+function isNightish(t){ return t < 0.24 || t > 0.72; }   // crepusculo/noite
+
+function entityShadow(c, sx, sy, ts, p){
+  // personagens e monstros ja desenham sombra propria; aqui so os bichos que faltavam
+  if(p.kind!=='cat' && p.kind!=='dog' && p.kind!=='toad') return;
+  const w = ts*0.28, h = ts*0.10;
+  const cx = sx + ts/2, cy = sy + ts*0.84;
+  c.save(); c.globalAlpha = 0.22; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(cx, cy, w, h, 0, 0, Math.PI*2); c.fill(); c.restore();
+}
+
+// ---- particulas de ambiente (em coords de mundo, seguem a camera) ----
+function spawnParticle(now){
+  const margin = TS*2;
+  const wx = camX - margin + Math.random()*(canvas.width + margin*2);
+  const wy = camY - margin + Math.random()*(canvas.height + margin*2);
+  const night = isNightish(dayTime);
+  particles.push({
+    x:wx, y:wy,
+    vx:(Math.random()-0.5)*6,
+    vy: night ? -(4+Math.random()*6) : (2+Math.random()*4),
+    r: night ? 1.1+Math.random()*1.3 : 0.7+Math.random()*0.9,
+    life: 4200+Math.random()*4200, t0:now,
+    glow: night, hue: night ? (Math.random()<0.5?'#f4e08a':'#a9f0c0') : '#d8d2c2',
+    ph: Math.random()*6.283
+  });
+}
+function updateParticles(now, dt){
+  const indoors = mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0);
+  const want = indoors ? Math.floor(ATMO.particlesMax*0.4) : ATMO.particlesMax;
+  let guard = 0;
+  while(particles.length < want && guard++ < 40) spawnParticle(now - Math.random()*2200);
+  particles = particles.filter(p=>{
+    if(now - p.t0 > p.life) return false;
+    p.x += p.vx*dt/1000; p.y += p.vy*dt/1000;
+    return true;
+  });
+}
+function drawParticles(c, now){
+  for(const p of particles){
+    const sx = p.x - camX, sy = p.y - camY;
+    if(sx<-8||sy<-8||sx>canvas.width+8||sy>canvas.height+8) continue;
+    const k = (now - p.t0)/p.life;
+    const fade = Math.sin(Math.min(Math.PI, Math.max(0,k)*Math.PI));
+    const pulse = p.glow ? (0.55+0.45*Math.sin(now/500+p.ph)) : 0.5;
+    c.save();
+    if(p.glow){
+      c.globalCompositeOperation='lighter'; c.globalAlpha = fade*pulse*0.55;
+      const g=c.createRadialGradient(sx,sy,0,sx,sy,p.r*4);
+      g.addColorStop(0,p.hue); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(sx,sy,p.r*4,0,Math.PI*2); c.fill();
+      c.globalAlpha=fade*pulse; c.fillStyle=p.hue; c.beginPath(); c.arc(sx,sy,p.r,0,Math.PI*2); c.fill();
+    } else {
+      c.globalAlpha = fade*0.20; c.fillStyle=p.hue; c.beginPath(); c.arc(sx,sy,p.r,0,Math.PI*2); c.fill();
+    }
+    c.restore();
+  }
+}
+
+// ---- poca de luz quente em volta de voce + vinheta nas bordas ----
+function drawAtmoPool(c){
+  const me = players.get(myId); if(!me) return;
+  const cx = me.rx - camX + TS/2, cy = me.ry - camY + TS/2, R = TS*5.5;
+  c.save(); c.globalCompositeOperation='lighter';
+  const g=c.createRadialGradient(cx,cy,TS*0.5,cx,cy,R);
+  g.addColorStop(0,'rgba(255,224,160,'+ATMO.pool+')');
+  g.addColorStop(0.6,'rgba(255,210,150,'+(ATMO.pool*0.35).toFixed(3)+')');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=g; c.fillRect(0,0,canvas.width,canvas.height); c.restore();
+}
+function drawVignette(c){
+  const w=canvas.width,h=canvas.height;
+  const g=c.createRadialGradient(w/2,h*0.46,Math.min(w,h)*0.32, w/2,h*0.5,Math.max(w,h)*0.72);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.68,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(6,5,12,'+ATMO.vignette+')');
+  c.save(); c.fillStyle=g; c.fillRect(0,0,w,h); c.restore();
+}
+
+// ---- bloom barato: downscale -> limiar (multiplica por si) -> borrao -> soma ----
+function ensureBloom(){
+  const bw=Math.max(1,Math.floor(canvas.width/4)), bh=Math.max(1,Math.floor(canvas.height/4));
+  if(!bloomCanvas){ bloomCanvas=document.createElement('canvas'); bloomCtx=bloomCanvas.getContext('2d'); }
+  if(bw!==bloomW||bh!==bloomH){ bloomCanvas.width=bw; bloomCanvas.height=bh; bloomW=bw; bloomH=bh; }
+}
+function applyBloom(c){
+  if(!canvas.width||!canvas.height||ATMO.bloom<=0) return;
+  ensureBloom();
+  const bw=bloomW,bh=bloomH,bc=bloomCtx;
+  bc.globalCompositeOperation='source-over'; bc.clearRect(0,0,bw,bh);
+  bc.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,bw,bh);
+  bc.globalCompositeOperation='multiply'; bc.drawImage(bloomCanvas,0,0,bw,bh,0,0,bw,bh);  // limiar
+  bc.globalCompositeOperation='source-over';
+  try{ bc.filter='blur(2px)'; bc.drawImage(bloomCanvas,0,0); bc.filter='none'; }catch(e){ bc.filter='none'; }
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=ATMO.bloom; c.imageSmoothingEnabled=true;
+  c.drawImage(bloomCanvas,0,0,bw,bh,0,0,canvas.width,canvas.height); c.restore();
+}
+
+// ---- luz divina do Pofnir (overlay animado sobre a estatua, no salao) ----
+function computePofnirSpot(){
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    if(mapRows[y] && mapRows[y][x]==='P') return {x,y};
+  }
+  return null;
+}
+function drawPofnirLight(c, now){
+  if(!pofnirSpot) return;
+  const cx=(pofnirSpot.x+1)*TS - camX, cy=(pofnirSpot.y+1)*TS - camY;
+  if(cx<-TS*5||cy<-TS*5||cx>canvas.width+TS*5||cy>canvas.height+TS*5) return;
+  const pulse=0.82+0.18*Math.sin(now/900), R=TS*4.4*pulse;
+  c.save(); c.globalCompositeOperation='lighter';
+  const g=c.createRadialGradient(cx,cy,TS*0.4,cx,cy,R);
+  g.addColorStop(0,'rgba(255,228,150,0.40)'); g.addColorStop(0.4,'rgba(244,193,78,0.17)');
+  g.addColorStop(0.75,'rgba(155,109,255,0.10)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=g; c.beginPath(); c.arc(cx,cy,R,0,Math.PI*2); c.fill();
+  c.globalAlpha=0.09*pulse; c.strokeStyle='#ffe8a0'; c.lineWidth=2;     // raios divinos girando
+  for(let i=0;i<10;i++){ const a=i*Math.PI/5 + now/4200;
+    c.beginPath(); c.moveTo(cx+Math.cos(a)*TS*0.8,cy+Math.sin(a)*TS*0.8); c.lineTo(cx+Math.cos(a)*R*0.92,cy+Math.sin(a)*R*0.92); c.stroke(); }
+  c.restore();
+}
+
+// ---- VFX de combate ----
+function vfxColorFor(name, fallback){
+  const s=(name||'').toLowerCase();
+  if(/fog|chama|piro|fire|flame|brasa|incend/.test(s)) return '#ff8a3a';
+  if(/gel|frost|neve|glaci|frio|cong/.test(s)) return '#7fd6ff';
+  if(/raio|relamp|trovao|light|eletr|choque|relâmp/.test(s)) return '#ffe066';
+  if(/veneno|poison|acido|toxic|ácido/.test(s)) return '#9bd16a';
+  if(/sagr|radian|divin|cura|holy|luz/.test(s)) return '#ffe6a8';
+  if(/sombr|necro|morte|trev|maldi/.test(s)) return '#b06bff';
+  return fallback || '#c9a0ff';
+}
+function spawnBolt(fromId, toId, color){
+  const a=players.get(fromId), b=players.get(toId); if(!b) return;
+  const x0 = a ? a.x : b.x, y0 = a ? a.y : b.y;
+  const t=performance.now();
+  vfx.push({kind:'bolt', x0, y0, x1:b.x, y1:b.y, color, t0:t, life:340});
+  vfx.push({kind:'impact', x1:b.x, y1:b.y, color, t0:t+290, life:380});
+}
+function spawnAt(atId, kind, color){
+  const e=players.get(atId); if(!e) return;
+  vfx.push({kind, x1:e.x, y1:e.y, color, t0:performance.now(), life:(kind==='slash'?260:(kind==='heal'?700:440))});
+}
+function updateVfx(now){ vfx = vfx.filter(v=> now < v.t0 + v.life); }
+function drawVfx(c, now){
+  for(const v of vfx){
+    if(now < v.t0) continue;
+    const k=(now - v.t0)/v.life; if(k>1) continue;
+    if(v.kind==='bolt'){
+      const x0=v.x0*TS-camX+TS/2, y0=v.y0*TS-camY+TS/2, x1=v.x1*TS-camX+TS/2, y1=v.y1*TS-camY+TS/2;
+      const kk=Math.min(1,k*1.1), hx=x0+(x1-x0)*kk, hy=y0+(y1-y0)*kk;
+      const tx=x0+(x1-x0)*Math.max(0,kk-0.25), ty=y0+(y1-y0)*Math.max(0,kk-0.25);
+      c.save(); c.globalCompositeOperation='lighter';
+      c.strokeStyle=v.color; c.globalAlpha=0.5*(1-k); c.lineWidth=Math.max(2,TS*0.12); c.lineCap='round';
+      c.beginPath(); c.moveTo(tx,ty); c.lineTo(hx,hy); c.stroke();
+      c.globalAlpha=0.9; const g=c.createRadialGradient(hx,hy,0,hx,hy,TS*0.5);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(0.4,v.color); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(hx,hy,TS*0.5,0,Math.PI*2); c.fill(); c.restore();
+    } else if(v.kind==='impact'){
+      const cx=v.x1*TS-camX+TS/2, cy=v.y1*TS-camY+TS/2, r=TS*(0.3+k*0.7);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.85;
+      const g=c.createRadialGradient(cx,cy,0,cx,cy,r);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(0.35,v.color); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.fill();
+      c.strokeStyle=v.color; c.lineWidth=2; c.globalAlpha=(1-k)*0.7;
+      for(let i=0;i<6;i++){ const a=i*Math.PI/3+k*2;
+        c.beginPath(); c.moveTo(cx+Math.cos(a)*r*0.4,cy+Math.sin(a)*r*0.4); c.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); c.stroke(); }
+      c.restore();
+    } else if(v.kind==='slash'){
+      const cx=v.x1*TS-camX+TS/2, cy=v.y1*TS-camY+TS/2;
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.9;
+      c.strokeStyle=v.color; c.lineWidth=Math.max(2,TS*0.14); c.lineCap='round';
+      const a0=-0.7+k*0.5; c.beginPath(); c.arc(cx,cy,TS*0.5,a0,a0+2.2); c.stroke(); c.restore();
+    } else if(v.kind==='heal'){
+      const cx=v.x1*TS-camX+TS/2, cy=v.y1*TS-camY+TS;
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.85; c.fillStyle=v.color;
+      for(let i=0;i<5;i++){ const px=cx+Math.sin(i*1.7+now/300)*TS*0.3, py=cy - k*TS*1.5 - i*4;
+        c.beginPath(); c.arc(px,py,2.2,0,Math.PI*2); c.fill(); } c.restore();
+    } else if(v.kind==='buff'){
+      const cx=v.x1*TS-camX+TS/2, cy=v.y1*TS-camY+TS/2, r=TS*(0.6+k*0.3);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.8;
+      c.strokeStyle=v.color; c.lineWidth=2.5; c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.stroke(); c.restore();
+    } else if(v.kind==='mark'){
+      const cx=v.x1*TS-camX+TS/2, cy=v.y1*TS-camY+TS/2, r=TS*0.5;
+      c.save(); c.strokeStyle=v.color; c.globalAlpha=(1-k)*0.9; c.lineWidth=2;
+      c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.stroke();
+      for(let i=0;i<4;i++){ const a=i*Math.PI/2;
+        c.beginPath(); c.moveTo(cx+Math.cos(a)*r*0.6,cy+Math.sin(a)*r*0.6); c.lineTo(cx+Math.cos(a)*r*1.3,cy+Math.sin(a)*r*1.3); c.stroke(); }
+      c.restore();
+    }
+  }
+}
+
+// ===========================================================================
 //  LOOP DE RENDER (com câmera)
 // ===========================================================================
 let lastT = performance.now();
@@ -2803,6 +3052,7 @@ function frame(now){
     const cull = (p.size ? p.size*TS : TS);
     if(sx < -cull || sy < -cull || sx > canvas.width+cull || sy > canvas.height+cull) continue;
     if(p.kind === 'monster' && p._dead) continue;   // monstro derrotado some
+    entityShadow(ctx, sx, sy, TS, p);               // sombra suave no chao (profundidade)
     // realce de alvos: mirando magia/habilidade (à distância = todos, corpo a corpo = adjacentes)
     // ou, no modo normal, inimigos ao lado que dá pra atacar.
     if(combat && combat.yourTurn && combat.snapshot && p.kind === 'monster' && !p._dead){
@@ -2842,16 +3092,28 @@ function frame(now){
     ctx.restore();
   }
 
-  // ---- ciclo de dia e noite: tinte por cima de tudo ----
+  // ---- VFX de combate (projetil de magia, impacto, corte) por cima das entidades ----
+  updateVfx(now); drawVfx(ctx, now);
+
+  // ---- atmosfera: particulas + luz do Pofnir + poca quente (entram na cena, brilham no bloom) ----
   dayTime = (((Date.now()/1000) + dayOffset) % dayLength) / dayLength;
   if(dayTime < 0) dayTime += 1;
+  updateParticles(now, dt); drawParticles(ctx, now);
+  if(mapName === 'salao') drawPofnirLight(ctx, now);
+  drawAtmoPool(ctx);
+
+  // ---- ciclo de dia e noite: tinte por cima de tudo ----
   const tint = dayTint(dayTime);
-  const indoors = mapName && mapName.indexOf('casa_') === 0;   // dentro de casa: sempre aconchegante
+  const indoors = mapName && (mapName.indexOf('casa_') === 0 || mapName.indexOf('loja_') === 0); // dentro: aconchegante
   if(tint && !indoors){ ctx.fillStyle = tint; ctx.fillRect(0, 0, canvas.width, canvas.height); }
   if(phaseEl){
     const ph = phaseName(dayTime);
     if(ph !== lastPhase){ phaseEl.textContent = ph; lastPhase = ph; }
   }
+
+  // ---- pos: brilho geral suave + vinheta nas bordas ----
+  applyBloom(ctx);
+  drawVignette(ctx);
 
   // ---- overlays nitidos por cima do tinte: raio, dica, baloes ----
   smites.forEach((fx, id)=>{                 // o raio do justiceiro no(s) alvo(s)
@@ -3217,6 +3479,7 @@ function connectWithToken(token){
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
     mapW = data.map.width; mapH = data.map.height; mapName = data.map.map || 'ermo';
     throneBounds = computeThroneBounds();
+    pofnirSpot = computePofnirSpot();
     applyZoom(zoom);   // define TS, viewport, dimensiona o canvas e desenha o mapa
     players.clear();
     bubbles.clear(); smites.clear();
@@ -3251,6 +3514,7 @@ function connectWithToken(token){
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
     mapW = data.map.width; mapH = data.map.height; mapName = data.map.map || 'ermo';
     throneBounds = computeThroneBounds();
+    pofnirSpot = computePofnirSpot();
     players.clear();
     bubbles.clear(); smites.clear();
     for(const p of data.players) addPlayer(p);
@@ -4366,6 +4630,7 @@ function popDamage(cid, text, color){
 }
 function showAttackResult(res){
   if(!res) return;
+  spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
   if(res.hit) popDamage(res.target, '-'+res.dmg+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
   else popDamage(res.target, 'errou', '#9b95b4');
 }
@@ -4375,26 +4640,28 @@ function popHeal(cid, text){
 }
 function showSpellResult(r){
   if(!r) return;
-  if(r.self && r.heal != null){ popHeal(r.caster, '+'+r.heal); return; }
-  if(r.mark){ toastMsg('🎯 '+(r.name||'Marca')+' em '+(r.target_name||'alvo')); return; }
-  if(r.buff){ toastMsg('✦ '+(r.name||'Magia')+'!'); return; }
-  if(r.auto){ popDamage(r.target, '-'+r.dmg, '#c9a0ff'); return; }
+  if(r.self && r.heal != null){ spawnAt(r.caster, 'heal', '#5ec27a'); popHeal(r.caster, '+'+r.heal); return; }
+  if(r.mark){ spawnAt(r.target, 'mark', vfxColorFor(r.name,'#ffd86b')); toastMsg('🎯 '+(r.name||'Marca')+' em '+(r.target_name||'alvo')); return; }
+  if(r.buff){ spawnAt(r.caster, 'buff', vfxColorFor(r.name,'#c9a0ff')); toastMsg('✦ '+(r.name||'Magia')+'!'); return; }
+  if(r.auto){ spawnBolt(r.caster, r.target, vfxColorFor(r.name)); popDamage(r.target, '-'+r.dmg, '#c9a0ff'); return; }
   if(r.save){
+    spawnBolt(r.caster, r.target, vfxColorFor(r.name));
     if(r.dmg > 0) popDamage(r.target, '-'+r.dmg+(r.success?' ½':''), r.success?'#c9a0ff':'#ff7a7a');
     else popDamage(r.target, 'resistiu', '#9b95b4');
     return;
   }
+  spawnBolt(r.caster, r.target, vfxColorFor(r.name));
   if(r.hit) popDamage(r.target, '-'+r.dmg+(r.crit?'!':''), r.crit?'#ffd86b':'#c9a0ff');
   else popDamage(r.target, 'errou', '#9b95b4');
 }
 function showAbilityResult(r){
   if(!r) return;
   if(r.attacks){ for(const a of r.attacks) showAttackResult(a); return; }
-  if(r.heal != null){ popHeal(r.actor, '+'+r.heal); if(r.name) toastMsg('✦ '+r.name); return; }
-  if(r.rage){ toastMsg('🔥 Fúria!'); return; }
-  if(r.surge){ toastMsg('⚡ Surto de Ação!'); return; }
-  if(r.armed){ toastMsg('⚔️ Castigo armado · próximo acerto'); return; }
-  if(r.buff){ toastMsg('✦ '+(r.name||'Inspiração')+'!'); return; }
+  if(r.heal != null){ spawnAt(r.actor, 'heal', '#5ec27a'); popHeal(r.actor, '+'+r.heal); if(r.name) toastMsg('✦ '+r.name); return; }
+  if(r.rage){ spawnAt(r.actor, 'buff', '#ff8a3a'); toastMsg('🔥 Fúria!'); return; }
+  if(r.surge){ spawnAt(r.actor, 'buff', '#ffe066'); toastMsg('⚡ Surto de Ação!'); return; }
+  if(r.armed){ spawnAt(r.actor, 'buff', '#ffd86b'); toastMsg('⚔️ Castigo armado · próximo acerto'); return; }
+  if(r.buff){ spawnAt(r.actor, 'buff', '#c9a0ff'); toastMsg('✦ '+(r.name||'Inspiração')+'!'); return; }
   if(r.name) toastMsg('✦ '+r.name);
 }
 function showSpoils(drops, bronze){
