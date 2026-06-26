@@ -594,6 +594,24 @@ def _monster_respawn_loop():
                 _world_refresh(m["map"])
 
 
+def _monster_wander_loop():
+    """Faz os monstros vagarem por O Descampado quando nao estao em combate. Quem
+    perambula pra perto de um jogador parado tambem inicia a luta."""
+    while True:
+        socketio.sleep(1.2)
+        moved = world.wander_monsters("descampado")
+        if moved:
+            socketio.emit("monsters_moved", {"map": "descampado", "moves": moved},
+                          room="descampado")
+        for sid, pl in list(world.players.items()):
+            if pl.get("map") != "descampado" or pl.get("in_combat"):
+                continue
+            near = [m for m in world.monsters_near("descampado", pl["x"], pl["y"], COMBAT_AGGRO)
+                    if not m.get("in_combat")]
+            if near:
+                _start_combat(sid, near)
+
+
 @socketio.on("combat_engage")
 def on_combat_engage(data):
     """Clicou num monstro pra iniciar a luta (alem do aggro automatico)."""
@@ -1600,6 +1618,7 @@ def _startup():
     socketio.start_background_task(_pofnir_loop)   # a aparicao do Pofnir
     socketio.start_background_task(_night_loop)     # a vila dorme a noite
     socketio.start_background_task(_monster_respawn_loop)   # monstros voltam apos um tempo
+    socketio.start_background_task(_monster_wander_loop)     # e perambulam pelo Descampado
 
 
 _startup()

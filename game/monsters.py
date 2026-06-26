@@ -45,12 +45,18 @@ MONSTERS = {
     },
 }
 
-# onde nascem em O Descampado: bichos perto da aguada (centro-sul, ~42,64),
-# capangas perto do acampamento (nordeste, ~66-79 x 24-34).
+# onde nascem em O Descampado: bichos perto da aguada (centro-sul) e capangas
+# em peso perto do acampamento (nordeste). Cada um perambula em volta do ponto.
 DESCAMPADO_SPAWNS = [
-    ("rato_gigante", 38, 62), ("lobo", 46, 67), ("lobo", 40, 70),
-    ("javali", 34, 59), ("rato_gigante", 52, 52),
-    ("capanga", 60, 28), ("capanga", 63, 34), ("capanga_brutamontes", 72, 31),
+    # bichos (centro-sul, perto da agua)
+    ("rato_gigante", 38, 62), ("rato_gigante", 52, 52), ("rato_gigante", 44, 66),
+    ("rato_gigante", 56, 56), ("lobo", 46, 67), ("lobo", 40, 70), ("lobo", 48, 60),
+    ("javali", 34, 59), ("javali", 50, 72),
+    # capangas (nordeste, o acampamento de Sapopemba)
+    ("capanga", 60, 28), ("capanga", 63, 34), ("capanga", 58, 24), ("capanga", 66, 30),
+    ("capanga", 70, 26), ("capanga", 62, 38), ("capanga", 74, 33), ("capanga", 67, 37),
+    ("capanga_brutamontes", 72, 31), ("capanga_brutamontes", 68, 22),
+    ("capanga_brutamontes", 76, 29),
 ]
 
 

@@ -448,6 +448,38 @@ class World:
                     out.append(m)
         return out
 
+    def wander_monsters(self, mp="descampado", chance=0.4, leash=9):
+        """Um passo de perambulacao: cada monstro vivo e fora de combate tenta um
+        passo aleatorio (4 direcoes) dentro de uma coleira em torno do ponto de
+        origem, sem pisar em parede, agua, outro monstro ou jogador. Devolve a lista
+        dos que se moveram (id, x, y, facing) pro servidor transmitir."""
+        moved = []
+        dirs = (("up", 0, -1), ("down", 0, 1), ("left", -1, 0), ("right", 1, 0))
+        ptiles = {(p["x"], p["y"]) for p in self.players.values()
+                  if p.get("map") == mp and not p.get("_inside")}
+        occ = {(m["x"], m["y"]) for m in self.monsters.values()
+               if m.get("alive", True) and m.get("map") == mp}
+        for m in self.monsters.values():
+            if not m.get("alive", True) or m.get("map") != mp or m.get("in_combat"):
+                continue
+            if random.random() > chance:
+                continue
+            name, dx, dy = random.choice(dirs)
+            m["facing"] = name
+            nx, ny = m["x"] + dx, m["y"] + dy
+            _t, sx, sy = m["_spawn"]
+            if max(abs(nx - sx), abs(ny - sy)) > leash:
+                continue
+            if (nx, ny) in ptiles or (nx, ny) in occ:
+                continue
+            if not rules.is_walkable(nx, ny, mp):
+                continue
+            occ.discard((m["x"], m["y"]))
+            occ.add((nx, ny))
+            m["x"], m["y"] = nx, ny
+            moved.append({"id": m["id"], "x": nx, "y": ny, "facing": name})
+        return moved
+
     def set_map(self, sid, mp, x, y):
         """Move um jogador pra outro mapa, numa posicao. Ao SAIR do Ermo, lembra
         onde ele estava pra poder voltar pro mesmo lugar."""

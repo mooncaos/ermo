@@ -1213,7 +1213,8 @@ function _deityName(c, cx, topY, name, color){
   c.fillText(name, cx, topY); c.restore();
 }
 function drawMonster(c, sx, sy, ts, p){
-  // bicho/capanga: glifo (emoji) no tile + nome + barra de vida por cima.
+  // capangas (crias e traficantes) sao humanos desenhados; bichos sao emoji.
+  if(p.mtype === 'capanga' || p.mtype === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
   const cx = sx + ts/2, cy = sy + ts/2;
   c.save();
   c.fillStyle = 'rgba(0,0,0,0.28)';
@@ -1221,19 +1222,140 @@ function drawMonster(c, sx, sy, ts, p){
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.font = Math.round(ts*0.82) + 'px serif';
   c.fillText(p.glyph || '👾', cx, cy + ts*0.04);
-  // barra de vida
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawMonsterBarName(c, sx, sy, ts, p){
+  const cx = sx + ts/2;
   const hp = (p.hp==null? 1 : p.hp), hpm = (p.hp_max || hp || 1);
   const frac = Math.max(0, Math.min(1, hp/hpm));
   const bw = ts*0.84, bh = 4, bx = cx - bw/2, by = sy - 1;
+  c.save();
   c.fillStyle = 'rgba(10,8,18,0.85)'; c.fillRect(bx-1, by-1, bw+2, bh+2);
   c.fillStyle = '#3a2030'; c.fillRect(bx, by, bw, bh);
   c.fillStyle = frac>0.5? '#5ec27a' : (frac>0.25? '#e0b15a' : '#d65a5a');
   c.fillRect(bx, by, bw*frac, bh);
-  // nome (com contorno pra ler em qualquer fundo)
   const nm = p.name || '';
-  c.font = '700 9px Inter, sans-serif'; c.textBaseline = 'bottom';
+  c.font = '700 9px Inter, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
   c.lineWidth = 2.5; c.strokeStyle = 'rgba(8,7,15,0.85)'; c.strokeText(nm, cx, by - 3);
   c.fillStyle = '#f0d0a8'; c.fillText(nm, cx, by - 3);
+  c.restore();
+}
+
+// capanga de Sapopemba: humano negro de regata/bermuda, com facão (cria) ou
+// marreta (traficante). Anda com balanço de pernas e olha pra direção do passo.
+function drawThug(c, sx, sy, ts, p){
+  const big = (p.mtype === 'capanga_brutamontes');
+  const s = big ? 1.16 : 1.0;
+  const skin = big ? '#5e3a23' : '#714829';
+  const skinD = shade(skin, -0.32);
+  const tank = big ? '#39222f' : '#e2bd45';      // traficante: regata escura · cria: regata amarela
+  const shortc = big ? '#221b2c' : '#2d2742';
+  const hair = '#150d13';
+  const cx = sx + ts/2;
+  const facing = p.facing || 'down';
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const frame = cyc < 0.5 ? 0 : 1;
+  const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.5 : Math.sin(Date.now()/650)*0.6;
+
+  c.save();
+  c.fillStyle = 'rgba(0,0,0,.30)';
+  c.beginPath(); c.ellipse(cx, sy+ts*0.86, ts*0.28*s, ts*0.10, 0, 0, Math.PI*2); c.fill();
+
+  const bodyW = ts*0.40*s, bodyH = ts*0.32*s, bodyTop = sy+ts*0.46+bob;
+  const hr = ts*0.175*s, hx = cx, hy = sy+ts*0.36+bob;
+  const legY = bodyTop + bodyH - 1;
+  const lof = moving ? (frame? -1.6:1.6) : 0;
+  const rof = moving ? (frame? 1.6:-1.6) : 0;
+
+  // pernas (bermuda) + canelas (pele)
+  c.fillStyle = shortc;
+  c.fillRect(cx-ts*0.12*s, legY+lof, ts*0.095*s, ts*0.12*s);
+  c.fillRect(cx+ts*0.025*s, legY+rof, ts*0.095*s, ts*0.12*s);
+  c.fillStyle = skinD;
+  c.fillRect(cx-ts*0.115*s, legY+lof+ts*0.115*s, ts*0.085*s, ts*0.045*s);
+  c.fillRect(cx+ts*0.03*s, legY+rof+ts*0.115*s, ts*0.085*s, ts*0.045*s);
+
+  // arma na mao (lado conforme direção), atras do torso
+  drawThugWeapon(c, cx, bodyTop, bodyW, ts, s, big, facing, frame, moving);
+
+  // torso (regata)
+  c.fillStyle = tank;
+  roundRect(c, cx-bodyW/2, bodyTop, bodyW, bodyH, 3); c.fill();
+  // braços expostos (pele)
+  c.fillStyle = skin;
+  c.fillRect(cx-bodyW/2-ts*0.028*s, bodyTop+2, ts*0.05*s, bodyH*0.66);
+  c.fillRect(cx+bodyW/2-ts*0.022*s, bodyTop+2, ts*0.05*s, bodyH*0.66);
+  // corrente de ouro do traficante
+  if(big){
+    c.strokeStyle = '#f4d06a'; c.lineWidth = 1.4;
+    c.beginPath(); c.arc(hx, bodyTop+3, bodyW*0.30, 0.18*Math.PI, 0.82*Math.PI); c.stroke();
+  }
+
+  // cabeça
+  c.fillStyle = skin;
+  c.beginPath(); c.arc(hx, hy, hr, 0, Math.PI*2); c.fill();
+  // cabelo curto
+  c.fillStyle = hair;
+  c.beginPath(); c.arc(hx, hy-hr*0.15, hr*0.97, Math.PI, 0); c.fill();
+  c.fillRect(hx-hr*0.97, hy-hr*0.15-1, hr*1.94, 2);
+
+  if(!big){
+    // boné da cria, com aba pra direção
+    c.fillStyle = shade(tank, -0.18);
+    c.beginPath(); c.arc(hx, hy-hr*0.30, hr*0.95, Math.PI, 0); c.fill();
+    c.fillRect(hx-hr*0.95, hy-hr*0.30, hr*1.9, 2);
+    const abaX = facing==='left' ? hx-hr*1.6 : (facing==='right' ? hx+hr*0.6 : hx-hr*0.5);
+    c.fillRect(abaX, hy-hr*0.5, hr*1.0, 2.5);
+  } else {
+    // bandana vermelha do traficante
+    c.fillStyle = '#a6342f';
+    c.fillRect(hx-hr*0.97, hy-hr*0.46, hr*1.94, hr*0.5);
+    c.fillRect(hx-hr*0.2, hy-hr*0.12, hr*0.4, hr*0.34);
+  }
+
+  // olhos conforme direção
+  c.fillStyle = '#120c10'; const ey = hy + hr*0.10;
+  if(facing==='up'){ /* nuca: sem olhos */ }
+  else if(facing==='left'){ c.fillRect(hx-hr*0.5, ey, 2, 2); }
+  else if(facing==='right'){ c.fillRect(hx+hr*0.32, ey, 2, 2); }
+  else { c.fillRect(hx-hr*0.46, ey, 2, 2); c.fillRect(hx+hr*0.24, ey, 2, 2); }
+  c.restore();
+
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawThugWeapon(c, cx, bodyTop, bodyW, ts, s, big, facing, frame, moving){
+  const side = (facing === 'left') ? -1 : 1;     // mão direita por padrão; espelha à esquerda
+  const hx = cx + side*(bodyW*0.5 + ts*0.05*s);
+  const hyo = moving ? (frame? -1.2:1.2) : 0;
+  const hy = bodyTop + ts*0.07*s + hyo;
+  c.save();
+  c.translate(hx, hy);
+  c.scale(side, 1);
+  if(big){
+    // marreta: cabo + cabeça de metal apoiada no ombro
+    c.strokeStyle = '#6b4a2a'; c.lineWidth = 2.6*s; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(0, ts*0.12*s); c.lineTo(ts*0.02*s, -ts*0.22*s); c.stroke();
+    c.fillStyle = '#4a4550';
+    roundRect(c, -ts*0.035*s, -ts*0.32*s, ts*0.13*s, ts*0.12*s, 2); c.fill();
+    c.fillStyle = '#5d5865';
+    c.fillRect(-ts*0.035*s, -ts*0.32*s, ts*0.045*s, ts*0.12*s);
+  } else {
+    // facão: cabo curto + lâmina prateada
+    c.strokeStyle = '#3a2a1c'; c.lineWidth = 2.3*s; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(0, ts*0.12*s); c.lineTo(0, ts*0.01*s); c.stroke();
+    c.fillStyle = '#cdd2da';
+    c.beginPath();
+    c.moveTo(-ts*0.012*s, ts*0.01*s);
+    c.lineTo(ts*0.055*s, -ts*0.24*s);
+    c.lineTo(ts*0.095*s, -ts*0.22*s);
+    c.lineTo(ts*0.03*s, ts*0.01*s);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#9aa0aa'; c.lineWidth = 0.6; c.stroke();
+  }
   c.restore();
 }
 function drawDeity(c, sx, sy, ts, p){
@@ -2859,6 +2981,13 @@ function connectWithToken(token){
   });
   socket.on('combat_msg', d=>{ if(d && d.text) toastMsg(d.text, true); });
   socket.on('res', d=>{ if(d && d.res && myFicha){ myFicha.res = d.res; } });
+  socket.on('monsters_moved', d=>{
+    if(!d || d.map !== mapName) return;
+    for(const mv of (d.moves || [])){
+      const e = players.get(mv.id);
+      if(e){ e.x = mv.x; e.y = mv.y; if(mv.facing) e.facing = mv.facing; }
+    }
+  });
   socket.on('world_refresh', d=>{
     if(!d || d.map !== mapName) return;
     for(const [id, p] of players){ if(p.kind === 'monster') players.delete(id); }
