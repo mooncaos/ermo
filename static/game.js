@@ -2290,11 +2290,17 @@ function frame(now){
     const cull = (p.size ? p.size*TS : TS);
     if(sx < -cull || sy < -cull || sx > canvas.width+cull || sy > canvas.height+cull) continue;
     if(p.kind === 'monster' && p._dead) continue;   // monstro derrotado some
-    // realce: no seu turno, inimigos ao lado que dá pra atacar
-    if(combat && combat.yourTurn && combat.snapshot && combat.snapshot.your_action && p.kind === 'monster'){
+    // realce de alvos: mirando magia/habilidade (à distância = todos, corpo a corpo = adjacentes)
+    // ou, no modo normal, inimigos ao lado que dá pra atacar.
+    if(combat && combat.yourTurn && combat.snapshot && p.kind === 'monster' && !p._dead){
       const me = players.get(myId);
-      if(me && Math.max(Math.abs(me.x - p.x), Math.abs(me.y - p.y)) <= 1){
-        ctx.save(); ctx.strokeStyle = '#ff6a6a'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
+      const pend = combat.pending;
+      const adj = me && Math.max(Math.abs(me.x - p.x), Math.abs(me.y - p.y)) <= 1;
+      let show = false, col = '#ff6a6a';
+      if(pend){ col = '#9b6dff'; show = (pend.range === 'ranged') ? true : adj; }
+      else { show = combat.snapshot.your_action && adj; }
+      if(show){
+        ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
         ctx.strokeRect(sx+2, sy+2, TS-4, TS-4); ctx.restore();
       }
     }
@@ -2628,12 +2634,16 @@ if(canvas) canvas.addEventListener('click', (e)=>{
   const tx = Math.floor((cx + camX) / TS), ty = Math.floor((cy + camY) / TS);
   let mob = null;
   players.forEach(p=>{ if(p.kind === 'monster' && !p._dead && p.x === tx && p.y === ty) mob = p; });
-  if(!mob) return;
-  if(combat){
-    if(!combat.yourTurn){ toastMsg('Não é seu turno.'); return; }
-    socket.emit('combat_attack', { target: mob.id });
+  if(!combat){ if(mob) socket.emit('combat_engage', { target: mob.id }); return; }
+  if(!combat.yourTurn){ if(mob) toastMsg('Não é seu turno.'); return; }
+  const pend = combat.pending;
+  if(!mob){ if(pend){ combat.pending = null; renderCombatHud(); } return; }
+  if(pend && pend.type === 'spell'){
+    socket.emit('combat_cast', { spell: pend.id, target: mob.id }); combat.pending = null; renderCombatHud();
+  } else if(pend && pend.type === 'ability'){
+    socket.emit('combat_ability', { ability: pend.id, target: mob.id }); combat.pending = null; renderCombatHud();
   } else {
-    socket.emit('combat_engage', { target: mob.id });
+    socket.emit('combat_attack', { target: mob.id });   // atalho: clicar inimigo = atacar
   }
 });
 
@@ -2835,6 +2845,8 @@ function connectWithToken(token){
   socket.on('combat_state', d=>{
     if(!d) return;
     if(d.player_action) showAttackResult(d.player_action);
+    if(d.spell_result) showSpellResult(d.spell_result);
+    if(d.ability_result) showAbilityResult(d.ability_result);
     if(d.enemy_actions){ for(const a of d.enemy_actions){ if(a && a.attack) showAttackResult(a.attack); } }
     applyCombatSnapshot(d.snapshot);
   });
@@ -2846,6 +2858,7 @@ function connectWithToken(token){
     else combatBanner('Você caiu...', 'renasceu no Ermo · perdeu metade do XP do nível', '#d65a5a');
   });
   socket.on('combat_msg', d=>{ if(d && d.text) toastMsg(d.text, true); });
+  socket.on('res', d=>{ if(d && d.res && myFicha){ myFicha.res = d.res; } });
   socket.on('world_refresh', d=>{
     if(!d || d.map !== mapName) return;
     for(const [id, p] of players){ if(p.kind === 'monster') players.delete(id); }
@@ -3659,13 +3672,15 @@ function ensureCombatHud(){
   return combatHud;
 }
 function showCombatUi(){ ensureCombatHud().style.display = 'block'; }
-function endCombatUi(){ combat = null; if(combatHud) combatHud.style.display = 'none'; }
+function endCombatUi(){ combat = null; closeSpellMenu(); if(combatHud) combatHud.style.display = 'none'; }
 
 function applyCombatSnapshot(snap){
   if(!snap) return;
   combat = combat || {};
   combat.snapshot = snap;
   combat.yourTurn = !!snap.your_turn;
+  if(snap.your){ combat.your = snap.your; if(myFicha) myFicha.res = snap.your.res; }
+  if(!combat.yourTurn){ combat.pending = null; closeSpellMenu(); }
   for(const c of snap.combatants){
     const e = players.get(c.cid);
     if(e){ e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive; }
@@ -3687,21 +3702,130 @@ function renderCombatHud(){
       'background:'+(cur?'#241d44':'#1b1830')+';color:'+(c.you?'#9bdcff':'#e8e4f0')+'">'+
       ic+' '+esc(c.name)+' <span style="color:#8a86a0">'+c.hp+'/'+c.hp_max+'</span></span>';
   }).join('');
-  let bar;
+  const your = s.your || {};
+  let html = '<div style="font:700 10px Inter;letter-spacing:1px;color:#9b6dff;text-transform:uppercase">Combate · Rodada '+s.round+'</div>'+
+    '<div style="margin-top:4px;line-height:1.8">'+chips+'</div>';
+
   if(combat.yourTurn){
-    bar = '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'+
+    const badges = [];
+    if(your.raging) badges.push('<span style="font:700 10px Inter;color:#ff8a5c">🔥 Furioso</span>');
+    if(your.smite_armed) badges.push('<span style="font:700 10px Inter;color:#f4d8a0">⚔️ Castigo armado</span>');
+    if(your.mark) badges.push('<span style="font:700 10px Inter;color:#c9a0ff">🎯 '+esc(((your.mark||{}).name)||'Marca')+'</span>');
+    const hasBonus = (your.abilities||[]).some(a=> a.slot==='bonus');
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'+
       '<div style="font:800 13px Cinzel,serif;color:#f4d8a0">Seu turno</div>'+
-      '<div style="font:600 11px Inter;color:#9b95b4">Mov. <b style="color:#e8e4f0">'+s.your_move+'</b> · Ação <b style="color:'+(s.your_action?'#5ec27a':'#d65a5a')+'">'+(s.your_action?'pronta':'usada')+'</b></div>'+
-      '<button id="cb-pass" style="margin-left:auto;padding:7px 14px;border-radius:9px;border:1px solid #9b6dff;background:linear-gradient(180deg,#7d4fe0,#5e3bb0);color:#fff;font:700 12px Inter;cursor:pointer">Passar turno</button>'+
-      '</div><div style="font-size:10.5px;color:#6c688a;margin-top:5px">clique num inimigo ao seu lado pra atacar · WASD pra mover</div>';
+      '<div style="font:600 11px Inter;color:#9b95b4">Mov. <b style="color:#e8e4f0">'+s.your_move+'</b> · '+
+        'Ação <b style="color:'+(your.action_used?'#d65a5a':'#5ec27a')+'">'+(your.action_used?'usada':'pronta')+'</b>'+
+        (hasBonus?(' · Bônus <b style="color:'+(your.bonus_used?'#d65a5a':'#5ec27a')+'">'+(your.bonus_used?'usada':'pronta')+'</b>'):'')+'</div>'+
+      (badges.length?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+badges.join('')+'</div>'):'')+
+      '</div>';
+    let btns = cbBtn('attack','⚔ Atacar', {primary:true});
+    for(const ab of (your.abilities||[])){
+      if(ab.slot === 'passive') continue;
+      const used = (ab.slot==='bonus' && your.bonus_used) || (ab.slot==='action' && your.action_used);
+      btns += cbBtn('ab:'+ab.id, ab.name, {disabled: !ab.ready || used});
+    }
+    if((your.spells||[]).length) btns += cbBtn('spells','✦ Magias', {disabled: your.action_used});
+    btns += cbBtn('pass','Passar', {});
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+btns+'</div>';
+    if(combat.pending){
+      html += '<div style="font-size:10.5px;color:#f4d8a0;margin-top:6px">▸ '+esc(combat.pending.label||'')+
+        ': clique no inimigo '+(combat.pending.range==='ranged'?'(qualquer)':'(ao lado)')+' · ou clique fora pra cancelar</div>';
+    } else {
+      html += '<div style="font-size:10.5px;color:#6c688a;margin-top:5px">clique num inimigo · WASD pra mover</div>';
+    }
+    html += resPips(your.res);
   } else {
     const who = (s.combatants.find(c=> c.cid === s.turn) || {}).name || 'inimigo';
-    bar = '<div style="font:700 12px Inter;color:#9b95b4;margin-top:8px">Turno de '+esc(who)+'…</div>';
+    html += '<div style="font:700 12px Inter;color:#9b95b4;margin-top:8px">Turno de '+esc(who)+'…</div>'+resPips(your.res);
   }
-  combatHud.innerHTML = '<div style="font:700 10px Inter;letter-spacing:1px;color:#9b6dff;text-transform:uppercase">Combate · Rodada '+s.round+'</div>'+
-    '<div style="margin-top:4px;line-height:1.8">'+chips+'</div>'+bar;
-  const pass = document.getElementById('cb-pass');
-  if(pass) pass.onclick = ()=>{ if(combat && combat.yourTurn) socket.emit('combat_end_turn', {}); };
+  combatHud.innerHTML = html;
+  combatHud.querySelectorAll('button[data-cb]').forEach(b=>{ b.onclick = ()=> cbAction(b.getAttribute('data-cb')); });
+}
+
+// ---- helpers da barra de combate ----
+const _RES_LABEL = {rage:'Fúria', ki:'Ki', second_wind:'Fôlego', action_surge:'Surto',
+                    lay_on_hands:'Cura', sorcery:'Feit.', bardic:'Insp.'};
+function _dots(cur, max){
+  if(max > 6) return '<b style="color:#e8e4f0">'+cur+'</b><span style="color:#6c688a">/'+max+'</span>';
+  let o=''; for(let i=0;i<max;i++) o += (i<cur ? '●' : '○');
+  return '<span style="color:#c9a0ff;letter-spacing:1px">'+o+'</span>';
+}
+function resPips(res){
+  if(!res) return '';
+  const parts = [];
+  for(const k of Object.keys(res)){
+    if(k === 'slots'){
+      const sl = res.slots;
+      for(const lv of Object.keys(sl).sort())
+        parts.push('<span style="font:600 10.5px Inter;color:#9b95b4">Esp.'+lv+' '+_dots(sl[lv].cur, sl[lv].max)+'</span>');
+    } else {
+      parts.push('<span style="font:600 10.5px Inter;color:#9b95b4">'+(_RES_LABEL[k]||k)+' '+_dots(res[k].cur, res[k].max)+'</span>');
+    }
+  }
+  return parts.length ? '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid #241f3a">'+parts.join('')+'</div>' : '';
+}
+function cbBtn(id, label, opts){
+  opts = opts || {};
+  const dis = !!opts.disabled;
+  const bg = opts.primary ? 'linear-gradient(180deg,#7d4fe0,#5e3bb0)' : (dis?'#221d36':'#2a2442');
+  const bd = opts.primary ? '#9b6dff' : (dis?'#2e2a47':'#473e6e');
+  const col = dis ? '#6c688a' : '#e8e4f0';
+  return '<button data-cb="'+id+'"'+(dis?' disabled':'')+' style="padding:6px 11px;border-radius:9px;border:1px solid '+bd+';'+
+    'background:'+bg+';color:'+col+';font:700 11.5px Inter;cursor:'+(dis?'default':'pointer')+'">'+esc(label)+'</button>';
+}
+function cbAction(id){
+  if(!combat || !combat.yourTurn) return;
+  const your = (combat.snapshot && combat.snapshot.your) || {};
+  if(id === 'pass'){ combat.pending = null; socket.emit('combat_end_turn', {}); return; }
+  if(id === 'attack'){ combat.pending = {type:'attack', range:'melee', label:'Atacar'}; renderCombatHud(); return; }
+  if(id === 'spells'){ openSpellMenu(); return; }
+  if(id.indexOf('ab:') === 0){
+    const aid = id.slice(3);
+    const ab = (your.abilities||[]).find(a=> a.id === aid);
+    if(!ab) return;
+    if(ab.target){ combat.pending = {type:'ability', id:aid, range:'melee', label:ab.name}; renderCombatHud(); }
+    else { socket.emit('combat_ability', {ability: aid}); }
+  }
+}
+let spellMenuEl = null;
+function closeSpellMenu(){ if(spellMenuEl){ spellMenuEl.remove(); spellMenuEl = null; } }
+function openSpellMenu(){
+  closeSpellMenu();
+  const your = (combat.snapshot && combat.snapshot.your) || {};
+  const list = your.spells || [];
+  spellMenuEl = document.createElement('div');
+  spellMenuEl.style.cssText = 'position:fixed;left:50%;bottom:128px;transform:translateX(-50%);width:min(420px,92vw);z-index:8600;'+
+    'background:rgba(20,17,30,.97);border:1px solid #473e6e;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.6);padding:10px 12px;'+
+    'font-family:Inter;max-height:60vh;overflow:auto';
+  let rows = '';
+  for(const sp of list){
+    const lvl = sp.level === 0 ? 'Truque' : ('Nível '+sp.level);
+    const dis = !sp.castable;
+    const tag = sp.range === 'self' ? ' <span style="color:#5ec27a;font-size:10px">você</span>'
+              : (sp.range === 'ranged' ? ' <span style="color:#c9a0ff;font-size:10px">distância</span>' : '');
+    rows += '<button data-sp="'+sp.id+'"'+(dis?' disabled':'')+' style="display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;'+
+      'border-radius:10px;border:1px solid '+(dis?'#2e2a47':'#473e6e')+';background:'+(dis?'#1b1830':'#241d44')+';'+
+      'color:'+(dis?'#6c688a':'#e8e4f0')+';cursor:'+(dis?'default':'pointer')+'">'+
+      '<div style="font:700 12.5px Inter">'+esc(sp.name)+' <span style="font:600 10px Inter;color:#9b6dff">'+lvl+'</span>'+tag+'</div>'+
+      '<div style="font:500 10.5px Inter;color:#9b95b4;margin-top:2px">'+esc(sp.desc)+'</div></button>';
+  }
+  spellMenuEl.innerHTML = '<div style="font:800 12px Cinzel,serif;color:#f4d8a0;margin-bottom:4px">Magias</div>'+
+    (rows || '<div style="color:#9b95b4;font-size:11px;padding:6px">Nenhuma magia disponível.</div>')+
+    '<button data-sp="_cancel" style="width:100%;margin-top:6px;padding:7px;border-radius:9px;border:1px solid #2e2a47;'+
+    'background:#1b1830;color:#9b95b4;font:700 11px Inter;cursor:pointer">Fechar</button>';
+  document.body.appendChild(spellMenuEl);
+  spellMenuEl.querySelectorAll('button[data-sp]').forEach(b=>{
+    b.onclick = ()=>{
+      const sid = b.getAttribute('data-sp');
+      if(sid === '_cancel'){ closeSpellMenu(); return; }
+      const sp = (your.spells||[]).find(x=> x.id === sid);
+      closeSpellMenu();
+      if(!sp || !sp.castable) return;
+      if(sp.range === 'self'){ socket.emit('combat_cast', {spell: sid}); }
+      else { combat.pending = {type:'spell', id:sid, range:sp.range, label:sp.name}; renderCombatHud(); }
+    };
+  });
 }
 
 function popDamage(cid, text, color){
@@ -3712,6 +3836,34 @@ function showAttackResult(res){
   if(!res) return;
   if(res.hit) popDamage(res.target, '-'+res.dmg+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
   else popDamage(res.target, 'errou', '#9b95b4');
+}
+function popHeal(cid, text){
+  const e = players.get(cid); if(!e) return;
+  dmgPops.push({ x:e.x, y:e.y, text:text, color:'#5ec27a', t0:performance.now() });
+}
+function showSpellResult(r){
+  if(!r) return;
+  if(r.self && r.heal != null){ popHeal(r.caster, '+'+r.heal); return; }
+  if(r.mark){ toastMsg('🎯 '+(r.name||'Marca')+' em '+(r.target_name||'alvo')); return; }
+  if(r.buff){ toastMsg('✦ '+(r.name||'Magia')+'!'); return; }
+  if(r.auto){ popDamage(r.target, '-'+r.dmg, '#c9a0ff'); return; }
+  if(r.save){
+    if(r.dmg > 0) popDamage(r.target, '-'+r.dmg+(r.success?' ½':''), r.success?'#c9a0ff':'#ff7a7a');
+    else popDamage(r.target, 'resistiu', '#9b95b4');
+    return;
+  }
+  if(r.hit) popDamage(r.target, '-'+r.dmg+(r.crit?'!':''), r.crit?'#ffd86b':'#c9a0ff');
+  else popDamage(r.target, 'errou', '#9b95b4');
+}
+function showAbilityResult(r){
+  if(!r) return;
+  if(r.attacks){ for(const a of r.attacks) showAttackResult(a); return; }
+  if(r.heal != null){ popHeal(r.actor, '+'+r.heal); if(r.name) toastMsg('✦ '+r.name); return; }
+  if(r.rage){ toastMsg('🔥 Fúria!'); return; }
+  if(r.surge){ toastMsg('⚡ Surto de Ação!'); return; }
+  if(r.armed){ toastMsg('⚔️ Castigo armado · próximo acerto'); return; }
+  if(r.buff){ toastMsg('✦ '+(r.name||'Inspiração')+'!'); return; }
+  if(r.name) toastMsg('✦ '+r.name);
 }
 function combatBanner(title, sub, color){
   const el = document.createElement('div');

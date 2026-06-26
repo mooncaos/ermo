@@ -14,8 +14,9 @@ idx (de quem e a vez), round, move_left (passos restantes do atual), action_used
 """
 
 import random
+import copy
 
-from . import rules, races
+from . import rules, races, spells, abilities as abil
 
 
 def _d20():
@@ -56,23 +57,46 @@ def player_stats(ficha):
 
 def make_player_combatant(sid, player, ficha):
     st = player_stats(ficha)
+    cid = ficha.get("class_id")
+    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
+    lvl = int(ficha.get("level", 1))
+    prof = int(ficha.get("prof", 2))
+    cast_attr = spells.CASTING.get(cid)
+    cast_mod = races.attr_mod(int(final.get(cast_attr, 10))) if cast_attr else 0
+    cs = spells.for_class(cid)
+    sneak = ((lvl + 1) // 2) if cid == "ladino" else 0
+    rage_dmg = 2 if lvl < 9 else (3 if lvl < 16 else 4)
     return {
         "cid": sid, "kind": "player", "name": player.get("name", "Você"),
         "hp": int(ficha.get("hp", 1)), "hp_max": int(ficha.get("hp_max", 1)),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"],
         "x": player["x"], "y": player["y"], "alive": True,
-        "atk_name": "ataque",
+        "atk_name": "ataque", "level": lvl, "class_id": cid,
+        "cast_attr": cast_attr, "cast_mod": cast_mod,
+        "spell_atk": prof + cast_mod, "spell_dc": 8 + prof + cast_mod,
+        "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
+        "abilities": abil.for_class(cid), "sneak": sneak, "rage_dmg": rage_dmg,
+        "res": copy.deepcopy(ficha.get("res") or {}),
+        "raging": False, "bless_die": None, "smite_armed": False,
+        "saves": {
+            "FOR": races.attr_mod(int(final.get("FOR", 10))), "DES": st["dex"],
+            "CON": races.attr_mod(int(final.get("CON", 10))), "INT": races.attr_mod(int(final.get("INT", 10))),
+            "SAB": races.attr_mod(int(final.get("SAB", 10))), "CAR": races.attr_mod(int(final.get("CAR", 10))),
+        },
     }
 
 
 def make_monster_combatant(m):
+    dexm = m.get("dex", 0)
     return {
         "cid": m["id"], "kind": "monster", "mid": m["id"], "name": m["name"],
         "hp": int(m["hp"]), "hp_max": int(m["hp_max"]), "ac": m["ac"], "atk": m["atk"],
-        "dmg": dict(m["dmg"]), "reach": m["reach"], "speed": m["speed"], "dex": m["dex"],
+        "dmg": dict(m["dmg"]), "reach": m["reach"], "speed": m["speed"], "dex": dexm,
         "x": m["x"], "y": m["y"], "glyph": m.get("glyph"), "xp": m.get("xp", 0),
         "alive": True, "atk_name": m.get("atk_name", "ataque"),
+        "saves": {"FOR": m.get("str_save", 0), "DES": dexm, "CON": m.get("con_save", 0),
+                  "INT": 0, "SAB": m.get("wis_save", 0), "CAR": 0},
     }
 
 
@@ -99,6 +123,8 @@ def _begin_turn(enc):
     c = current(enc)
     enc["move_left"] = c.get("speed", 6)
     enc["action_used"] = False
+    enc["bonus_used"] = False
+    enc["sneak_used"] = False
 
 
 def advance(enc):
@@ -156,12 +182,53 @@ def in_reach(a, b):
     return max(abs(a["x"] - b["x"]), abs(a["y"] - b["y"])) <= a.get("reach", 1)
 
 
+def _apply_damage(target, dmg):
+    """Aplica dano ao alvo, com resistencia da Furia (dano fisico pela metade)."""
+    if target.get("raging"):
+        dmg = dmg // 2
+    target["hp"] = max(0, target["hp"] - dmg)
+    if target["hp"] <= 0:
+        target["alive"] = False
+    return dmg
+
+
+def _mark_bonus(enc, attacker, target, crit):
+    mk = enc.get("mark")
+    if mk and mk.get("by") == attacker["cid"] and mk.get("target") == target["cid"]:
+        return _roll_dmg(mk["die"], crit)
+    return 0
+
+
+def _save_mod(target, attr):
+    return int((target.get("saves") or {}).get(attr, 0))
+
+
+def _spend(res, key):
+    v = res.get(key)
+    if v and v.get("cur", 0) > 0:
+        v["cur"] -= 1
+        return True
+    return False
+
+
+def _spend_slot(res, min_level=1):
+    slots = res.get("slots") or {}
+    for lv in sorted(slots.keys(), key=lambda s: int(s)):
+        if int(lv) >= min_level and slots[lv].get("cur", 0) > 0:
+            slots[lv]["cur"] -= 1
+            return int(lv)
+    return 0
+
+
 def attack(enc, attacker, target):
-    """Resolve um ataque 5e: d20+bonus vs CA (20 = critico, 1 = erro). No acerto,
-    rola o dano (critico dobra os dados). Devolve um dict do resultado."""
+    """Resolve um ataque 5e com os extras de classe: Benção na jogada, Furia/Marca/
+    Furtivo/Castigo no dano, e resistencia no alvo."""
     d = _d20()
     crit = (d == 20)
     total = d + attacker.get("atk", 0)
+    if attacker.get("bless_die"):
+        total += _roll_dmg(attacker["bless_die"], False)
+        attacker["bless_die"] = None        # Bencao/Inspiracao valem pro proximo ataque
     hit = crit or (d != 1 and total >= target["ac"])
     res = {"attacker": attacker["cid"], "attacker_name": attacker["name"],
            "target": target["cid"], "target_name": target["name"],
@@ -170,13 +237,170 @@ def attack(enc, attacker, target):
            "target_hp": target["hp"], "target_hp_max": target["hp_max"]}
     if hit:
         dmg = _roll_dmg(attacker["dmg"], crit)
-        target["hp"] = max(0, target["hp"] - dmg)
-        res["dmg"] = dmg
+        if attacker.get("raging"):
+            dmg += attacker.get("rage_dmg", 0)
+        dmg += _mark_bonus(enc, attacker, target, crit)
+        if attacker.get("class_id") == "ladino" and attacker.get("sneak") and not enc.get("sneak_used"):
+            dmg += _roll_dmg({"n": attacker["sneak"], "d": 6}, crit)
+            enc["sneak_used"] = True
+            res["sneak"] = True
+        if attacker.get("smite_armed"):
+            lv = _spend_slot(attacker.get("res") or {})
+            if lv:
+                dmg += _roll_dmg({"n": lv + 1, "d": 6}, crit)   # 2d6 no nivel 1, +1d6/nivel acima
+                res["smite"] = True
+            attacker["smite_armed"] = False
+        dealt = _apply_damage(target, dmg)
+        res["dmg"] = dealt
         res["target_hp"] = target["hp"]
-        if target["hp"] <= 0:
-            target["alive"] = False
+        if not target.get("alive"):
             res["killed"] = True
     return res
+
+
+def _castmod(c):
+    return int(c.get("cast_mod", 0))
+
+
+def cast_spell(enc, caster, spell_id, target):
+    """Conjura uma magia/truque. Truque nao gasta espaco; magia de nivel gasta o
+    menor espaco disponivel. Devolve o resultado pro cliente animar."""
+    sp = spells.get(spell_id)
+    if not sp:
+        return {"kind": "spell", "error": True}
+    res = {"kind": "spell", "spell": spell_id, "name": sp["name"], "level": sp["level"],
+           "caster": caster["cid"], "caster_name": caster["name"]}
+    if sp["level"] > 0:
+        used = _spend_slot(caster.get("res") or {}, 1)
+        if not used:
+            return {"kind": "spell", "no_slot": True, "name": sp["name"]}
+        res["slot"] = used
+    k = sp["kind"]
+    if k == "attack":
+        d = _d20(); crit = (d == 20)
+        total = d + caster.get("spell_atk", 0)
+        hit = crit or (d != 1 and total >= target["ac"])
+        res.update({"target": target["cid"], "target_name": target["name"], "d20": d,
+                    "total": total, "hit": hit, "crit": crit, "dmg": 0})
+        if hit:
+            dmg = _roll_dmg(sp["dmg"], crit) + _mark_bonus(enc, caster, target, crit)
+            res["dmg"] = _apply_damage(target, dmg)
+            res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
+    elif k == "save":
+        roll = _d20() + _save_mod(target, sp["save"])
+        success = roll >= caster.get("spell_dc", 10)
+        dmg = _roll_dmg(sp["dmg"], False)
+        if success:
+            dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
+        res.update({"target": target["cid"], "target_name": target["name"], "save": sp["save"],
+                    "save_roll": roll, "dc": caster.get("spell_dc"), "success": success,
+                    "dmg": (_apply_damage(target, dmg) if dmg > 0 else 0)})
+        res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
+    elif k == "auto":
+        darts = int(sp.get("darts", 1))
+        dmg = sum(_roll_dmg(sp["dmg"], False) for _ in range(darts))
+        res.update({"target": target["cid"], "target_name": target["name"], "auto": True,
+                    "darts": darts, "dmg": _apply_damage(target, dmg)})
+        res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
+    elif k == "heal":
+        amt = _roll_dmg(sp["heal"], False) + (_castmod(caster) if sp["heal"].get("mod") else 0)
+        before = caster["hp"]; caster["hp"] = min(caster["hp_max"], caster["hp"] + amt)
+        res.update({"heal": caster["hp"] - before, "target": caster["cid"], "self": True})
+    elif k == "mark":
+        enc["mark"] = {"by": caster["cid"], "target": target["cid"], "die": sp["mark_die"], "name": sp["name"]}
+        res.update({"mark": True, "target": target["cid"], "target_name": target["name"]})
+    elif k == "buff":
+        caster["bless_die"] = sp.get("buff_die")
+        res.update({"buff": True, "target": caster["cid"], "self": True})
+    return res
+
+
+def use_ability(enc, actor, aid, target=None):
+    """Usa uma habilidade de classe. Devolve resultado; 'fail' True se faltou recurso
+    ou alvo. NAO consome acao/bonus aqui (quem chama controla o turno)."""
+    res = {"kind": "ability", "ability": aid, "actor": actor["cid"]}
+    meta = abil.get(aid) or {}
+    res["name"] = meta.get("name", aid)
+    R = actor.get("res") or {}
+    if aid == "rage":
+        if not _spend(R, "rage"):
+            res["fail"] = True; return res
+        actor["raging"] = True; res["rage"] = True
+    elif aid == "second_wind":
+        if not _spend(R, "second_wind"):
+            res["fail"] = True; return res
+        amt = _roll_dmg({"n": 1, "d": 10, "flat": actor.get("level", 1)}, False)
+        before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + amt)
+        res.update({"heal": actor["hp"] - before, "self": True, "target": actor["cid"]})
+    elif aid == "action_surge":
+        if not _spend(R, "action_surge"):
+            res["fail"] = True; return res
+        enc["action_used"] = False; res["surge"] = True
+    elif aid == "lay_on_hands":
+        pool = R.get("lay_on_hands")
+        need = actor["hp_max"] - actor["hp"]
+        if not pool or pool.get("cur", 0) <= 0 or need <= 0:
+            res["fail"] = True; return res
+        amt = min(pool["cur"], need)
+        pool["cur"] -= amt
+        before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + amt)
+        res.update({"heal": actor["hp"] - before, "self": True, "target": actor["cid"]})
+    elif aid == "flurry":
+        if not target or not _spend(R, "ki"):
+            res["fail"] = True; return res
+        res["attacks"] = [attack(enc, actor, target), attack(enc, actor, target)]
+    elif aid == "martial_arts":
+        if not target:
+            res["fail"] = True; return res
+        res["attacks"] = [attack(enc, actor, target)]
+    elif aid == "bardic":
+        if not _spend(R, "bardic"):
+            res["fail"] = True; return res
+        actor["bless_die"] = {"n": 1, "d": 6}; res.update({"buff": True, "self": True})
+    elif aid == "divine_smite":
+        actor["smite_armed"] = True; res["armed"] = True
+    else:
+        res["fail"] = True
+    return res
+
+
+def _ability_view(me):
+    R = me.get("res") or {}
+    out = []
+    for aid in me.get("abilities", []):
+        meta = abil.get(aid) or {}
+        ready = True
+        if aid == "rage":
+            ready = (R.get("rage", {}).get("cur", 0) > 0)
+        elif aid == "second_wind":
+            ready = (R.get("second_wind", {}).get("cur", 0) > 0)
+        elif aid == "action_surge":
+            ready = (R.get("action_surge", {}).get("cur", 0) > 0)
+        elif aid == "flurry":
+            ready = (R.get("ki", {}).get("cur", 0) > 0)
+        elif aid == "lay_on_hands":
+            ready = (R.get("lay_on_hands", {}).get("cur", 0) > 0)
+        elif aid == "bardic":
+            ready = (R.get("bardic", {}).get("cur", 0) > 0)
+        out.append({"id": aid, "name": meta.get("name", aid), "slot": meta.get("slot", "action"),
+                    "target": bool(meta.get("target")), "desc": meta.get("desc", ""), "ready": ready})
+    return out
+
+
+def _spell_view(me):
+    out = []
+    has_slot = any(s.get("cur", 0) > 0 for s in (me.get("res") or {}).get("slots", {}).values())
+    for sid in me.get("cantrips", []):
+        sp = spells.get(sid)
+        if sp:
+            out.append({"id": sid, "name": sp["name"], "level": 0, "kind": sp["kind"],
+                        "range": sp["range"], "desc": sp["desc"], "castable": True})
+    for sid in me.get("spells_known", []):
+        sp = spells.get(sid)
+        if sp:
+            out.append({"id": sid, "name": sp["name"], "level": sp["level"], "kind": sp["kind"],
+                        "range": sp["range"], "desc": sp["desc"], "castable": has_slot})
+    return out
 
 
 # ----------------------------------------------------------------------- IA
@@ -231,10 +455,26 @@ def snapshot(enc, my_cid):
             "alive": c.get("alive", True), "glyph": c.get("glyph"),
             "you": (cid == my_cid), "current": (cid == cur_cid), "ac": c["ac"],
         })
+    me = enc["combs"].get(my_cid)
+    your = None
+    if me and me.get("kind") == "player":
+        is_my_turn = (cur_cid == my_cid)
+        your = {
+            "res": me.get("res") or {},
+            "raging": me.get("raging", False),
+            "smite_armed": me.get("smite_armed", False),
+            "cast_attr": me.get("cast_attr"),
+            "abilities": _ability_view(me),
+            "spells": _spell_view(me),
+            "mark": enc.get("mark"),
+            "bonus_used": enc.get("bonus_used", False) if is_my_turn else True,
+            "action_used": enc.get("action_used", False) if is_my_turn else True,
+        }
     return {
         "combatants": combs, "order": list(enc["order"]),
         "turn": cur_cid, "round": enc["round"],
         "your_turn": (cur_cid == my_cid),
         "your_move": enc["move_left"] if cur_cid == my_cid else 0,
         "your_action": (not enc["action_used"]) if cur_cid == my_cid else False,
+        "your": your,
     }

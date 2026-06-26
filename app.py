@@ -46,7 +46,8 @@ from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from game import (db, accounts, items, npcs, rules, valdris, classes, races,
-                  leveling, feats, class_features, monsters as monsters_def, combat)
+                  leveling, feats, class_features, monsters as monsters_def, combat,
+                  spells as spells_def, abilities as abilities_def)
 from game import secret_worlds, world_map as wm
 from game.world import World, public
 from game.world_map import (MAP_ROWS, map_rows, EDGE_LINKS,
@@ -450,6 +451,8 @@ def _start_combat(sid, monster_list):
     ficha = player.get("ficha") or {}
     if not ficha.get("class_id"):
         return   # sem classe ainda nao tem stats de combate
+    if "res" not in ficha:
+        leveling.compute_resources(ficha)   # garante recursos (fichas antigas)
     monster_list = [m for m in monster_list if m.get("alive", True) and not m.get("in_combat")]
     if not monster_list:
         return
@@ -537,6 +540,12 @@ def _end_combat(sid, oc):
             m = enc["_monsters"].get(c["cid"])
             if m:
                 m["in_combat"] = False
+    # devolve os recursos gastos na luta pra ficha (a recarga e por andar, nao cura aqui)
+    pcomb = enc["combs"].get(sid)
+    if player and pcomb is not None and pcomb.get("res") is not None:
+        f0 = player.get("ficha") or {}
+        f0["res"] = pcomb["res"]
+        player["ficha"] = f0
     if oc == "victory":
         xp = sum(c.get("xp", 0) for c in enc["combs"].values()
                  if c["kind"] == "monster" and not c.get("alive"))
@@ -651,6 +660,89 @@ def on_combat_attack(data):
         _end_combat(sid, "victory")
 
 
+@socketio.on("combat_cast")
+def on_combat_cast(data):
+    sid = request.sid
+    enc = COMBAT.get(sid)
+    if not enc or combat.current(enc)["kind"] != "player":
+        return
+    if enc["action_used"]:
+        emit("combat_msg", {"text": "Você já agiu neste turno."})
+        return
+    me = combat.current(enc)
+    spell_id = (data or {}).get("spell")
+    sp = spells_def.get(spell_id)
+    if not sp or (spell_id not in (me.get("cantrips") or []) and
+                  spell_id not in (me.get("spells_known") or [])):
+        return
+    rng = sp.get("range", "ranged")
+    if rng == "self":
+        target = me
+    else:
+        target = enc["combs"].get((data or {}).get("target"))
+        if not target or not target.get("alive") or target["kind"] != "monster":
+            return
+        if rng == "melee" and not combat.in_reach(me, target):
+            emit("combat_msg", {"text": "Fora de alcance."})
+            return
+    res = combat.cast_spell(enc, me, spell_id, target)
+    if res.get("no_slot"):
+        emit("combat_msg", {"text": "Sem espaço de magia para isso."})
+        return
+    if res.get("error"):
+        return
+    enc["action_used"] = True
+    _sync_monsters_to_world(enc)
+    oc = combat.outcome(enc)
+    emit("combat_state", {"spell_result": res, "snapshot": combat.snapshot(enc, sid),
+                          "your_turn": oc is None, "outcome": oc})
+    if oc == "victory":
+        _end_combat(sid, "victory")
+
+
+@socketio.on("combat_ability")
+def on_combat_ability(data):
+    sid = request.sid
+    enc = COMBAT.get(sid)
+    if not enc or combat.current(enc)["kind"] != "player":
+        return
+    me = combat.current(enc)
+    aid = (data or {}).get("ability")
+    meta = abilities_def.get(aid)
+    if not meta or aid not in (me.get("abilities") or []):
+        return
+    slot = meta.get("slot", "action")
+    if slot == "bonus" and enc.get("bonus_used"):
+        emit("combat_msg", {"text": "Ação bônus já usada neste turno."})
+        return
+    if slot == "action" and enc["action_used"]:
+        emit("combat_msg", {"text": "Você já agiu neste turno."})
+        return
+    target = None
+    if meta.get("target"):
+        target = enc["combs"].get((data or {}).get("target"))
+        if not target or not target.get("alive") or target["kind"] != "monster":
+            return
+        if not combat.in_reach(me, target):
+            emit("combat_msg", {"text": "Fora de alcance."})
+            return
+    res = combat.use_ability(enc, me, aid, target)
+    if res.get("fail"):
+        emit("combat_msg", {"text": "Não foi possível usar isso agora."})
+        return
+    if slot == "bonus":
+        enc["bonus_used"] = True
+    elif slot == "action":
+        enc["action_used"] = True
+    # 'special' (Surto de Ação / armar Castigo) nao consome acao nem bonus
+    _sync_monsters_to_world(enc)
+    oc = combat.outcome(enc)
+    emit("combat_state", {"ability_result": res, "snapshot": combat.snapshot(enc, sid),
+                          "your_turn": oc is None, "outcome": oc})
+    if oc == "victory":
+        _end_combat(sid, "victory")
+
+
 @socketio.on("combat_end_turn")
 def on_combat_end_turn(data):
     sid = request.sid
@@ -746,6 +838,17 @@ def on_move(data):
                 "picked": {"item": picked["item"], "name": cat.get("name", ""), "qty": 1},
             })
         emit("item_taken", {"x": picked["x"], "y": picked["y"]}, room=mp)
+
+    # recarrega recursos de classe conforme anda (temporario; depois vira descanso).
+    f = player.get("ficha")
+    if f and f.get("res"):
+        player["_steps"] = int(player.get("_steps", 0)) + 1
+        if player["_steps"] % 5 == 0 and leveling.regen_resources(f, 1):
+            emit("res", {"res": f["res"]})
+            try:
+                db.save_ficha(player["player_id"], f)
+            except Exception:
+                pass
 
     # aggro: andou perto de um monstro em O Descampado -> a luta comeca.
     if mp == "descampado" and not player.get("in_combat"):

@@ -110,6 +110,114 @@ def hp_for_level(hd, con_mod, level):
     return hp + per * (max(1, level) - 1)
 
 
+# ===========================================================================
+#  RECURSOS DE CLASSE (camada C): espacos de magia, Ki, Furia, etc.
+#  Recarga e por andar (temporario), feita em regen_resources().
+# ===========================================================================
+_FULL_SLOTS = {  # nivel do personagem -> [espacos por nivel de magia 1..9]
+    1: [2], 2: [3], 3: [4, 2], 4: [4, 3], 5: [4, 3, 2], 6: [4, 3, 3],
+    7: [4, 3, 3, 1], 8: [4, 3, 3, 2], 9: [4, 3, 3, 3, 1], 10: [4, 3, 3, 3, 2],
+    11: [4, 3, 3, 3, 2, 1], 12: [4, 3, 3, 3, 2, 1], 13: [4, 3, 3, 3, 2, 1, 1],
+    14: [4, 3, 3, 3, 2, 1, 1], 15: [4, 3, 3, 3, 2, 1, 1, 1], 16: [4, 3, 3, 3, 2, 1, 1, 1],
+    17: [4, 3, 3, 3, 2, 1, 1, 1, 1], 18: [4, 3, 3, 3, 3, 1, 1, 1, 1],
+    19: [4, 3, 3, 3, 3, 2, 1, 1, 1], 20: [4, 3, 3, 3, 3, 2, 2, 1, 1],
+}
+_HALF_SLOTS = {  # paladino/patrulheiro (comeca no nivel 2)
+    1: [], 2: [2], 3: [3], 4: [3], 5: [4, 2], 6: [4, 2], 7: [4, 3], 8: [4, 3],
+    9: [4, 3, 2], 10: [4, 3, 2], 11: [4, 3, 3], 12: [4, 3, 3], 13: [4, 3, 3, 1],
+    14: [4, 3, 3, 1], 15: [4, 3, 3, 2], 16: [4, 3, 3, 2], 17: [4, 3, 3, 3, 1],
+    18: [4, 3, 3, 3, 1], 19: [4, 3, 3, 3, 2], 20: [4, 3, 3, 3, 2],
+}
+_PACT = {  # bruxo: (qtd de espacos, nivel deles)
+    1: (1, 1), 2: (2, 1), 3: (2, 2), 4: (2, 2), 5: (2, 3), 6: (2, 3), 7: (2, 4),
+    8: (2, 4), 9: (2, 5), 10: (2, 5), 11: (3, 5), 12: (3, 5), 13: (3, 5), 14: (3, 5),
+    15: (3, 5), 16: (3, 5), 17: (4, 5), 18: (4, 5), 19: (4, 5), 20: (4, 5),
+}
+_RAGE = {1: 2, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4, 7: 4, 8: 4, 9: 4, 10: 4, 11: 4,
+         12: 5, 13: 5, 14: 5, 15: 5, 16: 5, 17: 6, 18: 6, 19: 6, 20: 6}
+
+FULL_CASTERS = {"mago", "clerigo", "druida", "bardo", "feiticeiro"}
+HALF_CASTERS = {"paladino", "patrulheiro"}
+
+
+def _slots_for(class_id, level):
+    level = max(1, min(MAX_LEVEL, level))
+    if class_id in FULL_CASTERS:
+        row = _FULL_SLOTS.get(level, [])
+    elif class_id in HALF_CASTERS:
+        row = _HALF_SLOTS.get(level, [])
+    elif class_id == "bruxo":
+        qtd, lv = _PACT.get(level, (1, 1))
+        return {str(lv): qtd}
+    else:
+        return {}
+    return {str(i + 1): n for i, n in enumerate(row) if n > 0}
+
+
+def _resource_maxes(ficha):
+    cid = ficha.get("class_id")
+    lvl = max(1, min(MAX_LEVEL, int(ficha.get("level", 1))))
+    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
+    res = {}
+    if cid == "barbaro":
+        res["rage"] = _RAGE.get(lvl, 2)
+    elif cid == "guerreiro":
+        res["second_wind"] = 1
+        if lvl >= 2:
+            res["action_surge"] = 2 if lvl >= 17 else 1
+    elif cid == "monge" and lvl >= 2:
+        res["ki"] = lvl
+    elif cid == "paladino":
+        res["lay_on_hands"] = 5 * lvl
+    elif cid == "feiticeiro" and lvl >= 2:
+        res["sorcery"] = lvl
+    elif cid == "bardo":
+        res["bardic"] = max(1, races.attr_mod(int(final.get("CAR", 10))))
+    return res, _slots_for(cid, lvl)
+
+
+def compute_resources(ficha):
+    """Preenche ficha['res'] com os recursos da classe. Recurso novo nasce cheio;
+    o existente mantem o gasto atual (a recarga e por andar)."""
+    cid = ficha.get("class_id")
+    if not cid:
+        ficha.pop("res", None)
+        return ficha
+    maxes, slots = _resource_maxes(ficha)
+    old = ficha.get("res") or {}
+    res = {}
+    for k, mx in maxes.items():
+        ocur = (old.get(k) or {}).get("cur")
+        res[k] = {"cur": (mx if ocur is None else min(int(ocur), mx)), "max": mx}
+    if slots:
+        oslots = old.get("slots") or {}
+        sres = {}
+        for lv, mx in slots.items():
+            ocur = (oslots.get(lv) or {}).get("cur")
+            sres[lv] = {"cur": (mx if ocur is None else min(int(ocur), mx)), "max": mx}
+        res["slots"] = sres
+    ficha["res"] = res
+    return ficha
+
+
+def regen_resources(ficha, ticks=1):
+    """Recupera 'ticks' de cada recurso (limitado ao maximo). True se algo mudou."""
+    res = ficha.get("res")
+    if not res:
+        return False
+    changed = False
+    for k, v in res.items():
+        if k == "slots":
+            for sv in v.values():
+                if sv["cur"] < sv["max"]:
+                    sv["cur"] = min(sv["max"], sv["cur"] + ticks)
+                    changed = True
+        elif v["cur"] < v["max"]:
+            v["cur"] = min(v["max"], v["cur"] + ticks)
+            changed = True
+    return changed
+
+
 def recompute(ficha):
     """Recalcula nivel, vida maxima e proficiencia a partir do XP e dos atributos.
     Sem classe ainda: so guarda o XP (nivel/vida nao mudam). Ao subir de nivel, a
@@ -134,6 +242,7 @@ def recompute(ficha):
     ficha["hp"] = max(0, min(new_max, cur))
     ficha["prof"] = proficiency_bonus(lvl)
     sync_asi(ficha)                 # enfileira escolhas de ASI/talento pendentes
+    compute_resources(ficha)        # recursos de classe (magia, Ki, Furia...)
     return ficha
 
 
