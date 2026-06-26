@@ -45,7 +45,7 @@ import time
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-from game import db, accounts, items, npcs, rules, valdris, classes
+from game import db, accounts, items, npcs, rules, valdris, classes, races
 from game.world import World, public
 from game.world_map import MAP_ROWS, map_rows
 
@@ -187,6 +187,17 @@ def _enter_world(player_id, row):
     mp = player.get("map", "ermo")
     join_room(mp)   # passa a receber so os eventos do mapa onde esta
 
+    # Conta antiga pode ter raca mas ficha SEM atributos (pegou a raca antes de a
+    # ficha carregar os atributos). Se for o caso, reconstroi da raca e grava, pra
+    # o preview da classe e o set_class funcionarem.
+    ficha = row.get("ficha") or {}
+    if not ficha.get("attrs") and row.get("race") and races.is_valid_race(row["race"]):
+        ficha = races.build_ficha(row["race"]) or ficha
+        try:
+            db.save_ficha(player_id, ficha)
+        except Exception as exc:
+            print("aviso reconstruindo ficha:", exc)
+
     emit("init", {
         "id": request.sid,
         "map": world.map_payload(mp),
@@ -195,7 +206,7 @@ def _enter_world(player_id, row):
         "equipment": player["equipment"],
         "items": items.catalog(),
         "ground": world.ground_snapshot() if mp == "ermo" else [],
-        "ficha": row.get("ficha") or {},
+        "ficha": ficha,
         "day_length": DAY_LENGTH,
         "server_now": time.time(),
     })

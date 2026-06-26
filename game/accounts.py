@@ -87,7 +87,12 @@ def set_class(player_id, class_id, plus2):
         return False, "Conta nao encontrada."
     ficha = row.get("ficha") or {}
     if not ficha.get("attrs"):
-        return False, "Escolha uma raca antes da classe."
+        # conta antiga: ficha sem atributos. Reconstroi da raca, se tiver.
+        race = row.get("race")
+        if race and races.is_valid_race(race):
+            ficha = races.build_ficha(race) or {}
+        if not ficha.get("attrs"):
+            return False, "Escolha uma raca antes da classe."
     new_ficha, err = classes.apply_class(ficha, class_id, plus2)
     if err:
         return False, err
