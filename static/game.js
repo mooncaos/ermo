@@ -1279,9 +1279,11 @@ function _deityName(c, cx, topY, name, color){
   c.fillText(name, cx, topY); c.restore();
 }
 function drawMonster(c, sx, sy, ts, p){
-  // capangas (crias e traficantes) sao humanos desenhados; o chefe tem arte propria.
-  if(p.mtype === 'maurao' || p.boss){ drawBoss(c, sx, sy, ts, p); return; }
-  if(p.mtype === 'capanga' || p.mtype === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
+  // cada tipo tem sua arte; o resto cai no emoji.
+  const t = p.mtype;
+  if(t === 'maurao'){ drawBoss(c, sx, sy, ts, p); return; }
+  if(t === 'capanga' || t === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
+  if(t === 'velho_bob' || t === 'rato_gigante' || t === 'lobo' || t === 'javali'){ drawBeast(c, sx, sy, ts, p); return; }
   const cx = sx + ts/2, cy = sy + ts/2;
   c.save();
   c.fillStyle = 'rgba(0,0,0,0.28)';
@@ -1508,6 +1510,119 @@ function drawMic(c, cx, bodyTop, bodyW, ts, s, facing){
   c.fillStyle = '#3a3540'; c.beginPath(); c.arc(0, -ts*0.12*s, ts*0.06*s, 0, Math.PI*2); c.fill();
   c.fillStyle = '#9aa0aa'; c.beginPath(); c.arc(0, -ts*0.12*s, ts*0.034*s, 0, Math.PI*2); c.fill();
   c.restore();
+}
+
+// ---- bichos do Descampado (quadrúpedes vistos de cima, orientados pela direção) ----
+const BEAST = {
+  rato_gigante: {body:'#6f6a62', belly:'#8c877e', size:0.60, ear:'round', tail:'rat',  snout:'#b08f86', tusk:false, bristle:false},
+  lobo:         {body:'#7c7f88', belly:'#9aa0a8', size:0.86, ear:'point', tail:'bush', snout:'#5a5d66', tusk:false, bristle:false},
+  javali:       {body:'#5a4632', belly:'#6e573e', size:0.84, ear:'point', tail:'tuft', snout:'#3a2c1e', tusk:true,  bristle:true},
+};
+function _dirVec(f){ return f==='up'?[0,-1] : f==='down'?[0,1] : f==='left'?[-1,0] : [1,0]; }
+
+function drawBeast(c, sx, sy, ts, p){
+  const boss = (p.mtype === 'velho_bob');
+  const base = boss
+    ? {body:'#6b6258', belly:'#7d756a', size:1.18, ear:'point', tail:'tuft', snout:'#2e2620', tusk:true, bristle:true}
+    : (BEAST[p.mtype] || BEAST.javali);
+  const enraged = !!p._enraged;
+  const s = base.size;
+  const cx = sx + ts/2, cy0 = sy + ts*0.54;
+  const d = _dirVec(p.facing || 'down'); const fx = d[0], fy = d[1];
+  const px = -fy, py = fx;
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE; const frame = cyc < 0.5 ? 0 : 1;
+  const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.2 : Math.sin(Date.now()/700)*0.5;
+  const L = ts*0.34*s, Wd = ts*0.22*s;
+  const bcx = cx, bcy = cy0 + bob;
+  const ang = Math.atan2(fy, fx);
+
+  c.save();
+  if(boss && enraged){
+    const pulse = 0.28 + 0.12*Math.abs(Math.sin(Date.now()/220));
+    const aur = c.createRadialGradient(cx, bcy, ts*0.2, cx, bcy, ts*0.9);
+    aur.addColorStop(0, 'rgba(255,80,40,'+pulse+')'); aur.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = aur; c.fillRect(sx-ts*0.5, sy-ts*0.5, ts*2, ts*2);
+  }
+  c.fillStyle = 'rgba(0,0,0,.30)';
+  c.beginPath(); c.ellipse(cx, cy0+ts*0.26, L*0.95, Wd*0.7, 0, 0, Math.PI*2); c.fill();
+
+  // pernas (pares diagonais)
+  function leg(along, across, ph){
+    const lx = bcx + fx*L*along + px*Wd*across, ly = bcy + fy*L*along + py*Wd*across;
+    const sw = moving ? (((frame ^ ph) ? 1 : -1) * 1.8) : 0;
+    c.strokeStyle = shade(base.body, -0.45); c.lineWidth = Math.max(2, ts*0.05*s); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(lx, ly); c.lineTo(lx + fx*sw, ly + fy*sw + ts*0.12*s); c.stroke();
+  }
+  leg(0.5, 1, 0); leg(0.5, -1, 1); leg(-0.5, 1, 1); leg(-0.5, -1, 0);
+
+  // cauda
+  const tlx = bcx - fx*L*1.05, tly = bcy - fy*L*1.05;
+  if(base.tail === 'rat'){ c.strokeStyle = base.snout; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(tlx, tly); c.lineTo(tlx - fx*ts*0.3, tly - fy*ts*0.3); c.stroke(); }
+  else if(base.tail === 'bush'){ c.fillStyle = shade(base.body, -0.1);
+    c.beginPath(); c.ellipse(tlx - fx*ts*0.05, tly - fy*ts*0.05, ts*0.1*s, ts*0.06*s, ang, 0, Math.PI*2); c.fill(); }
+  else { c.fillStyle = shade(base.body, -0.2); c.fillRect(tlx-1.5, tly-1.5, 3, 3); }
+
+  // corpo
+  c.fillStyle = base.body; c.beginPath(); c.ellipse(bcx, bcy, L, Wd, ang, 0, Math.PI*2); c.fill();
+  c.fillStyle = base.belly; c.beginPath(); c.ellipse(bcx, bcy-1, L*0.7, Wd*0.6, ang, 0, Math.PI*2); c.fill();
+  if(base.bristle){ c.strokeStyle = shade(base.body, -0.4); c.lineWidth = 1;
+    for(let i=-2;i<=2;i++){ const hx2 = bcx + px*i*2, hy2 = bcy + py*i*2;
+      c.beginPath(); c.moveTo(hx2, hy2); c.lineTo(hx2, hy2-3); c.stroke(); } }
+
+  // cabeça + focinho
+  const hx = bcx + fx*L*0.92, hy = bcy + fy*L*0.92, hr = Wd*0.92;
+  c.fillStyle = base.body; c.beginPath(); c.arc(hx, hy, hr, 0, Math.PI*2); c.fill();
+  const mx = hx + fx*hr*0.9, my = hy + fy*hr*0.9;
+  c.fillStyle = base.snout; c.beginPath(); c.ellipse(mx, my, hr*0.5, hr*0.4, ang, 0, Math.PI*2); c.fill();
+
+  // orelhas
+  const e1x = hx + px*hr*0.7, e1y = hy + py*hr*0.7, e2x = hx - px*hr*0.7, e2y = hy - py*hr*0.7;
+  c.fillStyle = shade(base.body, -0.12);
+  if(base.ear === 'point'){
+    c.beginPath(); c.moveTo(e1x, e1y); c.lineTo(e1x + px*3 - fx*2, e1y + py*3 - fy*2); c.lineTo(e1x - fx*3, e1y - fy*3); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(e2x, e2y); c.lineTo(e2x - px*3 - fx*2, e2y - py*3 - fy*2); c.lineTo(e2x - fx*3, e2y - fy*3); c.closePath(); c.fill();
+  } else {
+    c.beginPath(); c.arc(e1x, e1y, hr*0.42, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(e2x, e2y, hr*0.42, 0, Math.PI*2); c.fill();
+    c.fillStyle = base.snout;
+    c.beginPath(); c.arc(e1x, e1y, hr*0.2, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(e2x, e2y, hr*0.2, 0, Math.PI*2); c.fill();
+  }
+
+  // presas (javali / Bob com uma quebrada)
+  if(base.tusk){
+    c.fillStyle = '#efe6cf';
+    const t1x = mx + px*hr*0.3, t1y = my + py*hr*0.3, t2x = mx - px*hr*0.3, t2y = my - py*hr*0.3;
+    c.beginPath(); c.moveTo(t1x, t1y); c.lineTo(t1x + fx*4 - px, t1y + fy*4 - py); c.lineTo(t1x + fx*2, t1y + fy*2); c.closePath(); c.fill();
+    const brk = boss ? 0.5 : 1;
+    c.beginPath(); c.moveTo(t2x, t2y); c.lineTo(t2x + fx*4*brk + px, t2y + fy*4*brk + py); c.lineTo(t2x + fx*2*brk, t2y + fy*2*brk); c.closePath(); c.fill();
+  }
+
+  // olhos
+  c.fillStyle = enraged ? '#ff5a3a' : '#15100e';
+  const oxx = hx + fx*hr*0.15, oyy = hy + fy*hr*0.15;
+  c.beginPath(); c.arc(oxx + px*hr*0.45, oyy + py*hr*0.45, 1.6, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(oxx - px*hr*0.45, oyy - py*hr*0.45, 1.6, 0, Math.PI*2); c.fill();
+
+  // crina grisalha + cicatriz do Velho Bob
+  if(boss){
+    c.strokeStyle = '#9a948a'; c.lineWidth = 1.4;
+    for(let i=-2;i<=2;i++){ const cxx = bcx + px*i*3 - fx*L*0.2, cyy = bcy + py*i*3 - fy*L*0.2;
+      c.beginPath(); c.moveTo(cxx, cyy); c.lineTo(cxx - fx*4, cyy - fy*4); c.stroke(); }
+    c.strokeStyle = '#3a241c'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(hx - px*hr*0.6, hy - py*hr*0.6); c.lineTo(hx + px*hr*0.2, hy + py*hr*0.2 + 2); c.stroke();
+  }
+  c.restore();
+
+  if(boss){
+    c.save(); c.font = '800 8px Cinzel, serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
+    const tw = c.measureText('PATRIARCA').width + 8, tagY = sy - 12;
+    c.fillStyle = 'rgba(20,16,8,0.92)'; roundRect(c, cx-tw/2, tagY-11, tw, 11, 3); c.fill();
+    c.fillStyle = '#d9cba0'; c.fillText('PATRIARCA', cx, tagY-1.5); c.restore();
+  }
+  drawMonsterBarName(c, sx, sy, ts, p);
 }
 function drawDeity(c, sx, sy, ts, p){
   const N = p.size || 4;
@@ -3127,8 +3242,12 @@ function connectWithToken(token){
     endCombatUi();
     if(!d) return;
     if(d.hp!=null && myFicha){ myFicha.hp = d.hp; if(d.hp_max!=null) myFicha.hp_max = d.hp_max; renderFicha(); }
-    if(d.outcome === 'victory') combatBanner('Vitória!', d.xp ? ('+'+d.xp+' XP') : '', '#5ec27a');
-    else combatBanner('Você caiu...', 'renasceu no Ermo · perdeu metade do XP do nível', '#d65a5a');
+    if(d.outcome === 'victory'){
+      combatBanner('Vitória!', d.xp ? ('+'+d.xp+' XP') : '', '#5ec27a');
+      if((d.drops && d.drops.length) || d.bronze) showSpoils(d.drops || [], d.bronze || 0);
+    } else {
+      combatBanner('Você caiu...', 'renasceu no Ermo · perdeu metade do XP do nível', '#d65a5a');
+    }
   });
   socket.on('combat_msg', d=>{ if(d && d.text) toastMsg(d.text, true); });
   socket.on('res', d=>{ if(d && d.res && myFicha){ myFicha.res = d.res; } });
@@ -4152,6 +4271,30 @@ function showAbilityResult(r){
   if(r.armed){ toastMsg('⚔️ Castigo armado · próximo acerto'); return; }
   if(r.buff){ toastMsg('✦ '+(r.name||'Inspiração')+'!'); return; }
   if(r.name) toastMsg('✦ '+r.name);
+}
+function showSpoils(drops, bronze){
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:50%;top:56%;transform:translate(-50%,-50%) scale(0.9);'+
+    'z-index:9000;background:rgba(16,14,23,.95);border:1px solid #6b5a2a;border-radius:14px;'+
+    'box-shadow:0 16px 44px rgba(0,0,0,.6);padding:12px 16px;min-width:190px;'+
+    'opacity:0;transition:all .35s cubic-bezier(.2,1.4,.4,1);pointer-events:none;font-family:Inter';
+  let html = '<div style="font:800 13px Cinzel,serif;color:#f4d06a;margin-bottom:8px;text-align:center">Espólio</div>';
+  for(const it of (drops||[])){
+    html += '<div class="spoil-row" data-item="'+esc(it.item)+'" style="display:flex;align-items:center;gap:8px;margin:5px 0">'+
+      '<canvas width="24" height="24" class="spoil-ic"></canvas>'+
+      '<span style="font:600 12.5px Inter;color:#e8e4f0">'+esc(it.name)+(it.qty>1?(' <b style="color:#9b95b4">x'+it.qty+'</b>'):'')+'</span></div>';
+  }
+  if(bronze) html += '<div style="display:flex;align-items:center;gap:8px;margin:5px 0">'+
+    '<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#cd7f32;margin-left:4px"></span>'+
+    '<span style="font:700 12.5px Inter;color:#e0b15a">+'+bronze+' bronze</span></div>';
+  el.innerHTML = html;
+  document.body.appendChild(el);
+  el.querySelectorAll('.spoil-row').forEach(r=>{
+    const cv = r.querySelector('.spoil-ic');
+    if(cv) drawItemIcon(cv.getContext('2d'), 12, 12, 24, r.getAttribute('data-item'), false);
+  });
+  requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translate(-50%,-50%) scale(1)'; });
+  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=> el.remove(), 400); }, 2800);
 }
 function combatBanner(title, sub, color){
   const el = document.createElement('div');

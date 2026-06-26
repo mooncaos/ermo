@@ -92,13 +92,14 @@ def make_monster_combatant(m):
     return {
         "cid": m["id"], "kind": "monster", "mid": m["id"], "name": m["name"],
         "mtype": m.get("type"), "boss": bool(m.get("boss")),
+        "summon_type": m.get("summon_type"),
         "hp": int(m["hp"]), "hp_max": int(m["hp_max"]), "ac": m["ac"], "atk": m["atk"],
         "dmg": dict(m["dmg"]), "reach": m["reach"], "speed": m["speed"], "dex": dexm,
         "x": m["x"], "y": m["y"], "glyph": m.get("glyph"), "xp": m.get("xp", 0),
         "alive": True, "atk_name": m.get("atk_name", "ataque"),
         "saves": {"FOR": m.get("str_save", 0), "DES": dexm, "CON": m.get("con_save", 0),
                   "INT": 0, "SAB": m.get("wis_save", 0), "CAR": 0},
-        "summons_left": (2 if m.get("boss") else 0), "enraged": False,
+        "summons_left": int(m.get("summons") or 0), "enraged": False,
     }
 
 

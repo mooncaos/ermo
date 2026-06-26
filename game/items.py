@@ -18,6 +18,21 @@ ITEMS = {
     "coin_gold":    {"name": "Moeda de Ouro",   "kind": "currency", "stackable": True,  "color": "#f4b860", "value": 10000},
     "staff_portuz": {"name": "Cajado do Portuz", "kind": "weapon",   "stackable": False, "color": "#9b6dff",
                      "slot": "hand", "visual": "staff"},
+
+    # --- trofeus de caca (bichos do Descampado) ---
+    "rabo_rato":     {"name": "Rabo de Rato",     "kind": "trofeu", "stackable": True, "color": "#8a857d", "value": 2},
+    "presa_lobo":    {"name": "Presa de Lobo",    "kind": "trofeu", "stackable": True, "color": "#e8e2d0", "value": 6},
+    "pelego_lobo":   {"name": "Pele de Lobo",     "kind": "trofeu", "stackable": True, "color": "#7a7d86", "value": 9},
+    "presa_javali":  {"name": "Presa de Javali",  "kind": "trofeu", "stackable": True, "color": "#efe6cf", "value": 6},
+    "couro_javali":  {"name": "Couro de Javali",  "kind": "trofeu", "stackable": True, "color": "#6e573e", "value": 8},
+    # --- espolio dos capangas ---
+    "bornal_cria":   {"name": "Bornal da Cria",   "kind": "trofeu", "stackable": True, "color": "#6b5a3a", "value": 5},
+    "marreta_velha": {"name": "Marreta Enferrujada", "kind": "trofeu", "stackable": True, "color": "#6b6256", "value": 14},
+    # --- drops unicos de chefe ---
+    "correntao_ouro":  {"name": "Correntão de Ouro",    "kind": "tesouro", "stackable": False, "color": "#f4d06a", "value": 250},
+    "microfone_patrao":{"name": "Microfone do Patrão",  "kind": "tesouro", "stackable": False, "color": "#c9c2cc", "value": 120},
+    "presa_velho_bob": {"name": "Presa Quebrada do Velho Bob", "kind": "tesouro", "stackable": False, "color": "#d9cba0", "value": 180},
+    "couro_velho_bob": {"name": "Couro do Velho Bob",   "kind": "tesouro", "stackable": True,  "color": "#5a5048", "value": 20},
 }
 
 

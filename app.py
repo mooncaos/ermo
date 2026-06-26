@@ -425,10 +425,11 @@ _MONSTER_RESPAWNS = []   # [(monster_id, quando_revive)]
 _SUMMON_SEQ = [0]        # contador dos reforcos invocados pelo chefe
 
 
-def _summon_bonde(enc, boss, count):
-    """O chefe chama o bonde: cria 'count' crias perto dele, em casas livres."""
-    spec = dict(monsters_def.get("capanga"))
-    spec["_type"] = "capanga"
+def _summon_minions(enc, boss, count):
+    """O chefe chama reforço: cria 'count' lacaios do tipo dele (bonde/manada)."""
+    stype = boss.get("summon_type") or "capanga"
+    spec = dict(monsters_def.get(stype) or {})
+    spec["_type"] = stype
     mp = enc["map"]
     occ = {(c["x"], c["y"]) for c in enc["combs"].values() if c.get("alive", True)}
     placed = 0
@@ -443,7 +444,7 @@ def _summon_bonde(enc, boss, count):
                 if (x, y) in occ or not rules.is_walkable(x, y, mp):
                     continue
                 _SUMMON_SEQ[0] += 1
-                cid = "bonde:%d" % _SUMMON_SEQ[0]
+                cid = "lacaio:%d" % _SUMMON_SEQ[0]
                 combat.add_combatant(enc, combat.make_summon_combatant(spec, cid, x, y))
                 occ.add((x, y))
                 placed += 1
@@ -453,7 +454,7 @@ def _summon_bonde(enc, boss, count):
 def _maybe_boss_hurt(enc, sid, target):
     """De vez em quando o chefe solta uma provocacao ao levar dano."""
     if target and target.get("boss") and target.get("alive") and random.random() < 0.35:
-        line = monsters_def.bark("hurt")
+        line = monsters_def.bark("hurt", target.get("mtype"))
         if line:
             socketio.emit("speech", {"id": target["cid"], "text": line}, to=sid)
 
@@ -501,7 +502,7 @@ def _start_combat(sid, monster_list):
     socketio.emit("combat_start", {"snapshot": combat.snapshot(enc, sid)}, to=sid)
     boss = next((c for c in enc["combs"].values() if c.get("boss")), None)
     if boss:
-        line = monsters_def.bark("intro")
+        line = monsters_def.bark("intro", boss.get("mtype"))
         if line:
             socketio.emit("speech", {"id": boss["cid"], "text": line}, to=sid)
     _resume(sid)
@@ -520,12 +521,12 @@ def _resume(sid):
             r = combat.boss_turn(enc, cur)
             steps, atk = r["steps"], r["atk"]
             if r.get("summon"):
-                _summon_bonde(enc, cur, r.get("summon_count", 1))
+                _summon_minions(enc, cur, r.get("summon_count", 1))
             if atk and atk.get("killed"):
-                say = monsters_def.bark("win")
+                say = monsters_def.bark("win", cur.get("mtype"))
             elif r.get("say_cat"):
                 if r["say_cat"] != "taunt" or random.random() < 0.5:
-                    say = monsters_def.bark(r["say_cat"])
+                    say = monsters_def.bark(r["say_cat"], cur.get("mtype"))
         else:
             steps, atk = combat.monster_decide(enc, cur)
         _sync_monsters_to_world(enc)
@@ -580,6 +581,35 @@ def _player_death(sid):
     _go_to(sid, "ermo", sx, sy)            # renasce no inicio
 
 
+def _collect_drops(player, enc):
+    """Rola o espolio dos monstros derrotados, joga na mochila e o bronze na carteira.
+    Devolve (lista [{item,name,qty}], bronze_ganho)."""
+    if not player:
+        return [], 0
+    bag = player.setdefault("inventory", [])
+    got = {}
+    bronze = 0
+    for c in enc["combs"].values():
+        if c["kind"] != "monster" or c.get("alive"):
+            continue
+        loot, br = monsters_def.roll_drops(c.get("mtype"))
+        bronze += br
+        for (item_id, qty) in loot:
+            if not items.exists(item_id):
+                continue
+            cat = items.get(item_id)
+            if cat.get("kind") == "currency":     # moeda dropada cai na carteira
+                bronze += int(cat.get("value", 1)) * qty
+                continue
+            items.add_to_bag(bag, item_id, qty)
+            got[item_id] = got.get(item_id, 0) + qty
+    if bronze:
+        player["wallet"] = int(player.get("wallet", 0)) + bronze
+    out = [{"item": k, "name": (items.get(k) or {}).get("name", k), "qty": v}
+           for k, v in got.items()]
+    return out, bronze
+
+
 def _end_combat(sid, oc):
     enc = COMBAT.pop(sid, None)
     player = world.players.get(sid)
@@ -612,11 +642,19 @@ def _end_combat(sid, oc):
             f = player.get("ficha") or {}
             f["hp"] = f.get("hp_max", f.get("hp", 1))   # cura apos a vitoria
             player["ficha"] = f
+            drops, bronze = _collect_drops(player, enc)   # espolio dos caidos
             try:
                 db.save_ficha(player["player_id"], f)
+                if drops or bronze:
+                    db.save_inventory(player["player_id"], player["inventory"])
+                    db.save_wallet(player["player_id"], player.get("wallet", 0))
             except Exception:
                 pass
+            if drops or bronze:
+                socketio.emit("inventory", {"bag": player["inventory"]}, to=sid)
+                socketio.emit("wallet", {"bronze": player.get("wallet", 0)}, to=sid)
             socketio.emit("combat_over", {"outcome": "victory", "xp": xp,
+                                          "drops": drops, "bronze": bronze,
                                           "hp": f.get("hp"), "hp_max": f.get("hp_max")}, to=sid)
             if xp > 0:
                 _award_xp(player, xp, "vitória")

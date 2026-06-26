@@ -429,6 +429,7 @@ class World:
                 "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
                 "glyph": spec["glyph"], "kind": "monster", "alive": True,
                 "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
+                "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
                 "_spawn": (type_id, pos[0], pos[1]),
             }
         return self.monsters
