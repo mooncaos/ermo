@@ -21,6 +21,7 @@ import time
 from . import rules
 from . import items
 from . import npcs
+from . import monsters as monsters_def
 from .world_map import MAP_ROWS, TILE_SIZE, SPAWN_POINTS, map_rows, map_dims, get_map
 
 # Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
@@ -104,6 +105,18 @@ def public(p):
     return out
 
 
+def monster_public(m):
+    """Versao publica de um monstro pro cliente (desenho proprio: glifo + barra de
+    vida). So o que o cliente precisa pra desenhar e mostrar a vida."""
+    return {
+        "id": m["id"],
+        "x": m["x"], "y": m["y"], "facing": m.get("facing", "down"),
+        "monster": True, "kind": "monster",
+        "mtype": m["type"], "name": m["name"], "glyph": m["glyph"],
+        "hp": m["hp"], "hp_max": m["hp_max"],
+    }
+
+
 def _walkable_near(px, py, mp="ermo"):
     """Acha um tile passavel perto de (px, py) NO mapa dado. Robusto a edicoes."""
     if rules.is_walkable(px, py, mp):
@@ -129,6 +142,10 @@ class World:
         self._respawns = []
         for i, (x, y, item_id, _r) in enumerate(items.GROUND_SPAWNS):
             self.ground[(x, y)] = {"item": item_id, "spawn": i}
+
+        # monstros vivos no mundo: monster_id -> entidade (bichos e capangas).
+        self.monsters = {}
+        self._monster_seq = 0
 
     def map_payload(self, mp="ermo"):
         """O mapa que vai pro cliente no 'init'/troca de mapa (fonte da verdade)."""
@@ -382,10 +399,54 @@ class World:
         return [public(p) for p in self.players.values()]
 
     def entities_in(self, mp):
-        """So as entidades (jogadores + NPCs) que estao NO mapa `mp`, em formato
-        publico. Usado no 'init' e na troca de mapa pra mandar so o que importa."""
-        return [public(p) for p in self.players.values()
+        """So as entidades (jogadores + NPCs + monstros) que estao NO mapa `mp`, em
+        formato publico. Usado no 'init' e na troca de mapa pra mandar so o que importa."""
+        ents = [public(p) for p in self.players.values()
                 if p.get("map", "ermo") == mp and not p.get("_inside")]
+        ents += [monster_public(m) for m in self.monsters.values()
+                 if m.get("map") == mp and m.get("alive", True)]
+        return ents
+
+    # --------------------------------------------------------------- monstros
+
+    def spawn_monsters(self):
+        """Coloca os monstros iniciais no mundo (hoje so em O Descampado). Cada um e
+        uma entidade viva em self.monsters, com o stat block copiado do registro.
+        Ficam parados ate o combate (passo B2) chegar; aqui so existem e aparecem."""
+        self.monsters.clear()
+        for (type_id, x, y) in monsters_def.DESCAMPADO_SPAWNS:
+            spec = monsters_def.get(type_id)
+            if not spec:
+                continue
+            pos = _walkable_near(x, y, "descampado")
+            self._monster_seq += 1
+            mid = "mob:%d" % self._monster_seq
+            self.monsters[mid] = {
+                "id": mid, "type": type_id, "name": spec["name"],
+                "x": pos[0], "y": pos[1], "facing": "down", "map": "descampado",
+                "hp": spec["hp"], "hp_max": spec["hp"], "ac": spec["ac"],
+                "atk": spec["atk"], "dmg": dict(spec["dmg"]), "reach": spec["reach"],
+                "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
+                "glyph": spec["glyph"], "kind": "monster", "alive": True,
+                "atk_name": spec["atk_name"], "_spawn": (type_id, pos[0], pos[1]),
+            }
+        return self.monsters
+
+    def monster_at(self, mp, x, y):
+        """O monstro vivo nessa casa (ou None)."""
+        for m in self.monsters.values():
+            if m.get("alive", True) and m["map"] == mp and m["x"] == x and m["y"] == y:
+                return m
+        return None
+
+    def monsters_near(self, mp, x, y, radius):
+        """Monstros vivos a ate `radius` casas (distancia de Chebyshev) de (x, y)."""
+        out = []
+        for m in self.monsters.values():
+            if m.get("alive", True) and m["map"] == mp:
+                if max(abs(m["x"] - x), abs(m["y"] - y)) <= radius:
+                    out.append(m)
+        return out
 
     def set_map(self, sid, mp, x, y):
         """Move um jogador pra outro mapa, numa posicao. Ao SAIR do Ermo, lembra

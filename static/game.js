@@ -134,6 +134,8 @@ const ground = new Map();     // "x,y" -> item_id (itens no chao agora)
 let myFicha = {};             // ficha do personagem (raca, classe, atributos, vida)
 let classFeaturesData = {};   // features por classe (do servidor): id -> [[nivel,nome,desc],...]
 let featsCatalog = [];        // talentos do feat-or-ASI
+let combat = null;            // estado da luta por turnos (null = fora de combate)
+let dmgPops = [];             // numeros de dano flutuantes na tela
 let invOpen = false;
 
 // ---------- clique pra andar ----------
@@ -1210,6 +1212,30 @@ function _deityName(c, cx, topY, name, color){
   c.fillStyle = color || '#fff'; c.shadowColor = color || '#fff'; c.shadowBlur = 9;
   c.fillText(name, cx, topY); c.restore();
 }
+function drawMonster(c, sx, sy, ts, p){
+  // bicho/capanga: glifo (emoji) no tile + nome + barra de vida por cima.
+  const cx = sx + ts/2, cy = sy + ts/2;
+  c.save();
+  c.fillStyle = 'rgba(0,0,0,0.28)';
+  c.beginPath(); c.ellipse(cx, sy + ts*0.84, ts*0.30, ts*0.12, 0, 0, Math.PI*2); c.fill();
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.font = Math.round(ts*0.82) + 'px serif';
+  c.fillText(p.glyph || '👾', cx, cy + ts*0.04);
+  // barra de vida
+  const hp = (p.hp==null? 1 : p.hp), hpm = (p.hp_max || hp || 1);
+  const frac = Math.max(0, Math.min(1, hp/hpm));
+  const bw = ts*0.84, bh = 4, bx = cx - bw/2, by = sy - 1;
+  c.fillStyle = 'rgba(10,8,18,0.85)'; c.fillRect(bx-1, by-1, bw+2, bh+2);
+  c.fillStyle = '#3a2030'; c.fillRect(bx, by, bw, bh);
+  c.fillStyle = frac>0.5? '#5ec27a' : (frac>0.25? '#e0b15a' : '#d65a5a');
+  c.fillRect(bx, by, bw*frac, bh);
+  // nome (com contorno pra ler em qualquer fundo)
+  const nm = p.name || '';
+  c.font = '700 9px Inter, sans-serif'; c.textBaseline = 'bottom';
+  c.lineWidth = 2.5; c.strokeStyle = 'rgba(8,7,15,0.85)'; c.strokeText(nm, cx, by - 3);
+  c.fillStyle = '#f0d0a8'; c.fillText(nm, cx, by - 3);
+  c.restore();
+}
 function drawDeity(c, sx, sy, ts, p){
   const N = p.size || 4;
   const span = N*ts;
@@ -2263,13 +2289,38 @@ function frame(now){
     const sx = p.rx - camX, sy = p.ry - camY;
     const cull = (p.size ? p.size*TS : TS);
     if(sx < -cull || sy < -cull || sx > canvas.width+cull || sy > canvas.height+cull) continue;
+    if(p.kind === 'monster' && p._dead) continue;   // monstro derrotado some
+    // realce: no seu turno, inimigos ao lado que dá pra atacar
+    if(combat && combat.yourTurn && combat.snapshot && combat.snapshot.your_action && p.kind === 'monster'){
+      const me = players.get(myId);
+      if(me && Math.max(Math.abs(me.x - p.x), Math.abs(me.y - p.y)) <= 1){
+        ctx.save(); ctx.strokeStyle = '#ff6a6a'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
+        ctx.strokeRect(sx+2, sy+2, TS-4, TS-4); ctx.restore();
+      }
+    }
     if(p.kind === 'deity') drawDeity(ctx, sx, sy, TS, p);
     else if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'cat') drawCat(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
+    else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
     else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
+  }
+
+  // numeros de dano flutuantes (sobem e somem)
+  if(dmgPops.length){
+    const now = performance.now();
+    dmgPops = dmgPops.filter(d=> now - d.t0 < 900);
+    ctx.save(); ctx.textAlign = 'center'; ctx.font = '700 16px Inter, sans-serif';
+    for(const d of dmgPops){
+      const k = (now - d.t0) / 900;
+      const px = d.x*TS + TS/2 - camX, py = d.y*TS - camY - k*26 + 6;
+      ctx.globalAlpha = 1 - k;
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8,7,15,0.85)'; ctx.strokeText(d.text, px, py);
+      ctx.fillStyle = d.color; ctx.fillText(d.text, px, py);
+    }
+    ctx.restore();
   }
 
   // ---- ciclo de dia e noite: tinte por cima de tudo ----
@@ -2526,6 +2577,10 @@ const KEYMAP = {
 const held = []; let ticker = null;
 function pressDir(dir){
   stopAuto();                 // controle manual cancela o caminhar do clique
+  if(combat){                 // em combate: 1 passo por tecla, sem repeticao
+    if(combat.yourTurn) sendMove(dir);
+    return;
+  }
   if(!held.includes(dir)){
     held.push(dir); sendMove(dir);
     if(!ticker) ticker = setInterval(()=>{ if(held.length) sendMove(held[held.length-1]); }, STEP_MS);
@@ -2535,7 +2590,11 @@ function releaseDir(dir){
   const i = held.indexOf(dir); if(i>=0) held.splice(i,1);
   if(!held.length && ticker){ clearInterval(ticker); ticker = null; }
 }
-function sendMove(dir){ if(started && socket) socket.emit('move', {dir}); }
+function sendMove(dir){
+  if(!(started && socket)) return;
+  if(combat){ if(combat.yourTurn) socket.emit('combat_move', {dir}); return; }
+  socket.emit('move', {dir});
+}
 
 // O WASD so vira movimento DENTRO do mundo e fora de um campo de texto.
 // Sem isso, digitar a/s/d/w no email/nome/senha seria engolido pelo jogo.
@@ -2558,6 +2617,24 @@ window.addEventListener('keyup', e=>{
   // sempre solta (evita tecla "presa" se o foco mudar no meio do passo)
   if(started && !typingInField(e)) e.preventDefault();
   releaseDir(dir);
+});
+
+// clique/toque no canvas: ataca um inimigo (no combate, no seu turno) ou inicia a luta.
+if(canvas) canvas.addEventListener('click', (e)=>{
+  if(!started) return;
+  const rect = canvas.getBoundingClientRect();
+  const cx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const cy = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const tx = Math.floor((cx + camX) / TS), ty = Math.floor((cy + camY) / TS);
+  let mob = null;
+  players.forEach(p=>{ if(p.kind === 'monster' && !p._dead && p.x === tx && p.y === ty) mob = p; });
+  if(!mob) return;
+  if(combat){
+    if(!combat.yourTurn){ toastMsg('Não é seu turno.'); return; }
+    socket.emit('combat_attack', { target: mob.id });
+  } else {
+    socket.emit('combat_engage', { target: mob.id });
+  }
 });
 
 function buildDpad(){
@@ -2739,7 +2816,7 @@ function connectWithToken(token){
       if(d.pending_asi) myFicha.pending_asi = d.pending_asi;
       renderFicha();
     }
-    if(d.gained) toastMsg('+' + d.gained + ' XP' + (d.reason ? ' · ' + d.reason : ''));
+    if(d.gained) toastMsg((d.gained > 0 ? '+' : '') + d.gained + ' XP' + (d.reason ? ' · ' + d.reason : ''), d.gained < 0);
   });
   socket.on('levelup', d=>{
     if(!d) return;
@@ -2751,6 +2828,29 @@ function connectWithToken(token){
   socket.on('throne_warn', d=>{ if(d) throneWarn = {cx:d.cx, cy:d.cy, text:d.text||'', start:performance.now()}; });
   socket.on('class_error', d=>{
     toastMsg('Não rolou: ' + ((d && d.reason) || 'erro') , true);
+  });
+
+  // ---- combate por turnos ----
+  socket.on('combat_start', d=>{ combat = {yourTurn:false}; showCombatUi(); applyCombatSnapshot(d && d.snapshot); });
+  socket.on('combat_state', d=>{
+    if(!d) return;
+    if(d.player_action) showAttackResult(d.player_action);
+    if(d.enemy_actions){ for(const a of d.enemy_actions){ if(a && a.attack) showAttackResult(a.attack); } }
+    applyCombatSnapshot(d.snapshot);
+  });
+  socket.on('combat_over', d=>{
+    endCombatUi();
+    if(!d) return;
+    if(d.hp!=null && myFicha){ myFicha.hp = d.hp; if(d.hp_max!=null) myFicha.hp_max = d.hp_max; renderFicha(); }
+    if(d.outcome === 'victory') combatBanner('Vitória!', d.xp ? ('+'+d.xp+' XP') : '', '#5ec27a');
+    else combatBanner('Você caiu...', 'renasceu no Ermo · perdeu metade do XP do nível', '#d65a5a');
+  });
+  socket.on('combat_msg', d=>{ if(d && d.text) toastMsg(d.text, true); });
+  socket.on('world_refresh', d=>{
+    if(!d || d.map !== mapName) return;
+    for(const [id, p] of players){ if(p.kind === 'monster') players.delete(id); }
+    for(const e of (d.entities || [])){ if(e.kind === 'monster') addPlayer(e); }
+    updateOnline();
   });
 
   // token recusado pelo servidor: limpa e volta pro login
@@ -2783,11 +2883,12 @@ function addPlayer(p){
     facing:p.facing, name:p.name, look:p.look, walk:0, _moving:false,
     npc: !!p.npc, kind: p.kind || 'person', solid: (p.solid === false ? false : true),
     form: p.form, size: p.size, accent: p.accent, eyes: p.eyes,
+    monster: !!p.monster, glyph: p.glyph, hp: p.hp, hp_max: p.hp_max, mtype: p.mtype,
   });
   updateOnline();
 }
 function updateOnline(){
-  let n = 0; players.forEach(p=>{ if(!p.npc) n++; });
+  let n = 0; players.forEach(p=>{ if(!p.npc && !p.monster) n++; });
   onlineEl.textContent = n;
 }
 function enterWorld(){
@@ -3542,6 +3643,85 @@ function closeAsiChooser(){
 function maybeOpenAsi(){
   const pend = (myFicha && myFicha.pending_asi) || [];
   if(pend.length && !asiChooserOpen) openAsiChooser(pend[0]);
+}
+
+// ===================== COMBATE POR TURNOS: interface =====================
+let combatHud = null;
+function ensureCombatHud(){
+  if(combatHud) return combatHud;
+  combatHud = document.createElement('div');
+  combatHud.id = 'combat-hud';
+  combatHud.style.cssText = 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);'+
+    'width:min(560px,94vw);z-index:8000;display:none;font-family:Inter,sans-serif;'+
+    'background:rgba(16,14,23,.92);border:1px solid #3a3556;border-radius:14px;'+
+    'box-shadow:0 14px 40px rgba(0,0,0,.5);padding:10px 12px;color:#e8e4f0';
+  document.body.appendChild(combatHud);
+  return combatHud;
+}
+function showCombatUi(){ ensureCombatHud().style.display = 'block'; }
+function endCombatUi(){ combat = null; if(combatHud) combatHud.style.display = 'none'; }
+
+function applyCombatSnapshot(snap){
+  if(!snap) return;
+  combat = combat || {};
+  combat.snapshot = snap;
+  combat.yourTurn = !!snap.your_turn;
+  for(const c of snap.combatants){
+    const e = players.get(c.cid);
+    if(e){ e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive; }
+    if(c.you && myFicha){ myFicha.hp = c.hp; myFicha.hp_max = c.hp_max; }
+  }
+  renderCombatHud();
+}
+
+function renderCombatHud(){
+  if(!combat || !combat.snapshot) return;
+  const s = combat.snapshot;
+  ensureCombatHud();
+  const order = s.combatants.slice().sort((a,b)=> s.order.indexOf(a.cid) - s.order.indexOf(b.cid));
+  const chips = order.map(c=>{
+    const cur = c.cid === s.turn, dead = !c.alive;
+    const ic = c.kind === 'monster' ? (c.glyph || '👾') : '🧝';
+    return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;margin:2px;'+
+      'font:700 11px Inter;opacity:'+(dead?'0.35':'1')+';border:1px solid '+(cur?'#9b6dff':'#2e2a47')+';'+
+      'background:'+(cur?'#241d44':'#1b1830')+';color:'+(c.you?'#9bdcff':'#e8e4f0')+'">'+
+      ic+' '+esc(c.name)+' <span style="color:#8a86a0">'+c.hp+'/'+c.hp_max+'</span></span>';
+  }).join('');
+  let bar;
+  if(combat.yourTurn){
+    bar = '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'+
+      '<div style="font:800 13px Cinzel,serif;color:#f4d8a0">Seu turno</div>'+
+      '<div style="font:600 11px Inter;color:#9b95b4">Mov. <b style="color:#e8e4f0">'+s.your_move+'</b> · Ação <b style="color:'+(s.your_action?'#5ec27a':'#d65a5a')+'">'+(s.your_action?'pronta':'usada')+'</b></div>'+
+      '<button id="cb-pass" style="margin-left:auto;padding:7px 14px;border-radius:9px;border:1px solid #9b6dff;background:linear-gradient(180deg,#7d4fe0,#5e3bb0);color:#fff;font:700 12px Inter;cursor:pointer">Passar turno</button>'+
+      '</div><div style="font-size:10.5px;color:#6c688a;margin-top:5px">clique num inimigo ao seu lado pra atacar · WASD pra mover</div>';
+  } else {
+    const who = (s.combatants.find(c=> c.cid === s.turn) || {}).name || 'inimigo';
+    bar = '<div style="font:700 12px Inter;color:#9b95b4;margin-top:8px">Turno de '+esc(who)+'…</div>';
+  }
+  combatHud.innerHTML = '<div style="font:700 10px Inter;letter-spacing:1px;color:#9b6dff;text-transform:uppercase">Combate · Rodada '+s.round+'</div>'+
+    '<div style="margin-top:4px;line-height:1.8">'+chips+'</div>'+bar;
+  const pass = document.getElementById('cb-pass');
+  if(pass) pass.onclick = ()=>{ if(combat && combat.yourTurn) socket.emit('combat_end_turn', {}); };
+}
+
+function popDamage(cid, text, color){
+  const e = players.get(cid); if(!e) return;
+  dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
+}
+function showAttackResult(res){
+  if(!res) return;
+  if(res.hit) popDamage(res.target, '-'+res.dmg+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
+  else popDamage(res.target, 'errou', '#9b95b4');
+}
+function combatBanner(title, sub, color){
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:50%;top:36%;transform:translate(-50%,-50%) scale(0.8);'+
+    'z-index:9000;text-align:center;opacity:0;transition:all .4s cubic-bezier(.2,1.4,.4,1);pointer-events:none';
+  el.innerHTML = '<div style="font:800 38px Cinzel,serif;color:'+(color||'#f4d8a0')+';text-shadow:0 4px 24px rgba(0,0,0,.7)">'+esc(title)+'</div>'+
+    (sub? '<div style="font:600 15px Inter,sans-serif;color:#e8e4f0;margin-top:6px">'+esc(sub)+'</div>' : '');
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translate(-50%,-50%) scale(1)'; });
+  setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=> el.remove(), 500); }, 1700);
 }
 
 function showLevelUp(d){
