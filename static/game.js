@@ -32,7 +32,13 @@ function fmtWallet(b){
 }
 function updateWallet(b){
   walletBronze = Math.max(0, Math.floor(b || 0));
-  if(purseEl) purseEl.textContent = fmtWallet(walletBronze);
+  const o = Math.floor(walletBronze/10000), p = Math.floor((walletBronze%10000)/100), br = walletBronze%100;
+  if(purseEl){
+    purseEl.innerHTML =
+      '<span class="coin"><span class="pip gold"></span>'+o+'</span>'+
+      '<span class="coin"><span class="pip silver"></span>'+p+'</span>'+
+      '<span class="coin"><span class="pip bronze"></span>'+br+'</span>';
+  }
 }
 const statusEl= document.getElementById('status');
 
@@ -114,6 +120,7 @@ function zoomStep(dir){   // +1 aproxima, -1 afasta
 
 // ---------- estado ----------
 let socket = null, myId = null;
+let wasKicked = false;   // conta aberta em outro lugar: nao reconectar
 let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null, mapName = 'ermo', throneBounds = null;
 let camX = 0, camY = 0;
 const players = new Map();
@@ -2736,7 +2743,13 @@ function connectWithToken(token){
       setStatus('Não consegui conectar ao Ermo. Tente de novo.', true);
     }
   });
-  socket.on('disconnect', ()=>{ if(started) setStatus('Conexão perdida. Tentando voltar…'); });
+  socket.on('kicked', ()=>{
+    wasKicked = true;
+    try{ socket.io.reconnection(false); }catch(e){}
+    try{ socket.disconnect(); }catch(e){}
+    setStatus('Sua conta foi aberta em outro dispositivo. Esta sessao foi encerrada aqui.');
+  });
+  socket.on('disconnect', ()=>{ if(started && !wasKicked) setStatus('Conexão perdida. Tentando voltar…'); });
 }
 function addPlayer(p){
   players.set(p.id, {

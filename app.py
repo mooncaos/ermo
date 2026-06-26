@@ -172,6 +172,10 @@ def _enter_world(player_id, row):
             emit("player_left", {"id": old_sid},
                  room=old.get("map", "ermo"), include_self=False)
         try:
+            socketio.emit("kicked", {"reason": "elsewhere"}, to=old_sid)
+        except Exception:
+            pass
+        try:
             socketio.server.disconnect(old_sid)
         except Exception:
             pass
@@ -185,6 +189,16 @@ def _enter_world(player_id, row):
     # se a regra do item unico cortou copias (ex.: Portuz), grava o conserto
     if player.pop("_needs_save", False):
         _persist_loadout(player)
+
+    # migracao: moedas que ja estavam na mochila viram saldo da carteira.
+    _gained, player["inventory"] = items.extract_currency(player["inventory"])
+    if _gained:
+        player["wallet"] = int(player.get("wallet", 0)) + _gained
+        try:
+            db.save_wallet(player_id, player["wallet"])
+            db.save_inventory(player_id, player["inventory"])
+        except Exception as exc:
+            print("erro migrando moedas pra carteira:", exc)
 
     mp = player.get("map", "ermo")
     join_room(mp)   # passa a receber so os eventos do mapa onde esta
@@ -266,6 +280,12 @@ def on_connect(auth):
     if not player_id:
         emit("auth_error", {"reason": "invalid"})
         return
+
+    # so uma sessao ativa por conta: mata os outros tokens (anti-clone robusto).
+    try:
+        db.invalidate_other_sessions(player_id, token)
+    except Exception as exc:
+        print("aviso invalidando outras sessoes:", exc)
 
     try:
         row = db.get_player(player_id)

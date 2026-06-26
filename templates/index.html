@@ -218,6 +218,16 @@
   }
   .inv-close:hover{color:var(--ink); border-color:var(--violet)}
   #inv-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:9px}
+  #purse-row{
+    display:flex; align-items:center; gap:14px; padding:10px 12px; margin-bottom:4px;
+    background:#15131f; border:1px solid var(--edge); border-radius:12px;
+    font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums;
+  }
+  #purse-row .coin{display:inline-flex; align-items:center; gap:5px}
+  #purse-row .pip{width:13px; height:13px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.4)}
+  #purse-row .pip.gold{background:radial-gradient(circle at 35% 30%, #ffe7a0, #f4b860 55%, #c98a2e)}
+  #purse-row .pip.silver{background:radial-gradient(circle at 35% 30%, #ffffff, #cbd2d9 55%, #8a93a0)}
+  #purse-row .pip.bronze{background:radial-gradient(circle at 35% 30%, #f0b88a, #cd7f32 55%, #8a5320)}
   .slot{
     position:relative; aspect-ratio:1/1; border-radius:12px;
     background:#15131f; border:1px solid var(--edge);
@@ -397,7 +407,7 @@
   </div>
 
   <div id="stage"><canvas id="game"></canvas></div>
-  <div id="hud"><span class="dot">●</span> <span class="on" id="online">1</span> online · <span id="coords">x 0, y 0</span> · <span id="phase">dia</span> · <span id="purse" title="carteira">🪙 0</span></div>
+  <div id="hud"><span class="dot">●</span> <span class="on" id="online">1</span> online · <span id="coords">x 0, y 0</span> · <span id="phase">dia</span></div>
   <div id="logout">sair</div>
   <div id="zoom-ctl">
     <button id="zoom-out" type="button" aria-label="diminuir zoom">−</button>
@@ -419,6 +429,8 @@
         <h2>Mochila</h2>
         <button class="inv-close" id="inv-close" aria-label="Fechar">✕</button>
       </div>
+      <div class="inv-sub">Carteira</div>
+      <div id="purse-row"><span id="purse">🪙 0</span></div>
       <div class="inv-sub">Equipamento</div>
       <div id="equip-row"></div>
       <div class="inv-sub">Mochila</div>

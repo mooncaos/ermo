@@ -220,6 +220,18 @@ def _hash_token(token):
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
+def invalidate_other_sessions(player_id, keep_token):
+    """Apaga as sessoes da conta menos a do token atual (so 1 login ativo, evita
+    clone quando a mesma conta loga em outro dispositivo)."""
+    if not keep_token:
+        return
+    with cursor() as cur:
+        cur.execute(
+            "DELETE FROM sessions WHERE player_id=%s AND token_hash <> %s",
+            (player_id, _hash_token(keep_token)),
+        )
+
+
 def create_session(player_id, token):
     with cursor() as cur:
         cur.execute(

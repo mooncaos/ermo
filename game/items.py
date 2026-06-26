@@ -29,6 +29,19 @@ def get(item_id):
     return ITEMS.get(item_id)
 
 
+def extract_currency(bag):
+    """Tira as moedas da mochila e devolve (total_em_bronze, mochila_sem_moedas).
+    Migracao: contas antigas guardavam moeda como item; agora vira saldo."""
+    total, rest = 0, []
+    for stack in (bag or []):
+        cat = ITEMS.get(stack.get("item"))
+        if cat and cat.get("kind") == "currency":
+            total += int(cat.get("value", 1)) * int(stack.get("qty", 1))
+        else:
+            rest.append(stack)
+    return total, rest
+
+
 def is_stackable(item_id):
     it = ITEMS.get(item_id)
     return bool(it and it["stackable"])
