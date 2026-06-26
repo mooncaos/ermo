@@ -422,6 +422,40 @@ def on_choose_race(data):
 COMBAT = {}              # sid -> confronto (enc) ativo
 COMBAT_AGGRO = 3         # distancia (tiles) em que um monstro inicia a luta
 _MONSTER_RESPAWNS = []   # [(monster_id, quando_revive)]
+_SUMMON_SEQ = [0]        # contador dos reforcos invocados pelo chefe
+
+
+def _summon_bonde(enc, boss, count):
+    """O chefe chama o bonde: cria 'count' crias perto dele, em casas livres."""
+    spec = dict(monsters_def.get("capanga"))
+    spec["_type"] = "capanga"
+    mp = enc["map"]
+    occ = {(c["x"], c["y"]) for c in enc["combs"].values() if c.get("alive", True)}
+    placed = 0
+    for r in range(1, 4):
+        if placed >= count:
+            break
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                if placed >= count:
+                    break
+                x, y = boss["x"] + dx, boss["y"] + dy
+                if (x, y) in occ or not rules.is_walkable(x, y, mp):
+                    continue
+                _SUMMON_SEQ[0] += 1
+                cid = "bonde:%d" % _SUMMON_SEQ[0]
+                combat.add_combatant(enc, combat.make_summon_combatant(spec, cid, x, y))
+                occ.add((x, y))
+                placed += 1
+    return placed
+
+
+def _maybe_boss_hurt(enc, sid, target):
+    """De vez em quando o chefe solta uma provocacao ao levar dano."""
+    if target and target.get("boss") and target.get("alive") and random.random() < 0.35:
+        line = monsters_def.bark("hurt")
+        if line:
+            socketio.emit("speech", {"id": target["cid"], "text": line}, to=sid)
 
 
 def _sync_monsters_to_world(enc):
@@ -465,6 +499,11 @@ def _start_combat(sid, monster_list):
     for m in monster_list:
         m["in_combat"] = True
     socketio.emit("combat_start", {"snapshot": combat.snapshot(enc, sid)}, to=sid)
+    boss = next((c for c in enc["combs"].values() if c.get("boss")), None)
+    if boss:
+        line = monsters_def.bark("intro")
+        if line:
+            socketio.emit("speech", {"id": boss["cid"], "text": line}, to=sid)
     _resume(sid)
 
 
@@ -476,9 +515,23 @@ def _resume(sid):
     actions = []
     while combat.current(enc)["kind"] == "monster" and combat.outcome(enc) is None:
         cur = combat.current(enc)
-        steps, atk = combat.monster_decide(enc, cur)
+        say = None
+        if cur.get("boss"):
+            r = combat.boss_turn(enc, cur)
+            steps, atk = r["steps"], r["atk"]
+            if r.get("summon"):
+                _summon_bonde(enc, cur, r.get("summon_count", 1))
+            if atk and atk.get("killed"):
+                say = monsters_def.bark("win")
+            elif r.get("say_cat"):
+                if r["say_cat"] != "taunt" or random.random() < 0.5:
+                    say = monsters_def.bark(r["say_cat"])
+        else:
+            steps, atk = combat.monster_decide(enc, cur)
         _sync_monsters_to_world(enc)
         actions.append({"cid": cur["cid"], "name": cur["name"], "steps": steps, "attack": atk})
+        if say:
+            socketio.emit("speech", {"id": cur["cid"], "text": say}, to=sid)
         if atk and atk.get("killed"):
             break
         combat.advance(enc)
@@ -671,6 +724,7 @@ def on_combat_attack(data):
     res = combat.attack(enc, cur, tgt)
     enc["action_used"] = True
     _sync_monsters_to_world(enc)
+    _maybe_boss_hurt(enc, sid, tgt)
     oc = combat.outcome(enc)
     emit("combat_state", {"player_action": res, "snapshot": combat.snapshot(enc, sid),
                           "your_turn": oc is None, "outcome": oc})
@@ -711,6 +765,7 @@ def on_combat_cast(data):
         return
     enc["action_used"] = True
     _sync_monsters_to_world(enc)
+    _maybe_boss_hurt(enc, sid, target)
     oc = combat.outcome(enc)
     emit("combat_state", {"spell_result": res, "snapshot": combat.snapshot(enc, sid),
                           "your_turn": oc is None, "outcome": oc})
@@ -754,6 +809,7 @@ def on_combat_ability(data):
         enc["action_used"] = True
     # 'special' (Surto de Ação / armar Castigo) nao consome acao nem bonus
     _sync_monsters_to_world(enc)
+    _maybe_boss_hurt(enc, sid, target)
     oc = combat.outcome(enc)
     emit("combat_state", {"ability_result": res, "snapshot": combat.snapshot(enc, sid),
                           "your_turn": oc is None, "outcome": oc})

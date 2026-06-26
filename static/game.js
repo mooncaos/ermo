@@ -1279,7 +1279,8 @@ function _deityName(c, cx, topY, name, color){
   c.fillText(name, cx, topY); c.restore();
 }
 function drawMonster(c, sx, sy, ts, p){
-  // capangas (crias e traficantes) sao humanos desenhados; bichos sao emoji.
+  // capangas (crias e traficantes) sao humanos desenhados; o chefe tem arte propria.
+  if(p.mtype === 'maurao' || p.boss){ drawBoss(c, sx, sy, ts, p); return; }
   if(p.mtype === 'capanga' || p.mtype === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
   const cx = sx + ts/2, cy = sy + ts/2;
   c.save();
@@ -1422,6 +1423,90 @@ function drawThugWeapon(c, cx, bodyTop, bodyW, ts, s, big, facing, frame, moving
     c.closePath(); c.fill();
     c.strokeStyle = '#9aa0aa'; c.lineWidth = 0.6; c.stroke();
   }
+  c.restore();
+}
+
+// Maurão da Sapo: o patrão. Maior, correntões de ouro, grill, boné dourado de aba
+// reta, marreta numa mão e microfone na outra, aura dourada (vermelha na fúria).
+function drawBoss(c, sx, sy, ts, p){
+  const s = 1.4;
+  const enraged = !!p._enraged;
+  const skin = '#5a3722', skinD = shade(skin, -0.32);
+  const tank = enraged ? '#5a1e1e' : '#2b2230';
+  const shortc = '#1d1726';
+  const cx = sx + ts/2;
+  const facing = p.facing || 'down';
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const frame = cyc < 0.5 ? 0 : 1;
+  const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.6 : Math.sin(Date.now()/600)*0.8;
+
+  c.save();
+  const pulse = enraged ? (0.30 + 0.12*Math.abs(Math.sin(Date.now()/220))) : 0.28;
+  const aur = c.createRadialGradient(cx, sy+ts*0.5, ts*0.18, cx, sy+ts*0.5, ts*0.95);
+  aur.addColorStop(0, (enraged ? 'rgba(255,70,40,' : 'rgba(244,200,80,') + pulse + ')');
+  aur.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = aur; c.fillRect(sx-ts*0.5, sy-ts*0.5, ts*2, ts*2);
+  c.fillStyle = 'rgba(0,0,0,.34)';
+  c.beginPath(); c.ellipse(cx, sy+ts*0.88, ts*0.34*s, ts*0.11, 0, 0, Math.PI*2); c.fill();
+
+  const bodyW = ts*0.46*s, bodyH = ts*0.34*s, bodyTop = sy+ts*0.46+bob;
+  const hr = ts*0.19*s, hx = cx, hy = sy+ts*0.35+bob;
+  const legY = bodyTop + bodyH - 1;
+  const lof = moving ? (frame? -1.7:1.7) : 0, rof = moving ? (frame? 1.7:-1.7) : 0;
+
+  c.fillStyle = shortc;
+  c.fillRect(cx-ts*0.13*s, legY+lof, ts*0.1*s, ts*0.13*s);
+  c.fillRect(cx+ts*0.03*s, legY+rof, ts*0.1*s, ts*0.13*s);
+  c.fillStyle = skinD;
+  c.fillRect(cx-ts*0.125*s, legY+lof+ts*0.12*s, ts*0.09*s, ts*0.05*s);
+  c.fillRect(cx+ts*0.035*s, legY+rof+ts*0.12*s, ts*0.09*s, ts*0.05*s);
+
+  drawThugWeapon(c, cx, bodyTop, bodyW, ts, s, true, facing, frame, moving);  // marreta
+  drawMic(c, cx, bodyTop, bodyW, ts, s, facing);                              // microfone
+
+  c.fillStyle = tank; roundRect(c, cx-bodyW/2, bodyTop, bodyW, bodyH, 3); c.fill();
+  c.fillStyle = skin;
+  c.fillRect(cx-bodyW/2-ts*0.03*s, bodyTop+2, ts*0.06*s, bodyH*0.7);
+  c.fillRect(cx+bodyW/2-ts*0.03*s, bodyTop+2, ts*0.06*s, bodyH*0.7);
+  c.strokeStyle = '#f4d06a'; c.lineWidth = 1.8;                              // correntões
+  c.beginPath(); c.arc(hx, bodyTop+3, bodyW*0.32, 0.15*Math.PI, 0.85*Math.PI); c.stroke();
+  c.lineWidth = 1.3; c.beginPath(); c.arc(hx, bodyTop+6, bodyW*0.22, 0.2*Math.PI, 0.8*Math.PI); c.stroke();
+  c.fillStyle = '#ffe08a'; c.fillRect(hx-1.5, bodyTop+bodyW*0.30, 3, 4);
+
+  c.fillStyle = skin; c.beginPath(); c.arc(hx, hy, hr, 0, Math.PI*2); c.fill();
+  if(facing !== 'up'){ c.fillStyle = '#f4d06a'; c.fillRect(hx-hr*0.32, hy+hr*0.42, hr*0.64, 2.4); }  // grill
+  c.fillStyle = '#150d13'; c.beginPath(); c.arc(hx, hy-hr*0.18, hr*0.97, Math.PI, 0); c.fill();
+  c.fillRect(hx-hr*0.97, hy-hr*0.18-1, hr*1.94, 2);
+  const cap = enraged ? '#7a2420' : '#caa23a';                               // boné dourado
+  c.fillStyle = cap; c.beginPath(); c.arc(hx, hy-hr*0.32, hr*0.98, Math.PI, 0); c.fill();
+  c.fillRect(hx-hr*0.98, hy-hr*0.32, hr*1.96, 2.5);
+  const abaX = facing==='left' ? hx-hr*1.7 : (facing==='right' ? hx+hr*0.7 : hx-hr*0.55);
+  c.fillStyle = shade(cap, -0.12); c.fillRect(abaX, hy-hr*0.55, hr*1.1, 3);
+  c.fillStyle = enraged ? '#ff5a3a' : '#120c10'; const ey = hy+hr*0.08;
+  if(facing==='up'){ }
+  else if(facing==='left'){ c.fillRect(hx-hr*0.5, ey, 2.4, 2.4); }
+  else if(facing==='right'){ c.fillRect(hx+hr*0.3, ey, 2.4, 2.4); }
+  else { c.fillRect(hx-hr*0.48, ey, 2.4, 2.4); c.fillRect(hx+hr*0.22, ey, 2.4, 2.4); }
+  c.restore();
+
+  c.save();
+  c.font = '800 8px Cinzel, serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
+  const tw = c.measureText('PATRÃO').width + 8, tagY = sy - 12;
+  c.fillStyle = 'rgba(20,14,6,0.92)'; roundRect(c, cx-tw/2, tagY-11, tw, 11, 3); c.fill();
+  c.fillStyle = '#f4d06a'; c.fillText('PATRÃO', cx, tagY-1.5);
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawMic(c, cx, bodyTop, bodyW, ts, s, facing){
+  const side = (facing === 'left') ? 1 : -1;     // mão oposta à da marreta
+  const hx = cx + side*(bodyW*0.5 + ts*0.05*s), hy = bodyTop + ts*0.07*s;
+  c.save(); c.translate(hx, hy); c.scale(side, 1);
+  c.strokeStyle = '#2a2530'; c.lineWidth = 2*s; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(0, ts*0.1*s); c.lineTo(0, -ts*0.07*s); c.stroke();
+  c.fillStyle = '#3a3540'; c.beginPath(); c.arc(0, -ts*0.12*s, ts*0.06*s, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#9aa0aa'; c.beginPath(); c.arc(0, -ts*0.12*s, ts*0.034*s, 0, Math.PI*2); c.fill();
   c.restore();
 }
 function drawDeity(c, sx, sy, ts, p){
@@ -3877,8 +3962,16 @@ function applyCombatSnapshot(snap){
   if(snap.your){ combat.your = snap.your; if(myFicha) myFicha.res = snap.your.res; }
   if(!combat.yourTurn){ combat.pending = null; closeSpellMenu(); }
   for(const c of snap.combatants){
-    const e = players.get(c.cid);
-    if(e){ e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive; }
+    let e = players.get(c.cid);
+    if(!e && c.kind === 'monster'){      // reforço invocado pelo chefe: cria a entidade
+      addPlayer({ id:c.cid, x:c.x, y:c.y, facing:'down', monster:true, kind:'monster',
+                  glyph:c.glyph, mtype:c.mtype, hp:c.hp, hp_max:c.hp_max });
+      e = players.get(c.cid);
+    }
+    if(e){
+      e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive;
+      e.boss = !!c.boss; e._enraged = !!c.enraged; if(c.mtype) e.mtype = c.mtype;
+    }
     if(c.you && myFicha){ myFicha.hp = c.hp; myFicha.hp_max = c.hp_max; }
   }
   renderCombatHud();

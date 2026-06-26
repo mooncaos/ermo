@@ -91,13 +91,39 @@ def make_monster_combatant(m):
     dexm = m.get("dex", 0)
     return {
         "cid": m["id"], "kind": "monster", "mid": m["id"], "name": m["name"],
+        "mtype": m.get("type"), "boss": bool(m.get("boss")),
         "hp": int(m["hp"]), "hp_max": int(m["hp_max"]), "ac": m["ac"], "atk": m["atk"],
         "dmg": dict(m["dmg"]), "reach": m["reach"], "speed": m["speed"], "dex": dexm,
         "x": m["x"], "y": m["y"], "glyph": m.get("glyph"), "xp": m.get("xp", 0),
         "alive": True, "atk_name": m.get("atk_name", "ataque"),
         "saves": {"FOR": m.get("str_save", 0), "DES": dexm, "CON": m.get("con_save", 0),
                   "INT": 0, "SAB": m.get("wis_save", 0), "CAR": 0},
+        "summons_left": (2 if m.get("boss") else 0), "enraged": False,
     }
+
+
+def make_summon_combatant(spec, mid, x, y):
+    """Cria um combatente de reforco (o 'bonde' do chefe) a partir de um stat block,
+    ja posicionado. Existe so dentro da luta (nao vira entidade do mundo)."""
+    dexm = spec.get("dex", 0)
+    return {
+        "cid": mid, "kind": "monster", "mid": mid, "name": spec["name"],
+        "mtype": spec.get("_type"), "boss": False,
+        "hp": int(spec["hp"]), "hp_max": int(spec["hp"]), "ac": spec["ac"], "atk": spec["atk"],
+        "dmg": dict(spec["dmg"]), "reach": spec["reach"], "speed": spec["speed"], "dex": dexm,
+        "x": x, "y": y, "glyph": spec.get("glyph"), "xp": spec.get("xp", 0),
+        "alive": True, "atk_name": spec.get("atk_name", "ataque"),
+        "saves": {"FOR": 0, "DES": dexm, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0},
+        "summons_left": 0, "enraged": False, "summoned": True,
+    }
+
+
+def add_combatant(enc, comb):
+    """Acrescenta um combatente a uma luta em andamento (entra no fim da ordem de
+    iniciativa, age no proximo giro)."""
+    enc["combs"][comb["cid"]] = comb
+    enc["order"].append(comb["cid"])
+    return comb
 
 
 # -------------------------------------------------------------------- confronto
@@ -441,6 +467,51 @@ def monster_decide(enc, monster):
     return (steps, atk)
 
 
+def boss_turn(enc, boss):
+    """Turno do chefe Maurao da Sapo. Pode entrar em furia abaixo de 30% (uma vez),
+    invocar o bonde (gasta o turno) e provocar. Devolve um dict; quem chama (app)
+    cria os reforcos e escolhe a fala pela categoria 'say_cat'."""
+    out = {"steps": [], "atk": None, "summon": False, "summon_count": 0,
+           "say_cat": None, "enraged": False}
+    targets = alive_of(enc, "player")
+    if not targets:
+        return out
+    tgt = min(targets, key=lambda t: abs(t["x"] - boss["x"]) + abs(t["y"] - boss["y"]))
+    hpfrac = boss["hp"] / max(1, boss["hp_max"])
+    # 1) furia abaixo de 30% (uma vez): dano e ataque sobem, fica mais rapido
+    if hpfrac <= 0.30 and not boss.get("enraged"):
+        boss["enraged"] = True
+        d = boss["dmg"]
+        boss["dmg"] = {"n": d.get("n", 1) + 1, "d": d.get("d", 6), "flat": d.get("flat", 0) + 4}
+        boss["atk"] = boss.get("atk", 0) + 2
+        boss["speed"] = boss.get("speed", 6) + 1
+        out["enraged"] = True
+        out["say_cat"] = "enrage"
+    # 2) chama o bonde (gasta o turno): tem invocacoes e a vida ja baixou (<=70%)
+    alive_mobs = len(alive_of(enc, "monster"))
+    if (not out["enraged"] and boss.get("summons_left", 0) > 0
+            and alive_mobs < 6 and hpfrac <= 0.70):
+        boss["summons_left"] -= 1
+        out["summon"] = True
+        out["summon_count"] = 2 if hpfrac <= 0.35 else 1
+        out["say_cat"] = "summon"
+        return out
+    # 3) turno normal: anda ate o alvo e ataca
+    budget = boss.get("speed", 6)
+    while budget > 0 and not in_reach(boss, tgt):
+        nx, ny = _step_toward(enc, boss, tgt)
+        if nx is None:
+            break
+        boss["x"], boss["y"] = nx, ny
+        out["steps"].append((nx, ny))
+        budget -= 1
+    if in_reach(boss, tgt):
+        out["atk"] = attack(enc, boss, tgt)
+    if not out["say_cat"]:
+        out["say_cat"] = "taunt"
+    return out
+
+
 # ------------------------------------------------------------------- snapshot
 
 def snapshot(enc, my_cid):
@@ -453,6 +524,7 @@ def snapshot(enc, my_cid):
             "cid": cid, "kind": c["kind"], "name": c["name"],
             "x": c["x"], "y": c["y"], "hp": c["hp"], "hp_max": c["hp_max"],
             "alive": c.get("alive", True), "glyph": c.get("glyph"),
+            "mtype": c.get("mtype"), "boss": bool(c.get("boss")), "enraged": bool(c.get("enraged")),
             "you": (cid == my_cid), "current": (cid == cur_cid), "ac": c["ac"],
         })
     me = enc["combs"].get(my_cid)
