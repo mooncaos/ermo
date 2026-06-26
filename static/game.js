@@ -932,6 +932,87 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle='#0a0806'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.56,ts*0.16,ts*0.12,0,0,Math.PI*2); c.fill();
       break;
     }
+
+    // ---- FADRAKOR · LITORAL DO KORGATH ----
+    case 'S': {                                        // areia da praia
+      c.fillStyle='#d9c89a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#e2d3a8'; c.fillRect(px,py,ts,ts*0.5);
+      c.strokeStyle='rgba(180,160,120,0.4)'; c.lineWidth=1;
+      const o=(gx*13+gy*7)%4;
+      c.beginPath();
+      c.moveTo(px,py+ts*0.3+o); c.quadraticCurveTo(px+ts*0.5,py+ts*0.3+o-2,px+ts,py+ts*0.3+o);
+      c.moveTo(px,py+ts*0.7+o); c.quadraticCurveTo(px+ts*0.5,py+ts*0.7+o-2,px+ts,py+ts*0.7+o); c.stroke();
+      const h=(gx*31+gy*17)%7;
+      if(h===0){ c.fillStyle='#f0e8d8'; c.beginPath(); c.arc(px+ts*0.3,py+ts*0.6,ts*0.06,0,Math.PI*2); c.fill(); }
+      else if(h===1){ c.fillStyle='#c8b890'; c.fillRect(px+ts*0.6,py+ts*0.4,ts*0.08,ts*0.05); }
+      else if(h===2){ c.fillStyle='#b0a070'; c.beginPath(); c.arc(px+ts*0.7,py+ts*0.7,ts*0.03,0,Math.PI*2); c.fill(); }
+      break;
+    }
+    case '!': {                                        // totem de guerra do Korgath
+      c.fillStyle='#d9c89a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#0e0a08'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.9,ts*0.18,ts*0.05,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#5a3a24'; c.fillRect(px+ts*0.34,py+ts*0.15,ts*0.32,ts*0.78);
+      c.fillStyle='#6a4a30'; c.fillRect(px+ts*0.34,py+ts*0.15,ts*0.1,ts*0.78);
+      c.fillStyle='#b03828'; c.fillRect(px+ts*0.34,py+ts*0.34,ts*0.32,ts*0.06);
+      c.fillStyle='#c8a030'; c.fillRect(px+ts*0.34,py+ts*0.6,ts*0.32,ts*0.05);
+      c.fillStyle='#4a2e1c'; c.fillRect(px+ts*0.3,py+ts*0.12,ts*0.4,ts*0.24);
+      c.fillStyle='#e8d050';
+      c.beginPath(); c.moveTo(px+ts*0.36,py+ts*0.2); c.lineTo(px+ts*0.44,py+ts*0.18); c.lineTo(px+ts*0.42,py+ts*0.24); c.closePath();
+      c.moveTo(px+ts*0.64,py+ts*0.2); c.lineTo(px+ts*0.56,py+ts*0.18); c.lineTo(px+ts*0.58,py+ts*0.24); c.fill();
+      c.fillStyle='#1a1010'; c.fillRect(px+ts*0.4,py+ts*0.28,ts*0.2,ts*0.05);
+      c.fillStyle='#fff'; c.fillRect(px+ts*0.42,py+ts*0.28,ts*0.02,ts*0.04); c.fillRect(px+ts*0.56,py+ts*0.28,ts*0.02,ts*0.04);
+      break;
+    }
+
+    // ---- FADRAKOR · SELVA DA FACALAN ----
+    case '?': {                                        // samambaia / cipo
+      grassBase(c,px,py,ts,gx,gy);
+      c.strokeStyle='#2f6e34'; c.lineWidth=Math.max(1,ts*0.025);
+      const cxp=px+ts*0.5, cyp=py+ts*0.8;
+      for(let i=-2;i<=2;i++){ c.beginPath(); c.moveTo(cxp,cyp);
+        c.quadraticCurveTo(cxp+i*ts*0.12,py+ts*0.4,cxp+i*ts*0.22,py+ts*0.2+Math.abs(i)*ts*0.06); c.stroke(); }
+      c.fillStyle='#3a8040';
+      for(let i=-2;i<=2;i++){ c.beginPath(); c.ellipse(cxp+i*ts*0.2,py+ts*0.24+Math.abs(i)*ts*0.05,ts*0.04,ts*0.08,i*0.3,0,Math.PI*2); c.fill(); }
+      break;
+    }
+
+    // ---- FADRAKOR · VULCAO DO DRAZUN ----
+    case '$': {                                        // obsidiana
+      c.fillStyle='#1a1420'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#26202e';
+      c.beginPath(); c.moveTo(px+ts*0.3,py+ts*0.9); c.lineTo(px+ts*0.42,py+ts*0.2); c.lineTo(px+ts*0.52,py+ts*0.9); c.closePath(); c.fill();
+      c.fillStyle='#322a3c';
+      c.beginPath(); c.moveTo(px+ts*0.5,py+ts*0.9); c.lineTo(px+ts*0.64,py+ts*0.35); c.lineTo(px+ts*0.78,py+ts*0.9); c.closePath(); c.fill();
+      c.strokeStyle='rgba(155,109,255,0.5)'; c.lineWidth=1;
+      c.beginPath(); c.moveTo(px+ts*0.44,py+ts*0.3); c.lineTo(px+ts*0.4,py+ts*0.8); c.stroke();
+      c.strokeStyle='rgba(255,120,60,0.3)';
+      c.beginPath(); c.moveTo(px+ts*0.66,py+ts*0.42); c.lineTo(px+ts*0.7,py+ts*0.85); c.stroke();
+      break;
+    }
+    case '-': {                                        // tesouro de ouro do Drazun
+      c.fillStyle='#3a2a10'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#c89a2a'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.7,ts*0.46,ts*0.28,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#e8c040'; c.beginPath(); c.ellipse(px+ts*0.45,py+ts*0.6,ts*0.32,ts*0.2,0,0,Math.PI*2); c.fill();
+      const h=(gx*17+gy*23);
+      for(let i=0;i<5;i++){ const mx=px+((h*7+i*41)%ts), my=py+ts*0.4+((h*13+i*29)%(ts*0.5));
+        c.fillStyle=(i%2)?'#f0d860':'#d0a830'; c.beginPath(); c.arc(mx,my,ts*0.06,0,Math.PI*2); c.fill();
+        c.fillStyle='#fff8d0'; c.fillRect(mx-1,my-1,1.5,1.5); }
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.2; c.fillStyle='#ffe080';
+      c.beginPath(); c.arc(px+ts*0.5,py+ts*0.6,ts*0.4,0,Math.PI*2); c.fill(); c.restore();
+      break;
+    }
+
+    // ---- FADRAKOR · passagem de borda ----
+    case '+': {                                        // passagem (atravessa pro mapa vizinho)
+      c.fillStyle='#4a3c28'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#5a4a32'; c.fillRect(px,py,ts,ts*0.5);
+      c.fillStyle='#3a2e1e';
+      c.fillRect(px+ts*0.3,py+ts*0.2,ts*0.1,ts*0.12); c.fillRect(px+ts*0.55,py+ts*0.5,ts*0.1,ts*0.12);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.18;
+      const g=c.createLinearGradient(px,py,px,py+ts); g.addColorStop(0,'#9b6dff'); g.addColorStop(1,'rgba(155,109,255,0)');
+      c.fillStyle=g; c.fillRect(px,py,ts,ts); c.restore();
+      break;
+    }
     default: grassBase(c,px,py,ts,gx,gy);
   }
 }
@@ -1040,6 +1121,9 @@ function drawDeity(c, sx, sy, ts, p){
   else if(p.form === 'dwarf')     drawBragorGod(c, R, accent);
   else if(p.form === 'cat_black') drawJoseGod(c, R, accent);
   else if(p.form === 'hare')      drawNhareGod(c, R, accent);
+  else if(p.form === 'orc')       drawKorgathGod(c, R, accent);
+  else if(p.form === 'jaguar')    drawFacalanGod(c, R, accent);
+  else if(p.form === 'dragon')    drawDrazunGod(c, R, accent);
   else { c.fillStyle = accent; c.beginPath(); c.arc(0,0,R*0.5,0,Math.PI*2); c.fill(); }
   c.restore();
   _deitySparkles(c, cx, cy + bob, R, accent, moving);
@@ -1507,6 +1591,122 @@ function drawNhareGod(c, R, accent){
   c.fillStyle = '#d08a9a'; c.beginPath(); c.ellipse(S*0.2,-S*0.17,S*0.03,S*0.025,0,0,Math.PI*2); c.fill();  // nariz
   c.strokeStyle = 'rgba(150,150,160,0.6)'; c.lineWidth = 1;  // bigodes
   c.beginPath(); c.moveTo(S*0.2,-S*0.16); c.lineTo(S*0.45,-S*0.2); c.moveTo(S*0.2,-S*0.14); c.lineTo(S*0.45,-S*0.12); c.stroke();
+}
+
+// --- Korgath: o Punho, orc de guerra com presas e machado ---
+function drawKorgathGod(c, R, accent){
+  const S = R, skin = '#5a7a48', skinD = '#46603a';
+  c.save(); c.globalAlpha = 0.28; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.95,S*0.5,S*0.14,0,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = '#3a2e22'; c.fillRect(-S*0.26,S*0.4,S*0.2,S*0.5); c.fillRect(S*0.06,S*0.4,S*0.2,S*0.5);
+  c.fillStyle = '#241a12'; c.fillRect(-S*0.28,S*0.82,S*0.24,S*0.1); c.fillRect(S*0.04,S*0.82,S*0.24,S*0.1);
+  c.fillStyle = skin;                                       // torso
+  c.beginPath(); c.moveTo(-S*0.46,-S*0.16); c.lineTo(S*0.46,-S*0.16); c.lineTo(S*0.38,S*0.46); c.lineTo(-S*0.38,S*0.46); c.closePath(); c.fill();
+  c.fillStyle = skinD; c.beginPath(); c.arc(-S*0.18,S*0.02,S*0.16,0,Math.PI*2); c.arc(S*0.18,S*0.02,S*0.16,0,Math.PI*2); c.fill();
+  c.fillStyle = skin; c.beginPath(); c.arc(-S*0.18,-S*0.02,S*0.15,0,Math.PI*2); c.arc(S*0.18,-S*0.02,S*0.15,0,Math.PI*2); c.fill();
+  c.fillStyle = '#3a2e22'; c.fillRect(-S*0.4,S*0.34,S*0.8,S*0.12);
+  c.fillStyle = '#6a5038'; c.fillRect(-S*0.08,S*0.34,S*0.16,S*0.18);
+  c.fillStyle = skin; c.beginPath(); c.arc(-S*0.44,-S*0.14,S*0.18,0,Math.PI*2); c.arc(S*0.44,-S*0.14,S*0.18,0,Math.PI*2); c.fill();
+  c.fillRect(-S*0.6,-S*0.12,S*0.16,S*0.4); c.fillRect(S*0.44,-S*0.12,S*0.16,S*0.4);  // bracos
+  c.fillStyle = skinD; c.beginPath(); c.arc(-S*0.52,S*0.3,S*0.13,0,Math.PI*2); c.fill();  // PUNHO
+  c.strokeStyle = '#3a2414'; c.lineWidth = Math.max(2,S*0.05);  // machado
+  c.beginPath(); c.moveTo(S*0.52,-S*0.1); c.lineTo(S*0.52,S*0.5); c.stroke();
+  c.fillStyle = '#5e5868';
+  c.beginPath(); c.moveTo(S*0.52,-S*0.1); c.quadraticCurveTo(S*0.86,-S*0.18,S*0.8,S*0.06); c.quadraticCurveTo(S*0.66,S*0.0,S*0.52,S*0.1); c.closePath(); c.fill();
+  c.fillStyle = '#7a7488'; c.beginPath(); c.moveTo(S*0.52,-S*0.06); c.quadraticCurveTo(S*0.78,-S*0.12,S*0.74,S*0.0); c.lineTo(S*0.52,S*0.04); c.closePath(); c.fill();
+  c.fillStyle = skin; c.beginPath(); c.arc(0,-S*0.36,S*0.22,0,Math.PI*2); c.fill();  // cabeca
+  c.fillStyle = skinD; c.beginPath(); c.ellipse(0,-S*0.26,S*0.18,S*0.12,0,0,Math.PI*2); c.fill();
+  c.fillStyle = '#f0ead8';                                  // PRESAS
+  c.beginPath(); c.moveTo(-S*0.1,-S*0.2); c.lineTo(-S*0.07,-S*0.32); c.lineTo(-S*0.04,-S*0.2); c.closePath();
+  c.moveTo(S*0.1,-S*0.2); c.lineTo(S*0.07,-S*0.32); c.lineTo(S*0.04,-S*0.2); c.fill();
+  c.save(); c.globalCompositeOperation = 'lighter';         // olhos ferozes
+  for(const s of [-1,1]){ const g=c.createRadialGradient(s*S*0.09,-S*0.42,0,s*S*0.09,-S*0.42,S*0.06);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.4,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=g; c.beginPath(); c.arc(s*S*0.09,-S*0.42,S*0.05,0,Math.PI*2); c.fill(); }
+  c.restore();
+  c.fillStyle = '#2a1010'; c.beginPath(); c.arc(-S*0.09,-S*0.42,S*0.02,0,Math.PI*2); c.arc(S*0.09,-S*0.42,S*0.02,0,Math.PI*2); c.fill();
+  c.strokeStyle = skinD; c.lineWidth = Math.max(2,S*0.04);
+  c.beginPath(); c.moveTo(-S*0.16,-S*0.5); c.lineTo(-S*0.02,-S*0.47); c.moveTo(S*0.16,-S*0.5); c.lineTo(S*0.02,-S*0.47); c.stroke();
+  c.fillStyle = '#2a2018'; c.fillRect(-S*0.04,-S*0.62,S*0.08,S*0.18);  // moicano
+  c.strokeStyle = accent; c.lineWidth = Math.max(1,S*0.02);  // pintura de guerra
+  c.beginPath(); c.moveTo(-S*0.16,-S*0.34); c.lineTo(-S*0.06,-S*0.34); c.moveTo(S*0.16,-S*0.34); c.lineTo(S*0.06,-S*0.34); c.stroke();
+}
+
+// --- Facalan: a Onca Sem Dono, jaguar de olhos amarelos e rosetas ---
+function drawFacalanGod(c, R, accent){
+  const S = R, fur = '#d9a441', furD = '#b8842e', furL = '#ecca78';
+  c.save(); c.globalAlpha = 0.26; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.9,S*0.55,S*0.13,0,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = fur;                                        // cauda longa
+  c.beginPath(); c.moveTo(S*0.4,S*0.5); c.quadraticCurveTo(S*0.9,S*0.45,S*0.8,-S*0.05);
+  c.quadraticCurveTo(S*0.72,S*0.3,S*0.34,S*0.55); c.closePath(); c.fill();
+  c.beginPath(); c.ellipse(0,S*0.42,S*0.46,S*0.32,0,0,Math.PI*2); c.fill();   // corpo
+  c.fillStyle = furL; c.beginPath(); c.ellipse(0,S*0.52,S*0.36,S*0.18,0,0,Math.PI*2); c.fill();
+  c.fillStyle = furD; c.fillRect(-S*0.34,S*0.55,S*0.14,S*0.35); c.fillRect(S*0.2,S*0.55,S*0.14,S*0.35);
+  c.fillStyle = fur; c.fillRect(-S*0.14,S*0.58,S*0.12,S*0.32); c.fillRect(S*0.02,S*0.58,S*0.12,S*0.32);
+  c.fillStyle = furD;                                       // rosetas
+  for(const rc of [[-0.25,0.35],[-0.05,0.28],[0.18,0.36],[0.3,0.5],[-0.3,0.5],[0.05,0.5],[-0.15,0.42]]){
+    c.beginPath(); c.arc(S*rc[0],S*rc[1],S*0.04,0,Math.PI*2); c.fill(); }
+  c.fillStyle = fur; c.beginPath(); c.ellipse(0,-S*0.18,S*0.3,S*0.26,0,0,Math.PI*2); c.fill();  // cabeca
+  c.beginPath(); c.arc(-S*0.22,-S*0.38,S*0.1,0,Math.PI*2); c.arc(S*0.22,-S*0.38,S*0.1,0,Math.PI*2); c.fill();
+  c.fillStyle = furD; c.beginPath(); c.arc(-S*0.22,-S*0.37,S*0.05,0,Math.PI*2); c.arc(S*0.22,-S*0.37,S*0.05,0,Math.PI*2); c.fill();
+  c.fillStyle = furL; c.beginPath(); c.ellipse(0,-S*0.06,S*0.16,S*0.12,0,0,Math.PI*2); c.fill();
+  c.save(); c.globalCompositeOperation = 'lighter';         // OLHOS amarelos
+  for(const s of [-1,1]){ const g=c.createRadialGradient(s*S*0.12,-S*0.2,0,s*S*0.12,-S*0.2,S*0.09);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.35,'#ffe24a'); g.addColorStop(0.7,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=g; c.beginPath(); c.ellipse(s*S*0.12,-S*0.2,S*0.08,S*0.06,0,0,Math.PI*2); c.fill(); }
+  c.restore();
+  c.fillStyle = '#1a1206'; for(const s of [-1,1]){ c.beginPath(); c.ellipse(s*S*0.12,-S*0.2,S*0.018,S*0.05,0,0,Math.PI*2); c.fill(); }
+  c.fillStyle = '#2a1810'; c.beginPath(); c.moveTo(-S*0.04,-S*0.04); c.lineTo(S*0.04,-S*0.04); c.lineTo(0,S*0.0); c.closePath(); c.fill();
+  c.strokeStyle = '#2a1810'; c.lineWidth = Math.max(1,S*0.02);
+  c.beginPath(); c.moveTo(0,S*0.0); c.lineTo(0,S*0.04); c.moveTo(0,S*0.04); c.quadraticCurveTo(-S*0.08,S*0.08,-S*0.12,S*0.04);
+  c.moveTo(0,S*0.04); c.quadraticCurveTo(S*0.08,S*0.08,S*0.12,S*0.04); c.stroke();
+  c.fillStyle = '#fff'; c.fillRect(-S*0.05,S*0.04,S*0.02,S*0.05); c.fillRect(S*0.03,S*0.04,S*0.02,S*0.05);
+  c.strokeStyle = 'rgba(255,250,230,0.7)'; c.lineWidth = 1;  // bigodes
+  c.beginPath(); c.moveTo(-S*0.1,-S*0.02); c.lineTo(-S*0.34,-S*0.06); c.moveTo(-S*0.1,0); c.lineTo(-S*0.34,S*0.04);
+  c.moveTo(S*0.1,-S*0.02); c.lineTo(S*0.34,-S*0.06); c.moveTo(S*0.1,0); c.lineTo(S*0.34,S*0.04); c.stroke();
+}
+
+// --- Drazun: o Dragao Primevo, asas, chifres e olho de fogo ---
+function drawDrazunGod(c, R, accent){
+  const S = R, scale = '#8a3a1e', scaleD = '#6a2a14', scaleL = '#b04e26', belly = '#d9a441';
+  c.save(); c.globalAlpha = 0.3; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.95,S*0.6,S*0.15,0,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = scaleD;                                     // ASAS
+  c.beginPath(); c.moveTo(-S*0.3,-S*0.1); c.lineTo(-S*0.95,-S*0.5); c.lineTo(-S*0.9,S*0.05); c.lineTo(-S*0.7,-S*0.05);
+  c.lineTo(-S*0.6,S*0.2); c.lineTo(-S*0.45,S*0.0); c.lineTo(-S*0.35,S*0.25); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.3,-S*0.1); c.lineTo(S*0.95,-S*0.5); c.lineTo(S*0.9,S*0.05); c.lineTo(S*0.7,-S*0.05);
+  c.lineTo(S*0.6,S*0.2); c.lineTo(S*0.45,S*0.0); c.lineTo(S*0.35,S*0.25); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,120,60,0.15)';
+  c.beginPath(); c.moveTo(-S*0.3,-S*0.1); c.lineTo(-S*0.95,-S*0.5); c.lineTo(-S*0.35,S*0.25); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.3,-S*0.1); c.lineTo(S*0.95,-S*0.5); c.lineTo(S*0.35,S*0.25); c.closePath(); c.fill();
+  c.fillStyle = scale; c.beginPath(); c.ellipse(0,S*0.4,S*0.42,S*0.46,0,0,Math.PI*2); c.fill();  // corpo
+  c.fillStyle = belly; c.beginPath(); c.ellipse(0,S*0.5,S*0.26,S*0.32,0,0,Math.PI*2); c.fill();
+  c.strokeStyle = scaleD; c.lineWidth = Math.max(1,S*0.015);
+  for(let i=0;i<4;i++){ c.beginPath(); c.moveTo(-S*0.22,S*0.3+i*S*0.12); c.lineTo(S*0.22,S*0.3+i*S*0.12); c.stroke(); }
+  c.fillStyle = scale;                                      // cauda
+  c.beginPath(); c.moveTo(S*0.35,S*0.55); c.quadraticCurveTo(S*0.9,S*0.6,S*0.78,S*0.15);
+  c.quadraticCurveTo(S*0.7,S*0.5,S*0.3,S*0.6); c.closePath(); c.fill();
+  c.fillStyle = scaleL; c.beginPath(); c.moveTo(S*0.78,S*0.15); c.lineTo(S*0.9,S*0.02); c.lineTo(S*0.86,S*0.2); c.closePath(); c.fill();
+  c.fillStyle = scaleD;                                     // espinhos dorsais
+  for(let i=0;i<5;i++){ const sx=-S*0.3+i*S*0.15; c.beginPath(); c.moveTo(sx,S*0.0); c.lineTo(sx+S*0.05,-S*0.18); c.lineTo(sx+S*0.1,S*0.0); c.closePath(); c.fill(); }
+  c.fillStyle = scale; c.beginPath(); c.ellipse(0,-S*0.08,S*0.2,S*0.24,0,0,Math.PI*2); c.fill();  // pescoco
+  c.beginPath(); c.ellipse(0,-S*0.4,S*0.24,S*0.2,0,0,Math.PI*2); c.fill();   // cabeca
+  c.beginPath(); c.moveTo(-S*0.12,-S*0.44); c.lineTo(-S*0.32,-S*0.38); c.lineTo(-S*0.12,-S*0.3); c.closePath(); c.fill();
+  c.fillStyle = scaleL; c.beginPath(); c.ellipse(-S*0.2,-S*0.4,S*0.06,S*0.04,0,0,Math.PI*2); c.fill();
+  c.fillStyle = '#3a2a1e';                                  // CHIFRES
+  c.beginPath(); c.moveTo(-S*0.16,-S*0.54); c.lineTo(-S*0.28,-S*0.78); c.lineTo(-S*0.08,-S*0.58); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.16,-S*0.54); c.lineTo(S*0.28,-S*0.78); c.lineTo(S*0.08,-S*0.58); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.18,-S*0.46); c.lineTo(S*0.34,-S*0.56); c.lineTo(S*0.16,-S*0.4); c.closePath(); c.fill();
+  c.save(); c.globalCompositeOperation = 'lighter';         // OLHO de fogo
+  const g=c.createRadialGradient(-S*0.06,-S*0.42,0,-S*0.06,-S*0.42,S*0.12);
+  g.addColorStop(0,'#fff'); g.addColorStop(0.3,'#ffd84a'); g.addColorStop(0.6,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=g; c.beginPath(); c.ellipse(-S*0.06,-S*0.42,S*0.09,S*0.07,0,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = '#1a0a04'; c.beginPath(); c.ellipse(-S*0.06,-S*0.42,S*0.02,S*0.06,0,0,Math.PI*2); c.fill();
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.3;  // baforada de fogo
+  const g2=c.createRadialGradient(-S*0.24,-S*0.36,1,-S*0.24,-S*0.36,S*0.18);
+  g2.addColorStop(0,'#ff8a2a'); g2.addColorStop(1,'rgba(0,0,0,0)'); c.fillStyle=g2;
+  c.beginPath(); c.arc(-S*0.24,-S*0.36,S*0.16,0,Math.PI*2); c.fill(); c.restore();
 }
 
 // ===========================================================================

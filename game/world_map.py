@@ -61,7 +61,8 @@ SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
                "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U",
                "A", "l", "q", "N", "I", "v", "y",
                "z", "G", "Y", "B", "F", "K",
-               "4", "5", "6", "&", "X", "8", "7", "J"}
+               "4", "5", "6", "&", "X", "8", "7", "J",
+               "!", "$", "-"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -382,20 +383,158 @@ def _build_falanor():
 
 FALANOR_ROWS = _build_falanor()
 
+
+# ===========================================================================
+#  FADRAKOR — tres mapas ligados por passagem nas bordas (mar -> selva -> fogo)
+# ===========================================================================
+def _build_fadrakor_litoral():
+    """Litoral do Korgath (o Punho): a costa onde se chega ao Fadrakor. Praia de
+    areia, mar ao sul, rochedos, e um circulo de totens de guerra fincados.
+    Portal-estrela aqui (UNICA saida pra Rasharan). Passagem ao norte -> selva.
+    Tiles: S areia  ~ mar(S)  4 rocha(S)  ! totem(S)  + passagem  . grama
+    T arvore(S)  , trilha  * portal."""
+    W = Hh = 100
+    rows = _grid(W, Hh, "S")                          # areia por baixo
+    for x in range(0, W):                             # mar ao sul, costa ondulada
+        coast = 84 + int(3 * math.sin(x * 0.18))
+        for y in range(coast, Hh):
+            rows[y][x] = "~"
+    rng = _rnd.Random(11)
+    for _ in range(64):                               # rochedos na praia
+        rx, ry = rng.randint(5, 93), rng.randint(28, 80)
+        if rows[ry][rx] == "S": rows[ry][rx] = "4"
+    for (cx, cy) in [(14,40),(82,46),(24,66),(74,70),(50,78),(64,34),(34,52),(90,64)]:
+        for dx in range(-1,2):                        # formacoes de pedra
+            for dy in range(-1,2):
+                if 0<=cy+dy<Hh and 0<=cx+dx<W and rows[cy+dy][cx+dx]=="S": rows[cy+dy][cx+dx]="4"
+    for _ in range(30):                               # mata costeira no fundo
+        tx, ty = rng.randint(5, 93), rng.randint(3, 22)
+        if rows[ty][tx] == "S": rows[ty][tx] = "T"
+    for _ in range(50):                               # tufos de grama no fundo
+        gx, gy = rng.randint(4, 94), rng.randint(3, 26)
+        if rows[gy][gx] == "S": rows[gy][gx] = "."
+    for ang in range(0, 360, 28):                     # TOTENS de guerra (circulo)
+        tx = 50 + int(12 * math.cos(math.radians(ang)))
+        ty = 44 + int(9 * math.sin(math.radians(ang)))
+        if 0<=ty<Hh and 0<=tx<W: rows[ty][tx] = "!"
+    _rect(rows, 0, 0, 2, Hh-1, "4"); _rect(rows, W-3, 0, W-1, Hh-1, "4")   # cliffs laterais
+    for y in range(2, 82):                            # trilha praia -> passagem
+        rows[y][49] = ","; rows[y][50] = ","
+    rows[72][38] = "*"; rows[72][39] = "*"            # portal-estrela (saida unica)
+    for x in range(44, 56): rows[0][x] = "+"; rows[1][x] = "+"             # passagem norte
+    return ["".join(r) for r in rows]
+
+
+def _build_fadrakor_selva():
+    """Selva da Facalan (a Onca Sem Dono): mata fechada e instintiva. Arvores
+    densas, cipos, samambaias, flores e um riacho. Trilha do sul ao norte.
+    Passagem sul -> litoral, passagem norte -> vulcao.
+    Tiles: . grama  T arvore(S)  J arbusto(S)  ? samambaia  % flores
+    ~ riacho(S)  , trilha  + passagem."""
+    W = Hh = 100
+    rows = _grid(W, Hh, ".")
+    _rect(rows, 0, 0, 3, Hh-1, "T"); _rect(rows, W-4, 0, W-1, Hh-1, "T")   # paredao lateral
+    rng = _rnd.Random(23)
+    for _ in range(270):                              # dossel denso
+        tx, ty = rng.randint(4, 94), rng.randint(4, 94)
+        if rows[ty][tx] == ".": rows[ty][tx] = "T"
+    for _ in range(150):                              # arbustos
+        bx, by = rng.randint(4, 94), rng.randint(4, 94)
+        if rows[by][bx] == ".": rows[by][bx] = "J"
+    for _ in range(170):                              # samambaias / cipos
+        fx, fy = rng.randint(4, 94), rng.randint(4, 94)
+        if rows[fy][fx] == ".": rows[fy][fx] = "?"
+    for _ in range(75):                               # flores do mato
+        px, py = rng.randint(4, 94), rng.randint(4, 94)
+        if rows[py][px] == ".": rows[py][px] = "%"
+    for x in range(4, 96):                            # riacho serpenteando
+        ry = 62 + int(5 * math.sin(x * 0.16))
+        rows[ry][x] = "~"
+        if rows[ry+1][x] == ".": rows[ry+1][x] = "~"
+    for yy in range(42, 59):                          # clareira central da Facalan
+        for xx in range(40, 61):
+            if (xx-50)**2 + ((yy-50)*1.3)**2 < 95 and rows[yy][xx] in ("T","J","?"):
+                rows[yy][xx] = "."
+    for y in range(0, Hh):                            # corredor central garantido (ford)
+        for cx in (49, 50):
+            if rows[y][cx] in ("T","J","~"): rows[y][cx] = ","
+    for x in range(44, 56):
+        rows[Hh-1][x] = "+"; rows[Hh-2][x] = "+"      # passagem sul
+        rows[0][x] = "+"; rows[1][x] = "+"            # passagem norte
+    return ["".join(r) for r in rows]
+
+
+def _build_fadrakor_vulcao():
+    """Vulcao do Drazun (o Dragao Primevo): a cratera no topo do Fadrakor. Lagos
+    e rios de lava, obsidiana, cinzas e o tesouro de ouro onde o dragao dorme.
+    Passagem sul -> selva (e o topo: nao ha saida ao norte).
+    Tiles: 3 chao vulcanico  4 rocha(S)  5 lava(S)  $ obsidiana(S)
+    - tesouro(S)  + passagem."""
+    W = Hh = 100
+    rows = _grid(W, Hh, "3")
+    _border(rows, 0, 0, W-1, Hh-1, "4"); _border(rows, 1, 1, W-2, Hh-2, "4")
+    rng = _rnd.Random(31)
+    for (cx,cy,r) in [(22,32,9),(76,36,8),(30,72,7),(70,74,9),(50,60,10),(18,54,6),(84,62,6)]:
+        for yy in range(cy-r, cy+r):                  # lagos de lava
+            for xx in range(cx-r, cx+r):
+                if 2<=xx<W-2 and 2<=yy<Hh-2 and (xx-cx)**2+(yy-cy)**2 < r*r: rows[yy][xx]="5"
+    for x in range(4, 96):                            # rio de lava
+        ly = 46 + int(4 * math.sin(x * 0.22))
+        rows[ly][x] = "5"
+    for _ in range(72):                               # espinhos de obsidiana
+        ox, oy = rng.randint(4, 94), rng.randint(6, 94)
+        if rows[oy][ox] == "3": rows[oy][ox] = "$"
+    for _ in range(80):                               # rochas
+        rx, ry = rng.randint(4, 94), rng.randint(6, 94)
+        if rows[ry][rx] == "3": rows[ry][rx] = "4"
+    for yy in range(16, 40):                          # CRATERA + tesouro do Drazun
+        for xx in range(34, 67):
+            d = (xx-50)**2 + ((yy-27)*1.2)**2
+            if d < 200: rows[yy][xx] = "-"            # ouro
+            elif d < 245: rows[yy][xx] = "4"          # borda da cratera
+    for yy in range(24, 31):                          # piso central (onde o dragao fica)
+        for xx in range(46, 55): rows[yy][xx] = "3"
+    for y in range(29, 97):                           # corredor central seguro
+        for cx in (48, 49, 50, 51):
+            if rows[y][cx] in ("5", "4", "$", "-"): rows[y][cx] = "3"
+    for x in range(44, 56): rows[Hh-1][x] = "+"; rows[Hh-2][x] = "+"       # passagem sul
+    return ["".join(r) for r in rows]
+
+
+FADRAKOR_LITORAL_ROWS = _build_fadrakor_litoral()
+FADRAKOR_SELVA_ROWS   = _build_fadrakor_selva()
+FADRAKOR_VULCAO_ROWS  = _build_fadrakor_vulcao()
+
 RASHARAN_SPAWN = [(50, 86), (49, 86), (51, 86), (50, 87)]   # cemiterio, perto do Jeans
 VALORAN_SPAWN  = [(50, 88), (49, 88), (51, 88), (50, 89)]   # sul, de frente pra nave
 FUNDAMENTO_SPAWN = [(49, 87), (50, 87), (48, 87), (49, 88)]  # entrada sul, de frente pro tapete
 FALANOR_SPAWN = [(49, 91), (50, 91), (49, 92), (50, 92)]     # jardim do Nhare, ao sul
+FADRAKOR_LITORAL_SPAWN = [(50, 74), (49, 74), (50, 73), (49, 73)]  # praia, de frente pro norte
+FADRAKOR_SELVA_SPAWN   = [(50, 50), (49, 50), (50, 49), (49, 49)]  # clareira (fallback)
+FADRAKOR_VULCAO_SPAWN  = [(50, 90), (49, 90), (50, 91), (49, 91)]  # corredor sul (fallback)
 
 
 # ---- registro dos mapas (fonte unica) ----
 MAPS = {
-    "ermo":       {"rows": MAP_ROWS,        "spawns": SPAWN_POINTS},
-    "salao":      {"rows": SALAO_ROWS,      "spawns": SALAO_SPAWN},
-    "rasharan":   {"rows": RASHARAN_ROWS,   "spawns": RASHARAN_SPAWN},
-    "valoran":    {"rows": VALORAN_ROWS,    "spawns": VALORAN_SPAWN},
-    "fundamento": {"rows": FUNDAMENTO_ROWS, "spawns": FUNDAMENTO_SPAWN},
-    "falanor":    {"rows": FALANOR_ROWS,    "spawns": FALANOR_SPAWN},
+    "ermo":             {"rows": MAP_ROWS,             "spawns": SPAWN_POINTS},
+    "salao":            {"rows": SALAO_ROWS,           "spawns": SALAO_SPAWN},
+    "rasharan":         {"rows": RASHARAN_ROWS,        "spawns": RASHARAN_SPAWN},
+    "valoran":          {"rows": VALORAN_ROWS,         "spawns": VALORAN_SPAWN},
+    "fundamento":       {"rows": FUNDAMENTO_ROWS,      "spawns": FUNDAMENTO_SPAWN},
+    "falanor":          {"rows": FALANOR_ROWS,         "spawns": FALANOR_SPAWN},
+    "fadrakor_litoral": {"rows": FADRAKOR_LITORAL_ROWS, "spawns": FADRAKOR_LITORAL_SPAWN},
+    "fadrakor_selva":   {"rows": FADRAKOR_SELVA_ROWS,   "spawns": FADRAKOR_SELVA_SPAWN},
+    "fadrakor_vulcao":  {"rows": FADRAKOR_VULCAO_ROWS,  "spawns": FADRAKOR_VULCAO_SPAWN},
+}
+
+
+# ---- motor de passagem por borda: (mapa, borda) -> (mapa destino, x, y, facing) ----
+# Voce anda ate a faixa de '+' numa borda e cai no mapa vizinho, virado pra dentro.
+EDGE_LINKS = {
+    "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
+    "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),
+                         "north": ("fadrakor_vulcao",  50, 95, "up")},
+    "fadrakor_vulcao":  {"south": ("fadrakor_selva",   50, 4,  "down")},
 }
 
 

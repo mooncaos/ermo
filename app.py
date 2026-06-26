@@ -48,7 +48,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from game import db, accounts, items, npcs, rules, valdris, classes, races
 from game import secret_worlds, world_map as wm
 from game.world import World, public
-from game.world_map import MAP_ROWS, map_rows
+from game.world_map import MAP_ROWS, map_rows, EDGE_LINKS
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-isto-em-producao")
@@ -215,7 +215,7 @@ def _enter_world(player_id, row):
     emit("player_joined", public(player), room=mp, include_self=False)
 
 
-def _go_to(sid, target_map, x, y):
+def _go_to(sid, target_map, x, y, facing=None):
     """Move um jogador de mapa: sai da sala antiga, entra na nova, e recebe o
     mapa + as entidades de la. Os outros do mapa antigo o veem sair; os do novo,
     chegar. Usa a API direta do servidor (sid explicito) pra funcionar TAMBEM
@@ -231,6 +231,8 @@ def _go_to(sid, target_map, x, y):
         print("aviso leave_room:", exc)
 
     world.set_map(sid, target_map, x, y)
+    if facing:
+        player["facing"] = facing
     try:
         socketio.server.enter_room(sid, target_map, namespace="/")
     except Exception as exc:
@@ -342,6 +344,16 @@ def on_move(data):
         sx, sy = rules.pick_spawn(world, "rasharan")
         _go_to(request.sid, "rasharan", sx, sy)
         return
+
+    # pisou numa passagem de borda (Fadrakor)? cai no mapa vizinho, virado pra dentro.
+    if map_rows(mp)[player["y"]][player["x"]] == "+":
+        edge = ("north" if player["y"] <= 2 else
+                "south" if player["y"] >= len(map_rows(mp)) - 3 else None)
+        link = EDGE_LINKS.get(mp, {}).get(edge)
+        if link:
+            tmap, tx, ty, face = link
+            _go_to(request.sid, tmap, tx, ty, face)
+            return
     # pisou no portal dos Ermos (em Rasharan)? volta pro Ermo.
     if mp == "rasharan" and map_rows("rasharan")[player["y"]][player["x"]] == "@":
         ret = world.ermo_return(request.sid) or rules.pick_spawn(world, "ermo")
