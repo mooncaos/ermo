@@ -34,14 +34,14 @@ MONSTERS = {
         "xp": 50, "dex": 0, "glyph": "🐗", "kind": "bicho", "atk_name": "presada",
     },
     "capanga": {
-        "name": "Cria de Sapopemba", "hp": 11, "ac": 12, "atk": 3,
+        "name": "Cria de Sapopemba", "hp": 13, "ac": 12, "atk": 3,
         "dmg": {"n": 1, "d": 6, "flat": 1}, "reach": 1, "speed": 6,
-        "xp": 25, "dex": 1, "glyph": "🔪", "kind": "capanga", "atk_name": "facão",
+        "xp": 30, "dex": 1, "glyph": "🔪", "kind": "capanga", "atk_name": "facão",
     },
     "capanga_brutamontes": {
-        "name": "Traficante de Sapopemba", "hp": 22, "ac": 11, "atk": 4,
-        "dmg": {"n": 1, "d": 8, "flat": 2}, "reach": 1, "speed": 6,
-        "xp": 100, "dex": 0, "glyph": "🪓", "kind": "capanga", "atk_name": "marreta",
+        "name": "Traficante de Sapopemba", "hp": 36, "ac": 13, "atk": 6,
+        "dmg": {"n": 2, "d": 6, "flat": 3}, "reach": 1, "speed": 6,
+        "xp": 175, "dex": 1, "glyph": "🪓", "kind": "capanga", "atk_name": "marreta",
     },
 }
 

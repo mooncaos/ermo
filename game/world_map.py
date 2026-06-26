@@ -557,22 +557,44 @@ def _build_descampado():
             x, y = acx + dx, acy + dy
             if (dx / 6.0) ** 2 + (dy / 4.0) ** 2 <= 1.0 and 3 < x < W - 3 and 3 < y < Hh - 3:
                 rows[y][x] = "~"
-    # acampamento dos capangas (nordeste): cerca de madeira, barraca, tralhas
-    cx0, cy0 = 66, 24
-    _rect(rows, cx0, cy0, cx0 + 13, cy0 + 10, "S")        # chao batido
-    for x in range(cx0, cx0 + 14):
-        rows[cy0][x] = "W"; rows[cy0 + 10][x] = "W"       # cercas topo/base
-    for y in range(cy0, cy0 + 11):
-        rows[y][cx0] = "W"; rows[y][cx0 + 13] = "W"       # cercas laterais
-    rows[cy0 + 5][cx0] = "D"                              # portao oeste (alinha c/ a trilha)
-    _rect(rows, cx0 + 7, cy0 + 3, cx0 + 10, cy0 + 6, "W")  # barraca
-    rows[cy0 + 6][cx0 + 8] = "D"
-    rows[cy0 + 3][cx0 + 3] = "4"; rows[cy0 + 7][cx0 + 4] = "4"   # tralhas/fogueira
-    # trilha: entra pelo norte (col 50), desce e ramifica
+    # === ACAMPAMENTO DE SAPOPEMBA (nordeste): o QG dos traficantes ===
+    # favela improvisada: barracos de zinco enferrujado, fogueira central, barris,
+    # lampioes, cerca de tapume e o letreiro I LOVE SAPOPEMBA ladeando o portao.
+    bx0, by0, bx1, by1 = 57, 20, 80, 40
+    _rect(rows, bx0, by0, bx1, by1, "S")                  # chao batido (terra)
+    for x in range(bx0, bx1 + 1):
+        rows[by0][x] = "W"; rows[by1][x] = "W"            # cerca de tapume (topo/base)
+    for y in range(by0, by1 + 1):
+        rows[y][bx0] = "W"; rows[y][bx1] = "W"            # cerca (laterais)
+    rows[30][bx0] = "D"; rows[31][bx0] = "D"              # portao oeste (alinha c/ a trilha)
+    rows[by0][67] = "D"                                   # passagem dos fundos (norte)
+
+    def _barraco(x0, y0, x1, y1, dxp, dyp):
+        _rect(rows, x0, y0, x1, y1, "K")                  # telhado/parede de zinco
+        rows[dyp][dxp] = "D"                              # entrada do barraco
+    _barraco(60, 22, 64, 25, 62, 25)                      # o barracao do patrao (o maior)
+    _barraco(70, 22, 73, 24, 71, 24)
+    _barraco(75, 26, 78, 28, 76, 28)
+    _barraco(59, 34, 62, 37, 60, 34)
+    _barraco(72, 34, 75, 37, 73, 34)
+    _barraco(66, 35, 69, 37, 67, 35)
+
+    rows[30][67] = "F"                                    # fogueira central
+    for (x, y) in [(66, 29), (68, 29), (66, 31), (68, 31)]:
+        if rows[y][x] == "S": rows[y][x] = "4"            # pedras em volta do fogo
+    for (x, y) in [(59, 23), (65, 23), (74, 24), (78, 32), (64, 31), (70, 32), (61, 31), (77, 38)]:
+        if rows[y][x] == "S": rows[y][x] = "b"            # barris e engradados
+    for (x, y) in [(58, 21), (79, 21), (58, 39), (79, 39), (59, 29), (59, 32)]:
+        if rows[y][x] in "SW": rows[y][x] = "L"           # lampioes
+    for (x, y) in [(63, 28), (72, 28), (76, 33), (62, 32), (69, 27)]:
+        if rows[y][x] == "S": rows[y][x] = "^"            # entulho/moita de cobertura
+    rows[28][bx0] = "V"; rows[33][bx0] = "V"              # letreiro I LOVE SAPOPEMBA no portao
+
+    # trilha: tronco norte (col 50) + ramo leste ate o portao, ramo oeste -> aguada
     for y in range(2, 64):
         rows[y][50] = ","                                # tronco principal
-    for x in range(50, 66):
-        rows[29][x] = ","                                # ramo leste -> portao do acampamento
+    for x in range(50, 57):
+        rows[30][x] = ","                                # ramo leste -> portao oeste
     for x in range(42, 51):
         rows[58][x] = ","                                # ramo oeste -> aguada
     # bordas (penhascos) e a passagem norte de volta pro Ermo

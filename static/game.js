@@ -405,8 +405,74 @@ function drawInteriorTile(c, ch, px, py, ts, gx, gy){
   }
 }
 
+// Tiles exclusivos do acampamento de Sapopemba (interceptados so no Descampado).
+// Devolve true se desenhou; false pra cair no switch normal (mato, terra, etc.).
+function drawCampTile(c, ch, px, py, ts, gx, gy){
+  switch(ch){
+    case 'K': {   // barraco: telhado/parede de zinco enferrujado visto de cima
+      c.fillStyle = '#6e6256'; c.fillRect(px, py, ts, ts);
+      for(let i=0;i<ts;i+=3){ c.fillStyle = (i%6<3) ? '#5b5046' : '#7d7062'; c.fillRect(px, py+i, ts, 1.5); }
+      const r = (gx*17 + gy*11) % 5;                       // manchas de ferrugem
+      c.fillStyle = 'rgba(150,68,30,0.5)';
+      if(r < 3) c.fillRect(px+ts*0.12, py+ts*0.18, ts*0.32, ts*0.22);
+      if(r % 2 === 0) c.fillRect(px+ts*0.54, py+ts*0.56, ts*0.28, ts*0.2);
+      c.fillStyle = '#8c7f6f'; c.fillRect(px, py, ts, 2);  // cumeeira
+      c.fillStyle = '#3f372e'; c.fillRect(px, py+ts-2, ts, 2);
+      c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(px+ts-2, py, 2, ts);
+      return true;
+    }
+    case 'b': {   // barris de oleo / engradados de madeira
+      c.fillStyle = '#5a4a36'; c.fillRect(px, py, ts, ts);  // chao de terra
+      if((gx + gy) % 2 === 0){
+        const bx = px+ts*0.5, w = ts*0.5, h = ts*0.66, ty = py+ts*0.22;
+        c.fillStyle = '#7a3b2a'; roundRect(c, bx-w/2, ty, w, h, 3); c.fill();
+        c.fillStyle = '#5e2c20'; c.fillRect(bx-w/2, ty+h*0.28, w, 2); c.fillRect(bx-w/2, ty+h*0.62, w, 2);
+        c.fillStyle = '#9a5036'; c.fillRect(bx-w/2, ty, w, 2);
+        c.fillStyle = '#c98a3a'; c.beginPath(); c.ellipse(bx, ty+1, w/2, 2.4, 0, 0, Math.PI*2); c.fill();
+      } else {
+        const w = ts*0.6, x0 = px+ts*0.2, y0 = py+ts*0.24, h = ts*0.58;
+        c.fillStyle = '#8a5a30'; c.fillRect(x0, y0, w, h);
+        c.fillStyle = '#5f3d20';
+        c.fillRect(x0, y0, w, 2); c.fillRect(x0, y0+h-2, w, 2); c.fillRect(x0, y0, 2, h); c.fillRect(x0+w-2, y0, 2, h);
+        c.strokeStyle = '#5f3d20'; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(x0, y0); c.lineTo(x0+w, y0+h); c.moveTo(x0+w, y0); c.lineTo(x0, y0+h); c.stroke();
+      }
+      return true;
+    }
+    case 'F': {   // fogueira central (chamas animadas)
+      c.fillStyle = '#4a3c2c'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = '#39322f';                              // pedras em volta
+      for(let a=0;a<6;a++){ const an = a/6*Math.PI*2; const sx = px+ts*0.5+Math.cos(an)*ts*0.34, sy = py+ts*0.58+Math.sin(an)*ts*0.24; c.beginPath(); c.arc(sx, sy, ts*0.085, 0, Math.PI*2); c.fill(); }
+      c.strokeStyle = '#3a2414'; c.lineWidth = 2; c.lineCap = 'round';  // lenha
+      c.beginPath(); c.moveTo(px+ts*0.32, py+ts*0.66); c.lineTo(px+ts*0.68, py+ts*0.5);
+      c.moveTo(px+ts*0.32, py+ts*0.5); c.lineTo(px+ts*0.68, py+ts*0.66); c.stroke();
+      const t = Date.now()/120 + (gx*7 + gy*13);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const fcx = px+ts*0.5, fbase = py+ts*0.56;
+      for(let i=0;i<3;i++){
+        const fl = 0.7 + 0.3*Math.sin(t + i*1.7);
+        const fh = ts*(0.34 + 0.16*fl), fw = ts*(0.13 - i*0.02), ox = Math.sin(t*0.8 + i)*ts*0.05;
+        const g = c.createLinearGradient(fcx+ox, fbase, fcx+ox, fbase-fh);
+        g.addColorStop(0, '#ffd24a'); g.addColorStop(0.5, '#ff8a1e'); g.addColorStop(1, 'rgba(200,40,0,0)');
+        c.fillStyle = g;
+        c.beginPath(); c.moveTo(fcx+ox-fw, fbase);
+        c.quadraticCurveTo(fcx+ox-fw*0.4, fbase-fh*0.6, fcx+ox, fbase-fh);
+        c.quadraticCurveTo(fcx+ox+fw*0.4, fbase-fh*0.6, fcx+ox+fw, fbase);
+        c.closePath(); c.fill();
+      }
+      const gl = c.createRadialGradient(fcx, fbase-ts*0.08, 1, fcx, fbase-ts*0.08, ts*0.5);
+      gl.addColorStop(0, 'rgba(255,170,60,0.3)'); gl.addColorStop(1, 'rgba(255,140,30,0)');
+      c.fillStyle = gl; c.fillRect(px-ts*0.2, py-ts*0.2, ts*1.4, ts*1.4);
+      c.restore();
+      return true;
+    }
+  }
+  return false;
+}
+
 function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName && mapName.indexOf('casa_')===0){ drawInteriorTile(c, ch, px, py, ts, gx, gy); return; }
+  if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;
     case ',':
