@@ -622,11 +622,11 @@ SAPOPEMBA = [
         "murmurs": MACIO_MURMURS, "murmur_min": 6, "murmur_max": 12,
         "greetings": MACIO_GREETINGS, "smiter": False,
     },
-    {   # o mercador do RE4, vende Peteco + Mauser C96
+    {   # o mercador do RE4, vende Peteco + Mauser C96 (agora DENTRO da loja)
         "id": "npc:armeiro", "name": "Vendedor de Arma",
         "look": {"skin": "#8d5524", "cloak": "#3a3530", "hood": "up",
                  "hat": "none", "hair": "#2a2233", "staff": False},
-        "home": (10, 21), "radius": 1, "wanders": True, "step_every": 1.6,
+        "map": "loja_armas", "home": (7, 7), "radius": 0, "wanders": False, "step_every": 1.6,
         "solid": True, "kind": "person", "gender": "H",
         "murmurs": ARMEIRO_MURMURS, "murmur_min": 14, "murmur_max": 22,
         "greetings": ARMEIRO_GREETINGS, "smiter": False,

@@ -58,6 +58,7 @@ MAP_ROWS = [
 # s=humanoide h=lebre j=jabuti f=felino g=dragao b=coruja k=livro; Pofnir e uma
 # estatua 2x2 com os quadrantes P Q R U.)
 SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
+               "/", ";", "_",
                "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U",
                "A", "l", "q", "N", "I", "v", "y",
                "z", "G", "Y", "B", "F", "K",
@@ -632,6 +633,80 @@ def _build_interior_casa():
 
 
 INTERIOR_CASA_ROWS = _build_interior_casa()
+
+
+# ---------------------------------------------------------------------------
+#  MODELOS DE INTERIOR (todos 15x11, porta 'D' em (7,10), spawn (7,9)).
+#  A cor de cada casa vem do tema no cliente; aqui muda so a planta dos moveis.
+#  Tiles novos: '/' rack de arma  ';' estante  '#' balcao  '_' penteadeira
+#  (reusados: b cama  h lareira  k mesa  q bau/engradado  2 tapete)
+# ---------------------------------------------------------------------------
+def _int_room(w=15, h=11):
+    rows = _grid(w, h, "1")
+    _border(rows, 0, 0, w - 1, h - 1, "F")
+    rows[h - 1][7] = "D"
+    return rows
+
+def _S(rows):
+    return ["".join(r) for r in rows]
+
+def _quarto_a():
+    r = _int_room()
+    r[1][1] = "b"; r[1][2] = "b"; r[2][1] = "b"; r[2][2] = "b"   # cama sup-esq
+    r[1][7] = "h"                                                # lareira topo
+    r[1][12] = "_"; r[1][13] = "_"                               # penteadeira sup-dir
+    r[4][3] = "k"                                                # mesinha
+    r[7][2] = "q"                                                # bau
+    r[5][7] = "2"; r[5][8] = "2"; r[6][7] = "2"; r[6][8] = "2"   # tapete central
+    return _S(r)
+
+def _quarto_b():
+    r = _int_room()
+    r[1][11] = "b"; r[1][12] = "b"; r[2][11] = "b"; r[2][12] = "b"  # cama sup-dir
+    r[1][1] = "_"; r[1][2] = "_"                                    # penteadeira sup-esq
+    r[1][7] = "h"                                                   # lareira topo
+    r[4][6] = "2"; r[4][7] = "2"; r[5][6] = "2"; r[5][7] = "2"      # tapete
+    r[7][12] = "q"                                                  # bau dir
+    r[6][2] = "k"                                                   # mesinha esq
+    return _S(r)
+
+def _quarto_c():
+    r = _int_room()
+    r[2][1] = "b"; r[2][2] = "b"; r[3][1] = "b"; r[3][2] = "b"   # cama meio-esq
+    r[1][6] = "h"                                                # lareira
+    r[1][12] = "_"                                               # penteadeira
+    r[4][11] = "k"                                               # mesa dir
+    r[6][7] = "2"; r[6][8] = "2"; r[7][7] = "2"; r[7][8] = "2"   # tapete
+    r[8][2] = "q"                                                # bau
+    return _S(r)
+
+def _casa_comum_int():
+    r = _int_room()
+    r[2][11] = "b"; r[2][12] = "b"; r[3][11] = "b"; r[3][12] = "b"  # cama
+    r[1][6] = "h"; r[1][7] = "h"                                    # lareira
+    r[4][3] = "k"                                                   # mesa
+    r[7][2] = "q"                                                   # bau
+    r[6][7] = "2"; r[6][8] = "2"                                    # tapetinho
+    return _S(r)
+
+def _loja_armas_int():
+    r = _int_room()
+    for x in range(2, 13):              # racks de arma na parede do fundo
+        r[1][x] = "/"
+    r[3][1] = ";"; r[4][1] = ";"        # estante esquerda
+    r[3][13] = ";"; r[4][13] = ";"      # estante direita
+    for x in range(4, 11):              # balcao (display) atras do mercador
+        r[6][x] = "#"
+    r[8][2] = "q"                       # engradado
+    return _S(r)
+
+
+# quais portas usam qual modelo (variedade entre as casas das meninas)
+_QUARTO_VARIANTS = {
+    "casa_melissa": _quarto_a(), "casa_yasmin": _quarto_b(), "casa_valentina": _quarto_c(),
+    "casa_isabelle": _quarto_a(), "casa_giovanna": _quarto_b(), "casa_beatriz": _quarto_c(),
+    "casa_camila": _quarto_a(), "casa_amanda": _quarto_b(),
+}
 INTERIOR_SPAWN = [(7, 9)]                                 # logo acima da porta, virado pra dentro
 
 RASHARAN_SPAWN = [(50, 86), (49, 86), (51, 86), (50, 87)]   # cemiterio, perto do Jeans
@@ -667,15 +742,18 @@ CASA_MENINAS = {                                  # mapa da casa -> porta dela n
     "casa_giovanna":  (3, 9),   "casa_beatriz":   (10, 11),
     "casa_camila":    (15, 13), "casa_amanda":    (6, 14),
 }
-for _cm in list(CASA_MENINAS) + ["casa_comum"]:
-    MAPS[_cm] = {"rows": INTERIOR_CASA_ROWS, "spawns": INTERIOR_SPAWN}
+for _cm in CASA_MENINAS:                          # cada menina ganha um quarto (variado)
+    MAPS[_cm] = {"rows": _QUARTO_VARIANTS.get(_cm, INTERIOR_CASA_ROWS), "spawns": INTERIOR_SPAWN}
+MAPS["casa_comum"] = {"rows": _casa_comum_int(), "spawns": INTERIOR_SPAWN}   # casa do Bento
+MAPS["loja_armas"] = {"rows": _loja_armas_int(), "spawns": INTERIOR_SPAWN}   # Armas Peteco
 
-INTERIOR_MAPS = set(CASA_MENINAS) | {"casa_comum"}   # "estou dentro de uma casa?"
+INTERIOR_MAPS = set(CASA_MENINAS) | {"casa_comum", "loja_armas"}   # "estou dentro de uma casa?"
 
-# porta (x, y) no Ermo -> mapa de interior, ou "LOCKED" (Sapopemba, ainda fechada)
+# porta (x, y) no Ermo -> mapa de interior, ou "LOCKED" (comercios ainda fechados)
 DOOR_INTERIORS = {pos: name for name, pos in CASA_MENINAS.items()}
 DOOR_INTERIORS[(33, 20)] = "casa_comum"                              # casa do Bento
-for _d in [(4, 20), (10, 20), (14, 20), (3, 26), (10, 26)]:          # Sapopemba (SW)
+DOOR_INTERIORS[(10, 20)] = "loja_armas"                             # Armas Peteco (liberada!)
+for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba: ainda trancadas
     DOOR_INTERIORS[_d] = "LOCKED"
 
 

@@ -322,45 +322,62 @@ function _pofnirQuad(c, px, py, ts, gx, gy, qx, qy){
   c.restore();
 }
 // Interiores das casas: chars ganham desenho aconchegante so dentro de casa.
-function drawInteriorTile(c, ch, px, py, ts, gx, gy){
+// cada casa tem uma cor propria (a manta/tapete/parede mudam); a loja vira aco/concreto
+const INT_THEMES = {
+  casa_melissa:   {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#e85d75', kind:'quarto'},
+  casa_yasmin:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#b388ff', kind:'quarto'},
+  casa_valentina: {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#4fd0c5', kind:'quarto'},
+  casa_isabelle:  {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#f2b84b', kind:'quarto'},
+  casa_giovanna:  {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#f49ad0', kind:'quarto'},
+  casa_beatriz:   {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#9bd16a', kind:'quarto'},
+  casa_camila:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#6db9f4', kind:'quarto'},
+  casa_amanda:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#ff9a6b', kind:'quarto'},
+  casa_comum:     {f1:'#6b5638', f2:'#73603f', wall:'#3a2c1c', acc:'#b08d57', kind:'comum'},
+  loja_armas:     {f1:'#494640', f2:'#524e47', wall:'#26231f', acc:'#9aa0aa', kind:'loja'},
+};
+function intTheme(m){ return INT_THEMES[m] || INT_THEMES.casa_comum; }
+
+function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
+  const th = intTheme(map);
   const woodFloor = () => {
-    c.fillStyle='#6b4f34'; c.fillRect(px,py,ts,ts);
-    c.fillStyle='#74563a'; c.fillRect(px,py+(((gx+gy)%2))*ts*0.5,ts,ts*0.5);
-    c.strokeStyle='rgba(40,28,16,0.35)'; c.lineWidth=1;
+    c.fillStyle=th.f1; c.fillRect(px,py,ts,ts);
+    c.fillStyle=th.f2; c.fillRect(px,py+(((gx+gy)%2))*ts*0.5,ts,ts*0.5);
+    c.strokeStyle='rgba(20,14,8,0.30)'; c.lineWidth=1;
     const seam=((gx*7+gy*13)%3)*ts*0.33;
     c.beginPath(); c.moveTo(px,py+ts-0.5); c.lineTo(px+ts,py+ts-0.5);
     c.moveTo(px+seam,py); c.lineTo(px+seam,py+ts); c.stroke();
   };
   switch(ch){
     case '1': woodFloor(); break;
-    case '2': {                                        // tapete
+    case '2': {                                        // tapete (borda na cor da casa)
       woodFloor();
       c.fillStyle='#7a2530'; c.fillRect(px+ts*0.03,py+ts*0.03,ts*0.94,ts*0.94);
-      c.strokeStyle='#d9a441'; c.lineWidth=Math.max(1,ts*0.04);
+      c.strokeStyle=th.acc; c.lineWidth=Math.max(1,ts*0.04);
       c.strokeRect(px+ts*0.12,py+ts*0.12,ts*0.76,ts*0.76);
-      c.fillStyle='rgba(155,109,255,0.55)';
+      c.fillStyle='rgba(255,255,255,0.18)';
       c.beginPath(); c.moveTo(px+ts*0.5,py+ts*0.32); c.lineTo(px+ts*0.68,py+ts*0.5);
       c.lineTo(px+ts*0.5,py+ts*0.68); c.lineTo(px+ts*0.32,py+ts*0.5); c.closePath(); c.fill();
       break;
     }
-    case 'F': {                                        // parede de madeira
-      c.fillStyle='#3a2a1a'; c.fillRect(px,py,ts,ts);
-      c.fillStyle='#46341f'; for(let i=0;i<3;i++) c.fillRect(px+i*ts*0.34,py,ts*0.3,ts);
-      c.strokeStyle='rgba(20,12,6,0.6)'; c.lineWidth=1;
+    case 'F': {                                        // parede (cor do tema)
+      c.fillStyle=th.wall; c.fillRect(px,py,ts,ts);
+      c.fillStyle=shade(th.wall,0.12); for(let i=0;i<3;i++) c.fillRect(px+i*ts*0.34,py,ts*0.3,ts);
+      c.strokeStyle='rgba(0,0,0,0.5)'; c.lineWidth=1;
       for(let i=1;i<3;i++){ c.beginPath(); c.moveTo(px+i*ts*0.34-1,py); c.lineTo(px+i*ts*0.34-1,py+ts); c.stroke(); }
       c.beginPath(); c.moveTo(px,py+ts*0.5); c.lineTo(px+ts,py+ts*0.5); c.stroke();
       break;
     }
-    case 'b': {                                        // cama
+    case 'b': {                                        // cama (manta na cor da casa)
       woodFloor();
       c.fillStyle='#5a3f28'; c.fillRect(px,py+ts*0.1,ts,ts*0.85);
-      c.fillStyle='#caa45a'; c.fillRect(px+ts*0.05,py+ts*0.15,ts*0.9,ts*0.32);
-      c.fillStyle='#9b6dff'; c.fillRect(px+ts*0.05,py+ts*0.45,ts*0.9,ts*0.5);
+      c.fillStyle='#efe6d6'; c.fillRect(px+ts*0.05,py+ts*0.15,ts*0.9,ts*0.32);   // travesseiro
+      c.fillStyle=th.acc; c.fillRect(px+ts*0.05,py+ts*0.45,ts*0.9,ts*0.5);       // manta
+      c.fillStyle=shade(th.acc,-0.18); c.fillRect(px+ts*0.05,py+ts*0.45,ts*0.9,ts*0.07);
       c.strokeStyle='rgba(0,0,0,0.25)'; c.lineWidth=1; c.strokeRect(px+ts*0.05,py+ts*0.15,ts*0.9,ts*0.8);
       break;
     }
     case 'h': {                                        // lareira
-      c.fillStyle='#3a2a1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle=th.wall; c.fillRect(px,py,ts,ts);
       c.fillStyle='#5a5560'; c.fillRect(px,py,ts,ts*0.95);
       c.fillStyle='#6a6570'; for(let i=0;i<3;i++) for(let j=0;j<3;j++) if((i+j)%2) c.fillRect(px+i*ts*0.34,py+j*ts*0.32,ts*0.3,ts*0.28);
       c.fillStyle='#1a1410'; c.fillRect(px+ts*0.22,py+ts*0.42,ts*0.56,ts*0.53);
@@ -381,18 +398,70 @@ function drawInteriorTile(c, ch, px, py, ts, gx, gy){
       c.strokeStyle='rgba(0,0,0,0.25)'; c.lineWidth=1; c.strokeRect(px+ts*0.06,py+ts*0.32,ts*0.88,ts*0.26);
       break;
     }
-    case 'q': {                                        // bau
+    case 'q': {                                        // bau (quarto) ou engradado (loja)
       woodFloor();
-      c.fillStyle='#5a3f28'; c.fillRect(px+ts*0.15,py+ts*0.35,ts*0.7,ts*0.55);
-      c.fillStyle='#6a4a2e'; c.beginPath(); c.moveTo(px+ts*0.15,py+ts*0.38);
-      c.quadraticCurveTo(px+ts*0.5,py+ts*0.2,px+ts*0.85,py+ts*0.38);
-      c.lineTo(px+ts*0.85,py+ts*0.5); c.lineTo(px+ts*0.15,py+ts*0.5); c.closePath(); c.fill();
-      c.fillStyle='#c9a24a'; c.fillRect(px+ts*0.15,py+ts*0.48,ts*0.7,ts*0.05); c.fillRect(px+ts*0.46,py+ts*0.35,ts*0.08,ts*0.55);
-      c.fillStyle='#e8d050'; c.fillRect(px+ts*0.47,py+ts*0.55,ts*0.06,ts*0.08);
+      if(th.kind==='loja'){
+        c.fillStyle='#6a5236'; c.fillRect(px+ts*0.16,py+ts*0.34,ts*0.68,ts*0.58);
+        c.fillStyle='#8a6a44'; c.fillRect(px+ts*0.16,py+ts*0.34,ts*0.68,ts*0.08);
+        c.strokeStyle='#3a2c1d'; c.lineWidth=Math.max(1,ts*0.04); c.strokeRect(px+ts*0.16,py+ts*0.34,ts*0.68,ts*0.58);
+        c.beginPath(); c.moveTo(px+ts*0.16,py+ts*0.42); c.lineTo(px+ts*0.84,py+ts*0.92);
+        c.moveTo(px+ts*0.84,py+ts*0.42); c.lineTo(px+ts*0.16,py+ts*0.92); c.stroke();
+      } else {
+        c.fillStyle='#5a3f28'; c.fillRect(px+ts*0.15,py+ts*0.35,ts*0.7,ts*0.55);
+        c.fillStyle='#6a4a2e'; c.beginPath(); c.moveTo(px+ts*0.15,py+ts*0.38);
+        c.quadraticCurveTo(px+ts*0.5,py+ts*0.2,px+ts*0.85,py+ts*0.38);
+        c.lineTo(px+ts*0.85,py+ts*0.5); c.lineTo(px+ts*0.15,py+ts*0.5); c.closePath(); c.fill();
+        c.fillStyle='#c9a24a'; c.fillRect(px+ts*0.15,py+ts*0.48,ts*0.7,ts*0.05); c.fillRect(px+ts*0.46,py+ts*0.35,ts*0.08,ts*0.55);
+        c.fillStyle='#e8d050'; c.fillRect(px+ts*0.47,py+ts*0.55,ts*0.06,ts*0.08);
+      }
+      break;
+    }
+    case '_': {                                        // penteadeira (quarto de menina)
+      woodFloor();
+      c.fillStyle='#6a4a2e'; c.fillRect(px+ts*0.12,py+ts*0.4,ts*0.76,ts*0.52);
+      c.fillStyle='#7a5636'; c.fillRect(px+ts*0.12,py+ts*0.4,ts*0.76,ts*0.09);
+      c.fillStyle='#2a2233'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.26,ts*0.2,ts*0.24,0,0,Math.PI*2); c.fill();
+      c.fillStyle='rgba(200,220,255,0.6)'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.26,ts*0.15,ts*0.19,0,0,Math.PI*2); c.fill();
+      c.fillStyle='rgba(255,255,255,0.5)'; c.beginPath(); c.moveTo(px+ts*0.44,py+ts*0.16); c.lineTo(px+ts*0.5,py+ts*0.32); c.lineTo(px+ts*0.46,py+ts*0.34); c.closePath(); c.fill();
+      c.fillStyle=th.acc; c.beginPath(); c.arc(px+ts*0.32,py+ts*0.64,ts*0.03,0,Math.PI*2); c.arc(px+ts*0.68,py+ts*0.64,ts*0.03,0,Math.PI*2); c.fill();
+      break;
+    }
+    case '/': {                                        // rack de arma na parede (Peteco + Mauser)
+      c.fillStyle='#2e261d'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#3a3026'; c.fillRect(px,py+ts*0.12,ts,ts*0.05); c.fillRect(px,py+ts*0.8,ts,ts*0.05);
+      c.strokeStyle='#8a6a44'; c.lineWidth=Math.max(1.5,ts*0.05); c.lineCap='round';
+      const bx=px+ts*0.3;                              // um Peteco (estilingue)
+      c.beginPath(); c.moveTo(bx,py+ts*0.72); c.lineTo(bx,py+ts*0.44);
+      c.moveTo(bx,py+ts*0.44); c.lineTo(bx-ts*0.1,py+ts*0.3); c.moveTo(bx,py+ts*0.44); c.lineTo(bx+ts*0.1,py+ts*0.3); c.stroke();
+      c.strokeStyle='rgba(90,70,46,0.85)'; c.lineWidth=1; c.beginPath(); c.moveTo(bx-ts*0.1,py+ts*0.3); c.lineTo(bx+ts*0.1,py+ts*0.3); c.stroke();
+      const gx2=px+ts*0.58;                            // uma Mauser (silhueta)
+      c.fillStyle='#4a4640'; c.fillRect(gx2,py+ts*0.4,ts*0.26,ts*0.06); c.fillRect(gx2+ts*0.16,py+ts*0.46,ts*0.08,ts*0.16);
+      c.fillStyle='#6a6258'; c.fillRect(gx2,py+ts*0.4,ts*0.26,ts*0.02);
+      break;
+    }
+    case ';': {                                        // estante com caixas de municao
+      woodFloor();
+      c.fillStyle='#5a4632'; c.fillRect(px+ts*0.08,py+ts*0.06,ts*0.84,ts*0.88);
+      c.fillStyle='#2e2418'; for(let i=0;i<3;i++) c.fillRect(px+ts*0.12,py+ts*0.1+i*ts*0.28,ts*0.76,ts*0.22);
+      const cols=['#7a5a3a','#6a6a4a','#8a4a3a'];
+      for(let i=0;i<3;i++){ c.fillStyle=cols[i%3]; c.fillRect(px+ts*0.16,py+ts*0.12+i*ts*0.28,ts*0.22,ts*0.18);
+        c.fillStyle=cols[(i+1)%3]; c.fillRect(px+ts*0.44,py+ts*0.12+i*ts*0.28,ts*0.18,ts*0.18);
+        c.fillStyle=cols[(i+2)%3]; c.fillRect(px+ts*0.66,py+ts*0.12+i*ts*0.28,ts*0.16,ts*0.18); }
+      break;
+    }
+    case '#': {                                        // balcao / vitrine da loja
+      woodFloor();
+      c.fillStyle='#5a3f28'; c.fillRect(px,py+ts*0.3,ts,ts*0.62);
+      c.fillStyle='#6a4a30'; c.fillRect(px,py+ts*0.3,ts,ts*0.08);
+      c.fillStyle='#7a5636'; c.fillRect(px,py+ts*0.24,ts,ts*0.08);
+      c.fillStyle='rgba(150,200,220,0.16)'; c.fillRect(px+ts*0.03,py+ts*0.4,ts*0.94,ts*0.36);
+      c.strokeStyle='rgba(200,230,240,0.28)'; c.lineWidth=1; c.strokeRect(px+ts*0.03,py+ts*0.4,ts*0.94,ts*0.36);
+      c.fillStyle='#caa45a'; c.fillRect(px+ts*0.12,py+ts*0.54,ts*0.2,ts*0.05);
+      c.fillStyle='#9aa0aa'; c.fillRect(px+ts*0.52,py+ts*0.5,ts*0.22,ts*0.06);
       break;
     }
     case 'D': {                                        // porta de saida
-      c.fillStyle='#3a2a1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle=th.wall; c.fillRect(px,py,ts,ts);
       c.fillStyle='#5a3f28'; c.fillRect(px+ts*0.12,py+ts*0.05,ts*0.76,ts*0.9);
       c.fillStyle='#6a4a30'; c.fillRect(px+ts*0.16,py+ts*0.1,ts*0.3,ts*0.8); c.fillRect(px+ts*0.54,py+ts*0.1,ts*0.3,ts*0.8);
       c.fillStyle='#e8d050'; c.beginPath(); c.arc(px+ts*0.74,py+ts*0.5,ts*0.05,0,Math.PI*2); c.fill();
@@ -470,9 +539,65 @@ function drawCampTile(c, ch, px, py, ts, gx, gy){
   return false;
 }
 
+// ---- Sapopemba (SW do Ermo): cada um dos 5 comercios com fachada propria ----
+const SAPO_SHOPS = [
+  {x0:2,y0:18,x1:6,y1:20, dx:4,dy:20,  roof:'#b8462f', eave:'#7a2a18', awn:'#caa23a', sign:'#f4d06a', icon:'galo'}, // Galo de Ouro
+  {x0:9,y0:19,x1:11,y1:20,dx:10,dy:20, roof:'#3a4048', eave:'#22262c', awn:'#5a6068', sign:'#9aa0aa', icon:'arma'}, // Armas Peteco
+  {x0:13,y0:19,x1:15,y1:20,dx:14,dy:20,roof:'#c43e3e', eave:'#7a2424', awn:'#f0c040', sign:'#f0c040', icon:'burg'}, // Burgao
+  {x0:2,y0:25,x1:5,y1:26, dx:3,dy:26,  roof:'#6a4e8a', eave:'#42305a', awn:'#e8d28a', sign:'#e8d28a', icon:'rest'}, // O Garfo de Ouro
+  {x0:8,y0:25,x1:11,y1:26,dx:10,dy:26, roof:'#cdd6da', eave:'#9aa4a8', awn:'#e8eef0', sign:'#d65a5a', icon:'upa'},  // UPA
+];
+function _sapoShopAt(gx, gy){
+  for(const s of SAPO_SHOPS){ if(gx>=s.x0 && gx<=s.x1 && gy>=s.y0 && gy<=s.y1) return s; }
+  return null;
+}
+function drawSapoIcon(c, s, cx, cy, r){
+  c.save();
+  if(s.icon==='arma'){
+    c.fillStyle='#2a2622'; c.fillRect(cx-r,cy-r*0.3,r*1.5,r*0.5); c.fillRect(cx+r*0.2,cy,r*0.4,r*0.7);
+  } else if(s.icon==='galo'){
+    c.fillStyle='#f4d06a'; c.beginPath(); c.arc(cx,cy,r*0.6,0,Math.PI*2); c.fill();
+    c.fillStyle='#d6452f'; c.beginPath(); c.moveTo(cx,cy-r*0.55); c.lineTo(cx-r*0.25,cy-r); c.lineTo(cx+r*0.15,cy-r*0.7); c.closePath(); c.fill();
+    c.fillStyle='#e8902a'; c.beginPath(); c.moveTo(cx+r*0.5,cy); c.lineTo(cx+r,cy-r*0.1); c.lineTo(cx+r*0.5,cy+r*0.25); c.closePath(); c.fill();
+  } else if(s.icon==='burg'){
+    c.fillStyle='#e0a850'; c.beginPath(); c.arc(cx,cy-r*0.2,r*0.85,Math.PI,0); c.fill();
+    c.fillStyle='#7a4a2a'; c.fillRect(cx-r*0.85,cy,r*1.7,r*0.22);
+    c.fillStyle='#5aa84a'; c.fillRect(cx-r*0.85,cy+r*0.22,r*1.7,r*0.13);
+    c.fillStyle='#e0a850'; c.fillRect(cx-r*0.85,cy+r*0.34,r*1.7,r*0.3);
+  } else if(s.icon==='rest'){
+    c.strokeStyle='#e8d28a'; c.lineWidth=Math.max(1.4,r*0.28); c.lineCap='round';
+    c.beginPath(); c.moveTo(cx,cy-r); c.lineTo(cx,cy+r);
+    for(let i=-1;i<=1;i++){ c.moveTo(cx+i*r*0.4,cy-r); c.lineTo(cx+i*r*0.4,cy-r*0.2); } c.stroke();
+  } else if(s.icon==='upa'){
+    c.fillStyle='#d65a5a'; c.fillRect(cx-r*0.22,cy-r*0.8,r*0.44,r*1.6); c.fillRect(cx-r*0.8,cy-r*0.22,r*1.6,r*0.44);
+  }
+  c.restore();
+}
+function drawSapoTile(c, ch, px, py, ts, gx, gy){
+  const s = _sapoShopAt(gx, gy);
+  if(!s) return false;
+  const isDoor = (gx===s.dx && gy===s.dy);
+  c.fillStyle=s.roof; c.fillRect(px,py,ts,ts);                       // telhado
+  c.strokeStyle='rgba(0,0,0,0.18)'; c.lineWidth=1;
+  for(let i=1;i<3;i++){ c.beginPath(); c.moveTo(px+i*ts*0.34,py); c.lineTo(px+i*ts*0.34,py+ts); c.stroke(); }
+  if(gy===s.y0){ c.fillStyle=shade(s.roof,0.18); c.fillRect(px,py,ts,ts*0.16); }   // crista
+  if(gy===s.y1 && !isDoor){ c.fillStyle=s.eave; c.fillRect(px,py+ts*0.82,ts,ts*0.18); } // beiral
+  if(isDoor){
+    c.fillStyle=s.awn; c.fillRect(px,py+ts*0.22,ts,ts*0.18);          // toldo
+    c.fillStyle=shade(s.awn,-0.18); for(let i=0;i<4;i++) if(i%2) c.fillRect(px+i*ts*0.25,py+ts*0.22,ts*0.25,ts*0.18);
+    c.fillStyle='#1a1410'; c.fillRect(px+ts*0.26,py+ts*0.44,ts*0.48,ts*0.5); // vao
+    c.fillStyle='#3a2c1d'; c.fillRect(px+ts*0.26,py+ts*0.44,ts*0.48,ts*0.06);
+    c.fillStyle='rgba(18,14,9,0.92)'; roundRect(c, px+ts*0.16, py+ts*0.01, ts*0.68, ts*0.2, 3); c.fill(); // placa
+    c.strokeStyle=s.sign; c.lineWidth=1.2; c.stroke();
+    drawSapoIcon(c, s, px+ts*0.5, py+ts*0.11, ts*0.12);
+  }
+  return true;
+}
+
 function drawTile(c, ch, px, py, ts, gx, gy){
-  if(mapName && mapName.indexOf('casa_')===0){ drawInteriorTile(c, ch, px, py, ts, gx, gy); return; }
+  if(mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0)){ drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
   if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'ermo' && drawSapoTile(c, ch, px, py, ts, gx, gy)) return;
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;
     case ',':
@@ -4365,7 +4490,7 @@ window.addEventListener('keydown', e=>{
 //  - acha o menor caminho ate o tile clicado, desviando de obstaculos (BFS)
 //  - emite os passos no mesmo ritmo do teclado; o servidor valida cada um
 // ===========================================================================
-const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H', 'M', 'm', 'L', 'W', 'V']);  // iguais ao servidor
+const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H', 'M', 'm', 'L', 'W', 'V', '/', ';', '_']);  // iguais ao servidor
 const STEPV = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 function walkableTile(x, y){
   return y >= 0 && y < mapH && x >= 0 && x < mapW && !SOLID_TILES.has(mapRows[y][x]);
