@@ -97,7 +97,7 @@ function zoomStep(dir){   // +1 aproxima, -1 afasta
 
 // ---------- estado ----------
 let socket = null, myId = null;
-let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null, mapName = 'ermo';
+let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null, mapName = 'ermo', throneBounds = null;
 let camX = 0, camY = 0;
 const players = new Map();
 let started = false;
@@ -114,6 +114,7 @@ let invOpen = false;
 let autoPath = [];            // direcoes restantes do trajeto clicado
 let autoTimer = null;
 let clickFx = null;           // marcador visual do destino {x,y,start}
+let throneWarn = null;        // aparicao do Pofnir avisando no trono {cx,cy,text,start}
 
 // ---------- ciclo de dia e noite ----------
 let dayLength = 480;          // segundos por ciclo (o servidor manda o valor real)
@@ -713,7 +714,130 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.restore();
       break;
     }
+    // ---- FUNDAMENTO (o castelo do Moon no cosmo) ----
+    case 'z': {                                        // cosmo (vazio): estrelas + nebula
+      c.fillStyle = '#06060d'; c.fillRect(px,py,ts,ts);
+      const nb = Math.sin(gx*0.09) + Math.sin(gy*0.07) + Math.sin((gx+gy)*0.05);
+      if(nb > 0){ c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.10 + 0.10*nb;
+        c.fillStyle = (nb>1.0) ? '#3a2a6a' : '#1f2a5a'; c.fillRect(px,py,ts,ts); c.restore(); }
+      const h = (gx*73856093 ^ gy*19349663) >>> 0;
+      if(h%11===0){ const b=h%3;
+        c.fillStyle = b===0?'#ffffff':(b===1?'#cdd6ff':'#fff2cc');
+        c.fillRect(px+(h%ts), py+((h>>4)%ts), b===2?2:1, b===2?2:1); }
+      if(h%53===0){ c.save(); c.globalCompositeOperation='lighter';
+        const sxx=px+(h%ts), syy=py+((h>>6)%ts);
+        const g=c.createRadialGradient(sxx,syy,0,sxx,syy,3);
+        g.addColorStop(0,'#fff'); g.addColorStop(1,'rgba(255,255,255,0)');
+        c.fillStyle=g; c.beginPath(); c.arc(sxx,syy,3,0,Math.PI*2); c.fill(); c.restore(); }
+      break;
+    }
+    case 'r': {                                        // piso do castelo (pedra regia)
+      c.fillStyle = '#1b1826'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#231f33'; c.fillRect(px,py,ts,1); c.fillRect(px,py,1,ts);
+      c.fillStyle = '#131120'; c.fillRect(px,py+ts-1,ts,1); c.fillRect(px+ts-1,py,1,ts);
+      if((gx+gy)%2){ c.fillStyle = 'rgba(155,109,255,0.05)'; c.fillRect(px,py,ts,ts); }
+      break;
+    }
+    case 'G': {                                        // muralha de pedra
+      c.fillStyle = '#15131e'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#221d30'; c.fillRect(px,py,ts,ts*0.5);
+      c.fillStyle = '#0e0c16'; c.fillRect(px,py+ts*0.5,ts,ts*0.5);
+      c.fillStyle = '#2a2540'; c.fillRect(px,py,ts,2);
+      c.fillStyle = '#080610'; c.fillRect(px,py+ts-2,ts,2);
+      c.fillStyle = '#0c0a14'; c.fillRect(px+ts*0.5-0.5,py,1,ts);
+      if((gx*3+gy)%6===0){ c.fillStyle='rgba(155,109,255,0.18)'; c.fillRect(px+ts*0.3,py+ts*0.42,ts*0.4,2); }
+      break;
+    }
+    case 'C': {                                        // tapete real (violeta + ouro)
+      c.fillStyle = '#3a2a5a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#d9b15a'; c.fillRect(px,py,ts*0.1,ts); c.fillRect(px+ts*0.9,py,ts*0.1,ts);
+      c.fillStyle = '#4a3670'; c.fillRect(px+ts*0.12,py,ts*0.76,ts);
+      c.strokeStyle = 'rgba(217,177,90,0.6)'; c.lineWidth = 1;
+      const m=px+ts/2, nn=py+ts/2, s=ts*0.22;
+      c.beginPath(); c.moveTo(m,nn-s); c.lineTo(m+s,nn); c.lineTo(m,nn+s); c.lineTo(m-s,nn); c.closePath(); c.stroke();
+      break;
+    }
+    case 'Z': {                                        // dais / degraus
+      c.fillStyle = '#2a2738'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#34304a'; c.fillRect(px,py,ts,2);
+      c.fillStyle = '#d9b15a'; c.fillRect(px,py,ts,1);
+      c.fillStyle = '#191726'; c.fillRect(px,py+ts-2,ts,2);
+      break;
+    }
+    case 'B': {                                        // braseiro cosmico
+      c.fillStyle = '#1b1826'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#3a3550'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.74,ts*0.28,ts*0.1,0,0,Math.PI*2); c.fill();
+      c.fillStyle = '#2a2740'; c.fillRect(px+ts*0.36,py+ts*0.52,ts*0.28,ts*0.22);
+      c.fillStyle = '#4a4566'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.5,ts*0.24,ts*0.08,0,0,Math.PI*2); c.fill();
+      c.save(); c.globalCompositeOperation='lighter';
+      const g=c.createRadialGradient(px+ts/2,py+ts*0.38,1,px+ts/2,py+ts*0.38,ts*0.34);
+      g.addColorStop(0,'#e9ddff'); g.addColorStop(0.4,'#9b6dff'); g.addColorStop(1,'rgba(120,90,200,0)');
+      c.fillStyle=g; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.36,ts*0.18,ts*0.3,0,0,Math.PI*2); c.fill();
+      c.restore();
+      break;
+    }
+    case 'F': {                                        // estandarte do Moon
+      c.fillStyle = '#15131e'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#2a1f4a'; c.fillRect(px+ts*0.22,py,ts*0.56,ts*0.88);
+      c.beginPath(); c.moveTo(px+ts*0.22,py+ts*0.88); c.lineTo(px+ts*0.5,py+ts*0.78);
+      c.lineTo(px+ts*0.78,py+ts*0.88); c.lineTo(px+ts*0.78,py+ts*0.96); c.lineTo(px+ts*0.22,py+ts*0.96); c.closePath(); c.fill();
+      c.fillStyle = '#3a2d5e'; c.fillRect(px+ts*0.22,py,ts*0.56,2);
+      c.fillStyle = '#d9b15a'; c.beginPath(); c.arc(px+ts*0.5,py+ts*0.4,ts*0.16,0,Math.PI*2); c.fill();
+      c.fillStyle = '#2a1f4a'; c.beginPath(); c.arc(px+ts*0.57,py+ts*0.36,ts*0.14,0,Math.PI*2); c.fill();
+      break;
+    }
+    case 'K': {                                        // janela cosmica na muralha
+      c.fillStyle = '#15131e'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#05050c'; c.fillRect(px+ts*0.18,py+ts*0.12,ts*0.64,ts*0.76);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.3; c.fillStyle='#3a2a6a';
+      c.fillRect(px+ts*0.18,py+ts*0.12,ts*0.64,ts*0.76); c.restore();
+      const h=(gx*2654435761 ^ gy*40503) >>> 0;
+      c.fillStyle='#cdd6ff'; c.fillRect(px+ts*0.3+(h%6),py+ts*0.3+((h>>3)%6),1,1);
+      c.fillStyle='#fff'; c.fillRect(px+ts*0.5+((h>>5)%5),py+ts*0.55+((h>>8)%5),1,1);
+      c.strokeStyle='#2a2540'; c.lineWidth=2; c.strokeRect(px+ts*0.18,py+ts*0.12,ts*0.64,ts*0.76);
+      c.fillStyle='#2a2540'; c.fillRect(px+ts*0.5-1,py+ts*0.12,2,ts*0.76);
+      break;
+    }
+    case 'Y': _throneTile(c, px, py, ts, gx, gy); break;   // trono monumental
     default: grassBase(c,px,py,ts,gx,gy);
+  }
+}
+function computeThroneBounds(){
+  let X0=999,Y0=999,X1=-1,Y1=-1;
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    if(mapRows[y] && mapRows[y][x]==='Y'){ if(x<X0)X0=x; if(y<Y0)Y0=y; if(x>X1)X1=x; if(y>Y1)Y1=y; }
+  }
+  return (X1<0) ? null : {x0:X0,y0:Y0,x1:X1,y1:Y1,w:X1-X0+1,h:Y1-Y0+1};
+}
+function _throneTile(c, px, py, ts, gx, gy){
+  const tb = throneBounds;
+  c.fillStyle='#15131e'; c.fillRect(px,py,ts,ts);
+  if(!tb){ c.fillStyle='#3a3550'; c.fillRect(px,py,ts,ts); return; }
+  const rx=gx-tb.x0, ry=gy-tb.y0, W=tb.w, H=tb.h;
+  const left=rx===0, right=rx===W-1, topRow=ry===0, botRow=ry===H-1;
+  const dark='#1a1726', gold='#d9b15a', goldD='#b08a3a', seatV='#4a3670';
+  c.fillStyle=dark; c.fillRect(px,py,ts,ts);
+  if(topRow){                                         // coroa do espaldar
+    c.fillStyle=gold; c.fillRect(px+ts*0.18,py+ts*0.32,ts*0.64,ts*0.68);
+    c.beginPath(); c.moveTo(px+ts*0.3,py+ts*0.34); c.lineTo(px+ts*0.5,py); c.lineTo(px+ts*0.7,py+ts*0.34); c.closePath(); c.fill();
+    c.fillStyle=goldD; c.fillRect(px+ts*0.18,py+ts*0.86,ts*0.64,ts*0.14);
+  } else if(botRow){                                  // base dourada
+    c.fillStyle=goldD; c.fillRect(px,py+ts*0.28,ts,ts*0.72);
+    c.fillStyle=gold; c.fillRect(px,py+ts*0.28,ts,3);
+  } else if(left || right){                           // bracos/postes laterais
+    c.fillStyle=gold; c.fillRect(left?px+ts*0.45:px, py, ts*0.55, ts);
+    c.fillStyle=goldD; c.fillRect(left?px+ts*0.45:px, py+ts*0.4, ts*0.55, 3);
+  } else if(ry >= H-2){                               // assento (almofada violeta)
+    c.fillStyle=seatV; c.fillRect(px,py,ts,ts);
+    c.fillStyle='#5a4486'; c.fillRect(px,py,ts,3);
+  } else {                                            // espaldar central + sigilo
+    c.fillStyle=goldD; c.fillRect(px+ts*0.15,py,ts*0.7,ts);
+    c.fillStyle=dark; c.fillRect(px+ts*0.25,py,ts*0.5,ts);
+    const cxr=(tb.x0+tb.x1)/2, cyr=tb.y0+1.5;
+    if(Math.abs(gx-cxr)<1.0 && Math.abs(gy-cyr)<1.2){
+      c.fillStyle=gold; c.beginPath(); c.arc(px+ts/2,py+ts/2,ts*0.32,0,Math.PI*2); c.fill();
+      c.fillStyle=dark; c.beginPath(); c.arc(px+ts*0.64,py+ts*0.42,ts*0.27,0,Math.PI*2); c.fill();
+    }
   }
 }
 function buildMapCanvas(){
@@ -777,6 +901,9 @@ function drawDeity(c, sx, sy, ts, p){
   else if(p.form === 'elf')  drawValiriaGod(c, R, accent);
   else if(p.form === 'owl')  drawNherithGod(c, R, accent);
   else if(p.form === 'crow') drawJeansGod(c, R, accent);
+  else if(p.form === 'valdris')  drawValdrisGod(c, R, accent);
+  else if(p.form === 'dog_black') drawVargoGod(c, R, accent);
+  else if(p.form === 'tortoise')  drawMarturGod(c, R, accent);
   else { c.fillStyle = accent; c.beginPath(); c.arc(0,0,R*0.5,0,Math.PI*2); c.fill(); }
   c.restore();
   _deitySparkles(c, cx, cy + bob, R, accent, moving);
@@ -995,6 +1122,146 @@ function drawJeansGod(c, R, accent){
   c.fillStyle = g; c.beginPath(); c.arc(S*0.1,-S*0.46,S*0.1,0,Math.PI*2); c.fill(); c.restore();
   c.fillStyle = '#fff'; c.beginPath(); c.arc(S*0.1,-S*0.46,S*0.045,0,Math.PI*2); c.fill();
   c.fillStyle = '#1a1430'; c.beginPath(); c.arc(S*0.1,-S*0.46,S*0.02,0,Math.PI*2); c.fill();
+}
+
+// --- Valdris: o forasteiro, aqui imponente e belo, servo do Criador ---
+function drawValdrisGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.25; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.96,S*0.5,S*0.14,0,0,Math.PI*2); c.fill(); c.restore();
+  // manto exterior
+  c.fillStyle = '#2a1f4a';
+  c.beginPath(); c.moveTo(0,-S*0.55);
+  c.quadraticCurveTo(-S*0.7,-S*0.2,-S*0.6,S*0.95); c.lineTo(S*0.6,S*0.95);
+  c.quadraticCurveTo(S*0.7,-S*0.2,0,-S*0.55); c.closePath(); c.fill();
+  // forro mais claro
+  c.fillStyle = '#4a3670';
+  c.beginPath(); c.moveTo(0,-S*0.4); c.lineTo(-S*0.34,S*0.92); c.lineTo(S*0.34,S*0.92); c.closePath(); c.fill();
+  // dobras
+  c.strokeStyle = '#1c1436'; c.lineWidth = Math.max(1,S*0.02);
+  c.beginPath(); c.moveTo(-S*0.18,S*0.1); c.lineTo(-S*0.34,S*0.9);
+  c.moveTo(S*0.18,S*0.1); c.lineTo(S*0.34,S*0.9); c.moveTo(0,-S*0.3); c.lineTo(0,S*0.9); c.stroke();
+  // gola alta / ombreiras
+  c.fillStyle = '#1c1436';
+  c.beginPath(); c.moveTo(-S*0.34,-S*0.38); c.quadraticCurveTo(0,-S*0.6,S*0.34,-S*0.38);
+  c.quadraticCurveTo(0,-S*0.46,-S*0.34,-S*0.38); c.closePath(); c.fill();
+  // broche ambar VAZIO no peito (o cristal perdido)
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.5;
+  const ag = c.createRadialGradient(0,-S*0.12,1,0,-S*0.12,S*0.08);
+  ag.addColorStop(0,'#caa15a'); ag.addColorStop(1,'rgba(180,140,60,0)');
+  c.fillStyle = ag; c.beginPath(); c.arc(0,-S*0.12,S*0.08,0,Math.PI*2); c.fill(); c.restore();
+  c.strokeStyle = '#b08a3a'; c.lineWidth = 1; c.beginPath(); c.arc(0,-S*0.12,S*0.05,0,Math.PI*2); c.stroke();
+  // cabelo escuro
+  c.fillStyle = '#1a1430';
+  c.beginPath(); c.ellipse(0,-S*0.52,S*0.32,S*0.34,0,0,Math.PI*2); c.fill();
+  // rosto palido
+  c.fillStyle = '#d9cfe6';
+  c.beginPath(); c.ellipse(0,-S*0.55,S*0.2,S*0.25,0,0,Math.PI*2); c.fill();
+  // mechas na frente
+  c.fillStyle = '#231a42';
+  c.beginPath(); c.moveTo(-S*0.22,-S*0.66); c.quadraticCurveTo(0,-S*0.84,S*0.22,-S*0.66);
+  c.lineTo(S*0.16,-S*0.52); c.quadraticCurveTo(0,-S*0.64,-S*0.16,-S*0.52); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(-S*0.2,-S*0.6); c.lineTo(-S*0.24,-S*0.4); c.lineTo(-S*0.12,-S*0.5); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.2,-S*0.6); c.lineTo(S*0.24,-S*0.4); c.lineTo(S*0.12,-S*0.5); c.closePath(); c.fill();
+  // circlete sutil
+  c.strokeStyle = accent; c.lineWidth = Math.max(1,S*0.02);
+  c.beginPath(); c.arc(0,-S*0.58,S*0.2,Math.PI*1.15,Math.PI*1.85); c.stroke();
+  // olhos que brilham (violeta)
+  for(const s of [-1,1]){
+    const ex = s*S*0.08;
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(ex,-S*0.55,0,ex,-S*0.55,S*0.06);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.4,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(ex,-S*0.55,S*0.06,0,Math.PI*2); c.fill(); c.restore();
+    c.fillStyle = '#6a4aa0'; c.beginPath(); c.arc(ex,-S*0.55,S*0.022,0,Math.PI*2); c.fill();
+  }
+  // sobrancelhas severas
+  c.strokeStyle = '#1a1430'; c.lineWidth = Math.max(1,S*0.02);
+  c.beginPath(); c.moveTo(-S*0.14,-S*0.62); c.lineTo(-S*0.03,-S*0.59);
+  c.moveTo(S*0.14,-S*0.62); c.lineTo(S*0.03,-S*0.59); c.stroke();
+}
+
+// --- Vargo: o cao negro que leva os mortos ---
+function drawVargoGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.28; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.92,S*0.55,S*0.15,0,0,Math.PI*2); c.fill(); c.restore();
+  const black = '#14121c', edge = '#2a2438';
+  // cauda
+  c.fillStyle = black;
+  c.beginPath(); c.moveTo(-S*0.4,S*0.3); c.quadraticCurveTo(-S*0.8,S*0.1,-S*0.7,-S*0.3);
+  c.quadraticCurveTo(-S*0.6,-S*0.1,-S*0.35,S*0.35); c.closePath(); c.fill();
+  // corpo
+  c.beginPath(); c.ellipse(0,S*0.35,S*0.5,S*0.55,0,0,Math.PI*2); c.fill();
+  // patas
+  c.fillRect(-S*0.3,S*0.55,S*0.16,S*0.4); c.fillRect(S*0.14,S*0.55,S*0.16,S*0.4);
+  c.fillStyle = edge; c.fillRect(-S*0.3,S*0.9,S*0.16,S*0.06); c.fillRect(S*0.14,S*0.9,S*0.16,S*0.06);
+  // brilho no peito
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.3; c.fillStyle = accent;
+  c.beginPath(); c.ellipse(0,S*0.3,S*0.2,S*0.34,0,0,Math.PI*2); c.fill(); c.restore();
+  // cabeca
+  c.fillStyle = black;
+  c.beginPath(); c.ellipse(0,-S*0.32,S*0.36,S*0.34,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(0,-S*0.14,S*0.18,S*0.16,0,0,Math.PI*2); c.fill();   // focinho
+  // orelhas
+  c.beginPath(); c.moveTo(-S*0.3,-S*0.52); c.lineTo(-S*0.46,-S*0.8); c.lineTo(-S*0.16,-S*0.58); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.3,-S*0.52); c.lineTo(S*0.46,-S*0.8); c.lineTo(S*0.16,-S*0.58); c.closePath(); c.fill();
+  c.fillStyle = edge;
+  c.beginPath(); c.moveTo(-S*0.28,-S*0.54); c.lineTo(-S*0.4,-S*0.73); c.lineTo(-S*0.2,-S*0.58); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.28,-S*0.54); c.lineTo(S*0.4,-S*0.73); c.lineTo(S*0.2,-S*0.58); c.closePath(); c.fill();
+  // ponta do focinho
+  c.fillStyle = '#0a0810'; c.beginPath(); c.ellipse(0,-S*0.04,S*0.06,S*0.045,0,0,Math.PI*2); c.fill();
+  // olhos que brilham
+  for(const s of [-1,1]){
+    const ex = s*S*0.15;
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(ex,-S*0.34,0,ex,-S*0.34,S*0.1);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.4,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(ex,-S*0.34,S*0.1,0,Math.PI*2); c.fill(); c.restore();
+    c.fillStyle = '#d9ccff'; c.beginPath(); c.arc(ex,-S*0.34,S*0.04,0,Math.PI*2); c.fill();
+    c.fillStyle = '#3a2d5e'; c.beginPath(); c.arc(ex,-S*0.34,S*0.018,0,Math.PI*2); c.fill();
+  }
+}
+
+// --- Martur: o jabuti ancestral que carrega o tempo ---
+function drawMarturGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.25; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.9,S*0.6,S*0.16,0,0,Math.PI*2); c.fill(); c.restore();
+  // pernas
+  c.fillStyle = '#5a6a3a';
+  c.fillRect(-S*0.5,S*0.4,S*0.18,S*0.4); c.fillRect(S*0.32,S*0.4,S*0.18,S*0.4);
+  c.beginPath(); c.ellipse(-S*0.41,S*0.8,S*0.11,S*0.07,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(S*0.41,S*0.8,S*0.11,S*0.07,0,0,Math.PI*2); c.fill();
+  // pescoco + cabeca
+  c.fillStyle = '#6a7a4a';
+  c.beginPath(); c.ellipse(0,S*0.34,S*0.16,S*0.2,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(0,S*0.54,S*0.18,S*0.16,0,0,Math.PI*2); c.fill();
+  c.strokeStyle = '#4a5a30'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(-S*0.1,S*0.34); c.lineTo(S*0.1,S*0.34); c.moveTo(-S*0.1,S*0.42); c.lineTo(S*0.1,S*0.42); c.stroke();
+  // olhos velhos
+  c.fillStyle = '#1a1a10';
+  c.beginPath(); c.arc(-S*0.07,S*0.52,S*0.025,0,Math.PI*2); c.fill();
+  c.beginPath(); c.arc(S*0.07,S*0.52,S*0.025,0,Math.PI*2); c.fill();
+  // CASCO (o mais imponente)
+  const shell='#6e5a32', shellD='#54421f', shellL='#8a7240';
+  c.fillStyle = shell;
+  c.beginPath(); c.ellipse(0,-S*0.05,S*0.6,S*0.55,0,Math.PI,0); c.fill();
+  c.fillStyle = shellD;
+  c.beginPath(); c.ellipse(0,-S*0.02,S*0.6,S*0.16,0,0,Math.PI*2); c.fill();
+  // placas hexagonais
+  c.strokeStyle = shellD; c.lineWidth = Math.max(1,S*0.025); c.fillStyle = shellL;
+  function plate(cx,cy,rr){
+    c.beginPath();
+    for(let k=0;k<6;k++){ const a=k*Math.PI/3 - Math.PI/2; const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr*0.85;
+      if(k===0)c.moveTo(x,y); else c.lineTo(x,y);} c.closePath(); c.fill(); c.stroke();
+  }
+  plate(0,-S*0.18,S*0.2);
+  plate(-S*0.3,-S*0.08,S*0.16); plate(S*0.3,-S*0.08,S*0.16);
+  plate(-S*0.16,-S*0.36,S*0.13); plate(S*0.16,-S*0.36,S*0.13);
+  // brilho dourado do tempo
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.2; c.fillStyle = accent;
+  c.beginPath(); c.ellipse(-S*0.15,-S*0.25,S*0.2,S*0.16,0,0,Math.PI*2); c.fill(); c.restore();
 }
 
 // ===========================================================================
@@ -1486,7 +1753,36 @@ function frame(now){
   });
 
   if(me) coordsEl.textContent = `x ${me.x}, y ${me.y}`;
+  drawThroneWarn(ctx, now);                     // aparicao do Pofnir no trono
   requestAnimationFrame(frame);
+}
+
+function drawThroneWarn(c, now){
+  if(!throneWarn) return;
+  const age = now - throneWarn.start, LIFE = 12000;
+  if(age > LIFE){ throneWarn = null; return; }
+  let a = 1;
+  if(age < 600) a = age/600;
+  else if(age > LIFE-1400) a = Math.max(0,(LIFE-age)/1400);
+  const cx = (throneWarn.cx+0.5)*TS - camX, cy = (throneWarn.cy+0.5)*TS - camY;
+  const R = TS*3.2, bob = Math.sin(now/600)*TS*0.12;
+  // halo de presenca
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = a*0.5;
+  const g = c.createRadialGradient(cx, cy+bob, R*0.2, cx, cy+bob, R*1.5);
+  g.addColorStop(0,'rgba(246,230,173,0.55)'); g.addColorStop(0.5,'rgba(155,109,255,0.25)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=g; c.beginPath(); c.arc(cx, cy+bob, R*1.5, 0, Math.PI*2); c.fill(); c.restore();
+  // o Pofnir espectral, imenso, sobre o trono
+  c.save(); c.translate(cx, cy - R*0.35 + bob); c.globalAlpha = a*0.92;
+  drawPofnirGod(c, R, '#34d17a'); c.restore();
+  // a sentenca, em ouro
+  if(throneWarn.text){
+    c.save(); c.font = '700 '+Math.round(TS*0.62)+'px Cinzel, serif'; c.textAlign='center';
+    const tyy = cy + R*0.95 + bob;
+    c.lineWidth = 4; c.strokeStyle='rgba(0,0,0,0.85)'; c.strokeText(throneWarn.text, cx, tyy);
+    c.fillStyle = 'rgba(246,230,173,'+a.toFixed(2)+')'; c.fillText(throneWarn.text, cx, tyy);
+    c.restore();
+  }
 }
 
 // ===========================================================================
@@ -1763,6 +2059,7 @@ function connectWithToken(token){
     myId = data.id;
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
     mapW = data.map.width; mapH = data.map.height; mapName = data.map.map || 'ermo';
+    throneBounds = computeThroneBounds();
     applyZoom(zoom);   // define TS, viewport, dimensiona o canvas e desenha o mapa
     players.clear();
     bubbles.clear(); smites.clear();
@@ -1791,6 +2088,7 @@ function connectWithToken(token){
   socket.on('map_change', data=>{
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
     mapW = data.map.width; mapH = data.map.height; mapName = data.map.map || 'ermo';
+    throneBounds = computeThroneBounds();
     players.clear();
     bubbles.clear(); smites.clear();
     for(const p of data.players) addPlayer(p);
@@ -1864,6 +2162,7 @@ function connectWithToken(token){
     }
   });
   socket.on('toast', d=>{ if(d && d.text) toastMsg(d.text); });
+  socket.on('throne_warn', d=>{ if(d) throneWarn = {cx:d.cx, cy:d.cy, text:d.text||'', start:performance.now()}; });
   socket.on('class_error', d=>{
     toastMsg('Não rolou: ' + ((d && d.reason) || 'erro') , true);
   });
@@ -2571,6 +2870,12 @@ canvas.addEventListener('pointerdown', e => {
       const path = findPath(me.x, me.y, dest[0], dest[1]);
       if(path && path.length){ clickFx = {x:dest[0], y:dest[1], start:performance.now()}; walkPath(path); }
     }
+    return;
+  }
+
+  // tocou no trono do Criador? (so no Fundamento) -> provoca o Pofnir
+  if(mapName === 'fundamento' && mapRows[ty] && mapRows[ty][tx] === 'Y'){
+    if(socket) socket.emit('throne');
     return;
   }
 

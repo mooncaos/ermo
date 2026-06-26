@@ -509,6 +509,11 @@ def on_confirm_ok(data):
     # mundos secretos: viagem confirmada
     if action and action.startswith("secret_go:"):
         target = action.split(":", 1)[1]
+        if target == "valoran" and (player.get("ficha") or {}).get("banned_valoran"):
+            socketio.emit("speech", {"id": "god:jeans",
+                "text": "O Gato Branco nao te recebe mais. Voce o desafiou."},
+                room=player.get("map", "ermo"))
+            return
         if (target in wm.MAPS
                 and secret_worlds.FROM_OF.get(target) == player.get("map", "ermo")):
             sx, sy = rules.pick_spawn(world, target)
@@ -516,6 +521,11 @@ def on_confirm_ok(data):
         return
     # Valoran: segunda confirmacao (a casa do Gato Branco de Olhos Verdes)
     if action == "secret_dbl:valoran" and player.get("map", "ermo") == "rasharan":
+        if (player.get("ficha") or {}).get("banned_valoran"):
+            socketio.emit("speech", {"id": "god:jeans",
+                "text": "O Gato Branco nao te recebe mais. Voce o desafiou."},
+                room="rasharan")
+            return
         emit("confirm", {
             "action": "secret_go:valoran",
             "title": "Voce quer ver mesmo o Gato Branco de Olhos Verdes?",
@@ -568,6 +578,11 @@ def _offer_secret_trip(player, ph):
     mp = player.get("map", "ermo")
     guide = "npc:corvo" if mp == "ermo" else "god:jeans"
     if ph.get("double"):   # Valoran
+        if (player.get("ficha") or {}).get("banned_valoran"):
+            socketio.emit("speech", {"id": guide,
+                "text": "O Gato Branco nao te recebe mais. Voce o desafiou no castelo do Criador."},
+                room=mp)
+            return
         socketio.emit("speech", {"id": guide,
             "text": secret_worlds.VALORAN_JEANS_LINE}, room=mp)
         emit("confirm", {
@@ -612,6 +627,87 @@ def _grant_pofnir_blessing(player):
                 "que a sua vida seja mais longa."}, room="valoran")
     emit("ficha", {"ficha": ficha, "blessed": True})
     emit("toast", {"text": "Pofnir te abencoou: +5 de vida maxima!"})
+
+
+# ---------------------------------------------------------------------------
+#  O TRONO DO CRIADOR (Fundamento): tocar -> aviso do Pofnir -> insistir ->
+#  OBLITERACAO (perde a moeda + banido de Valoran + morte comum -> respawn).
+# ---------------------------------------------------------------------------
+def _throne_center():
+    rows = map_rows("fundamento")
+    pts = [(x, y) for y, row in enumerate(rows)
+           for x, ch in enumerate(row) if ch == "Y"]
+    if not pts:
+        return (50.0, 12.0)
+    xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
+    return ((min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0)
+
+
+_FUND_THRONE = _throne_center()
+_THRONE_WINDOW = 12.0   # segundos pra "insistir" depois do aviso
+
+
+def _obliterate(sid):
+    """A ira do Pofnir sobre quem insistiu no trono do Criador: zera a moeda,
+    bane de Valoran pra sempre, dispara a morte (raio) e respawna no Ermo."""
+    player = world.players.get(sid)
+    if not player:
+        return
+    mp = player.get("map", "ermo")
+    # 1) perde TODA moeda (hoje: itens kind 'currency'; gancho pra economia futura)
+    bag = player.get("inventory") or []
+    kept = [s for s in bag
+            if (items.get(s.get("item")) or {}).get("kind") != "currency"]
+    player["inventory"] = kept
+    try:
+        if player.get("player_id"):
+            db.save_inventory(player["player_id"], kept)
+    except Exception as exc:
+        print("erro zerando moeda na obliteracao:", exc)
+    socketio.emit("inventory", {"bag": kept}, to=sid)
+    # 2) banido de Valoran pra sempre (marcado na ficha, persiste)
+    ficha = player.get("ficha") or {}
+    ficha["banned_valoran"] = True
+    player["ficha"] = ficha
+    try:
+        if player.get("player_id"):
+            db.save_ficha(player["player_id"], ficha)
+    except Exception as exc:
+        print("erro salvando banimento de Valoran:", exc)
+    # 3) a sentenca + a morte (raio dourado do Gato Branco)
+    socketio.emit("speech", {"id": "god:pofnir",
+        "text": "Eu avisei. Voce tocou no que e dele. Volte ao po."}, room=mp)
+    socketio.emit("smite", {"target": player["id"], "by": "god:pofnir",
+        "color": "#f6e6ad"}, room=mp)
+    player["_throne_t"] = 0.0
+    # 4) morte comum -> respawn no Ermo (depois da animacao) + o aviso
+    def _resp():
+        socketio.sleep(1.4)
+        sx, sy = rules.pick_spawn(world, "ermo")
+        _go_to(sid, "ermo", sx, sy)
+        socketio.emit("toast", {"text": "O Pofnir te obliterou. Voce perdeu suas "
+                                "moedas e foi banido de Valoran para sempre."}, to=sid)
+    socketio.start_background_task(_resp)
+
+
+@socketio.on("throne")
+def on_throne(_data=None):
+    """Cliente tocou no trono (so no Fundamento). 1o toque: o Pofnir aparece e
+    avisa. 2o toque dentro da janela: obliteracao. Sair/esperar: nada acontece."""
+    player = world.players.get(request.sid)
+    if not player or player.get("map") != "fundamento":
+        return
+    cx, cy = _FUND_THRONE
+    if abs(player["x"] - cx) > 12 or abs(player["y"] - cy) > 12:
+        return  # longe demais do trono pra "tocar"
+    now = time.time()
+    last = player.get("_throne_t", 0.0)
+    if 0.0 < now - last <= _THRONE_WINDOW:   # insistiu
+        _obliterate(request.sid)
+        return
+    player["_throne_t"] = now                 # primeiro aviso
+    socketio.emit("throne_warn", {"cx": cx, "cy": cy,
+        "text": "Sai de perto do cheiro dele."}, to=request.sid)
 
 
 @socketio.on("chat")

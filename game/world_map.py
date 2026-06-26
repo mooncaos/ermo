@@ -56,7 +56,8 @@ MAP_ROWS = [
 # estatua 2x2 com os quadrantes P Q R U.)
 SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
                "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U",
-               "A", "l", "q", "N", "I", "v", "y"}
+               "A", "l", "q", "N", "I", "v", "y",
+               "z", "G", "Y", "B", "F", "K"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -236,16 +237,76 @@ def _build_valoran():
 RASHARAN_ROWS = _build_rasharan()
 VALORAN_ROWS = _build_valoran()
 
+
+def _build_fundamento():
+    """O castelo do Moon (o criador), flutuando no cosmo negro. Denso: muralha,
+    salao do trono ao norte com o TRONO monumental vazio, corredor processional,
+    camaras laterais (Vargo a oeste, Martur a leste, Valdris junto ao trono),
+    braseiros e estandartes. Nao da pra andar no vazio. Portal-estrela ao sul.
+    Tiles: z cosmo(SOLIDO) r piso G parede C tapete Y trono(SOLIDO) Z dais
+           B braseiro(SOLIDO) F estandarte(SOLIDO) K janela cosmica(SOLIDO)."""
+    W = Hh = 100
+    rows = _grid(W, Hh, "z")                      # cosmo (vazio) por toda parte
+    x0, y0, x1, y1 = 10, 6, 89, 92                # contorno do castelo flutuante
+    _rect(rows, x0, y0, x1, y1, "r")              # piso do castelo
+    _border(rows, x0, y0, x1, y1, "G")            # muralha externa (2 tiles)
+    _border(rows, x0 + 1, y0 + 1, x1 - 1, y1 - 1, "G")
+    for x in range(x0 + 6, x1 - 5, 8):            # janelas cosmicas (norte/sul)
+        rows[y0][x] = "K"; rows[y1][x] = "K"
+    for y in range(y0 + 9, y1 - 6, 9):            # janelas cosmicas (leste/oeste)
+        rows[y][x0] = "K"; rows[y][x1] = "K"
+
+    # --- SALAO DO TRONO (norte) ---
+    thy = 31
+    _border(rows, x0 + 2, y0 + 2, x1 - 2, thy, "G")   # camara do trono
+    _rect(rows, x0 + 3, y0 + 3, x1 - 3, thy - 1, "r")
+    for x in range(47, 53):
+        rows[thy][x] = "C"                        # porta sul do salao (pro corredor)
+    _rect(rows, 46, 10, 53, 15, "Y")              # o TRONO monumental (8x6)
+    _rect(rows, 44, 16, 55, 19, "Z")              # dais (degraus) na frente
+    _rect(rows, 45, 20, 54, 21, "Z")
+    _rect(rows, 49, 16, 50, 90, "C")              # tapete real, do trono a entrada
+    for y in range(13, 90, 4):                    # colunas ladeando o tapete
+        if rows[y][45] in ("r", "C"): rows[y][45] = "G"
+        if rows[y][54] in ("r", "C"): rows[y][54] = "G"
+    rows[16][44] = "B"; rows[16][55] = "B"        # braseiros nas quinas do trono
+    for y in range(36, 88, 12):                   # braseiros ao longo do tapete
+        rows[y][47] = "B"; rows[y][52] = "B"
+    for x in range(x0 + 5, x1 - 4, 7):            # estandartes do Moon (parede norte)
+        rows[y0 + 2][x] = "F"
+
+    # --- CAMARAS LATERAIS (lares dos deuses) ---
+    _border(rows, x0 + 2, 40, 38, 66, "G")        # camara oeste (Vargo)
+    _rect(rows, x0 + 3, 41, 37, 65, "r")
+    rows[53][38] = "r"; rows[52][38] = "r"        # porta pro corredor
+    _border(rows, 61, 40, x1 - 2, 66, "G")        # camara leste (Martur)
+    _rect(rows, 62, 41, x1 - 3, 65, "r")
+    rows[53][61] = "r"; rows[52][61] = "r"        # porta pro corredor
+    rows[44][22] = "B"; rows[62][22] = "B"        # braseiros nas camaras
+    rows[44][77] = "B"; rows[62][77] = "B"
+
+    # --- ENTRADA (sul) + portal-estrela ---
+    _rect(rows, 44, 84, 55, 90, "r")
+    for y in range(84, 91):
+        rows[y][49] = "C"; rows[y][50] = "C"
+    rows[88][45] = "*"; rows[88][46] = "*"        # portal-estrela (sai pro Rasharan)
+    return ["".join(r) for r in rows]
+
+
+FUNDAMENTO_ROWS = _build_fundamento()
+
 RASHARAN_SPAWN = [(50, 86), (49, 86), (51, 86), (50, 87)]   # cemiterio, perto do Jeans
 VALORAN_SPAWN  = [(50, 88), (49, 88), (51, 88), (50, 89)]   # sul, de frente pra nave
+FUNDAMENTO_SPAWN = [(49, 87), (50, 87), (48, 87), (49, 88)]  # entrada sul, de frente pro tapete
 
 
 # ---- registro dos mapas (fonte unica) ----
 MAPS = {
-    "ermo":     {"rows": MAP_ROWS,      "spawns": SPAWN_POINTS},
-    "salao":    {"rows": SALAO_ROWS,    "spawns": SALAO_SPAWN},
-    "rasharan": {"rows": RASHARAN_ROWS, "spawns": RASHARAN_SPAWN},
-    "valoran":  {"rows": VALORAN_ROWS,  "spawns": VALORAN_SPAWN},
+    "ermo":       {"rows": MAP_ROWS,        "spawns": SPAWN_POINTS},
+    "salao":      {"rows": SALAO_ROWS,      "spawns": SALAO_SPAWN},
+    "rasharan":   {"rows": RASHARAN_ROWS,   "spawns": RASHARAN_SPAWN},
+    "valoran":    {"rows": VALORAN_ROWS,    "spawns": VALORAN_SPAWN},
+    "fundamento": {"rows": FUNDAMENTO_ROWS, "spawns": FUNDAMENTO_SPAWN},
 }
 
 

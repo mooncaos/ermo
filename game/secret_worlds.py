@@ -153,6 +153,56 @@ DEITIES = {
             ],
         },
     ],
+    "fundamento": [
+        {
+            "id": "god:valdris", "name": "Valdris", "form": "valdris", "size": 5,
+            "home": (42, 14), "radius": 6, "accent": "#b57bff", "step_every": 1.4,
+            "falas": [
+                "Voce me reconhece? La fora me chamam de forasteiro, o louco de roxo. Aqui, na casa do meu senhor, eu sou inteiro.",
+                "Eu nao sou um dos doze. Vim de fora, de um lugar que nem o jabuti lembra. So o Moon sabia de onde. E ele se foi.",
+                "Onde esta o trigo? ...Perdao. As vezes a minha cabeca volta pra la, pra aquele campo. Voce nao entenderia. Ainda.",
+                "Sou mais forte que qualquer deus deste mundo. Menos um: o gato branco. Diante do Pofnir, ate eu abaixo os olhos.",
+                "Sirvo o Moon por escolha, nao por nascimento. Os deuses nasceram dele. Eu escolhi ele. Ha diferenca, e ela e tudo.",
+                "O Criador me deixou um recado antes de partir. Eu o guardo aqui dentro. Quando chegar a hora, voce sera o primeiro a ouvir.",
+                "Perdi algo no caminho pra ca. Um cristal cor de ambar. Com ele, eu era outra coisa. Sem ele, sou so a sombra do que fui.",
+                "Este trono nao ficara vazio pra sempre. Eu vi. Nao com estes olhos, com os outros. Algo vai sentar nele, e o mundo vai tremer.",
+                "Voce vai voltar muitas vezes a este castelo. E a cada vez eu te contarei um pedaco a mais. A verdade nao se da de uma vez.",
+                "Cuidado com o trono do meu senhor. Toca-lo e chamar a ira do gato. Eu avisei. Da proxima, nao avisarei de novo.",
+            ],
+        },
+        {
+            "id": "god:vargo", "name": "Vargo", "form": "dog_black", "size": 5,
+            "home": (25, 53), "radius": 8, "accent": "#7c6a9c", "step_every": 1.0,
+            "falas": [
+                "Eu sou Vargo, o cao negro. Levo os mortos pela ultima estrada, um por um, sem pressa e sem pena.",
+                "Aqui, no castelo do Criador, eu descanso entre uma travessia e outra. So aqui o cao baixa a guarda.",
+                "Voce ainda respira, sinto pelo cheiro. Entao nao e comigo, ainda. Volte quando for a hora. Eu espero.",
+                "Fui o primeiro a servir o Moon, e serei o ultimo. Lealdade nao se ensina a um cao: ja nasce nele.",
+                "A morte nao e castigo. E so a Valiria acendendo uma vela do outro lado enquanto eu fecho a porta deste.",
+                "O Moon partiu, mas nao morreu. Eu saberia. Nenhuma alma passou por mim com o cheiro dele. Ele apenas foi.",
+                "Os homens temem o cao preto. Tolos. Deviam temer e o silencio que vem depois que eu passo.",
+                "Cada um tem o seu fim guardado comigo desde o primeiro latido do mundo. Nao adianta correr: eu tenho quatro patas.",
+                "Faco companhia ao trono vazio. Alguem precisa velar a cadeira do dono ausente. Por que nao o cao fiel?",
+                "Quando o Moon voltar, eu serei o primeiro a sentir. Vou latir, e o mundo inteiro vai ouvir.",
+            ],
+        },
+        {
+            "id": "god:martur", "name": "Martur", "form": "tortoise", "size": 5,
+            "home": (74, 53), "radius": 3, "accent": "#a8c08a", "step_every": 3.0,
+            "falas": [
+                "Sou Martur, o jabuti. Carrego o tempo no casco. Devagar, porque pressa e coisa de quem vai morrer cedo.",
+                "Este lugar se chama Fundamento porque eu o seguro. Tire o jabuti, e tudo desaba. Por isso eu nao saio.",
+                "Vi o mundo nascer. Vi os outros deuses nascerem. Vi voce nascer, agora ha pouco. Pra mim foi ontem.",
+                "A pressa de voces me diverte. Vivem um piscar e acham que e a eternidade. Eu pisco e se passam eras.",
+                "Memoria e o meu dom. Lembro de tudo. Ate do que o mundo preferiu esquecer. Ate do nome verdadeiro do forasteiro.",
+                "O Moon construiu sobre o meu casco. Disse que eu era a unica coisa antiga o bastante pra aguentar o peso do comeco.",
+                "Paciencia, viajante. Tudo chega a quem sabe esperar parado. Eu sou a prova viva, e ja esperei muito.",
+                "Nao me apresse com perguntas. Cada resposta minha leva uma era pra amadurecer. Volte daqui a um seculo.",
+                "O trono esta vazio porque o tempo do dono ainda nao se cumpriu. E o tempo, meu caro, e assunto meu.",
+                "Quando tudo ruir, e ruira, eu recolho a cabeca pra dentro do casco e espero o proximo mundo. Sempre comeca um.",
+            ],
+        },
+    ],
 }
 
 
