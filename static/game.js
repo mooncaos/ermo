@@ -262,11 +262,17 @@ function shade(hex, lum){
   return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
 }
 function grassBase(c, px, py, ts, gx, gy){
-  c.fillStyle = COL.grass; c.fillRect(px,py,ts,ts);
-  for(let i=0;i<3;i++){
-    const rx = px + rng(gx,gy,i+1)*ts, ry = py + rng(gx,gy,i+5)*ts;
-    c.fillStyle = rng(gx,gy,i+9) > .5 ? COL.grassLt : COL.grassDk;
-    c.fillRect(rx, ry, 2, 2);
+  // tom base com manchas organicas (algumas casas mais claras/escuras) -> quebra o "chapado"
+  const tone = rng(gx,gy,17);
+  c.fillStyle = tone < 0.20 ? COL.grassDk : (tone > 0.80 ? COL.grassLt : COL.grass);
+  c.fillRect(px,py,ts,ts);
+  // tufos de grama (laminas verticais finas)
+  for(let i=0;i<5;i++){
+    const bx = px + rng(gx,gy,i+1)*ts;
+    const by = py + ts*(0.35 + rng(gx,gy,i+6)*0.55);
+    const h = 2 + rng(gx,gy,i+11)*2.5;
+    c.fillStyle = rng(gx,gy,i+16) > 0.5 ? COL.grassLt : COL.grassDk;
+    c.fillRect(bx, by-h, 1, h);
   }
 }
 // piso do Salao (igual ao tile 'o'), usado de fundo das estatuas
@@ -629,33 +635,53 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.beginPath(); c.arc(px+ts*0.42, py+ts*0.46, ts*0.22, 0, Math.PI*2); c.fill();
       c.fillStyle = COL.leafLt; c.fillRect(px+ts*0.36, py+ts*0.34, 2, 2);
       break;
-    case '=':
-      c.fillStyle = COL.path; c.fillRect(px,py,ts,ts);
-      for(let i=0;i<4;i++){
-        c.fillStyle = COL.pathDk;
+    case '=': {
+      const tone = rng(gx,gy,9);
+      c.fillStyle = tone < 0.5 ? COL.path : COL.pathDk;
+      c.fillRect(px,py,ts,ts);
+      for(let i=0;i<5;i++){                                           // granulado
+        c.fillStyle = rng(gx,gy,i+13) > 0.5 ? shade(COL.path,0.10) : shade(COL.path,-0.14);
         c.fillRect(px+rng(gx,gy,i)*ts, py+rng(gx,gy,i+4)*ts, 2, 2);
       }
+      c.fillStyle = shade(COL.pathDk,-0.1);                           // pedrinha maior
+      c.fillRect(px+ts*(0.2+rng(gx,gy,20)*0.5), py+ts*(0.3+rng(gx,gy,21)*0.4), 3, 2);
       break;
-    case '~':
-      c.fillStyle = COL.water; c.fillRect(px,py,ts,ts);
-      c.strokeStyle = COL.waterLt; c.lineWidth = 1.5;
+    }
+    case '~': {
+      const tone = rng(gx,gy,5);
+      c.fillStyle = tone < 0.5 ? COL.water : shade(COL.water,0.05);
+      c.fillRect(px,py,ts,ts);
+      c.strokeStyle = 'rgba(210,232,255,0.45)'; c.lineWidth = 1.2;     // cristas das ondas
       for(let i=0;i<2;i++){
-        const wy = py + ts*(0.3 + i*0.35) + rng(gx,gy,i)*3;
-        c.beginPath(); c.moveTo(px+3, wy);
-        c.quadraticCurveTo(px+ts*0.5, wy-3, px+ts-3, wy); c.stroke();
+        const wy = py + ts*(0.3 + i*0.36) + rng(gx,gy,i)*3;
+        c.beginPath(); c.moveTo(px+3, wy); c.quadraticCurveTo(px+ts*0.5, wy-3, px+ts-3, wy); c.stroke();
       }
-      c.fillStyle = COL.waterDk; c.fillRect(px, py, ts, 2);
+      c.fillStyle = COL.waterDk;                                       // pontos fundos
+      c.fillRect(px+ts*(0.15+rng(gx,gy,3)*0.6), py+ts*(0.55+rng(gx,gy,4)*0.32), 2, 1.5);
+      c.fillStyle = 'rgba(255,255,255,0.5)';                           // reflexo brilhante
+      c.fillRect(px+ts*(0.2+rng(gx,gy,7)*0.5), py+ts*(0.16+rng(gx,gy,8)*0.25), 1.5, 1);
       break;
-    case 'T':
+    }
+    case 'T': {
       grassBase(c,px,py,ts,gx,gy);
-      c.fillStyle = COL.trunk; c.fillRect(px+ts*0.44, py+ts*0.55, ts*0.12, ts*0.3);
-      c.fillStyle = COL.leafDk;
-      c.beginPath(); c.arc(px+ts*0.5, py+ts*0.42, ts*0.34, 0, Math.PI*2); c.fill();
-      c.fillStyle = COL.leaf;
-      c.beginPath(); c.arc(px+ts*0.40, py+ts*0.36, ts*0.24, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.arc(px+ts*0.62, py+ts*0.46, ts*0.18, 0, Math.PI*2); c.fill();
-      c.fillStyle = COL.leafLt; c.fillRect(px+ts*0.34, py+ts*0.26, 3, 3);
+      c.fillStyle = 'rgba(0,0,0,0.16)';                               // sombra projetada
+      c.beginPath(); c.ellipse(px+ts*0.54, py+ts*0.82, ts*0.30, ts*0.10, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = COL.trunk; c.fillRect(px+ts*0.43, py+ts*0.5, ts*0.14, ts*0.34);   // tronco
+      c.fillStyle = shade(COL.trunk,0.18); c.fillRect(px+ts*0.43, py+ts*0.5, ts*0.05, ts*0.34);
+      c.fillStyle = shade(COL.trunk,-0.25); c.fillRect(px+ts*0.52, py+ts*0.5, ts*0.05, ts*0.34);
+      c.fillStyle = COL.leafDk;                                       // copa: camada escura
+      c.beginPath(); c.arc(px+ts*0.5, py+ts*0.42, ts*0.36, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(px+ts*0.34, py+ts*0.46, ts*0.2, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(px+ts*0.66, py+ts*0.44, ts*0.2, 0, Math.PI*2); c.fill();
+      c.fillStyle = COL.leaf;                                         // camada media
+      c.beginPath(); c.arc(px+ts*0.44, py+ts*0.38, ts*0.26, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(px+ts*0.6, py+ts*0.46, ts*0.18, 0, Math.PI*2); c.fill();
+      c.fillStyle = COL.leafLt;                                       // luz
+      c.beginPath(); c.arc(px+ts*0.4, py+ts*0.32, ts*0.12, 0, Math.PI*2); c.fill();
+      c.fillStyle = shade(COL.leafLt,0.15);
+      c.fillRect(px+ts*0.36, py+ts*0.28, 2, 2); c.fillRect(px+ts*0.5, py+ts*0.34, 2, 2);
       break;
+    }
     case '#':
       grassBase(c,px,py,ts,gx,gy);
       c.fillStyle = COL.fence;
@@ -689,14 +715,18 @@ function drawTile(c, ch, px, py, ts, gx, gy){
         c.fillRect(stalkX-0.5, topY, 1.5, ts*0.12);
       }
       break;
-    case 'p': {                                        // paralelepipedo
+    case 'p': {                                        // paralelepipedo (com volume por pedra)
       c.fillStyle = '#6f6a63'; c.fillRect(px,py,ts,ts);
-      c.fillStyle = '#585249';
-      c.fillRect(px, py+ts*0.5-1, ts, 1.5);
       const off = (gy%2) ? ts*0.5 : 0;
+      c.fillStyle = '#585249';                                        // juntas escuras
+      c.fillRect(px, py+ts*0.5-1, ts, 1.5);
       c.fillRect(px+off, py, 1.5, ts*0.5);
       c.fillRect(px+((off+ts*0.5)%ts), py+ts*0.5, 1.5, ts*0.5);
-      c.fillStyle = '#7d776e'; c.fillRect(px+ts*0.22, py+ts*0.22, 2, 2);
+      c.fillStyle = '#83796f';                                        // brilho no topo de cada pedra
+      c.fillRect(px+off+2, py+1, ts*0.4, 1.5);
+      c.fillRect(px+((off+ts*0.5)%ts)+2, py+ts*0.5+1, ts*0.4, 1.5);
+      c.fillStyle = '#5b554c';                                        // granulado
+      c.fillRect(px+ts*(0.2+rng(gx,gy,1)*0.5), py+ts*(0.2+rng(gx,gy,2)*0.5), 2, 2);
       break;
     }
     case 'o':                                          // piso do Salao (pedra polida)
