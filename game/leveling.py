@@ -39,12 +39,8 @@ SECRET_XP = 200   # benção / segredo raro (ex.: benção do Pofnir)
 _AVG = {6: 4, 8: 5, 10: 6, 12: 7}   # media fixa do dado (die//2 + 1)
 
 
-def _perm_hp_bonus(ficha):
-    """Bonus de vida maxima PERMANENTES (fora do nivel). Hoje: a bencao do Pofnir."""
-    b = 0
-    if ficha.get("blessing_pofnir"):
-        b += 5
-    return b
+def proficiency_bonus(level):
+    return 2 + (max(1, min(MAX_LEVEL, level)) - 1) // 4
 
 
 def map_xp(mp):
@@ -75,8 +71,35 @@ def xp_progress(xp):
     return (xp - base, nxt - base, lvl)
 
 
-def proficiency_bonus(level):
-    return 2 + (max(1, min(MAX_LEVEL, level)) - 1) // 4
+def _perm_hp_bonus(ficha, level):
+    """Bonus de vida maxima PERMANENTES (fora do nivel): bencao do Pofnir (+5) e
+    o talento Robusto (+2/nivel)."""
+    from . import feats
+    b = 5 if ficha.get("blessing_pofnir") else 0
+    for fid in ficha.get("feats", []):
+        fd = feats.get(fid)
+        if fd and fd.get("hp_per_level"):
+            b += int(fd["hp_per_level"]) * max(1, level)
+    return b
+
+
+def asi_levels(class_id):
+    from . import class_features
+    return class_features.asi_levels(class_id)
+
+
+def sync_asi(ficha):
+    """Enfileira as escolhas de ASI/talento pendentes ao cruzar os niveis certos."""
+    cid = ficha.get("class_id")
+    if not cid:
+        return
+    lvl = ficha.get("level", 1)
+    seen = ficha.setdefault("asi_seen", [])
+    pend = ficha.setdefault("pending_asi", [])
+    for L in sorted(asi_levels(cid)):
+        if L <= lvl and L not in seen:
+            seen.append(L)
+            pend.append(L)
 
 
 def hp_for_level(hd, con_mod, level):
@@ -102,7 +125,7 @@ def recompute(ficha):
     con_mod = races.attr_mod(int(final.get("CON", 10)))
     hd = int(ficha.get("hd", 8))
     old_max = int(ficha.get("hp_max", 1))
-    new_max = hp_for_level(hd, con_mod, lvl) + _perm_hp_bonus(ficha)
+    new_max = hp_for_level(hd, con_mod, lvl) + _perm_hp_bonus(ficha, lvl)
     cur = int(ficha.get("hp", new_max))
     if new_max > old_max:
         cur += (new_max - old_max)
@@ -110,6 +133,7 @@ def recompute(ficha):
     ficha["hp_max"] = new_max
     ficha["hp"] = max(0, min(new_max, cur))
     ficha["prof"] = proficiency_bonus(lvl)
+    sync_asi(ficha)                 # enfileira escolhas de ASI/talento pendentes
     return ficha
 
 

@@ -45,7 +45,8 @@ import time
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-from game import db, accounts, items, npcs, rules, valdris, classes, races, leveling
+from game import (db, accounts, items, npcs, rules, valdris, classes, races,
+                  leveling, feats, class_features)
 from game import secret_worlds, world_map as wm
 from game.world import World, public
 from game.world_map import (MAP_ROWS, map_rows, EDGE_LINKS,
@@ -226,6 +227,8 @@ def _enter_world(player_id, row):
         "items": items.catalog(),
         "ground": world.ground_snapshot() if mp == "ermo" else [],
         "ficha": ficha,
+        "feats": feats.catalog(),
+        "class_features": class_features.FEATURES,
         "day_length": DAY_LENGTH,
         "server_now": time.time(),
     })
@@ -261,10 +264,12 @@ def _award_xp(player, amount, reason=""):
         "xp": ficha.get("xp", 0), "level": ficha.get("level", 1),
         "hp": ficha.get("hp"), "hp_max": ficha.get("hp_max"),
         "prof": ficha.get("prof"), "gained": gained, "reason": reason,
+        "pending_asi": ficha.get("pending_asi", []),
     }, to=player["id"])
     if leveled:
         socketio.emit("levelup", {
             "level": lvl, "hp_max": ficha.get("hp_max"), "prof": ficha.get("prof"),
+            "pending_asi": ficha.get("pending_asi", []),
         }, to=player["id"])
 
 
@@ -512,6 +517,61 @@ def on_equip(data):
         emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
         emit("player_look", {"id": player["id"], "look": player["look"]},
              room=player.get("map", "ermo"))
+
+
+@socketio.on("asi_choice")
+def on_asi_choice(data):
+    """Aplica a escolha de ASI/talento de um nivel pendente (feat-or-ASI)."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    ficha = player.get("ficha") or {}
+    pend = ficha.get("pending_asi") or []
+    if not pend:
+        return
+    kind = (data or {}).get("kind")
+    final = dict(ficha.get("attrs_final") or {})
+    applied = False
+
+    if kind == "asi":
+        adds = (data or {}).get("attrs") or {}
+        clean = {a: int(v) for a, v in adds.items()
+                 if a in races.BASE_ATTR_ORDER and isinstance(v, int) and v > 0}
+        vals = list(clean.values())
+        valid = (sum(vals) == 2 and 1 <= len(clean) <= 2 and all(0 < v <= 2 for v in vals)
+                 and (len(clean) == 1 or all(v == 1 for v in vals)))
+        if valid:
+            for a, v in clean.items():
+                final[a] = min(20, int(final.get(a, 10)) + v)
+            applied = True
+
+    elif kind == "feat":
+        fid = (data or {}).get("feat_id")
+        fd = feats.get(fid)
+        if fd and fid not in ficha.get("feats", []):
+            plus = fd.get("plus1")
+            if plus:
+                attr = (data or {}).get("attr")
+                if attr not in plus:
+                    attr = plus[0]
+                final[attr] = min(20, int(final.get(attr, 10)) + 1)
+            ficha.setdefault("feats", []).append(fid)
+            applied = True
+
+    if not applied:
+        emit("asi_error", {"reason": "invalid"})
+        return
+
+    ficha["attrs_final"] = final
+    pend.pop(0)                       # resolve uma escolha pendente
+    ficha["pending_asi"] = pend
+    leveling.recompute(ficha)         # CON pode ter mudado -> recalcula vida
+    player["ficha"] = ficha
+    try:
+        db.save_ficha(player["player_id"], ficha)
+    except Exception as exc:
+        print("erro salvando escolha de ASI:", exc)
+    emit("ficha", {"ficha": ficha, "asi_applied": True})
 
 
 @socketio.on("unequip")

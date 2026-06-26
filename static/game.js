@@ -132,6 +132,8 @@ let equipment = {};           // equipamento local: slot -> item_id
 const catalog = {};           // definicoes de itens vindas do servidor
 const ground = new Map();     // "x,y" -> item_id (itens no chao agora)
 let myFicha = {};             // ficha do personagem (raca, classe, atributos, vida)
+let classFeaturesData = {};   // features por classe (do servidor): id -> [[nivel,nome,desc],...]
+let featsCatalog = [];        // talentos do feat-or-ASI
 let invOpen = false;
 
 // ---------- clique pra andar ----------
@@ -2625,11 +2627,15 @@ function connectWithToken(token){
     updateWallet(data.wallet || 0);
     Object.keys(catalog).forEach(k=> delete catalog[k]);
     Object.assign(catalog, data.items || {});
+    classFeaturesData = data.class_features || {};
+    featsCatalog = data.feats || [];
     ground.clear();
     for(const it of (data.ground||[])) ground.set(it.x+','+it.y, it.item);
     refreshInventory();
     myFicha = data.ficha || {};
     renderFicha();
+    if((myFicha.pending_asi||[]).length)
+      setTimeout(()=> toastMsg('Você tem melhoria de nível pra escolher! Abra a ficha (📜).'), 1400);
 
     // sincroniza o relogio do mundo (dia/noite) com o servidor
     dayLength = data.day_length || 480;
@@ -2719,6 +2725,7 @@ function connectWithToken(token){
         if(!fichaPanelOpen) toggleFicha(true);   // abre a ficha pra ver o resultado
       }
       if(d.blessed && !fichaPanelOpen) toggleFicha(true);   // bencao: mostra a vida nova
+      if(d.asi_applied){ toastMsg('Melhoria aplicada!'); setTimeout(maybeOpenAsi, 300); }
     }
   });
   socket.on('toast', d=>{ if(d && d.text) toastMsg(d.text); });
@@ -2729,11 +2736,18 @@ function connectWithToken(token){
       if(d.hp!=null) myFicha.hp = d.hp;
       if(d.hp_max!=null) myFicha.hp_max = d.hp_max;
       if(d.prof!=null) myFicha.prof = d.prof;
+      if(d.pending_asi) myFicha.pending_asi = d.pending_asi;
       renderFicha();
     }
     if(d.gained) toastMsg('+' + d.gained + ' XP' + (d.reason ? ' · ' + d.reason : ''));
   });
-  socket.on('levelup', d=>{ if(d) showLevelUp(d); });
+  socket.on('levelup', d=>{
+    if(!d) return;
+    if(myFicha && d.pending_asi) myFicha.pending_asi = d.pending_asi;
+    showLevelUp(d);
+    setTimeout(maybeOpenAsi, 1600);   // deixa o popup aparecer antes da escolha
+  });
+  socket.on('asi_error', ()=> toastMsg('Escolha inválida.', true));
   socket.on('throne_warn', d=>{ if(d) throneWarn = {cx:d.cx, cy:d.cy, text:d.text||'', start:performance.now()}; });
   socket.on('class_error', d=>{
     toastMsg('Não rolou: ' + ((d && d.reason) || 'erro') , true);
@@ -3343,6 +3357,11 @@ function _fichaGeral(f){
       '<span style="font:700 14px Cinzel,serif;color:#e85d75">❤ '+(f.hp!=null?f.hp:'?')+' / '+(f.hp_max!=null?f.hp_max:'?')+'</span></div>';
     h += _bar(f.hp_max? (f.hp/f.hp_max):0, 'linear-gradient(90deg,#e85d75,#ff8aa0)');
     h += '<div style="margin-top:8px">'+_fichaLine('Proficiência', '+'+(f.prof||2))+'</div>';
+    if((f.pending_asi||[]).length){
+      h += '<button id="ficha-asi" style="width:100%;margin-top:10px;padding:9px;border-radius:9px;border:1px solid #9b6dff;'+
+        'background:linear-gradient(180deg,#7d4fe0,#5e3bb0);color:#fff;font:700 12.5px Inter;cursor:pointer">'+
+        '⬆ Escolher melhoria de nível ('+f.pending_asi.length+')</button>';
+    }
   } else {
     h += '<div style="font-size:12.5px;color:#9b95b4;margin:8px 0;line-height:1.4">'+
       'Sem classe ainda. Fale com o corvo (no Ermo) pra ir ao Salão das Classes e escolher um mestre.'+
@@ -3369,8 +3388,32 @@ function _fichaPassivas(f){
   } else {
     h += '<div style="font-size:12px;color:#9b95b4;margin-bottom:8px">Sem traços (ou raça não definida).</div>';
   }
-  h += '<div style="font:600 11px Inter;color:#8a86a0;margin:12px 0 6px;letter-spacing:.5px;text-transform:uppercase">Habilidades de classe</div>';
-  h += '<div style="font-size:12px;color:#7c7790;line-height:1.4">As habilidades da sua classe aparecem aqui conforme você sobe de nível. (chegando em breve)</div>';
+  // habilidades de classe (features por nivel; liberadas em destaque, futuras esmaecidas)
+  if(f.class_id && classFeaturesData[f.class_id]){
+    const lvl = f.level||1;
+    const list = classFeaturesData[f.class_id].slice().sort((a,b)=> a[0]-b[0]);
+    h += '<div style="font:600 11px Inter;color:#8a86a0;margin:14px 0 6px;letter-spacing:.5px;text-transform:uppercase">Habilidades de '+esc(f.class_name||'classe')+'</div>';
+    h += list.map(ft=>{
+      const flv=ft[0], nome=ft[1], desc=ft[2], unlocked = flv<=lvl;
+      return '<div style="margin:0 0 7px;padding:8px 10px;background:#1b1830;border:1px solid #2e2a47;border-radius:9px;opacity:'+(unlocked?'1':'0.42')+'">'+
+        '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">'+
+        '<span style="font:700 12.5px Inter;color:'+(unlocked?'#c9a0ff':'#8a86a0')+'">'+esc(nome)+'</span>'+
+        '<span style="font:700 9.5px Inter;color:#7c7790;white-space:nowrap">Nv '+flv+'</span></div>'+
+        '<div style="font-size:11.5px;color:#9b95b4;margin-top:2px;line-height:1.35">'+esc(desc)+'</div></div>';
+    }).join('');
+  } else if(f.class_id){
+    h += '<div style="font-size:12px;color:#7c7790;margin-top:12px">Habilidades carregando…</div>';
+  }
+  // talentos pegos no feat-or-ASI
+  if(f.feats && f.feats.length){
+    h += '<div style="font:600 11px Inter;color:#8a86a0;margin:14px 0 6px;letter-spacing:.5px;text-transform:uppercase">Talentos</div>';
+    h += f.feats.map(fid=>{
+      const fd = featsCatalog.find(x=>x.id===fid);
+      return fd? '<div style="margin:0 0 7px;padding:8px 10px;background:#1f1b33;border:1px solid #3a3556;border-radius:9px">'+
+        '<div style="font:700 12.5px Inter;color:#f4d8a0">★ '+esc(fd.name)+'</div>'+
+        '<div style="font-size:11.5px;color:#9b95b4;margin-top:2px;line-height:1.35">'+esc(fd.desc)+'</div></div>' : '';
+    }).join('');
+  }
   return h;
 }
 
@@ -3407,8 +3450,98 @@ function renderFicha(){
   else h += _fichaMarcas(f);
   fichaPanel.innerHTML = h;
   const x = document.getElementById('ficha-x'); if(x) x.onclick = ()=> toggleFicha(false);
+  const ab = document.getElementById('ficha-asi'); if(ab) ab.onclick = ()=> maybeOpenAsi();
   fichaPanel.querySelectorAll('[data-tab]').forEach(b=>
     b.onclick = ()=>{ fichaTab = b.getAttribute('data-tab'); renderFicha(); });
+}
+
+// ---- escolha de melhoria de nível: +2/+1 em atributos OU um talento (BG3) ----
+let asiChooserOpen = false;
+function openAsiChooser(level){
+  if(asiChooserOpen) return;
+  asiChooserOpen = true;
+  const st = { path:'asi', asiMode:'one', picks:[], feat:null, featAttr:null };
+  const overlay = document.createElement('div');
+  overlay.id = 'asi-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9400;background:rgba(8,7,15,.8);'+
+    'display:flex;align-items:center;justify-content:center;padding:18px;font-family:Inter,sans-serif;';
+  overlay.onclick = e=>{ if(e.target===overlay) closeAsiChooser(); };
+  const card = document.createElement('div');
+  card.style.cssText = 'width:382px;max-width:100%;max-height:88vh;overflow:auto;background:#15131f;'+
+    'border:1px solid #3a3556;border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.6);padding:18px 20px;color:#e8e4f0;';
+  overlay.appendChild(card); document.body.appendChild(overlay);
+  const attrs = myFicha.attrs_final || {};
+
+  function canConfirm(){
+    if(st.path==='asi') return st.asiMode==='one' ? st.picks.length===1 : st.picks.length===2;
+    if(!st.feat) return false;
+    const fd = featsCatalog.find(x=>x.id===st.feat);
+    if(fd && fd.plus1 && fd.plus1.length>1) return !!st.featAttr;
+    return true;
+  }
+  function render(){
+    let h = '<div style="font:700 12px Inter;letter-spacing:1.5px;color:#c9a0ff;text-transform:uppercase">Nível '+level+'</div>';
+    h += '<div style="font:800 19px Cinzel,serif;color:#f4d8a0;margin:2px 0 12px">Escolha sua melhoria</div>';
+    const pbtn=(p,l)=> '<button data-path="'+p+'" style="flex:1;padding:8px;border-radius:9px;cursor:pointer;border:1px solid '+(st.path===p?'#9b6dff':'#2e2a47')+';background:'+(st.path===p?'#241d44':'#1b1830')+';color:'+(st.path===p?'#e8e4f0':'#9b95b4')+';font:700 12.5px Inter">'+l+'</button>';
+    h += '<div style="display:flex;gap:8px;margin-bottom:14px">'+pbtn('asi','Atributos')+pbtn('feat','Talento')+'</div>';
+    if(st.path==='asi'){
+      const mbtn=(m,l)=> '<button data-mode="'+m+'" style="flex:1;padding:6px;border-radius:8px;cursor:pointer;border:1px solid '+(st.asiMode===m?'#9b6dff':'#2e2a47')+';background:none;color:'+(st.asiMode===m?'#e8e4f0':'#8a86a0')+';font:600 11.5px Inter">'+l+'</button>';
+      h += '<div style="display:flex;gap:6px;margin-bottom:10px">'+mbtn('one','+2 num atributo')+mbtn('two','+1 em dois')+'</div>';
+      h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">'+ATTR_ORDER.map(a=>{
+        const sel=st.picks.includes(a), v=attrs[a]||10, inc=st.asiMode==='one'?2:1;
+        return '<button data-attr="'+a+'" style="padding:8px 2px;border-radius:9px;cursor:pointer;text-align:center;border:1px solid '+(sel?'#9b6dff':'#34304f')+';background:'+(sel?'#241d44':'#1b1830')+'">'+
+          '<div style="font:700 10px Inter;color:#9b6dff">'+a+'</div>'+
+          '<div style="font:700 15px Cinzel,serif;color:#e8e4f0">'+v+(sel?' →'+Math.min(20,v+inc):'')+'</div></button>';
+      }).join('')+'</div>';
+      h += '<div style="font-size:11px;color:#8a86a0;margin-top:8px">'+(st.asiMode==='one'?'Escolha 1 atributo para +2.':'Escolha 2 atributos para +1 cada.')+'</div>';
+    } else {
+      h += featsCatalog.map(fd=>{
+        const sel=st.feat===fd.id;
+        let sub='';
+        if(sel && fd.plus1 && fd.plus1.length>1){
+          sub = '<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">'+fd.plus1.map(a=>
+            '<button data-featattr="'+a+'" style="padding:4px 9px;border-radius:7px;cursor:pointer;border:1px solid '+(st.featAttr===a?'#9b6dff':'#34304f')+';background:'+(st.featAttr===a?'#241d44':'#1b1830')+';color:#e8e4f0;font:700 11px Inter">+1 '+a+'</button>').join('')+'</div>';
+        } else if(sel && fd.plus1 && fd.plus1.length===1){
+          sub = '<div style="margin-top:5px;font-size:11px;color:#c9a0ff">+1 '+fd.plus1[0]+'</div>';
+        }
+        return '<div data-feat="'+fd.id+'" style="margin:0 0 7px;padding:9px 11px;border-radius:9px;cursor:pointer;border:1px solid '+(sel?'#9b6dff':'#2e2a47')+';background:'+(sel?'#241d44':'#1b1830')+'">'+
+          '<div style="font:700 12.5px Inter;color:'+(sel?'#f4d8a0':'#c9a0ff')+'">'+esc(fd.name)+'</div>'+
+          '<div style="font-size:11.5px;color:#9b95b4;margin-top:2px;line-height:1.35">'+esc(fd.desc)+'</div>'+sub+'</div>';
+      }).join('');
+    }
+    const ok=canConfirm();
+    h += '<button id="asi-confirm" '+(ok?'':'disabled')+' style="width:100%;margin-top:12px;padding:11px;border-radius:10px;border:none;cursor:'+(ok?'pointer':'not-allowed')+';background:'+(ok?'linear-gradient(180deg,#7d4fe0,#5e3bb0)':'#2a2640')+';color:'+(ok?'#fff':'#6c688a')+';font:700 14px Inter">Confirmar</button>';
+    h += '<div style="text-align:center;font-size:10.5px;color:#6c688a;margin-top:7px">você pode escolher depois pela ficha</div>';
+    card.innerHTML=h; wire();
+  }
+  function wire(){
+    card.querySelectorAll('[data-path]').forEach(b=> b.onclick=()=>{ st.path=b.getAttribute('data-path'); st.picks=[]; st.feat=null; st.featAttr=null; render(); });
+    card.querySelectorAll('[data-mode]').forEach(b=> b.onclick=()=>{ st.asiMode=b.getAttribute('data-mode'); st.picks=[]; render(); });
+    card.querySelectorAll('[data-attr]').forEach(b=> b.onclick=()=>{
+      const a=b.getAttribute('data-attr'), max=st.asiMode==='one'?1:2, i=st.picks.indexOf(a);
+      if(i>=0) st.picks.splice(i,1); else { if(st.picks.length>=max) st.picks.shift(); st.picks.push(a); }
+      render();
+    });
+    card.querySelectorAll('[data-feat]').forEach(b=> b.onclick=()=>{ st.feat=b.getAttribute('data-feat'); st.featAttr=null; render(); });
+    card.querySelectorAll('[data-featattr]').forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); st.featAttr=b.getAttribute('data-featattr'); render(); });
+    const cf=card.querySelector('#asi-confirm'); if(cf) cf.onclick=()=>{
+      if(!canConfirm()) return;
+      let payload;
+      if(st.path==='asi'){ const a={}; st.picks.forEach(x=> a[x]=st.asiMode==='one'?2:1); payload={kind:'asi', attrs:a}; }
+      else { payload={kind:'feat', feat_id:st.feat}; const fd=featsCatalog.find(x=>x.id===st.feat); if(fd&&fd.plus1) payload.attr = fd.plus1.length>1?st.featAttr:fd.plus1[0]; }
+      socket.emit('asi_choice', payload);
+      closeAsiChooser();
+    };
+  }
+  render();
+}
+function closeAsiChooser(){
+  asiChooserOpen=false;
+  const o=document.getElementById('asi-overlay'); if(o) o.remove();
+}
+function maybeOpenAsi(){
+  const pend = (myFicha && myFicha.pending_asi) || [];
+  if(pend.length && !asiChooserOpen) openAsiChooser(pend[0]);
 }
 
 function showLevelUp(d){
