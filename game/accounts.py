@@ -12,7 +12,7 @@ import secrets
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from . import db, races
+from . import db, races, classes
 from .world import sanitize_look
 from .world_map import SPAWN_POINTS
 
@@ -77,6 +77,25 @@ def set_race(player_id, race):
     except Exception:
         return False, "Nao consegui salvar a raca. Tente de novo."
     return True, ficha
+
+
+def set_class(player_id, class_id, plus2):
+    """Define a CLASSE da conta: aplica o bonus (+4/+2/+1) na ficha, calcula a
+    vida e grava. Devolve (True, ficha_atualizada) ou (False, mensagem)."""
+    row = db.get_player(player_id)
+    if not row:
+        return False, "Conta nao encontrada."
+    ficha = row.get("ficha") or {}
+    if not ficha.get("attrs"):
+        return False, "Escolha uma raca antes da classe."
+    new_ficha, err = classes.apply_class(ficha, class_id, plus2)
+    if err:
+        return False, err
+    try:
+        db.save_ficha(player_id, new_ficha)
+    except Exception:
+        return False, "Nao consegui salvar a classe. Tente de novo."
+    return True, new_ficha
 
 
 def login(email, password):

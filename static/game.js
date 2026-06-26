@@ -107,6 +107,7 @@ let inventory = [];           // mochila local: lista de pilhas {item, qty}
 let equipment = {};           // equipamento local: slot -> item_id
 const catalog = {};           // definicoes de itens vindas do servidor
 const ground = new Map();     // "x,y" -> item_id (itens no chao agora)
+let myFicha = {};             // ficha do personagem (raca, classe, atributos, vida)
 let invOpen = false;
 
 // ---------- clique pra andar ----------
@@ -227,6 +228,19 @@ function grassBase(c, px, py, ts, gx, gy){
     c.fillRect(rx, ry, 2, 2);
   }
 }
+// piso do Salao (igual ao tile 'o'), usado de fundo das estatuas
+function salaoFloor(c, px, py, ts, gx, gy){
+  c.fillStyle='#322d47'; c.fillRect(px,py,ts,ts);
+  c.fillStyle='#3b3556'; c.fillRect(px, py, ts, ts*0.5);
+  c.fillStyle='#2a2640';
+  c.fillRect(px, py+ts-2, ts, 2); c.fillRect(px+ts-2, py, 2, ts);
+}
+// pedestal de pedra das estatuas
+function pedestal(c, px, py, ts){
+  c.fillStyle='#565160'; c.fillRect(px+ts*0.28, py+ts*0.78, ts*0.44, ts*0.20);
+  c.fillStyle='#625c70'; c.fillRect(px+ts*0.28, py+ts*0.76, ts*0.44, ts*0.04);
+  c.fillStyle='#494556'; c.fillRect(px+ts*0.28, py+ts*0.95, ts*0.44, ts*0.03);
+}
 function drawTile(c, ch, px, py, ts, gx, gy){
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;
@@ -343,6 +357,99 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.beginPath(); c.ellipse(cx, cy, ts*0.22, ts*0.30, 0, 0, Math.PI*2); c.fill();
       c.fillStyle = '#f4b860';                                   // nucleo ambar
       c.beginPath(); c.ellipse(cx, cy, ts*0.10, ts*0.16, 0, 0, Math.PI*2); c.fill();
+      break;
+    }
+    // ---- estatuas do Salao (pedestal de pedra + a forma do deus) ----
+    case 's': {                                        // humanoide (Korgath/Bragor/Valiria)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      pedestal(c,px,py,ts);
+      c.fillStyle='#6b6577'; c.fillRect(cx-ts*0.13, py+ts*0.36, ts*0.26, ts*0.42);
+      c.beginPath(); c.arc(cx, py+ts*0.30, ts*0.11, 0, Math.PI*2); c.fill();
+      c.fillStyle='#847e92'; c.fillRect(cx-ts*0.10, py+ts*0.40, ts*0.05, ts*0.34);
+      break;
+    }
+    case 'h': {                                        // lebre (Nhare)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      pedestal(c,px,py,ts);
+      c.fillStyle='#6b6577';
+      c.beginPath(); c.ellipse(cx, py+ts*0.62, ts*0.14, ts*0.17, 0,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(cx, py+ts*0.46, ts*0.10, 0, Math.PI*2); c.fill();
+      c.fillRect(cx-ts*0.08, py+ts*0.22, ts*0.045, ts*0.22);     // orelhas longas
+      c.fillRect(cx+ts*0.035, py+ts*0.22, ts*0.045, ts*0.22);
+      c.fillStyle='#847e92'; c.fillRect(cx-ts*0.10, py+ts*0.56, ts*0.05, ts*0.12);
+      break;
+    }
+    case 'j': {                                        // jabuti (Martur)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      pedestal(c,px,py,ts);
+      c.fillStyle='#6b6577';
+      c.beginPath(); c.arc(cx, py+ts*0.68, ts*0.20, Math.PI, 0); c.fill();   // casco
+      c.fillRect(cx-ts*0.20, py+ts*0.66, ts*0.40, ts*0.06);
+      c.beginPath(); c.arc(cx+ts*0.22, py+ts*0.64, ts*0.07, 0, Math.PI*2); c.fill();  // cabeca
+      c.fillStyle='#4f4a5e'; c.fillRect(cx-ts*0.02, py+ts*0.52, ts*0.04, ts*0.16);
+      break;
+    }
+    case 'f': {                                        // felino (Facalan/Jose)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      pedestal(c,px,py,ts);
+      c.fillStyle='#6b6577';
+      c.beginPath(); c.ellipse(cx, py+ts*0.62, ts*0.13, ts*0.17, 0,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(cx, py+ts*0.44, ts*0.10, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.moveTo(cx-ts*0.10,py+ts*0.38); c.lineTo(cx-ts*0.04,py+ts*0.28); c.lineTo(cx,py+ts*0.38); c.fill();
+      c.beginPath(); c.moveTo(cx+ts*0.10,py+ts*0.38); c.lineTo(cx+ts*0.04,py+ts*0.28); c.lineTo(cx,py+ts*0.38); c.fill();
+      c.fillRect(cx+ts*0.11, py+ts*0.52, ts*0.04, ts*0.20);      // cauda
+      c.fillStyle='#847e92'; c.fillRect(cx-ts*0.07, py+ts*0.55, ts*0.04, ts*0.12);
+      break;
+    }
+    case 'g': {                                        // dragao (Drazun)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      pedestal(c,px,py,ts);
+      c.fillStyle='#6b6577'; c.fillRect(cx-ts*0.05, py+ts*0.34, ts*0.10, ts*0.42);
+      c.beginPath(); c.arc(cx, py+ts*0.30, ts*0.10, 0, Math.PI*2); c.fill();
+      c.fillRect(cx-ts*0.085, py+ts*0.18, ts*0.03, ts*0.09);     // chifres
+      c.fillRect(cx+ts*0.055, py+ts*0.18, ts*0.03, ts*0.09);
+      c.beginPath(); c.moveTo(cx+ts*0.05,py+ts*0.42); c.lineTo(cx+ts*0.22,py+ts*0.36); c.lineTo(cx+ts*0.05,py+ts*0.58); c.fill();
+      c.fillStyle='#4f4a5e'; c.beginPath(); c.moveTo(cx-ts*0.05,py+ts*0.42); c.lineTo(cx-ts*0.21,py+ts*0.39); c.lineTo(cx-ts*0.05,py+ts*0.56); c.fill();
+      break;
+    }
+    case 'b': {                                        // coruja (Nherith)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      pedestal(c,px,py,ts);
+      c.fillStyle='#6b6577';
+      c.beginPath(); c.ellipse(cx, py+ts*0.56, ts*0.15, ts*0.20, 0,0,Math.PI*2); c.fill();
+      c.beginPath(); c.moveTo(cx-ts*0.12,py+ts*0.40); c.lineTo(cx-ts*0.06,py+ts*0.28); c.lineTo(cx-ts*0.01,py+ts*0.40); c.fill();
+      c.beginPath(); c.moveTo(cx+ts*0.12,py+ts*0.40); c.lineTo(cx+ts*0.06,py+ts*0.28); c.lineTo(cx+ts*0.01,py+ts*0.40); c.fill();
+      c.fillStyle='#3b3653';
+      c.beginPath(); c.arc(cx-ts*0.06,py+ts*0.47,ts*0.045,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(cx+ts*0.06,py+ts*0.47,ts*0.045,0,Math.PI*2); c.fill();
+      break;
+    }
+    case 'k': {                                        // livro do Mago (sem deus)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      pedestal(c,px,py,ts);
+      c.fillStyle='#6b6577'; c.fillRect(cx-ts*0.03, py+ts*0.52, ts*0.06, ts*0.24);  // suporte
+      c.fillStyle='#d8cfa0';                                     // paginas
+      c.beginPath(); c.moveTo(cx,py+ts*0.44); c.lineTo(cx-ts*0.18,py+ts*0.52); c.lineTo(cx-ts*0.18,py+ts*0.40); c.lineTo(cx,py+ts*0.34); c.fill();
+      c.beginPath(); c.moveTo(cx,py+ts*0.44); c.lineTo(cx+ts*0.18,py+ts*0.52); c.lineTo(cx+ts*0.18,py+ts*0.40); c.lineTo(cx,py+ts*0.34); c.fill();
+      c.fillStyle='#9b6dff'; c.fillRect(cx-ts*0.012, py+ts*0.35, ts*0.024, ts*0.16);  // brilho do cosmo
+      break;
+    }
+    case 'P': {                                        // Pofnir de OURO (centro)
+      salaoFloor(c,px,py,ts,gx,gy); const cx=px+ts*0.5;
+      c.fillStyle='rgba(244,193,78,0.22)';                       // halo dourado
+      c.beginPath(); c.arc(cx, py+ts*0.5, ts*0.52, 0, Math.PI*2); c.fill();
+      c.fillStyle='#b9892f'; c.fillRect(px+ts*0.22, py+ts*0.80, ts*0.56, ts*0.18);   // pedestal de ouro
+      c.fillStyle='#d8a23f'; c.fillRect(px+ts*0.22, py+ts*0.78, ts*0.56, ts*0.04);
+      c.fillStyle='#f4c14e';                                     // gato dourado (Maine Coon)
+      c.beginPath(); c.ellipse(cx, py+ts*0.60, ts*0.16, ts*0.20, 0,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(cx, py+ts*0.38, ts*0.12, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.moveTo(cx-ts*0.12,py+ts*0.32); c.lineTo(cx-ts*0.05,py+ts*0.18); c.lineTo(cx,py+ts*0.32); c.fill();
+      c.beginPath(); c.moveTo(cx+ts*0.12,py+ts*0.32); c.lineTo(cx+ts*0.05,py+ts*0.18); c.lineTo(cx,py+ts*0.32); c.fill();
+      c.fillRect(cx+ts*0.14, py+ts*0.46, ts*0.05, ts*0.26);      // cauda peluda
+      c.fillStyle='#ffe08a'; c.fillRect(cx-ts*0.10, py+ts*0.52, ts*0.05, ts*0.14);   // realce
+      c.fillStyle='#5b3aa0';                                     // olhos
+      c.beginPath(); c.arc(cx-ts*0.05,py+ts*0.38,ts*0.02,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(cx+ts*0.05,py+ts*0.38,ts*0.02,0,Math.PI*2); c.fill();
       break;
     }
     case 'M':                                          // parede do cabare
@@ -1185,6 +1292,8 @@ function connectWithToken(token){
     ground.clear();
     for(const it of (data.ground||[])) ground.set(it.x+','+it.y, it.item);
     refreshInventory();
+    myFicha = data.ficha || {};
+    renderFicha();
 
     // sincroniza o relogio do mundo (dia/noite) com o servidor
     dayLength = data.day_length || 480;
@@ -1247,6 +1356,33 @@ function connectWithToken(token){
     const p = players.get(d.id); if(p && d.look) p.look = d.look;
   });
 
+  // ---- confirmacao generica (ex.: o corvo perguntando se quer ir pro Salao) ----
+  socket.on('confirm', d=>{
+    if(!d || !d.action) return;
+    showConfirm({ title: d.title, body: d.body, ok: d.ok, cancel: d.cancel },
+      ()=> socket.emit('confirm_ok', { action: d.action }));
+  });
+
+  // ---- um mestre ofereceu a classe dele: confirma + escolhe 2 atributos ----
+  socket.on('class_offer', d=>{ if(d && d.class_id) openClassPicker(d); });
+
+  // ---- a ficha mudou (classe setada / estado inicial) ----
+  socket.on('ficha', d=>{
+    if(d && d.ficha){
+      myFicha = d.ficha;
+      renderFicha();
+      if(d.just_set){
+        closeClassPicker();
+        toastMsg('Você agora é ' + (myFicha.class_name || 'iniciado') +
+                 '! Vida ' + (myFicha.hp || '?') + '.');
+        if(!fichaPanelOpen) toggleFicha(true);   // abre a ficha pra ver o resultado
+      }
+    }
+  });
+  socket.on('class_error', d=>{
+    toastMsg('Não rolou: ' + ((d && d.reason) || 'erro') , true);
+  });
+
   // token recusado pelo servidor: limpa e volta pro login
   socket.on('auth_error', ()=>{
     localStorage.removeItem(TOKEN_KEY);
@@ -1289,6 +1425,7 @@ function enterWorld(){
   help.style.display = 'block';
   logoutB.style.display = 'block';
   bagBtn.style.display = 'block';
+  if(fichaBtn) fichaBtn.style.display = 'block';
   if(chatOpenBtn) chatOpenBtn.style.display = 'block';
   { const zc = document.getElementById('zoom-ctl'); if(zc) zc.style.display = 'flex'; updateZoomLabel(); }
   buildDpad();
@@ -1617,6 +1754,228 @@ function toastItem(picked){
   clearTimeout(toastEl._t);
   toastEl._t = setTimeout(()=> toastEl.classList.remove('show'), 2200);
 }
+// ===========================================================================
+//  MODAIS (confirmacao + seletor de classe) e FICHA in-game
+// ===========================================================================
+const ATTR_NAMES = {FOR:'Força', DES:'Destreza', CON:'Constituição',
+                    INT:'Inteligência', SAB:'Sabedoria', CAR:'Carisma'};
+
+function _overlay(){
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;align-items:center;'+
+    'justify-content:center;background:rgba(8,7,18,.72);';
+  return ov;
+}
+function _box(maxw){
+  const b = document.createElement('div');
+  b.style.cssText = 'background:#15131f;border:1px solid #3a3556;border-radius:14px;'+
+    'box-shadow:0 18px 50px rgba(0,0,0,.55);padding:20px 22px;max-width:'+(maxw||380)+'px;'+
+    'width:calc(100% - 48px);max-height:84vh;overflow:auto;color:#e8e4f0;'+
+    'font-family:Inter,system-ui,sans-serif;';
+  return b;
+}
+function _btn(label, primary){
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.style.cssText = 'border:none;border-radius:9px;padding:10px 16px;font:600 14px Inter,sans-serif;'+
+    'cursor:pointer;'+(primary
+      ? 'background:linear-gradient(180deg,#9b6dff,#7d4fe0);color:#fff;'
+      : 'background:#241f36;color:#c9c4dc;border:1px solid #3a3556;');
+  return b;
+}
+
+// popup de confirmacao generico (o do corvo etc.)
+function showConfirm(opts, onOk){
+  const ov = _overlay(); const box = _box(380);
+  const t = document.createElement('div');
+  t.textContent = opts.title || 'Confirmar?';
+  t.style.cssText = 'font:700 18px Cinzel,serif;color:#f4d8a0;margin-bottom:8px;';
+  box.appendChild(t);
+  if(opts.body){
+    const bd = document.createElement('div');
+    bd.textContent = opts.body;
+    bd.style.cssText = 'font-size:13.5px;color:#bdb8d0;line-height:1.45;margin-bottom:18px;';
+    box.appendChild(bd);
+  }
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
+  const cancel = _btn(opts.cancel || 'Cancelar', false);
+  const ok = _btn(opts.ok || 'Confirmar', true);
+  const close = ()=> ov.remove();
+  cancel.onclick = close;
+  ok.onclick = ()=>{ close(); try{ onOk && onOk(); }catch(e){} };
+  row.appendChild(cancel); row.appendChild(ok); box.appendChild(row);
+  ov.appendChild(box);
+  ov.addEventListener('click', e=>{ if(e.target===ov) close(); });
+  document.body.appendChild(ov);
+}
+
+// seletor de classe: confirma + escolhe 2 atributos pro +2, com preview da vida
+let _classOv = null;
+function closeClassPicker(){ if(_classOv){ _classOv.remove(); _classOv = null; } }
+function openClassPicker(offer){
+  closeClassPicker();
+  const base = myFicha.attrs || {};
+  const principal = offer.principal;
+  const chosen = new Set();
+  const ov = _overlay(); const box = _box(460); _classOv = ov;
+
+  const t = document.createElement('div');
+  t.textContent = 'Tornar-se ' + offer.name + '?';
+  t.style.cssText = 'font:700 20px Cinzel,serif;color:#f4d8a0;margin-bottom:4px;';
+  box.appendChild(t);
+
+  const deus = offer.god ? ('Serve ' + offer.god + '.')
+                         : 'Não serve deus nenhum: o cosmo e os livros.';
+  const sub = document.createElement('div');
+  sub.textContent = (offer.master || '') + ' · ' + deus + ' · Dado de vida d' + (offer.hd||'?');
+  sub.style.cssText = 'font-size:12.5px;color:#9b95b4;margin-bottom:14px;';
+  box.appendChild(sub);
+
+  const inst = document.createElement('div');
+  inst.innerHTML = '<b style="color:#f4b860">+4</b> em ' + ATTR_NAMES[principal] +
+    ' (fixo). Escolha <b style="color:#9b6dff">2 atributos</b> para <b>+2</b>; os outros 3 ganham +1.';
+  inst.style.cssText = 'font-size:13px;color:#cfc9e0;margin-bottom:12px;line-height:1.4;';
+  box.appendChild(inst);
+
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;';
+  const cells = {};
+  ATTR_ORDER.forEach(a=>{
+    const cell = document.createElement('button');
+    cell.style.cssText = 'text-align:center;padding:8px 4px;border-radius:9px;cursor:pointer;'+
+      'border:1px solid #34304f;background:#1b1830;color:#e8e4f0;font-family:Inter,sans-serif;';
+    cells[a] = cell;
+    cell.onclick = ()=>{
+      if(a===principal) return;
+      if(chosen.has(a)) chosen.delete(a);
+      else { if(chosen.size>=2) return; chosen.add(a); }
+      paint();
+    };
+    grid.appendChild(cell);
+  });
+  box.appendChild(grid);
+
+  const hpLine = document.createElement('div');
+  hpLine.style.cssText = 'font:600 14px Inter,sans-serif;color:#5fd0c5;margin-bottom:16px;';
+  box.appendChild(hpLine);
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
+  const cancel = _btn('Cancelar', false);
+  const ok = _btn('Confirmar', true);
+  cancel.onclick = closeClassPicker;
+  ok.onclick = ()=>{ if(chosen.size===2) socket.emit('set_class', { plus2: [...chosen] }); };
+  row.appendChild(cancel); row.appendChild(ok); box.appendChild(row);
+
+  function paint(){
+    ATTR_ORDER.forEach(a=>{
+      const c = cells[a]; const bv = base[a]||10;
+      let delta, tag, col;
+      if(a===principal){ delta=4; tag='+4 fixo'; col='#f4b860'; }
+      else if(chosen.has(a)){ delta=2; tag='+2'; col='#9b6dff'; }
+      else { delta=1; tag='+1'; col='#6b6680'; }
+      const fv = Math.min(20, bv+delta);
+      c.style.borderColor = (a===principal) ? '#f4b860' : (chosen.has(a) ? '#9b6dff' : '#34304f');
+      c.style.background = (a===principal) ? 'rgba(244,184,96,.12)'
+        : (chosen.has(a) ? 'rgba(155,109,255,.16)' : '#1b1830');
+      c.innerHTML = '<div style="font:700 11px Inter;color:'+col+';letter-spacing:.5px">'+a+'</div>'+
+        '<div style="font:700 20px Cinzel,serif;line-height:1.15">'+fv+'</div>'+
+        '<div style="font:600 10px Inter;color:#8a86a0">'+tag+'</div>';
+    });
+    const conv = Math.min(20, (base.CON||10) + (principal==='CON'?4:(chosen.has('CON')?2:1)));
+    const hp = Math.max(1, (offer.hd||8) + Math.floor((conv-10)/2));
+    hpLine.textContent = 'Vida no nível 1: ' + hp + '  (d' + (offer.hd||'?') + ' + mod CON)';
+    ok.disabled = chosen.size!==2;
+    ok.style.opacity = chosen.size===2 ? '1' : '.5';
+  }
+  paint();
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+}
+
+// FICHA in-game (botao + painel)
+let fichaPanelOpen = false, fichaBtn = null, fichaPanel = null;
+function _buildFichaUI(){
+  if(fichaBtn) return;
+  fichaBtn = document.createElement('button');
+  fichaBtn.textContent = '📜'; fichaBtn.title = 'Ficha (C)';
+  fichaBtn.style.cssText = 'position:fixed;right:14px;top:108px;z-index:50;width:42px;height:42px;'+
+    'border-radius:10px;border:1px solid rgba(155,109,255,.35);background:rgba(26,24,38,.9);'+
+    'color:#e8e4f0;font-size:18px;cursor:pointer;display:none;';
+  fichaBtn.onclick = ()=> toggleFicha();
+  document.body.appendChild(fichaBtn);
+
+  fichaPanel = document.createElement('div');
+  fichaPanel.style.cssText = 'position:fixed;right:14px;top:158px;z-index:55;width:300px;'+
+    'max-width:calc(100% - 28px);max-height:70vh;overflow:auto;background:#15131f;'+
+    'border:1px solid #3a3556;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.5);'+
+    'padding:16px 18px;color:#e8e4f0;font-family:Inter,system-ui,sans-serif;display:none;';
+  document.body.appendChild(fichaPanel);
+}
+function toggleFicha(force){
+  fichaPanelOpen = (force===undefined) ? !fichaPanelOpen : force;
+  if(fichaPanel) fichaPanel.style.display = fichaPanelOpen ? 'block' : 'none';
+  if(fichaPanelOpen) renderFicha();
+}
+function renderFicha(){
+  if(!fichaPanel) return;
+  const f = myFicha || {};
+  const hasClass = !!f.class_id;
+  const attrs = hasClass ? (f.attrs_final||{}) : (f.attrs||{});
+  const cellHtml = ATTR_ORDER.map(a=>{
+    const v = attrs[a]; if(v==null) return '';
+    const m = Math.floor((v-10)/2);
+    return '<div style="text-align:center;padding:6px 2px;background:#1b1830;border:1px solid #34304f;border-radius:8px">'+
+      '<div style="font:700 10px Inter;color:#9b6dff;letter-spacing:.5px">'+a+'</div>'+
+      '<div style="font:700 17px Cinzel,serif;line-height:1.1">'+v+'</div>'+
+      '<div style="font:600 10px Inter;color:#8a86a0">'+((m>=0?'+':'')+m)+'</div></div>';
+  }).join('');
+  const line = (k,v)=> '<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin:3px 0">'+
+    '<span style="color:#9b95b4">'+k+'</span><span style="color:#e8e4f0;text-align:right">'+esc(v)+'</span></div>';
+  let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+    '<div style="font:700 16px Cinzel,serif;color:#f4d8a0">Ficha</div>'+
+    '<button id="ficha-x" style="background:none;border:none;color:#9b95b4;font-size:18px;cursor:pointer">×</button></div>';
+  h += line('Raça', f.race_name || '—');
+  if(hasClass){
+    h += line('Classe', f.class_name + (f.god ? ' · ' + f.god : ' · sem deus'));
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 6px">'+
+      '<span style="color:#9b95b4;font-size:13px">Vida</span>'+
+      '<span style="font:700 16px Cinzel,serif;color:#e85d75">❤ '+(f.hp||'?')+' / '+(f.hp_max||'?')+'</span></div>';
+    h += line('Nível', f.level || 1);
+  } else {
+    h += '<div style="font-size:12.5px;color:#9b95b4;margin:8px 0;line-height:1.4">'+
+      'Sem classe ainda. Fale com o corvo (no Ermo) pra ir ao Salão das Classes e escolher um mestre.</div>';
+  }
+  h += '<div style="font:600 11px Inter;color:#8a86a0;margin:12px 0 6px;letter-spacing:.5px;text-transform:uppercase">'+
+    (hasClass?'Atributos (com a classe)':'Atributos (da raça)')+'</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'+cellHtml+'</div>';
+  fichaPanel.innerHTML = h;
+  const x = document.getElementById('ficha-x'); if(x) x.onclick = ()=> toggleFicha(false);
+}
+
+function toastMsg(msg, isErr){
+  let el = document.getElementById('msg-toast');
+  if(!el){
+    el = document.createElement('div'); el.id = 'msg-toast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:9100;'+
+      'padding:11px 18px;border-radius:10px;font:600 14px Inter,sans-serif;color:#fff;'+
+      'box-shadow:0 10px 30px rgba(0,0,0,.45);opacity:0;transition:opacity .2s;pointer-events:none;'+
+      'max-width:80vw;text-align:center;';
+    document.body.appendChild(el);
+  }
+  el.style.background = isErr ? 'linear-gradient(180deg,#b23a4e,#8d2d3d)'
+                              : 'linear-gradient(180deg,#7d4fe0,#5e3bb0)';
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(el._t); el._t = setTimeout(()=> el.style.opacity='0', 2600);
+}
+
+_buildFichaUI();
+window.addEventListener('keydown', e=>{
+  if(!started || typingInField(e)) return;
+  if(e.code === 'KeyC'){ e.preventDefault(); toggleFicha(); }
+});
+
 if(bagBtn)   bagBtn.addEventListener('click', ()=> toggleInv());
 if(invClose) invClose.addEventListener('click', ()=> toggleInv(false));
 if(invEl)    invEl.addEventListener('click', e=>{ if(e.target === invEl) toggleInv(false); });

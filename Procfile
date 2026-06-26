@@ -1,6 +1,1 @@
-__pycache__/
-*.pyc
-.venv/
-venv/
-.env
-.DS_Store
+web: python app.py

@@ -51,8 +51,10 @@ MAP_ROWS = [
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
 ]
 
-# Tiles que bloqueiam passagem.
-SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V"}
+# Tiles que bloqueiam passagem. (As estatuas do Salao tambem sao solidas:
+# s=humanoide h=lebre j=jabuti f=felino g=dragao b=coruja k=livro P=Pofnir.)
+SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
+               "s", "h", "j", "f", "g", "b", "k", "P"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -70,9 +72,33 @@ SPAWN_POINTS = [
 # ===========================================================================
 #  SEGUNDO MAPA — O Salão das Classes (separado do Ermo)
 # ===========================================================================
-# Salão de pedra: paredes 'H', piso 'o', tapete central 'c', braseiros 'L' e o
-# portal de volta 'O'. Os 12 mestres sao NPCs (mapa "salao"), nao tiles.
-# Tiles novos passaveis: 'o' (piso), 'c' (tapete), 'O' (portal). Solidos: 'H','L'.
+# Salão de pedra: paredes 'H', piso 'o', tapete central 'c', portal de volta 'O'.
+# Atras de cada mestre fica uma ESTATUA do deus que ele serve (o mago: um LIVRO,
+# pois nao serve deus); no centro, a estatua de OURO de Pofnir, ladeada por
+# braseiros 'L'. Os 12 mestres sao NPCs (mapa "salao"), nao tiles.
+# Tiles passaveis novos: 'o' piso, 'c' tapete, 'O' portal.
+# Tiles solidos novos (estatuas): s humanoide, h lebre, j jabuti, f felino,
+# g dragao, b coruja, k livro, P Pofnir(ouro).
+
+# posicao (col, row) de cada mestre no Salao
+SALAO_MASTER_POS = {
+    "barbaro": (3, 3), "guerreiro": (7, 3), "paladino": (11, 3),
+    "ladino": (18, 3), "monge": (22, 3), "patrulheiro": (26, 3),
+    "mago": (3, 11), "feiticeiro": (7, 11), "bruxo": (11, 11),
+    "bardo": (18, 11), "clerigo": (22, 11), "druida": (26, 11),
+}
+
+# qual estatua fica atras de cada mestre (a forma do deus dele; mago = livro)
+SALAO_STATUE_OF = {
+    "barbaro": "s", "guerreiro": "s", "paladino": "s", "clerigo": "s",  # humanoides (Korgath/Bragor/Valiria)
+    "ladino": "h",       # lebre  (Nhare)
+    "monge": "j",        # jabuti (Martur)
+    "patrulheiro": "f", "druida": "f", "bardo": "f",  # felino (Facalan / Jose)
+    "feiticeiro": "g",   # dragao (Drazun)
+    "bruxo": "b",        # coruja (Nherith)
+    "mago": "k",         # livro  (sem deus)
+}
+
 
 def _build_salao():
     W, Hh = 30, 15
@@ -84,22 +110,22 @@ def _build_salao():
         line[0] = "H"; line[W - 1] = "H"
         line[14] = "c"; line[15] = "c"          # corredor/tapete central
         rows.append(line)
-    for x in [3, 7, 11, 18, 22, 26]:            # braseiros atras dos mestres
-        rows[2][x] = "L"
-        rows[12][x] = "L"
+
+    # estatua do deus uma casa ATRAS de cada mestre (rumo a parede)
+    for cid, (mx, my) in SALAO_MASTER_POS.items():
+        sy = my - 1 if my < 7 else my + 1
+        rows[sy][mx] = SALAO_STATUE_OF[cid]
+
+    # Pofnir de OURO no centro, ladeado por braseiros (o 15,7 fica livre p/ passar)
+    rows[7][14] = "P"
+    rows[7][12] = "L"; rows[7][17] = "L"
+
     rows[13][14] = "O"; rows[13][15] = "O"      # portal de volta no fim do tapete
     return ["".join(r) for r in rows]
 
 
 SALAO_ROWS = _build_salao()
 
-# posicao (col, row) de cada mestre no Salao
-SALAO_MASTER_POS = {
-    "barbaro": (3, 3), "guerreiro": (7, 3), "paladino": (11, 3),
-    "ladino": (18, 3), "monge": (22, 3), "patrulheiro": (26, 3),
-    "mago": (3, 11), "feiticeiro": (7, 11), "bruxo": (11, 11),
-    "bardo": (18, 11), "clerigo": (22, 11), "druida": (26, 11),
-}
 # onde o jogador chega ao entrar no Salao (em frente ao tapete, embaixo)
 SALAO_SPAWN = [(14, 12), (15, 12), (13, 12), (16, 12)]
 

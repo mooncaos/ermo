@@ -193,6 +193,15 @@ def save_race(player_id, race, ficha):
             (race, psycopg2.extras.Json(ficha or {}), player_id),
         )
 
+
+def save_ficha(player_id, ficha):
+    """Grava so a ficha (ex.: depois de escolher a classe). Nao toca a raca."""
+    with cursor() as cur:
+        cur.execute(
+            "UPDATE players SET ficha=%s, last_seen=now() WHERE id=%s",
+            (psycopg2.extras.Json(ficha or {}), player_id),
+        )
+
 def _hash_token(token):
     # Guardamos so o hash do token, nunca o token em si.
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
