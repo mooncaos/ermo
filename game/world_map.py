@@ -51,7 +51,7 @@ MAP_ROWS = [
     "T.WDWW..WWDW........=..........wwwwwww.T",
     "T...................=..................T",
     "T...................=..................T",
-    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTTT+TTTTTTTTTTTTTTTTTTT",
 ]
 
 # Tiles que bloqueiam passagem. (As estatuas do Salao tambem sao solidas:
@@ -506,6 +506,88 @@ FADRAKOR_SELVA_ROWS   = _build_fadrakor_selva()
 FADRAKOR_VULCAO_ROWS  = _build_fadrakor_vulcao()
 
 
+def _build_descampado():
+    """O DESCAMPADO: sertao selvagem ao sul da vila, dominio do Facalan (a Onca
+    Sem Dono). Terra seca e aberta, moitas, arvores esparsas, formacoes de pedra,
+    uma aguada onde os bichos se juntam e um acampamento dos capangas de Sapopemba.
+    Aqui vivem os primeiros inimigos do jogo. Passagem ao NORTE -> Ermo (na estrada).
+    Tiles (reusa o que o cliente ja desenha): . mato  S terra seca  T arvore(S)
+    4 pedra(S)  ^ moita(S)  ~ aguada(S)  , trilha  W madeira(S)  D porta  + passagem."""
+    W = Hh = 100
+    rows = _grid(W, Hh, ".")                              # mato por baixo
+    rng = _rnd.Random(73)
+    # manchas de terra seca (o "descampado")
+    for _ in range(70):
+        cx, cy = rng.randint(5, 94), rng.randint(5, 94)
+        rx, ry = rng.randint(2, 5), rng.randint(2, 4)
+        for dx in range(-rx, rx + 1):
+            for dy in range(-ry, ry + 1):
+                x, y = cx + dx, cy + dy
+                if 3 < x < W - 3 and 3 < y < Hh - 3 and rows[y][x] == ".":
+                    rows[y][x] = "S"
+    # formacoes de pedra (penhascos soltos)
+    for (cx, cy, r) in [(20, 20, 3), (80, 18, 4), (16, 74, 3), (86, 80, 4),
+                        (64, 58, 3), (74, 46, 3), (28, 50, 2), (56, 86, 3), (90, 40, 2)]:
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                x, y = cx + dx, cy + dy
+                if dx * dx + dy * dy <= r * r and 3 < x < W - 3 and 3 < y < Hh - 3:
+                    rows[y][x] = "4"
+    # bosque esparso no sudoeste
+    for _ in range(130):
+        tx, ty = rng.randint(8, 36), rng.randint(60, 92)
+        if rows[ty][tx] in ".S": rows[ty][tx] = "T"
+    # arvores soltas pelo resto
+    for _ in range(90):
+        tx, ty = rng.randint(6, 93), rng.randint(6, 93)
+        if rows[ty][tx] in ".S": rows[ty][tx] = "T"
+    # moitas
+    for _ in range(120):
+        bx, by = rng.randint(6, 93), rng.randint(6, 93)
+        if rows[by][bx] in ".S": rows[by][bx] = "^"
+    # aguada (onde os bichos se juntam), centro-sul, com margem de areia
+    acx, acy = 42, 64
+    for dx in range(-8, 9):
+        for dy in range(-6, 7):
+            x, y = acx + dx, acy + dy
+            if 3 < x < W - 3 and 3 < y < Hh - 3 and (dx / 8.0) ** 2 + (dy / 6.0) ** 2 <= 1.0 and rows[y][x] in ".^T":
+                rows[y][x] = "S"
+    for dx in range(-6, 7):
+        for dy in range(-4, 5):
+            x, y = acx + dx, acy + dy
+            if (dx / 6.0) ** 2 + (dy / 4.0) ** 2 <= 1.0 and 3 < x < W - 3 and 3 < y < Hh - 3:
+                rows[y][x] = "~"
+    # acampamento dos capangas (nordeste): cerca de madeira, barraca, tralhas
+    cx0, cy0 = 66, 24
+    _rect(rows, cx0, cy0, cx0 + 13, cy0 + 10, "S")        # chao batido
+    for x in range(cx0, cx0 + 14):
+        rows[cy0][x] = "W"; rows[cy0 + 10][x] = "W"       # cercas topo/base
+    for y in range(cy0, cy0 + 11):
+        rows[y][cx0] = "W"; rows[y][cx0 + 13] = "W"       # cercas laterais
+    rows[cy0 + 5][cx0] = "D"                              # portao oeste (alinha c/ a trilha)
+    _rect(rows, cx0 + 7, cy0 + 3, cx0 + 10, cy0 + 6, "W")  # barraca
+    rows[cy0 + 6][cx0 + 8] = "D"
+    rows[cy0 + 3][cx0 + 3] = "4"; rows[cy0 + 7][cx0 + 4] = "4"   # tralhas/fogueira
+    # trilha: entra pelo norte (col 50), desce e ramifica
+    for y in range(2, 64):
+        rows[y][50] = ","                                # tronco principal
+    for x in range(50, 66):
+        rows[29][x] = ","                                # ramo leste -> portao do acampamento
+    for x in range(42, 51):
+        rows[58][x] = ","                                # ramo oeste -> aguada
+    # bordas (penhascos) e a passagem norte de volta pro Ermo
+    _rect(rows, 0, 0, 2, Hh - 1, "4"); _rect(rows, W - 3, 0, W - 1, Hh - 1, "4")
+    _rect(rows, 0, 0, W - 1, 2, "4"); _rect(rows, 0, Hh - 3, W - 1, Hh - 1, "4")
+    for x in range(48, 53):
+        rows[0][x] = "+"; rows[1][x] = "+"; rows[2][x] = ","
+    rows[3][50] = ","; rows[4][50] = ","                  # liga a passagem na trilha
+    return ["".join(r) for r in rows]
+
+
+DESCAMPADO_ROWS = _build_descampado()
+DESCAMPADO_SPAWN = [(50, 6), (49, 6), (51, 6), (50, 7)]   # logo abaixo da entrada norte
+
+
 # ===========================================================================
 #  INTERIORES — uma casa aconchegante reaproveitada por todas as portas.
 #  Chars (solidez global ja bate): 1 piso(passavel)  F parede  b cama  h lareira
@@ -550,6 +632,7 @@ MAPS = {
     "fadrakor_litoral": {"rows": FADRAKOR_LITORAL_ROWS, "spawns": FADRAKOR_LITORAL_SPAWN},
     "fadrakor_selva":   {"rows": FADRAKOR_SELVA_ROWS,   "spawns": FADRAKOR_SELVA_SPAWN},
     "fadrakor_vulcao":  {"rows": FADRAKOR_VULCAO_ROWS,  "spawns": FADRAKOR_VULCAO_SPAWN},
+    "descampado":       {"rows": DESCAMPADO_ROWS,       "spawns": DESCAMPADO_SPAWN},
 }
 
 
@@ -577,6 +660,8 @@ for _d in [(4, 20), (10, 20), (14, 20), (3, 26), (10, 26)]:          # Sapopemba
 # ---- motor de passagem por borda: (mapa, borda) -> (mapa destino, x, y, facing) ----
 # Voce anda ate a faixa de '+' numa borda e cai no mapa vizinho, virado pra dentro.
 EDGE_LINKS = {
+    "ermo":             {"south": ("descampado",      50, 4,  "down")},
+    "descampado":       {"north": ("ermo",            20, 28, "up")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
     "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),
                          "north": ("fadrakor_vulcao",  50, 95, "up")},
