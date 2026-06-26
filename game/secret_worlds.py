@@ -203,6 +203,56 @@ DEITIES = {
             ],
         },
     ],
+    "falanor": [
+        {
+            "id": "god:bragor", "name": "Bragor", "form": "dwarf", "size": 5,
+            "home": (50, 16), "radius": 4, "accent": "#e08a3a", "step_every": 1.2,
+            "falas": [
+                "Sou Bragor, o Forjador. Toda bigorna deste mundo ecoa o meu martelo. Senta e olha o trabalho, mas nao atrapalha.",
+                "Os anoes sao feitos a minha imagem: teimosos, firmes e bons de mao. Se voce e anao, carrega um pedaco de mim no peito.",
+                "Aqui nao se reza, se faz. Quer a bencao do Forjador? Pega um martelo. O suor e a unica oracao que eu escuto.",
+                "Sirvo o Pofnir, como os outros. O gato branco vigia; eu construo. Cada um com o seu oficio, e o meu e o aco.",
+                "Um juramento e como uma solda: ou pega de vez, ou nao presta. Eu nao quebro os meus. Nunca quebrei. Nunca vou.",
+                "Essa lava toda e o sangue do mundo, ainda quente do comeco. Eu tempero o metal nela. Nao tem fogo igual em lugar nenhum.",
+                "Guerreiro de verdade conhece a propria arma melhor que o proprio nome. Fui eu que ensinei isso. A Mestra Adila aprendeu comigo.",
+                "Tem deus que fala bonito. Tem deus que dorme em ouro. Eu martelo. No fim, e o que eu faco que segura o mundo de pe.",
+                "Pressa estraga a tempera. O Martur que o diga, o casco velho. A gente se entende: ele tem o tempo, eu tenho a paciencia da forja.",
+                "Leva isso de mim, sem cobrar: o que voce constroi com as proprias maos, nem deus tira. Nem eu. Agora me deixa malhar.",
+            ],
+        },
+        {
+            "id": "god:jose", "name": "Jose", "form": "cat_black", "size": 5,
+            "home": (50, 50), "radius": 5, "accent": "#b06dff", "step_every": 1.0,
+            "falas": [
+                "Bem-vindo ao meu cabare. Eu sou o Jose. Mestre Cuscuz, pros intimos. Senta, joga, bebe. A casa as vezes ate perdoa a divida.",
+                "Eu fui gato. Virei deus. Ai o Pofnir teve ciume, nao aceita outro gato no trono, e me prendeu nessa pelagem preta. Detalhe. Continuo deus.",
+                "A Beth la na Metropole desconfia de mim. Mulher esperta, a Beth. Faz o melhor cuscuz dos sete mundos e finge que nao ve o que eu sou.",
+                "Prazer e pecado moram na mesma rua, viajante. Eu sou o dono dos dois imoveis. Quer alugar? A fumaca roxa e cortesia da casa.",
+                "O corvo passa por aqui as vezes. A gente se reconhece de longe, dois deuses fingindo de bicho. Ele nao bebe. Chato pra caramba.",
+                "O Valdris? Nao me mete medo, nao. O louco de roxo que se cuide com o gato branco. Comigo ele senta, perde no carteado e paga a rodada.",
+                "As meninas de Itatinga ainda dormem, sabia? Quando acordarem, a festa volta. Guardo a musica pra elas faz tempo. Tudo no seu tempo.",
+                "Aqui dentro nao tem dia nem noite, so a proxima rodada. O vicio e honesto: ele nunca mente sobre o que e. So os santos mentem.",
+                "Cada um que entra deixa um pedacinho da alma na mesa. Nao se preocupa, eu cuido bem. Tenho uma gaveta cheia. Quer ver? ...Brincadeira. Ou nao.",
+                "Volta sempre, viajante. O Mestre Cuscuz nunca fecha. E entre nos: a aposta mais cara desta casa e achar que voce vai sair igual a como entrou.",
+            ],
+        },
+        {
+            "id": "god:nhare", "name": "Nhare", "form": "hare", "size": 5,
+            "home": (50, 80), "radius": 8, "accent": "#bcd0c8", "step_every": 0.7,
+            "falas": [
+                "Oi. Sou o Nhare, a Lebre de Mil Saidas. Se um dia voce se ver encurralado, sem nenhuma saida, procura a milesima primeira. Ela existe.",
+                "O Pofnir nunca me pegou. O Jose tambem nao. Sou a unica coisa neste Ermo que o gato branco nao controla, e isso o deixa louco da vida.",
+                "Sorte nao e acaso, viajante. E saber pular um instante antes da armadilha fechar. Eu te ensino, se voce prometer nao contar pro gato.",
+                "Toda toca aqui leva a outra. E a outra, a outra. Quem me persegue se perde no meio. Quem so quer passear, encontra o jardim inteiro.",
+                "Segunda chance e o meu dominio. Errou? Respira. O mundo quase sempre tem uma fresta a mais do que parece. Quase sempre.",
+                "O corvo me respeita de longe. Faz sentido: ele some pra qualquer dimensao, eu escapo de qualquer canto. Ninguem prende nenhum de nos dois.",
+                "O ladino que me serve aprende cedo: a melhor briga e a que voce nao precisa brigar, porque ja sumiu na esquina rindo.",
+                "Calma. Eu sempre fico meio de lado, ja reparou? E pra ver as duas saidas ao mesmo tempo. Velho habito de quem nunca quis ser pego.",
+                "O Pofnir e poderoso, e verdade, controla quase tudo. Mas controle e uma gaiola que ele construiu pra todo mundo, menos pra mim. Eu so corro.",
+                "Quando voce achar que e o fim, lembra da lebre. Tem sempre mais uma saida. Sempre. E se nao tiver, ai voce cava uma. Boa sorte, viajante.",
+            ],
+        },
+    ],
 }
 
 

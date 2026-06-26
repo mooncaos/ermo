@@ -799,6 +799,139 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       break;
     }
     case 'Y': _throneTile(c, px, py, ts, gx, gy); break;   // trono monumental
+
+    // ---- FALANOR · FORJA DO BRAGOR ----
+    case '3': {                                        // piso de pedra da forja
+      c.fillStyle='#2a2220'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#332824'; c.fillRect(px,py,ts,1); c.fillRect(px,py,1,ts);
+      c.fillStyle='#1d1715'; c.fillRect(px,py+ts-1,ts,1); c.fillRect(px+ts-1,py,1,ts);
+      if((gx*31+gy*17)%5===0){ c.strokeStyle='rgba(224,138,58,0.25)'; c.lineWidth=1;
+        c.beginPath(); c.moveTo(px+ts*0.2,py+ts*0.3); c.lineTo(px+ts*0.6,py+ts*0.7); c.stroke(); }
+      break;
+    }
+    case '4': {                                        // rocha / parede da caverna
+      c.fillStyle='#241c1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#312622'; c.fillRect(px,py,ts,ts*0.45);
+      c.fillStyle='#181210'; c.fillRect(px,py+ts*0.55,ts,ts*0.45);
+      c.fillStyle='#3d2f28'; c.fillRect(px,py,ts,2);
+      c.fillStyle='#0e0a08'; c.fillRect(px,py+ts-2,ts,2);
+      if((gx*13+gy*7)%4<2){ c.fillStyle='rgba(0,0,0,0.2)'; c.fillRect(px+ts*0.3,py+ts*0.4,ts*0.4,ts*0.2); }
+      break;
+    }
+    case '5': {                                        // lava
+      c.fillStyle='#3a1208'; c.fillRect(px,py,ts,ts);
+      c.save(); c.globalCompositeOperation='lighter';
+      const g=c.createRadialGradient(px+ts/2,py+ts/2,1,px+ts/2,py+ts/2,ts*0.7);
+      g.addColorStop(0,'#ffd84a'); g.addColorStop(0.4,'#ff7a1e'); g.addColorStop(1,'rgba(200,40,0,0)');
+      c.fillStyle=g; c.fillRect(px,py,ts,ts); c.restore();
+      if((gx*29+gy*23)%6<2){ c.fillStyle='rgba(40,10,4,0.7)';
+        c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.5,ts*0.28,ts*0.18,1,0,Math.PI*2); c.fill(); }
+      break;
+    }
+    case '6': {                                        // fornalha acesa
+      c.fillStyle='#241c1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#15100e'; c.fillRect(px+ts*0.15,py+ts*0.1,ts*0.7,ts*0.8);
+      c.fillStyle='#3d2f28'; c.fillRect(px+ts*0.15,py+ts*0.1,ts*0.7,3);
+      c.save(); c.globalCompositeOperation='lighter';
+      const g=c.createRadialGradient(px+ts/2,py+ts*0.55,1,px+ts/2,py+ts*0.55,ts*0.32);
+      g.addColorStop(0,'#fff0b0'); g.addColorStop(0.4,'#ff8a1e'); g.addColorStop(1,'rgba(200,40,0,0)');
+      c.fillStyle=g; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.55,ts*0.22,ts*0.26,0,0,Math.PI*2); c.fill(); c.restore();
+      c.fillStyle='#0a0604'; c.fillRect(px+ts*0.3,py+ts*0.66,ts*0.4,ts*0.16);
+      break;
+    }
+    case '&': {                                        // bigorna
+      c.fillStyle='#2a2220'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#15110f'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.85,ts*0.22,ts*0.07,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#3a3540'; c.fillRect(px+ts*0.38,py+ts*0.5,ts*0.24,ts*0.32);
+      c.fillStyle='#4a4550';
+      c.beginPath(); c.moveTo(px+ts*0.2,py+ts*0.42); c.lineTo(px+ts*0.8,py+ts*0.42);
+      c.lineTo(px+ts*0.66,py+ts*0.52); c.lineTo(px+ts*0.34,py+ts*0.52); c.closePath(); c.fill();
+      c.fillStyle='#5e5868'; c.fillRect(px+ts*0.2,py+ts*0.36,ts*0.5,ts*0.08);
+      c.beginPath(); c.moveTo(px+ts*0.7,py+ts*0.36); c.lineTo(px+ts*0.86,py+ts*0.38); c.lineTo(px+ts*0.7,py+ts*0.44); c.closePath(); c.fill();
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.5; c.fillStyle='#ff8a3a';
+      c.fillRect(px+ts*0.3,py+ts*0.35,ts*0.2,2); c.restore();
+      break;
+    }
+
+    // ---- FALANOR · CABARE DO JOSE ----
+    case 'X': {                                        // parede do cabare
+      c.fillStyle='#2a121e'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#3a1a28'; c.fillRect(px,py,ts,ts*0.5);
+      c.fillStyle='#1e0c16'; c.fillRect(px,py+ts*0.5,ts,ts*0.5);
+      c.fillStyle='#caa15a'; c.fillRect(px,py,ts,2);
+      c.fillStyle='#120610'; c.fillRect(px,py+ts-1,ts,1);
+      if((gx+gy)%3===0){ c.fillStyle='rgba(202,161,90,0.15)'; c.fillRect(px+ts*0.4,py+ts*0.3,ts*0.2,ts*0.4); }
+      break;
+    }
+    case '0': {                                        // piso vinho do salao
+      c.fillStyle='#3a1825'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#451d2c'; c.fillRect(px+1,py+1,ts-2,ts-2);
+      if((gx+gy)%2){ c.fillStyle='rgba(202,161,90,0.07)'; c.fillRect(px,py,ts,ts); }
+      if((gx*19+gy*29)%7<1){ c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.12;
+        c.fillStyle='#9b6dff'; c.beginPath(); c.arc(px+ts/2,py+ts/2,ts*0.5,0,Math.PI*2); c.fill(); c.restore(); }
+      break;
+    }
+    case '8': {                                        // mesa de jogo
+      c.fillStyle='#3a1825'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#0e0a08'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.82,ts*0.32,ts*0.08,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#1f5a3a'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.5,ts*0.38,ts*0.3,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#2a6e48'; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.46,ts*0.34,ts*0.26,0,0,Math.PI*2); c.fill();
+      c.strokeStyle='#caa15a'; c.lineWidth=1; c.beginPath(); c.ellipse(px+ts/2,py+ts*0.46,ts*0.34,ts*0.26,0,0,Math.PI*2); c.stroke();
+      c.fillStyle='#e8e0d0'; c.fillRect(px+ts*0.38,py+ts*0.42,ts*0.1,ts*0.14); c.fillRect(px+ts*0.5,py+ts*0.42,ts*0.1,ts*0.14);
+      c.fillStyle='#d04a4a'; c.fillRect(px+ts*0.6,py+ts*0.5,ts*0.08,ts*0.08);
+      break;
+    }
+    case '9': {                                        // palco
+      c.fillStyle='#4a2e1a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#5a3a22'; c.fillRect(px,py,ts,ts*0.5);
+      c.fillStyle='#3a2414'; c.fillRect(px,py+ts-2,ts,2);
+      c.strokeStyle='rgba(0,0,0,0.25)'; c.lineWidth=1;
+      c.beginPath(); c.moveTo(px,py+ts*0.5); c.lineTo(px+ts,py+ts*0.5); c.stroke();
+      c.fillStyle='#2a1a0e'; c.fillRect(px+ts*0.5-0.5,py,1,ts);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.5;
+      const g=c.createLinearGradient(px,py+ts,px,py+ts*0.7); g.addColorStop(0,'#ffcf6a'); g.addColorStop(1,'rgba(255,180,80,0)');
+      c.fillStyle=g; c.fillRect(px,py+ts*0.7,ts,ts*0.3); c.restore();
+      break;
+    }
+    case '7': {                                        // cortina
+      c.fillStyle='#2a0e18'; c.fillRect(px,py,ts,ts);
+      for(let i=0;i<4;i++){ const xx=px+i*ts*0.25;
+        c.fillStyle=(i%2)?'#451623':'#330f1a'; c.fillRect(xx,py,ts*0.25,ts); }
+      c.fillStyle='#caa15a'; c.fillRect(px,py,ts,2);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.15;
+      c.fillStyle='#9b6dff'; c.fillRect(px,py,ts,ts); c.restore();
+      break;
+    }
+
+    // ---- FALANOR · JARDIM DO NHARE ----
+    case 'J': {                                        // arbusto florido
+      grassBase(c,px,py,ts,gx,gy);
+      c.fillStyle='#1f5a2a';
+      c.beginPath(); c.arc(px+ts*0.35,py+ts*0.6,ts*0.26,0,Math.PI*2); c.arc(px+ts*0.65,py+ts*0.6,ts*0.26,0,Math.PI*2);
+      c.arc(px+ts*0.5,py+ts*0.42,ts*0.28,0,Math.PI*2); c.fill();
+      c.fillStyle='#2a7038';
+      c.beginPath(); c.arc(px+ts*0.42,py+ts*0.46,ts*0.18,0,Math.PI*2); c.arc(px+ts*0.6,py+ts*0.5,ts*0.16,0,Math.PI*2); c.fill();
+      const h=(gx*7+gy*13)%3;
+      c.fillStyle = h===0?'#e87da0':(h===1?'#e8d24a':'#c89bff');
+      c.beginPath(); c.arc(px+ts*0.38,py+ts*0.44,ts*0.05,0,Math.PI*2); c.arc(px+ts*0.62,py+ts*0.54,ts*0.05,0,Math.PI*2);
+      c.arc(px+ts*0.52,py+ts*0.36,ts*0.05,0,Math.PI*2); c.fill();
+      break;
+    }
+    case '%': {                                        // canteiro de flores
+      grassBase(c,px,py,ts,gx,gy);
+      const h=(gx*11+gy*5), cols=['#e87da0','#e8d24a','#c89bff','#ff9a5a','#7ab8e8'];
+      for(let i=0;i<4;i++){ const fx=px+((h*7+i*53)%ts), fy=py+((h*13+i*29)%ts);
+        c.fillStyle=cols[(h+i)%cols.length]; c.beginPath(); c.arc(fx,fy,ts*0.06,0,Math.PI*2); c.fill();
+        c.fillStyle='#e8e0a0'; c.fillRect(fx-1,fy-1,2,2); }
+      break;
+    }
+    case 't': {                                        // toca do Nhare (mil saidas)
+      grassBase(c,px,py,ts,gx,gy);
+      c.fillStyle='#5a4730'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.58,ts*0.34,ts*0.24,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#3a2e1e'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.56,ts*0.26,ts*0.18,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#0a0806'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.56,ts*0.16,ts*0.12,0,0,Math.PI*2); c.fill();
+      break;
+    }
     default: grassBase(c,px,py,ts,gx,gy);
   }
 }
@@ -904,6 +1037,9 @@ function drawDeity(c, sx, sy, ts, p){
   else if(p.form === 'valdris')  drawValdrisGod(c, R, accent);
   else if(p.form === 'dog_black') drawVargoGod(c, R, accent);
   else if(p.form === 'tortoise')  drawMarturGod(c, R, accent);
+  else if(p.form === 'dwarf')     drawBragorGod(c, R, accent);
+  else if(p.form === 'cat_black') drawJoseGod(c, R, accent);
+  else if(p.form === 'hare')      drawNhareGod(c, R, accent);
   else { c.fillStyle = accent; c.beginPath(); c.arc(0,0,R*0.5,0,Math.PI*2); c.fill(); }
   c.restore();
   _deitySparkles(c, cx, cy + bob, R, accent, moving);
@@ -1262,6 +1398,115 @@ function drawMarturGod(c, R, accent){
   // brilho dourado do tempo
   c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.2; c.fillStyle = accent;
   c.beginPath(); c.ellipse(-S*0.15,-S*0.25,S*0.2,S*0.16,0,0,Math.PI*2); c.fill(); c.restore();
+}
+
+// --- Bragor: o Forjador anao, martelo e barba trancada ---
+function drawBragorGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.25; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.95,S*0.5,S*0.14,0,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = '#3a2a1e';                                   // pernas curtas
+  c.fillRect(-S*0.28,S*0.45,S*0.22,S*0.45); c.fillRect(S*0.06,S*0.45,S*0.22,S*0.45);
+  c.fillStyle = '#241810'; c.fillRect(-S*0.3,S*0.82,S*0.26,S*0.1); c.fillRect(S*0.04,S*0.82,S*0.26,S*0.1);
+  c.fillStyle = '#4a3324';                                   // corpo robusto
+  c.beginPath(); c.moveTo(-S*0.42,-S*0.2); c.lineTo(S*0.42,-S*0.2); c.lineTo(S*0.5,S*0.5); c.lineTo(-S*0.5,S*0.5); c.closePath(); c.fill();
+  c.fillStyle = '#5a3a20';                                   // avental de couro
+  c.beginPath(); c.moveTo(-S*0.26,-S*0.12); c.lineTo(S*0.26,-S*0.12); c.lineTo(S*0.3,S*0.48); c.lineTo(-S*0.3,S*0.48); c.closePath(); c.fill();
+  c.strokeStyle = '#3a2414'; c.lineWidth = Math.max(1,S*0.02);
+  c.beginPath(); c.moveTo(0,-S*0.1); c.lineTo(0,S*0.46); c.stroke();
+  c.fillStyle = '#caa15a';                                   // rebites
+  for(const yy of [0.05,0.2,0.35]){ c.beginPath(); c.arc(-S*0.18,S*yy,S*0.02,0,Math.PI*2); c.arc(S*0.18,S*yy,S*0.02,0,Math.PI*2); c.fill(); }
+  c.fillStyle = '#4a3324';                                   // ombros largos
+  c.beginPath(); c.arc(-S*0.4,-S*0.18,S*0.16,0,Math.PI*2); c.arc(S*0.4,-S*0.18,S*0.16,0,Math.PI*2); c.fill();
+  c.fillStyle = '#d8a574';                                   // cabeca
+  c.beginPath(); c.arc(0,-S*0.4,S*0.22,0,Math.PI*2); c.fill();
+  c.fillStyle = '#6a4a2a';                                   // cabelo lateral
+  c.beginPath(); c.arc(0,-S*0.46,S*0.24,Math.PI*1.05,Math.PI*1.95); c.fill();
+  c.fillStyle = '#c8956a'; c.beginPath(); c.ellipse(0,-S*0.36,S*0.05,S*0.06,0,0,Math.PI*2); c.fill();  // nariz
+  c.fillStyle = '#2a1a10'; c.beginPath(); c.arc(-S*0.08,-S*0.42,S*0.025,0,Math.PI*2); c.arc(S*0.08,-S*0.42,S*0.025,0,Math.PI*2); c.fill();
+  c.strokeStyle = '#5a3a1e'; c.lineWidth = Math.max(2,S*0.04);
+  c.beginPath(); c.moveTo(-S*0.13,-S*0.47); c.lineTo(-S*0.03,-S*0.46); c.moveTo(S*0.13,-S*0.47); c.lineTo(S*0.03,-S*0.46); c.stroke();
+  c.fillStyle = '#6a4a2a';                                   // BARBA trancada
+  c.beginPath(); c.moveTo(-S*0.2,-S*0.3); c.quadraticCurveTo(-S*0.24,S*0.1,-S*0.1,S*0.16);
+  c.lineTo(S*0.1,S*0.16); c.quadraticCurveTo(S*0.24,S*0.1,S*0.2,-S*0.3);
+  c.quadraticCurveTo(0,-S*0.12,-S*0.2,-S*0.3); c.closePath(); c.fill();
+  c.strokeStyle = '#523818'; c.lineWidth = Math.max(1,S*0.02);
+  c.beginPath(); c.moveTo(-S*0.1,-S*0.1); c.lineTo(-S*0.1,S*0.14); c.moveTo(S*0.1,-S*0.1); c.lineTo(S*0.1,S*0.14); c.stroke();
+  c.fillStyle = '#caa15a'; c.beginPath(); c.arc(-S*0.1,S*0.13,S*0.025,0,Math.PI*2); c.arc(S*0.1,S*0.13,S*0.025,0,Math.PI*2); c.fill();
+  c.strokeStyle = '#3a2414'; c.lineWidth = Math.max(2,S*0.05);  // cabo do martelo
+  c.beginPath(); c.moveTo(S*0.42,S*0.0); c.lineTo(S*0.6,S*0.4); c.stroke();
+  c.fillStyle = '#4a4550'; c.fillRect(S*0.5,-S*0.12,S*0.22,S*0.16);
+  c.fillStyle = '#5e5868'; c.fillRect(S*0.5,-S*0.12,S*0.22,4);
+}
+
+// --- Jose: o gato preto Mestre Cuscuz, sorriso cheshire e fumaca roxa ---
+function drawJoseGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.28; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.92,S*0.48,S*0.13,0,0,Math.PI*2); c.fill(); c.restore();
+  c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.25;  // fumaca roxa
+  for(const sx of [-1,1]){ const g=c.createRadialGradient(sx*S*0.4,-S*0.2,1,sx*S*0.4,-S*0.2,S*0.4);
+    g.addColorStop(0,accent); g.addColorStop(1,'rgba(0,0,0,0)'); c.fillStyle=g;
+    c.beginPath(); c.arc(sx*S*0.4,-S*0.2,S*0.4,0,Math.PI*2); c.fill(); } c.restore();
+  const black = '#161018', edge = '#2a2030';
+  c.fillStyle = black;                                       // cauda enrolada
+  c.beginPath(); c.moveTo(S*0.35,S*0.5); c.quadraticCurveTo(S*0.85,S*0.4,S*0.7,-S*0.1);
+  c.quadraticCurveTo(S*0.62,S*0.2,S*0.3,S*0.55); c.closePath(); c.fill();
+  c.beginPath(); c.ellipse(0,S*0.4,S*0.4,S*0.5,0,0,Math.PI*2); c.fill();   // corpo
+  c.fillRect(-S*0.16,S*0.6,S*0.12,S*0.3); c.fillRect(S*0.04,S*0.6,S*0.12,S*0.3);
+  c.fillStyle = edge; c.beginPath(); c.ellipse(-S*0.1,S*0.9,S*0.08,S*0.04,0,0,Math.PI*2); c.ellipse(S*0.1,S*0.9,S*0.08,S*0.04,0,0,Math.PI*2); c.fill();
+  c.fillStyle = black;                                       // cabeca
+  c.beginPath(); c.ellipse(0,-S*0.3,S*0.32,S*0.3,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.moveTo(-S*0.28,-S*0.46); c.lineTo(-S*0.34,-S*0.74); c.lineTo(-S*0.1,-S*0.52); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.28,-S*0.46); c.lineTo(S*0.34,-S*0.74); c.lineTo(S*0.1,-S*0.52); c.closePath(); c.fill();
+  c.fillStyle = '#3a2d44';
+  c.beginPath(); c.moveTo(-S*0.26,-S*0.5); c.lineTo(-S*0.3,-S*0.66); c.lineTo(-S*0.16,-S*0.54); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.26,-S*0.5); c.lineTo(S*0.3,-S*0.66); c.lineTo(S*0.16,-S*0.54); c.closePath(); c.fill();
+  for(const s of [-1,1]){ const ex=s*S*0.13;                 // olhos cheshire
+    c.save(); c.globalCompositeOperation='lighter';
+    const g=c.createRadialGradient(ex,-S*0.32,0,ex,-S*0.32,S*0.1);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.4,accent); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=g; c.beginPath(); c.ellipse(ex,-S*0.32,S*0.08,S*0.06,0,0,Math.PI*2); c.fill(); c.restore();
+    c.fillStyle='#1a0a2a'; c.beginPath(); c.ellipse(ex,-S*0.32,S*0.015,S*0.05,0,0,Math.PI*2); c.fill();
+  }
+  c.fillStyle = '#e8d0e0'; c.beginPath(); c.ellipse(0,-S*0.18,S*0.06,S*0.04,0,0,Math.PI*2); c.fill();
+  c.strokeStyle = '#caa15a'; c.lineWidth = Math.max(1.5,S*0.025);  // sorriso largo
+  c.beginPath(); c.arc(0,-S*0.24,S*0.16,Math.PI*0.15,Math.PI*0.85); c.stroke();
+  c.fillStyle = '#fff';                                      // dentinhos
+  c.beginPath(); c.moveTo(-S*0.06,-S*0.12); c.lineTo(-S*0.03,-S*0.08); c.lineTo(0,-S*0.12); c.lineTo(S*0.03,-S*0.08); c.lineTo(S*0.06,-S*0.12); c.fill();
+  c.strokeStyle = 'rgba(220,210,230,0.6)'; c.lineWidth = 1;  // bigodes
+  c.beginPath(); c.moveTo(-S*0.06,-S*0.18); c.lineTo(-S*0.3,-S*0.22); c.moveTo(-S*0.06,-S*0.16); c.lineTo(-S*0.3,-S*0.14);
+  c.moveTo(S*0.06,-S*0.18); c.lineTo(S*0.3,-S*0.22); c.moveTo(S*0.06,-S*0.16); c.lineTo(S*0.3,-S*0.14); c.stroke();
+}
+
+// --- Nhare: a Lebre de Mil Saidas, orelhas longas e olhar calmo ---
+function drawNhareGod(c, R, accent){
+  const S = R;
+  c.save(); c.globalAlpha = 0.22; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0,S*0.94,S*0.42,S*0.12,0,0,Math.PI*2); c.fill(); c.restore();
+  const fur = '#d8dce0', furD = '#a8b0b8', furW = '#eef2f4';
+  c.fillStyle = furD; c.beginPath(); c.ellipse(-S*0.05,S*0.65,S*0.32,S*0.2,0.2,0,Math.PI*2); c.fill();  // pata traseira
+  c.fillStyle = fur; c.beginPath(); c.ellipse(0,S*0.32,S*0.36,S*0.46,0.08,0,Math.PI*2); c.fill();        // corpo
+  c.fillStyle = furW; c.beginPath(); c.ellipse(-S*0.06,S*0.3,S*0.22,S*0.34,0.08,0,Math.PI*2); c.fill();   // barriga
+  c.fillStyle = fur; c.fillRect(-S*0.14,S*0.5,S*0.1,S*0.32); c.fillRect(S*0.04,S*0.52,S*0.1,S*0.3);
+  c.fillStyle = furW; c.beginPath(); c.ellipse(-S*0.09,S*0.82,S*0.06,S*0.04,0,0,Math.PI*2); c.ellipse(S*0.09,S*0.82,S*0.06,S*0.04,0,0,Math.PI*2); c.fill();
+  c.fillStyle = fur; c.beginPath(); c.ellipse(S*0.04,-S*0.28,S*0.26,S*0.28,0.1,0,Math.PI*2); c.fill();    // cabeca
+  c.fillStyle = furW; c.beginPath(); c.ellipse(S*0.12,-S*0.18,S*0.14,S*0.14,0,0,Math.PI*2); c.fill();
+  c.fillStyle = fur;                                         // ORELHA ereta
+  c.save(); c.translate(-S*0.08,-S*0.5); c.rotate(-0.15);
+  c.beginPath(); c.ellipse(0,-S*0.3,S*0.09,S*0.36,0,0,Math.PI*2); c.fill();
+  c.fillStyle = '#e8b0c0'; c.beginPath(); c.ellipse(0,-S*0.3,S*0.045,S*0.28,0,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = fur;                                         // ORELHA dobrada
+  c.save(); c.translate(S*0.2,-S*0.5); c.rotate(0.4);
+  c.beginPath(); c.ellipse(0,-S*0.28,S*0.085,S*0.34,0,0,Math.PI*2); c.fill();
+  c.fillStyle = '#e8b0c0'; c.beginPath(); c.ellipse(0,-S*0.28,S*0.04,S*0.26,0,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = '#2a2a30'; c.beginPath(); c.arc(S*0.12,-S*0.3,S*0.055,0,Math.PI*2); c.fill();  // olho calmo
+  c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = accent; c.globalAlpha = 0.5;
+  c.beginPath(); c.arc(S*0.12,-S*0.3,S*0.07,0,Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(S*0.14,-S*0.32,S*0.02,0,Math.PI*2); c.fill();
+  c.fillStyle = '#d08a9a'; c.beginPath(); c.ellipse(S*0.2,-S*0.17,S*0.03,S*0.025,0,0,Math.PI*2); c.fill();  // nariz
+  c.strokeStyle = 'rgba(150,150,160,0.6)'; c.lineWidth = 1;  // bigodes
+  c.beginPath(); c.moveTo(S*0.2,-S*0.16); c.lineTo(S*0.45,-S*0.2); c.moveTo(S*0.2,-S*0.14); c.lineTo(S*0.45,-S*0.12); c.stroke();
 }
 
 // ===========================================================================

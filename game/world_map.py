@@ -18,6 +18,9 @@ O cliente tem uma câmera, então o mapa pode ser bem maior que a tela.
 
 TILE_SIZE = 32  # pixels por tile
 
+import math
+import random as _rnd
+
 MAP_ROWS = [
     "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
     "T.^^^....^^^........=..T.....T......T..T",
@@ -57,7 +60,8 @@ MAP_ROWS = [
 SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
                "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U",
                "A", "l", "q", "N", "I", "v", "y",
-               "z", "G", "Y", "B", "F", "K"}
+               "z", "G", "Y", "B", "F", "K",
+               "4", "5", "6", "&", "X", "8", "7", "J"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -295,9 +299,93 @@ def _build_fundamento():
 
 FUNDAMENTO_ROWS = _build_fundamento()
 
+
+def _build_falanor():
+    """Falanor: tres dominios divinos num vale crepuscular.
+    NORTE: a forja do Bragor (o Forjador) - caverna de pedra, lava, fornalhas,
+    bigornas. CENTRO: o cabare do Jose (Mestre Cuscuz) - salao boemio, mesas de
+    jogo, palco, cortinas, fumaca roxa. SUL: o jardim do Nhare (a Lebre de Mil
+    Saidas) - grama, arbustos, flores e tocas (as mil saidas).
+    Tiles novos (SOLIDO marcado): 3 piso-forja  4 rocha(S)  5 lava(S)
+    6 fornalha(S)  & bigorna(S) | X parede-cabare(S)  0 piso-cabare
+    8 mesa(S)  9 palco  7 cortina(S) | J arbusto(S)  % flores  t toca.
+    Borda de rocha. Portal-estrela ao sul. Eixo central andavel ligando os tres."""
+    W = Hh = 100
+    rows = _grid(W, Hh, ".")                     # grama por baixo (o jardim domina)
+    _border(rows, 0, 0, W - 1, Hh - 1, "4")      # borda de montanha
+    _border(rows, 1, 1, W - 2, Hh - 2, "4")
+
+    # ============ NORTE: FORJA DO BRAGOR (rows 2..33) ============
+    _rect(rows, 2, 2, W - 3, 33, "3")            # piso de pedra
+    _border(rows, 2, 2, W - 3, 33, "4")          # paredes de rocha da caverna
+    for x in range(8, 92):                       # rio de lava de cima
+        yy = 9 + int(2.5 * math.sin(x * 0.25))
+        rows[yy][x] = "5"; rows[yy + 1][x] = "5"
+    for x in range(14, 86):                      # rio de lava de baixo
+        yy = 27 + int(2 * math.sin(x * 0.3 + 1))
+        rows[yy][x] = "5"
+    for x in range(8, 90, 11):                   # fornalhas encostadas nas paredes
+        rows[3][x] = "6"; rows[4][x] = "6"; rows[32][x] = "6"
+    for (bx, by) in [(20, 14), (30, 18), (44, 15), (58, 18), (70, 14),
+                     (80, 17), (26, 31), (50, 31), (74, 31)]:
+        rows[by][bx] = "&"                       # bigornas
+    for (px, py) in [(16, 21), (36, 22), (64, 22), (84, 21), (50, 13)]:
+        rows[py][px] = "4"                       # pilastras de rocha
+    for x in range(47, 53):                      # passagem da forja pro cabare
+        rows[33][x] = "3"
+
+    # ============ CENTRO: CABARE DO JOSE (rows 36..64) ============
+    _rect(rows, 6, 36, W - 7, 64, ".")           # entorno (limpa a faixa)
+    _border(rows, 10, 37, W - 11, 63, "X")       # paredes do cabare
+    _rect(rows, 11, 38, W - 12, 62, "0")         # piso vinho do salao
+    for x in range(38, 62):                      # cortina (parede de fundo do palco)
+        rows[38][x] = "7"
+    _rect(rows, 40, 39, 59, 42, "9")             # palco
+    for (mx, my) in [(18, 47), (26, 53), (34, 47), (44, 55), (54, 47), (64, 55),
+                     (74, 47), (82, 53), (22, 59), (40, 49), (60, 59), (78, 59),
+                     (16, 53), (86, 47)]:
+        rows[my][mx] = "8"                       # mesas de jogo
+    for (cx, cy) in [(20, 43), (80, 43), (20, 60), (80, 60), (50, 58)]:
+        rows[cy][cx] = "X"                       # colunas internas
+    for x in range(47, 53):                      # portas norte (forja) e sul (jardim)
+        rows[37][x] = "0"; rows[36][x] = "0"
+        rows[63][x] = "0"; rows[64][x] = "0"
+
+    # ============ SUL: JARDIM DO NHARE (rows 66..97) ============
+    for x in range(2, W - 2):                    # faixa de transicao
+        rows[66][x] = "."
+    for y in range(67, 97):                      # caminho sinuoso central
+        x1 = 50 + int(10 * math.sin(y * 0.35))
+        rows[y][x1] = ","; rows[y][x1 + 1] = ","
+    for x in range(10, 90):                      # caminho sinuoso horizontal
+        y1 = 80 + int(6 * math.sin(x * 0.2))
+        if rows[y1][x] == ".":
+            rows[y1][x] = ","
+    rng = _rnd.Random(7)
+    for _ in range(72):                          # moitas de arbusto florido
+        ax, ay = rng.randint(6, 92), rng.randint(68, 95)
+        if rows[ay][ax] == ".":
+            rows[ay][ax] = "J"
+    for _ in range(52):                          # canteiros de flores
+        fx, fy = rng.randint(6, 92), rng.randint(68, 95)
+        if rows[fy][fx] == ".":
+            rows[fy][fx] = "%"
+    for _ in range(26):                          # as tocas do Nhare (mil saidas)
+        tx, ty = rng.randint(8, 90), rng.randint(70, 94)
+        if rows[ty][tx] in (".", ","):
+            rows[ty][tx] = "t"
+    for y in range(66, 97):                      # eixo central garantido (spawn->cabare)
+        rows[y][49] = ","; rows[y][50] = ","
+    rows[93][45] = "*"; rows[93][46] = "*"       # portal-estrela (sai pro Rasharan)
+    return ["".join(r) for r in rows]
+
+
+FALANOR_ROWS = _build_falanor()
+
 RASHARAN_SPAWN = [(50, 86), (49, 86), (51, 86), (50, 87)]   # cemiterio, perto do Jeans
 VALORAN_SPAWN  = [(50, 88), (49, 88), (51, 88), (50, 89)]   # sul, de frente pra nave
 FUNDAMENTO_SPAWN = [(49, 87), (50, 87), (48, 87), (49, 88)]  # entrada sul, de frente pro tapete
+FALANOR_SPAWN = [(49, 91), (50, 91), (49, 92), (50, 92)]     # jardim do Nhare, ao sul
 
 
 # ---- registro dos mapas (fonte unica) ----
@@ -307,6 +395,7 @@ MAPS = {
     "rasharan":   {"rows": RASHARAN_ROWS,   "spawns": RASHARAN_SPAWN},
     "valoran":    {"rows": VALORAN_ROWS,    "spawns": VALORAN_SPAWN},
     "fundamento": {"rows": FUNDAMENTO_ROWS, "spawns": FUNDAMENTO_SPAWN},
+    "falanor":    {"rows": FALANOR_ROWS,    "spawns": FALANOR_SPAWN},
 }
 
 
