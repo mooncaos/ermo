@@ -229,18 +229,6 @@ def _go_to(sid, target_map, x, y):
     socketio.emit("player_joined", public(player), room=target_map, skip_sid=sid)
 
 
-def _corvo_portal(sid):
-    """Mostra a fala do corvo e, um instante depois, abre o portal pro Salao.
-    Roda em tarefa de fundo (fora do contexto de requisicao), por isso chama o
-    _go_to direto, que ja e independente de contexto."""
-    socketio.sleep(0.5)
-    try:
-        sx, sy = rules.pick_spawn(world, "salao")
-        _go_to(sid, "salao", sx, sy)
-    except Exception as exc:
-        print("erro na entrada do Salao pelo corvo:", exc)
-
-
 @socketio.on("connect")
 def on_connect(auth):
     # manda a versao logo de cara: cliente velho (deploy novo no ar) recarrega.
@@ -430,12 +418,14 @@ def on_interact(_data=None):
     npc["facing"] = _face_to(npc, player)   # ele te olha
     socketio.emit("player_moved", _npc_moved_payload(npc), room=mp)
 
-    # o corvo (Jeans) e o guia: te leva ao Salao das Classes
+    # o corvo (Jeans) e o guia: TELEPORTA o forasteiro pro Salao das Classes,
+    # na hora (sem delay, pra nao travar).
     if npc["id"] == "npc:corvo" and mp == "ermo":
         socketio.emit("speech", {"id": npc["id"],
-            "text": "Vem comigo, forasteiro. O Salao das Classes te espera. Atravessa o portal."},
+            "text": "Pra que andar, forasteiro? Eu te mando pro Salao das Classes."},
             room=mp)
-        socketio.start_background_task(_corvo_portal, request.sid)
+        sx, sy = rules.pick_spawn(world, "salao")
+        _go_to(request.sid, "salao", sx, sy)
         return
 
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
