@@ -1,679 +1,433 @@
-"""
-A REDE — servidor Flask + Socket.IO, agora com contas.
-
-Continua fininha: rotas HTTP pra criar conta / entrar / sair, e os eventos de
-socket pra entrar no mundo e andar. A inteligencia mora em game/:
-    game/db.py        -> Postgres (contas, posicao, sessoes)
-    game/accounts.py  -> regras de conta (hash de senha, token)
-    game/world.py     -> estado vivo do mundo
-    game/rules.py     -> colisao e movimento
-
-Fluxo de entrada
-----------------
-1) cliente faz POST /api/register ou /api/login  -> recebe um token
-2) cliente abre o socket com auth={token}
-3) no 'connect', validamos o token, carregamos a conta do banco e colocamos
-   o viajante no mundo na posicao salva
-
-Contrato de socket
--------------------
-Servidor -> Cliente:
-    init          {id, map, players}          so pra quem entrou
-    player_joined {id,x,y,facing,name,look}   pros outros
-    player_moved  {id,x,y,facing}             pra todos
-    player_left   {id}                        pra todos
-    auth_error    {reason}                     token invalido/expirado
-Cliente -> Servidor:
-    move {dir}    ("up"|"down"|"left"|"right")
-"""
-
-# IMPORTANTE: o monkey patch do gevent tem que vir antes de tudo.
-from gevent import monkey
-monkey.patch_all()
-
-# Faz o psycopg2 cooperar com o gevent (uma consulta nao trava os outros).
-try:
-    from psycogreen.gevent import patch_psycopg
-    patch_psycopg()
-except Exception as exc:  # pragma: no cover
-    print("aviso: psycogreen nao aplicado:", exc)
-
-import os
-import random
-import time
-
-from flask import Flask, render_template, request, jsonify, make_response
-from flask_socketio import SocketIO, emit, join_room, leave_room
-
-from game import db, accounts, items, npcs, rules, valdris
-from game.world import World, public
-from game.world_map import MAP_ROWS, map_rows
-
-app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-isto-em-producao")
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="gevent")
-
-world = World()
-
-SAVE_EVERY = 5  # segundos entre gravacoes de posicao no banco
-
-# Ciclo de dia e noite: duracao de UM ciclo completo, em segundos.
-# O horario do mundo sai do relogio (time.time()), entao todo mundo ve o
-# mesmo entardecer ao mesmo tempo, sem precisar de loop nem estado.
-# 480 = 8 minutos. Quer ver mudar rapido pra testar? Baixa esse numero.
-DAY_LENGTH = 480
-
-# ----- NPCs (o elenco) -----
-# Ritmo e falas de cada NPC vivem no registro dele em npcs.ROSTER.
-TALK_RADIUS = 1          # precisa estar colado num NPC pra conversar
-HEAR_RADIUS = 4          # xingou a ate tantos tiles do Valdris -> ele te frita
-FLEE_RADIUS = 3          # NPC medroso a ate tantos tiles do Valdris -> ele recua
-
-
-# ----- A aparicao do Pofnir: "O Gato Branco e Grande" -----
-# O unico deus que se manifesta por enquanto. Aparece de noite, raramente, anda
-# pelo mapa e SOME assim que um jogador chega perto. Os numeros sao de tunar.
-GATO_ID       = "gato_branco"            # id interno da entidade
-GATO_NOME     = "O Gato Branco e Grande" # nome que paira sobre ele
-GATO_SUMICO   = 5     # some quando um jogador chega a ate tantos tiles
-GATO_LONGE    = 7     # nasce a no MINIMO tantos tiles de todo jogador
-GATO_VIDA     = 75    # segundos no mundo antes de sumir sozinho (se ninguem chega)
-GATO_RAIO     = 7     # o quanto ele perambula em volta de onde nasceu
-GATO_CHANCE   = 0.10  # chance de surgir a cada verificacao (de noite)
-GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder voltar
-
-
-# ----------------------------------------------------------------- paginas
-
-def _asset_version():
-    """Carimbo de versao dos estaticos = data de modificacao do game.js. Muda a
-    cada deploy, entao a URL do script muda e o navegador busca a versao nova em
-    vez de servir a velha do cache (foi isso que travou o 2o PC)."""
-    try:
-        path = os.path.join(app.static_folder, "game.js")
-        return str(int(os.path.getmtime(path)))
-    except Exception:
-        return "1"
-
-
-@app.route("/")
-def index():
-    resp = make_response(render_template("index.html", asset_v=_asset_version()))
-    # a pagina nunca fica em cache: assim ela sempre traz o ?v= novo do game.js
-    resp.headers["Cache-Control"] = "no-store, must-revalidate"
-    return resp
-
-
-@app.route("/healthz")
-def healthz():
-    return {"ok": True, "online": len(world.players)}
-
-
-# ------------------------------------------------------------ contas (HTTP)
-
-@app.route("/api/register", methods=["POST"])
-def api_register():
-    data = request.get_json(silent=True) or {}
-    ok, result = accounts.register(
-        data.get("email"),
-        data.get("name"),
-        data.get("password"),
-        data.get("look"),
-        data.get("race"),
-    )
-    if not ok:
-        return jsonify(error=result), 400
-    return jsonify(token=result)
-
-
-@app.route("/api/login", methods=["POST"])
-def api_login():
-    data = request.get_json(silent=True) or {}
-    ok, result = accounts.login(data.get("email"), data.get("password"))
-    if not ok:
-        return jsonify(error=result), 401
-    return jsonify(token=result)
-
-
-@app.route("/api/logout", methods=["POST"])
-def api_logout():
-    data = request.get_json(silent=True) or {}
-    try:
-        accounts.logout(data.get("token"))
-    except Exception:
-        pass
-    return jsonify(ok=True)
-
-
-# ----------------------------------------------------------------- socket
-
-# Sockets que conectaram mas ainda precisam escolher uma raca (contas antigas).
-_pending_race = {}
-
-
-def _enter_world(player_id, row):
-    """Coloca a conta (ja com raca definida) no mundo e envia o estado inicial."""
-    # Se a mesma conta ja estava conectada (outra aba), derruba a antiga.
-    old_sid = world.sid_for_player(player_id)
-    if old_sid and old_sid != request.sid:
-        old = world.remove_player(old_sid)
-        if old:
-            try:
-                db.save_positions([(old["player_id"], old["x"],
-                                    old["y"], old["facing"])])
-            except Exception:
-                pass
-            emit("player_left", {"id": old_sid},
-                 room=old.get("map", "ermo"), include_self=False)
-        try:
-            socketio.server.disconnect(old_sid)
-        except Exception:
-            pass
-
-    player = world.add_player(
-        request.sid, player_id,
-        row["name"], row["look"], row["x"], row["y"], row.get("facing", "down"),
-        row.get("inventory"), row.get("equipment"),
-    )
-
-    # se a regra do item unico cortou copias (ex.: Portuz), grava o conserto
-    if player.pop("_needs_save", False):
-        _persist_loadout(player)
-
-    mp = player.get("map", "ermo")
-    join_room(mp)   # passa a receber so os eventos do mapa onde esta
-
-    emit("init", {
-        "id": request.sid,
-        "map": world.map_payload(mp),
-        "players": world.entities_in(mp),
-        "inventory": player["inventory"],
-        "equipment": player["equipment"],
-        "items": items.catalog(),
-        "ground": world.ground_snapshot() if mp == "ermo" else [],
-        "ficha": row.get("ficha") or {},
-        "day_length": DAY_LENGTH,
-        "server_now": time.time(),
-    })
-    emit("player_joined", public(player), room=mp, include_self=False)
-
-
-def _go_to(sid, target_map, x, y):
-    """Move um jogador de mapa: sai da sala antiga, entra na nova, e recebe o
-    mapa + as entidades de la. Os outros do mapa antigo o veem sair; os do novo,
-    chegar. Usa a API direta do servidor (sid explicito) pra funcionar TAMBEM
-    fora de um contexto de requisicao (ex.: a partir de uma tarefa de fundo)."""
-    player = world.players.get(sid)
-    if not player:
-        return
-    old_map = player.get("map", "ermo")
-    socketio.emit("player_left", {"id": sid}, room=old_map, skip_sid=sid)
-    try:
-        socketio.server.leave_room(sid, old_map, namespace="/")
-    except Exception as exc:
-        print("aviso leave_room:", exc)
-
-    world.set_map(sid, target_map, x, y)
-    try:
-        socketio.server.enter_room(sid, target_map, namespace="/")
-    except Exception as exc:
-        print("aviso enter_room:", exc)
-
-    socketio.emit("map_change", {
-        "map": world.map_payload(target_map),
-        "players": world.entities_in(target_map),
-        "ground": world.ground_snapshot() if target_map == "ermo" else [],
-        "you": {"id": sid, "x": player["x"], "y": player["y"],
-                "facing": player["facing"]},
-    }, to=sid)
-    socketio.emit("player_joined", public(player), room=target_map, skip_sid=sid)
-
-
-@socketio.on("connect")
-def on_connect(auth):
-    # manda a versao logo de cara: cliente velho (deploy novo no ar) recarrega.
-    emit("version", {"v": _asset_version()})
-    token = auth.get("token") if isinstance(auth, dict) else None
-
-    try:
-        player_id = accounts.validate(token)
-    except Exception as exc:
-        print("erro validando token:", exc)
-        emit("auth_error", {"reason": "server"})
-        return
-
-    if not player_id:
-        emit("auth_error", {"reason": "invalid"})
-        return
-
-    try:
-        row = db.get_player(player_id)
-    except Exception as exc:
-        print("erro carregando conta:", exc)
-        emit("auth_error", {"reason": "server"})
-        return
-
-    if not row:
-        emit("auth_error", {"reason": "invalid"})
-        return
-
-    # Conta sem raca (contas antigas): manda escolher a raca antes de entrar.
-    if not row.get("race"):
-        _pending_race[request.sid] = player_id
-        emit("need_race", {
-            "name": row["name"],
-            "look": row["look"],
-            "inventory": row.get("inventory") or [],
-            "items": items.catalog(),
-        })
-        return
-
-    _enter_world(player_id, row)
-
-
-@socketio.on("choose_race")
-def on_choose_race(data):
-    """Conta antiga escolheu a raca no menu: salva, monta a ficha e entra."""
-    race = (data or {}).get("race")
-    player_id = _pending_race.get(request.sid)
-    if not player_id:
-        emit("auth_error", {"reason": "invalid"})
-        return
-
-    ok, result = accounts.set_race(player_id, race)
-    if not ok:
-        emit("race_error", {"reason": result})
-        return
-
-    _pending_race.pop(request.sid, None)
-    try:
-        row = db.get_player(player_id)
-    except Exception as exc:
-        print("erro recarregando conta:", exc)
-        emit("auth_error", {"reason": "server"})
-        return
-    if not row:
-        emit("auth_error", {"reason": "invalid"})
-        return
-
-    _enter_world(player_id, row)
-
-
-@socketio.on("move")
-def on_move(data):
-    direction = (data or {}).get("dir")
-    player = world.try_move(request.sid, direction)
-    if not player:
-        return
-
-    mp = player.get("map", "ermo")
-    emit("player_moved", {
-        "id": player["id"],
-        "x": player["x"],
-        "y": player["y"],
-        "facing": player["facing"],
-    }, room=mp)
-
-    # pisou no portal do Salao? volta pro Ermo (no ponto de onde saiu).
-    if mp == "salao" and map_rows("salao")[player["y"]][player["x"]] == "O":
-        ret = world.ermo_return(request.sid) or rules.pick_spawn(world, "ermo")
-        _go_to(request.sid, "ermo", ret[0], ret[1])
-        return
-
-    # pisou sobre um item? pega. (so existe item no chao no Ermo)
-    picked = world.try_pickup(player)
-    if picked:
-        try:
-            db.save_inventory(player["player_id"], player["inventory"])
-        except Exception as exc:
-            print("erro salvando inventario:", exc)
-        cat = items.get(picked["item"]) or {}
-        emit("inventory", {
-            "bag": player["inventory"],
-            "picked": {"item": picked["item"], "name": cat.get("name", ""), "qty": 1},
-        })
-        emit("item_taken", {"x": picked["x"], "y": picked["y"]}, room=mp)
-
-
-def _persist_loadout(player):
-    try:
-        db.save_loadout(player["player_id"], player["inventory"],
-                        player["equipment"], player["look"])
-    except Exception as exc:
-        print("erro salvando equipamento:", exc)
-
-
-@socketio.on("equip")
-def on_equip(data):
-    player = world.players.get(request.sid)
-    if not player:
-        return
-    item_id = (data or {}).get("item")
-    if world.equip(player, item_id):
-        _persist_loadout(player)
-        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
-        emit("player_look", {"id": player["id"], "look": player["look"]},
-             room=player.get("map", "ermo"))
-
-
-@socketio.on("unequip")
-def on_unequip(data):
-    player = world.players.get(request.sid)
-    if not player:
-        return
-    slot = (data or {}).get("slot")
-    if world.unequip(player, slot):
-        _persist_loadout(player)
-        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
-        emit("player_look", {"id": player["id"], "look": player["look"]},
-             room=player.get("map", "ermo"))
-
-
-# ----------------------------------------------------------------- NPCs
-
-def _npc_moved_payload(npc):
-    return {"id": npc["id"], "x": npc["x"], "y": npc["y"], "facing": npc["facing"]}
-
-
-def _face_to(a, b):
-    """Direcao de `a` olhando pra `b` (prioriza o eixo de maior diferenca)."""
-    dx, dy = b["x"] - a["x"], b["y"] - a["y"]
-    if abs(dx) >= abs(dy):
-        return "right" if dx > 0 else "left"
-    return "down" if dy > 0 else "up"
-
-
-def _smite(player, npc):
-    """O Valdris apaga quem xingou perto dele: encara, solta a sentenca, dispara
-    o raio (todo mundo perto ve) e manda o engracadinho pro spawn.
-    NOTA: quando a morte/combate existir, trocar o 'manda pro spawn' por
-    dano/morte de verdade (ja anotado pra quando chegar la)."""
-    mp = player.get("map", "ermo")
-    npc["facing"] = _face_to(npc, player)
-    socketio.emit("player_moved", _npc_moved_payload(npc), room=mp)
-    lines = npc.get("_spec", {}).get("smite_lines") or ["..."]
-    socketio.emit("speech", {"id": npc["id"], "text": random.choice(lines)}, room=mp)
-    color = npc.get("_spec", {}).get("smite_color", "#9b6dff")
-    socketio.emit("smite", {"target": player["id"], "by": npc["id"], "color": color},
-                  room=mp)
-    sx, sy = rules.pick_spawn(world, mp)
-    player["x"], player["y"], player["facing"] = sx, sy, "down"
-    player["_dirty"] = True  # a nova posicao sera salva no proximo flush
-    socketio.emit("player_moved", {"id": player["id"], "x": sx, "y": sy,
-                                   "facing": "down"}, room=mp)
-
-
-@socketio.on("interact")
-def on_interact(_data=None):
-    """Jogador apertou pra falar: responde o NPC em que ele estiver colado.
-    Caso especial: falar com o corvo no Ermo abre o portal pro Salao das Classes
-    (entrada provisoria; depois o corvo abre dialogo sozinho)."""
-    player = world.players.get(request.sid)
-    if not player:
-        return
-    npc = world.nearest_npc(player, TALK_RADIUS)
-    if not npc:
-        return
-    mp = player.get("map", "ermo")
-    npc["facing"] = _face_to(npc, player)   # ele te olha
-    socketio.emit("player_moved", _npc_moved_payload(npc), room=mp)
-
-    # o corvo (Jeans) e o guia: TELEPORTA o forasteiro pro Salao das Classes,
-    # na hora (sem delay, pra nao travar).
-    if npc["id"] == "npc:corvo" and mp == "ermo":
-        socketio.emit("speech", {"id": npc["id"],
-            "text": "Pra que andar, forasteiro? Eu te mando pro Salao das Classes."},
-            room=mp)
-        sx, sy = rules.pick_spawn(world, "salao")
-        _go_to(request.sid, "salao", sx, sy)
-        return
-
-    greetings = npc.get("_spec", {}).get("greetings") or ["..."]
-    socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
-
-
-@socketio.on("chat")
-def on_chat(data):
-    """Mensagem de chat. Vira balao acima do jogador pra todo mundo perto.
-    Mas se contiver palavrao E o jogador estiver perto de um NPC justiceiro
-    (o Valdris), ele frita."""
-    player = world.players.get(request.sid)
-    if not player:
-        return
-    text = (data or {}).get("text", "")
-    if not isinstance(text, str):
-        return
-    text = text.strip()[:120]
-    if not text:
-        return
-    smiter = world.nearest_smiter(player, HEAR_RADIUS)
-    if smiter and npcs.contains_curse(text):
-        _smite(player, smiter)
-        return
-    socketio.emit("speech", {"id": player["id"], "text": text},
-                  room=player.get("map", "ermo"))
-
-
-@socketio.on("disconnect")
-def on_disconnect():
-    _pending_race.pop(request.sid, None)
-    player = world.remove_player(request.sid)
-    if player:
-        mp = player.get("map", "ermo")
-        # salva a posicao final do ERMO. Se saiu estando no Salao, grava o ponto
-        # de onde ele entrou (nunca coordenada do Salao).
-        if mp == "ermo":
-            px, py = player["x"], player["y"]
-        else:
-            ret = player.get("_ermo_return")
-            px, py = ret if ret else rules.pick_spawn(world, "ermo")
-        try:
-            db.save_positions([(player["player_id"], px, py, player["facing"])])
-        except Exception as exc:
-            print("erro salvando saida:", exc)
-        emit("player_left", {"id": request.sid}, room=mp, include_self=False)
-
-
-# --------------------------------------------------------------- salvador
-
-def _saver_loop():
-    """Grava periodicamente a posicao de quem se moveu, em lote."""
-    while True:
-        socketio.sleep(SAVE_EVERY)
-        try:
-            db.save_positions(world.pop_dirty())
-        except Exception as exc:
-            print("erro no salvamento periodico:", exc)
-
-
-def _respawn_loop():
-    """Faz os itens pegos reaparecerem no chao e avisa todos os clientes."""
-    while True:
-        socketio.sleep(2)
-        try:
-            for (x, y, item_id) in world.due_respawns(time.time()):
-                socketio.emit("item_spawned", {"x": x, "y": y, "item": item_id},
-                              room="ermo")
-        except Exception as exc:
-            print("erro no respawn:", exc)
-
-
-def _npc_wander_loop(spec):
-    """Um NPC perambula no ritmo dele; cada passo vai pra todos. Se for medroso
-    (nao-fearless) e o Valdris chegar perto, ele FOGE em vez de perambular."""
-    nid = spec["id"]
-    every = spec.get("step_every", 0.9)
-    fearless = spec.get("fearless", False)
-    while True:
-        socketio.sleep(every)
-        try:
-            npc = None
-            if not fearless:
-                val = world.players.get(valdris.NPC_ID)
-                if val and world.near_entity(val, nid, FLEE_RADIUS):
-                    npc = world.flee_step(nid, valdris.NPC_ID)
-            if npc is None:
-                npc = world.wander_npc(nid)
-            if npc:
-                socketio.emit("player_moved", _npc_moved_payload(npc),
-                              room=spec.get("map", "ermo"))
-        except Exception as exc:
-            print("erro no passo de", nid, exc)
-
-
-def _npc_murmur_loop(spec):
-    """De tempos em tempos o NPC murmura uma frase sua, sozinho."""
-    nid = spec["id"]
-    lo, hi = spec.get("murmur_min", 15), spec.get("murmur_max", 22)
-    lines = spec.get("murmurs") or []
-    while True:
-        socketio.sleep(random.uniform(lo, hi))
-        try:
-            if lines and nid in world.players:
-                socketio.emit("speech", {"id": nid, "text": random.choice(lines)},
-                              room=spec.get("map", "ermo"))
-        except Exception as exc:
-            print("erro no murmurio de", nid, exc)
-
-
-def _npc_gaze_loop(spec):
-    """NPCs com gazes=True viram pra encarar o jogador mais proximo (o Guilherme
-    te segue com o olhar, mudo). So emite quando a direcao muda."""
-    nid = spec["id"]
-    while True:
-        socketio.sleep(0.5)
-        try:
-            npc = world.players.get(nid)
-            if not npc:
-                continue
-            target = world.nearest_player_to(npc, radius=8)
-            if target:
-                face = _face_to(npc, target)
-                if face != npc["facing"]:
-                    npc["facing"] = face
-                    socketio.emit("player_moved", _npc_moved_payload(npc),
-                                  room=spec.get("map", "ermo"))
-        except Exception as exc:
-            print("erro no olhar de", nid, exc)
-
-
-# --------------------------------------------------- a aparicao do Pofnir
-
-def _is_night(now=None):
-    """True se o relogio compartilhado do mundo esta na faixa da noite. Usa a
-    MESMA conta do cliente (phaseName): noite = comeco e fim do ciclo."""
-    now = time.time() if now is None else now
-    t = (now % DAY_LENGTH) / DAY_LENGTH
-    return t < 0.23 or t >= 0.88
-
-
-def _far_spawn(players):
-    """Um tile passavel a no minimo GATO_LONGE de TODO jogador (pra ele surgir
-    a distancia, misterioso). Tenta varias vezes; None se nao achar."""
-    h = len(MAP_ROWS)
-    w = len(MAP_ROWS[0])
-    for _ in range(60):
-        x = random.randint(1, w - 2)
-        y = random.randint(1, h - 2)
-        if not rules.is_walkable(x, y):
-            continue
-        if all(max(abs(x - p["x"]), abs(y - p["y"])) >= GATO_LONGE for p in players):
-            return (x, y)
-    return None
-
-
-def _make_gato(spot):
-    """Monta a entidade da aparicao (so mais uma entidade no mundo, is_npc,
-    kind 'apparition' -> o cliente desenha o gato branco grande com placa)."""
-    return {
-        "id": GATO_ID,
-        "player_id": None,
-        "x": spot[0],
-        "y": spot[1],
-        "facing": "down",
-        "name": GATO_NOME,
-        "look": {"giant": True},
-        "map": "ermo",
-        "inventory": [],
-        "equipment": {},
-        "is_npc": True,
-        "solid": False,            # ninguem chega perto o bastante pra esbarrar
-        "kind": "apparition",
-        "_home": spot,
-        "_radius": GATO_RAIO,
-        "_wanders": True,
-        "_spec": {},
-        "_born": time.time(),
-    }
-
-
-def _pofnir_loop():
-    """O Gato Branco e Grande: de noite, raramente, surge longe; perambula; e
-    SOME assim que um jogador se aproxima (ou amanhece, ou da o tempo dele)."""
-    tick = 0
-    proximo_ok = 0.0
-    while True:
-        socketio.sleep(0.6)
-        tick += 1
-        try:
-            ent = world.players.get(GATO_ID)
-            jogadores = [p for p in world.players.values()
-                         if not p.get("is_npc") and p.get("map", "ermo") == "ermo"]
-            if ent is None:
-                # tenta surgir (so de noite, com gente online, no descanso vencido)
-                if (tick % 10 == 0 and jogadores and _is_night()
-                        and time.time() >= proximo_ok
-                        and random.random() < GATO_CHANCE):
-                    spot = _far_spawn(jogadores)
-                    if spot:
-                        world.players[GATO_ID] = _make_gato(spot)
-                        socketio.emit("player_joined",
-                                      public(world.players[GATO_ID]), room="ermo")
-            else:
-                perto = any(world.near_entity(p, GATO_ID, GATO_SUMICO)
-                            for p in jogadores)
-                venceu = (time.time() - ent.get("_born", 0)) > GATO_VIDA
-                if perto or venceu or not _is_night() or not jogadores:
-                    world.players.pop(GATO_ID, None)
-                    socketio.emit("player_left", {"id": GATO_ID}, room="ermo")
-                    proximo_ok = time.time() + GATO_ESPERA
-                elif tick % 2 == 0:
-                    npc = world.wander_npc(GATO_ID)   # reusa _home/_radio/_wanders
-                    if npc:
-                        socketio.emit("player_moved", _npc_moved_payload(npc),
-                                      room="ermo")
-        except Exception as exc:
-            print("erro no gato branco:", exc)
-
-
-# ------------------------------------------------------------------- boot
-
-def _startup():
-    try:
-        db.init_pool()
-        db.init_schema()
-        print("banco pronto.")
-    except Exception as exc:
-        print("AVISO: banco nao inicializado:", exc)
-    world.spawn_npcs()   # o elenco inteiro entra em cena
-    socketio.start_background_task(_saver_loop)
-    socketio.start_background_task(_respawn_loop)
-    for spec in npcs.ROSTER:
-        if not spec.get("active", True):
-            continue   # dormente: sem loops ate ser ativado
-        if spec.get("wanders", True):
-            socketio.start_background_task(_npc_wander_loop, spec)
-        if spec.get("murmurs"):
-            socketio.start_background_task(_npc_murmur_loop, spec)
-        if spec.get("gazes"):
-            socketio.start_background_task(_npc_gaze_loop, spec)
-    socketio.start_background_task(_pofnir_loop)   # a aparicao do Pofnir
-
-
-_startup()
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    # socketio.run usa o servidor do gevent-websocket (WebSocket de verdade).
-    socketio.run(app, host="0.0.0.0", port=port)
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ermo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>window.ERMO_VERSION = "{{ asset_v }}";</script>
+<style>
+  :root{
+    --night:#0f0e17; --panel:#1a1826; --panel-2:#232036;
+    --violet:#9b6dff; --amber:#f4b860; --ink:#e8e4f0; --muted:#8a86a0;
+    --danger:#e85d75; --edge:rgba(155,109,255,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--night); color:var(--ink);
+    font-family:Inter,system-ui,sans-serif; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- mundo ---------- */
+  #stage{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:radial-gradient(120% 120% at 50% 0%, #181527 0%, var(--night) 70%);
+  }
+  #game{
+    image-rendering:pixelated; max-width:100vw; max-height:100vh;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 1px var(--edge); border-radius:6px;
+    cursor:pointer; touch-action:none;
+  }
+  #hud{
+    position:fixed; top:14px; left:14px; display:none;
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:10px;
+    padding:9px 12px; font-family:"JetBrains Mono",monospace; font-size:12px;
+    color:var(--muted); line-height:1.7; pointer-events:none;
+  }
+  #hud .on{color:var(--ink)} #hud .dot{color:var(--violet)}
+  #logout{
+    position:fixed; top:14px; right:14px; display:none; z-index:6; cursor:pointer;
+    font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted);
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:10px; padding:8px 12px;
+    transition:color .15s, border-color .15s;
+  }
+  #logout:hover{color:var(--ink); border-color:var(--violet)}
+  #zoom-ctl{
+    position:fixed; top:52px; right:14px; display:none; z-index:6;
+    align-items:center; gap:7px; padding:5px 7px;
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:999px;
+    font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted);
+  }
+  #zoom-ctl button{
+    width:26px; height:26px; line-height:1; cursor:pointer; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); background:rgba(40,36,58,.55);
+    border:1px solid var(--edge); border-radius:50%; font-size:17px;
+    transition:border-color .15s, background .15s;
+  }
+  #zoom-ctl button:hover{border-color:var(--violet); background:rgba(50,44,72,.7)}
+  #zoom-ctl button:active{transform:scale(.93)}
+  #zoom-pct{min-width:40px; text-align:center; user-select:none}
+  #help{
+    position:fixed; bottom:14px; left:14px; display:none; max-width:60vw;
+    font-size:12px; color:var(--muted); letter-spacing:.02em; line-height:1.5;
+    background:rgba(20,18,30,.7); padding:6px 14px; border-radius:12px; border:1px solid var(--edge);
+  }
+  #help kbd{
+    font-family:"JetBrains Mono",monospace; color:var(--ink); background:var(--panel-2);
+    padding:1px 6px; border-radius:5px; border:1px solid var(--edge); font-size:11px;
+  }
+
+  /* ---------- portao (login / cadastro) ---------- */
+  #gate{
+    position:relative; width:min(92vw,430px); max-height:94vh; overflow-y:auto;
+    padding:34px 32px 30px; text-align:center;
+    background:linear-gradient(180deg,var(--panel) 0%, #141221 100%);
+    border:1px solid var(--edge); border-radius:18px; box-shadow:0 30px 80px rgba(0,0,0,.6);
+  }
+  #gate::-webkit-scrollbar{width:8px} #gate::-webkit-scrollbar-thumb{background:var(--edge); border-radius:8px}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.42em;
+    text-transform:uppercase; color:var(--violet); opacity:.8; margin-bottom:14px;
+  }
+  h1{
+    font-family:Cinzel,serif; font-weight:700; font-size:48px; letter-spacing:.06em; line-height:1;
+    text-shadow:0 0 26px rgba(155,109,255,.45); animation:breathe 5.5s ease-in-out infinite;
+  }
+  @keyframes breathe{50%{text-shadow:0 0 38px rgba(155,109,255,.7)}}
+  @media (prefers-reduced-motion:reduce){h1{animation:none}}
+  .tagline{color:var(--muted); font-size:13.5px; margin-top:12px; line-height:1.5}
+
+  /* abas */
+  .tabs{
+    display:flex; gap:6px; margin-top:22px; padding:4px;
+    background:#100e1b; border:1px solid var(--edge); border-radius:12px;
+  }
+  .tab{
+    flex:1; padding:10px; cursor:pointer; border:none; border-radius:9px;
+    font-family:Inter,sans-serif; font-size:13.5px; font-weight:500;
+    color:var(--muted); background:transparent; transition:all .15s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:rgba(155,109,255,.2); color:var(--ink)}
+
+  .panel{display:none} .panel.active{display:block}
+
+  label{
+    display:block; text-align:left; font-size:12px; color:var(--muted);
+    margin:16px 0 7px; letter-spacing:.02em;
+  }
+  .field{
+    width:100%; padding:12px 14px; font-family:Inter,sans-serif; font-size:15px;
+    color:var(--ink); background:#100e1b; border:1px solid var(--edge);
+    border-radius:11px; outline:none; transition:border-color .15s, box-shadow .15s;
+  }
+  .field:focus{border-color:var(--violet); box-shadow:0 0 0 3px rgba(155,109,255,.18)}
+
+  #pcanvas{
+    image-rendering:pixelated; display:block; margin:18px auto 4px; border-radius:14px;
+    background:radial-gradient(80% 80% at 50% 35%, #211d36 0%, #141124 100%);
+    border:1px solid var(--edge);
+  }
+  .opt{display:flex; align-items:center; gap:10px; margin-top:13px; text-align:left}
+  .optlbl{
+    flex:0 0 52px; font-size:11px; color:var(--muted); letter-spacing:.04em;
+    text-transform:uppercase; font-family:"JetBrains Mono",monospace;
+  }
+  .row{display:flex; flex-wrap:wrap; gap:7px}
+  .sw{
+    width:26px; height:26px; border-radius:50%; cursor:pointer; padding:0;
+    border:2px solid rgba(255,255,255,.12); transition:transform .1s;
+  }
+  .sw:hover{transform:scale(1.1)}
+  .sw.sel{border-color:var(--amber); box-shadow:0 0 0 2px rgba(244,184,96,.3)}
+  .pill{
+    padding:7px 13px; border-radius:9px; cursor:pointer; font-size:12.5px;
+    font-family:Inter,sans-serif; color:var(--muted);
+    background:#15131f; border:1px solid var(--edge); transition:all .12s;
+  }
+  .pill:hover{color:var(--ink)}
+  .pill.sel{background:rgba(155,109,255,.22); color:var(--ink); border-color:var(--violet)}
+
+  .enter{
+    width:100%; margin-top:22px; padding:14px; cursor:pointer;
+    font-family:Cinzel,serif; font-weight:600; font-size:16px; letter-spacing:.06em;
+    color:#140f06; background:linear-gradient(180deg,var(--amber),#e0a23f);
+    border:none; border-radius:11px; transition:transform .12s, filter .15s, opacity .15s;
+  }
+  .enter:hover{filter:brightness(1.06)} .enter:active{transform:translateY(1px)}
+  .enter:disabled{opacity:.55; cursor:wait; filter:saturate(.6)}
+  #status{min-height:16px; margin-top:14px; font-size:13px; color:var(--muted)}
+  #status.err{color:var(--danger)}
+  .hint{font-size:11.5px; color:var(--muted); opacity:.7; margin-top:8px; text-align:left}
+
+  /* estado de auto-login */
+  #booting{
+    display:none; text-align:center; color:var(--muted); font-size:14px;
+    font-family:"JetBrains Mono",monospace; letter-spacing:.04em;
+  }
+  #booting h1{font-size:42px; margin-bottom:18px}
+
+  /* ---------- mochila / inventário ---------- */
+  #bag-btn{
+    position:fixed; left:18px; bottom:18px; display:none; z-index:6; cursor:pointer;
+    font-family:"JetBrains Mono",monospace; font-size:13px; color:var(--ink);
+    background:rgba(26,24,38,.85); backdrop-filter:blur(4px);
+    border:1px solid var(--edge); border-radius:12px; padding:11px 15px;
+    transition:border-color .15s, background .15s;
+  }
+  #bag-btn:hover{border-color:var(--violet); background:rgba(40,34,60,.9)}
+  #chat-open{
+    position:fixed; top:54px; left:14px; display:none; z-index:6; cursor:pointer;
+    font-family:Inter,sans-serif; font-size:12px; color:var(--ink);
+    background:rgba(20,18,30,.82); backdrop-filter:blur(6px);
+    border:1px solid var(--edge); border-radius:999px; padding:7px 14px;
+    transition:border-color .15s;
+  }
+  #chat-open:hover{border-color:var(--violet)}
+  #chatbar{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    display:none; gap:8px; z-index:9; width:min(360px,72vw);
+  }
+  #chat-input{
+    flex:1; min-width:0; padding:11px 14px; font-family:Inter,sans-serif; font-size:15px;
+    color:var(--ink); background:rgba(16,14,27,.96); border:1px solid var(--violet);
+    border-radius:11px; outline:none; box-shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  #chat-send{
+    padding:0 16px; font-family:Cinzel,serif; font-weight:600; font-size:13px; cursor:pointer;
+    color:#140f06; background:linear-gradient(180deg,var(--amber),#e0a23f);
+    border:none; border-radius:11px;
+  }
+  #inv{
+    position:fixed; inset:0; display:none; z-index:8;
+    align-items:center; justify-content:center;
+    background:rgba(8,7,14,.55); backdrop-filter:blur(3px);
+  }
+  #inv.open{display:flex}
+  .inv-card{
+    width:min(92vw,400px); padding:22px 24px 26px;
+    background:linear-gradient(180deg,var(--panel) 0%, #141221 100%);
+    border:1px solid var(--edge); border-radius:18px; box-shadow:0 30px 80px rgba(0,0,0,.6);
+  }
+  .inv-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px}
+  .inv-head h2{font-family:Cinzel,serif; font-weight:600; font-size:22px; letter-spacing:.06em; color:var(--ink)}
+  .inv-close{
+    cursor:pointer; border:1px solid var(--edge); background:#15131f; color:var(--muted);
+    border-radius:9px; width:32px; height:32px; font-size:15px; line-height:1;
+    transition:color .15s, border-color .15s;
+  }
+  .inv-close:hover{color:var(--ink); border-color:var(--violet)}
+  #inv-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:9px}
+  .slot{
+    position:relative; aspect-ratio:1/1; border-radius:12px;
+    background:#15131f; border:1px solid var(--edge);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .slot.full{
+    background:radial-gradient(80% 80% at 50% 35%, #221d36 0%, #141124 100%);
+    border-color:rgba(155,109,255,.4);
+  }
+  .slot canvas{image-rendering:pixelated}
+  .qty{
+    position:absolute; right:4px; bottom:2px; font-family:"JetBrains Mono",monospace;
+    font-size:11px; font-weight:600; color:var(--ink); text-shadow:0 1px 2px #000;
+  }
+  .inv-empty{grid-column:1/-1; text-align:center; color:var(--muted); font-size:13px; padding:20px 6px; line-height:1.5}
+  .inv-sub{
+    font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--muted); margin:2px 0 9px; text-align:left;
+  }
+  #equip-row{display:flex; gap:10px; margin-bottom:18px}
+  .eq-slot{display:flex; flex-direction:column; align-items:center; gap:5px}
+  .eq-slot .slot{width:52px; height:52px; aspect-ratio:auto}
+  .eq-label{font-size:10px; color:var(--muted); font-family:"JetBrains Mono",monospace; letter-spacing:.05em}
+  .slot.eq-empty{border-style:dashed; opacity:.65}
+  #toast{
+    position:fixed; top:18px; left:50%; z-index:9; pointer-events:none; opacity:0;
+    transform:translateX(-50%) translateY(-12px); transition:opacity .25s, transform .25s;
+    background:rgba(20,18,30,.92); border:1px solid var(--edge); border-radius:12px;
+    padding:9px 15px; font-size:13.5px; color:var(--ink); display:flex; align-items:center; gap:9px;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  #toast canvas{image-rendering:pixelated}
+
+  /* ---------- tela de raças ---------- */
+  #race{
+    position:fixed; inset:0; display:none; flex-direction:column; z-index:7;
+    background:radial-gradient(120% 120% at 50% 0%, #181527 0%, var(--night) 70%);
+    padding:18px 20px 16px;
+  }
+  #race.open{display:flex}
+  .race-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+  .race-title{font-family:Cinzel,serif; font-weight:700; font-size:22px; letter-spacing:.06em; color:var(--amber)}
+  .race-back{
+    cursor:pointer; font-family:Inter,sans-serif; font-size:13px; color:var(--muted);
+    background:#15131f; border:1px solid var(--edge); border-radius:9px; padding:8px 14px;
+    transition:color .15s, border-color .15s;
+  }
+  .race-back:hover{color:var(--ink); border-color:var(--violet)}
+  .race-body{flex:1; min-height:0; display:grid; grid-template-columns:300px 1fr 360px; gap:14px}
+  .race-list-col,.race-mid-col,.race-detail-col{
+    background:var(--panel); border:1px solid var(--edge); border-radius:14px; padding:14px; overflow-y:auto;
+  }
+  .race-list-col::-webkit-scrollbar,.race-detail-col::-webkit-scrollbar{width:8px}
+  .race-list-col::-webkit-scrollbar-thumb,.race-detail-col::-webkit-scrollbar-thumb{background:var(--edge); border-radius:8px}
+  #race-search{margin-bottom:10px}
+  .tier-h{
+    display:flex; align-items:center; gap:7px; margin:14px 0 6px;
+    font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:600;
+    letter-spacing:.08em; text-transform:uppercase;
+  }
+  .tier-h:first-child{margin-top:2px}
+  .tier-dot{width:9px; height:13px; border-radius:2px; flex:0 0 auto}
+  .race-row{
+    padding:8px 10px; margin:2px 0; border-radius:8px; cursor:pointer; font-size:13.5px;
+    color:var(--ink); border:1px solid transparent; transition:background .12s, border-color .12s;
+  }
+  .race-row:hover{background:#221d36}
+  .race-row.sel{background:#241c3a; border-color:var(--violet); color:var(--amber); font-weight:600}
+  .race-mid-col{display:flex; flex-direction:column; align-items:center}
+  .race-sub{
+    font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--violet); margin-bottom:10px; align-self:flex-start;
+  }
+  #race-pcanvas{
+    image-rendering:pixelated; margin:auto 0; border-radius:14px;
+    background:radial-gradient(80% 80% at 50% 35%, #211d36 0%, #141124 100%); border:1px solid var(--edge);
+  }
+  .race-prevnote{font-size:11px; color:var(--muted); opacity:.75; text-align:center; margin-top:12px}
+  .race-empty{color:var(--muted); font-size:13px; text-align:center; padding:30px 12px; line-height:1.5}
+  .race-name{font-family:Cinzel,serif; font-weight:700; font-size:20px; color:var(--amber); letter-spacing:.04em}
+  .race-meta{font-size:11px; color:var(--muted); margin:6px 0 14px; line-height:1.5}
+  .race-badge{
+    display:inline-block; font-family:"JetBrains Mono",monospace; font-size:10px; padding:2px 8px;
+    border-radius:6px; margin-right:6px; color:#0f0e17; font-weight:700;
+  }
+  .fila{display:flex; gap:8px; margin:7px 0; font-size:13px}
+  .fila .k{flex:0 0 118px; color:var(--violet); font-weight:600}
+  .fila .v{color:var(--ink)}
+  .fsec{
+    font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--violet); margin:16px 0 6px;
+  }
+  .ftext{font-size:13px; color:var(--ink); line-height:1.55}
+  #race-confirm{margin-top:14px}
+  #race-status{text-align:center; font-size:13px; color:var(--muted); min-height:16px; margin-top:8px}
+  #race-status.err{color:var(--danger)}
+  @media (max-width:820px){
+    #race{padding:14px 12px 12px}
+    .race-body{grid-template-columns:1fr; grid-auto-rows:max-content; overflow-y:auto; gap:12px}
+    .race-mid-col{order:-1}
+    #race-pcanvas{width:128px; height:142px; margin:6px 0}
+    .race-list-col,.race-detail-col{max-height:none}
+  }
+</style>
+</head>
+<body>
+  <div id="gate">
+    <div class="eyebrow">protótipo multiplayer</div>
+    <h1>ERMO</h1>
+    <p class="tagline">Um vilarejo no crepúsculo.<br>Crie sua conta e atravesse.</p>
+
+    <div class="tabs">
+      <button class="tab active" id="tab-login" type="button">Entrar</button>
+      <button class="tab" id="tab-register" type="button">Criar conta</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="panel active" id="panel-login">
+      <label for="login-email">Email</label>
+      <input id="login-email" class="field" type="email" autocomplete="email" placeholder="voce@email.com" spellcheck="false">
+      <label for="login-pass">Senha</label>
+      <input id="login-pass" class="field" type="password" autocomplete="current-password" placeholder="••••••••">
+      <button class="enter" id="btn-login" type="button">Entrar no Ermo</button>
+    </div>
+
+    <!-- CADASTRO -->
+    <div class="panel" id="panel-register">
+      <canvas id="pcanvas" width="132" height="148"></canvas>
+
+      <label for="reg-email">Email</label>
+      <input id="reg-email" class="field" type="email" autocomplete="email" placeholder="voce@email.com" spellcheck="false">
+      <label for="reg-name">Nome do viajante</label>
+      <input id="reg-name" class="field" maxlength="16" placeholder="ex.: Valdris" autocomplete="off" spellcheck="false">
+      <label for="reg-pass">Senha</label>
+      <input id="reg-pass" class="field" type="password" autocomplete="new-password" placeholder="mín. 6 caracteres">
+
+      <div class="opt"><span class="optlbl">Capa</span><div class="row" id="row-cloak"></div></div>
+      <div class="opt"><span class="optlbl">Pele</span><div class="row" id="row-skin"></div></div>
+      <div class="opt"><span class="optlbl">Cabelo</span><div class="row" id="row-hair"></div></div>
+      <div class="opt"><span class="optlbl">Capuz</span><div class="row" id="row-hood"></div></div>
+      <div class="opt"><span class="optlbl">Chapéu</span><div class="row" id="row-hat"></div></div>
+
+      <button class="enter" id="btn-register" type="button">Continuar: escolher raça</button>
+      <p class="hint">Seu viajante e o lugar onde você parar ficam salvos. Da próxima vez é só entrar.</p>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
+  <!-- TELA DE RAÇAS (criação / escolha obrigatória) -->
+  <div id="race">
+    <div class="race-head">
+      <div class="race-title">ESCOLHA SUA RAÇA</div>
+      <button id="race-back" class="race-back" type="button">voltar</button>
+    </div>
+    <div class="race-body">
+      <div class="race-list-col">
+        <input id="race-search" class="field" placeholder="buscar raça…" autocomplete="off" spellcheck="false">
+        <div id="race-list"></div>
+      </div>
+      <div class="race-mid-col">
+        <div class="race-sub">Seu personagem</div>
+        <canvas id="race-pcanvas" width="180" height="200"></canvas>
+        <div class="race-prevnote">o visual muda por raça na próxima atualização</div>
+      </div>
+      <div class="race-detail-col" id="race-detail">
+        <div class="race-empty">escolha uma raça à esquerda pra ver a ficha completa</div>
+      </div>
+    </div>
+    <button id="race-confirm" class="enter" type="button" disabled>Escolher raça e entrar</button>
+    <div id="race-status"></div>
+  </div>
+
+  <div id="booting">
+    <h1>ERMO</h1>
+    <div>Atravessando o crepúsculo…</div>
+  </div>
+
+  <div id="stage"><canvas id="game"></canvas></div>
+  <div id="hud"><span class="dot">●</span> <span class="on" id="online">1</span> online · <span id="coords">x 0, y 0</span> · <span id="phase">dia</span></div>
+  <div id="logout">sair</div>
+  <div id="zoom-ctl">
+    <button id="zoom-out" type="button" aria-label="diminuir zoom">−</button>
+    <span id="zoom-pct">100%</span>
+    <button id="zoom-in" type="button" aria-label="aumentar zoom">+</button>
+  </div>
+  <div id="help">Ande com <kbd>W A S D</kbd>, setas, <kbd>clique</kbd> ou o direcional · Falar com os moradores: chegue perto e <kbd>E</kbd> (ou toque) · Conversar: <kbd>Enter</kbd> · Mochila: <kbd>I</kbd></div>
+
+  <button id="chat-open">conversar</button>
+  <div id="chatbar">
+    <input id="chat-input" maxlength="120" placeholder="dizer algo…" autocomplete="off" autocapitalize="sentences">
+    <button id="chat-send">enviar</button>
+  </div>
+
+  <button id="bag-btn">▣ mochila</button>
+  <div id="inv">
+    <div class="inv-card">
+      <div class="inv-head">
+        <h2>Mochila</h2>
+        <button class="inv-close" id="inv-close" aria-label="Fechar">✕</button>
+      </div>
+      <div class="inv-sub">Equipamento</div>
+      <div id="equip-row"></div>
+      <div class="inv-sub">Mochila</div>
+      <div id="inv-grid"></div>
+    </div>
+  </div>
+  <div id="toast"></div>
+
+  <script src="/static/races.js?v={{ asset_v }}"></script>
+  <script src="/static/game.js?v={{ asset_v }}"></script>
+</body>
+</html>
