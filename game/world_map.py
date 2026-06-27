@@ -746,6 +746,12 @@ def _build_valdarkram():
     g[50][0] = "+"; g[49][0] = "+"; g[51][0] = "+"  # boca oeste (vinda do Repouso)
     for x in range(1, 7):
         g[49][x] = "."; g[50][x] = "."; g[51][x] = "."
+    # TORRE DO LORDE NECROTICO (estrutura ao sul do cemiterio, entra pela porta 'Y')
+    _border(g, 45, 60, 55, 70, "H")               # paredes de pedra da torre
+    _rect(g, 46, 61, 54, 69, ".")                 # interior limpo
+    g[70][50] = "Y"                                # PORTA da torre (sul) -> andar 1
+    for y in range(71, 75):                        # caminho limpo ate a porta
+        g[y][49] = "."; g[y][50] = "."; g[y][51] = "."
     return ["".join(r) for r in g]
 
 
@@ -946,6 +952,72 @@ def _build_camara_avhur():
     return ["".join(r) for r in rows]
 
 
+def _build_torre_floor(seed):
+    """Um andar da Torre do Lorde Necrotico (44x48): salao de pedra com pilares e
+    braseiros. Sobe pela boca NORTE, desce pela boca SUL. Entra-se por baixo."""
+    W, H = 44, 48
+    rows = _grid(W, H, "d")                       # chao de pedra
+    rng = _rnd.Random(seed)
+    midX = W // 2
+    # pilares (blocos 2x2) em grade, deixando o corredor central livre
+    for cy in range(8, H - 10, 9):
+        for cx in range(6, W - 6, 9):
+            if abs(cx - midX) < 3:
+                continue
+            for ox in (0, 1):
+                for oy in (0, 1):
+                    if 0 < cx + ox < W - 1 and 0 < cy + oy < H - 1:
+                        rows[cy + oy][cx + ox] = "#"
+    for ty in range(7, H - 7, 8):                 # braseiros flanqueando o corredor
+        rows[ty][midX - 4] = "L"; rows[ty][midX + 4] = "L"
+    for sy in range(6, H - 6, 6):                 # nichos/sarcofagos nas paredes
+        rows[sy][2] = "H"; rows[sy][W - 3] = "H"
+    if rng.random() < 0.5:                         # uma leve variacao por andar
+        rows[H // 2][6] = "L"; rows[H // 2][W - 7] = "L"
+    _ring(rows, "#")
+    rows[0][midX - 1] = "+"; rows[0][midX] = "+"          # boca NORTE -> sobe
+    for y in range(1, 4):
+        rows[y][midX - 1] = "d"; rows[y][midX] = "d"
+    rows[H - 1][midX - 1] = "+"; rows[H - 1][midX] = "+"  # boca SUL -> desce
+    for y in range(H - 4, H - 1):
+        rows[y][midX - 1] = "d"; rows[y][midX] = "d"
+    return ["".join(r) for r in rows]
+
+
+def _build_camara_varth():
+    """CAMARA DO LORDE NECROTICO (100x100): o topo da Torre. Salao de pedra com o
+    trono de ossos de Lorde Varth ao NORTE. Entra pela boca SUL (subindo do andar
+    3). Saida SUL -> andar 3."""
+    W, H = 100, 100
+    rows = _grid(W, H, "#")
+    midX = W // 2
+    hx0, hy0, hx1, hy1 = 18, 10, 82, 90
+    for y in range(hy0, hy1 + 1):                 # o grande salao
+        for x in range(hx0, hx1 + 1):
+            rows[y][x] = "d"
+    for y in range(hy1, H):                        # corredor de entrada (sul)
+        for x in (midX - 1, midX, midX + 1):
+            rows[y][x] = "d"
+    for cy in range(hy0 + 8, hy1 - 8, 12):         # colunas
+        for cx in range(hx0 + 6, hx1 - 5, 13):
+            if abs(cx - midX) < 6:
+                continue
+            for ox in (0, 1):
+                for oy in (0, 1):
+                    if hx0 < cx + ox < hx1 and hy0 < cy + oy < hy1:
+                        rows[cy + oy][cx + ox] = "#"
+    for ty in range(hy0 + 6, hy1 - 5, 10):         # braseiros no corredor
+        rows[ty][midX - 6] = "L"; rows[ty][midX + 6] = "L"
+    for tx in range(midX - 5, midX + 6):           # trono de ossos ao NORTE
+        rows[hy0 + 2][tx] = "H"
+    rows[hy0 + 4][midX - 3] = "L"; rows[hy0 + 4][midX + 3] = "L"
+    _ring(rows, "#")
+    rows[H - 1][midX - 1] = "+"; rows[H - 1][midX] = "+"   # boca SUL -> andar 3
+    for y in range(H - 5, H - 1):
+        rows[y][midX - 1] = "d"; rows[y][midX] = "d"
+    return ["".join(r) for r in rows]
+
+
 COVA_COLOSSO_ROWS = _build_cova_colosso()
 COVA_COLOSSO_SPAWN = [(50, 3), (49, 3), (50, 4), (49, 4)]   # logo dentro da boca norte
 MINA_AVHUR_ROWS = _build_mina_avhur()
@@ -954,6 +1026,12 @@ CAMARA_AVHUR_ROWS = _build_camara_avhur()
 CAMARA_AVHUR_SPAWN = [(50, 3), (49, 3), (51, 3), (50, 4)]   # logo dentro da boca norte (vindo da mina)
 VALDARKRAM_ROWS = _build_valdarkram()
 VALDARKRAM_SPAWN = [(4, 50), (5, 50), (4, 49), (4, 51)]   # logo dentro da boca oeste
+TORRE_ANDAR1_ROWS = _build_torre_floor(101)
+TORRE_ANDAR2_ROWS = _build_torre_floor(202)
+TORRE_ANDAR3_ROWS = _build_torre_floor(303)
+TORRE_SPAWN = [(22, 43), (21, 43), (23, 43), (22, 42)]        # entra por baixo (boca sul)
+CAMARA_VARTH_ROWS = _build_camara_varth()
+CAMARA_VARTH_SPAWN = [(50, 92), (49, 92), (51, 92), (50, 91)]  # entra pela boca sul (vindo do andar 3)
 
 # --- liga o Descampado ao Deserto (boca sul do Descampado) ---
 _dr = [list(r) for r in DESCAMPADO_ROWS]
@@ -1165,6 +1243,10 @@ MAPS = {
     "mina_avhur":       {"rows": MINA_AVHUR_ROWS,       "spawns": MINA_AVHUR_SPAWN},
     "camara_avhur":     {"rows": CAMARA_AVHUR_ROWS,     "spawns": CAMARA_AVHUR_SPAWN},
     "valdarkram":       {"rows": VALDARKRAM_ROWS,       "spawns": VALDARKRAM_SPAWN},
+    "torre_andar1":     {"rows": TORRE_ANDAR1_ROWS,     "spawns": TORRE_SPAWN},
+    "torre_andar2":     {"rows": TORRE_ANDAR2_ROWS,     "spawns": TORRE_SPAWN},
+    "torre_andar3":     {"rows": TORRE_ANDAR3_ROWS,     "spawns": TORRE_SPAWN},
+    "camara_varth":     {"rows": CAMARA_VARTH_ROWS,     "spawns": CAMARA_VARTH_SPAWN},
 }
 
 
@@ -1208,6 +1290,13 @@ EDGE_LINKS = {
     "mina_avhur":       {"south": ("camara_avhur",       50, 3,  "down")},
     "camara_avhur":     {"north": ("mina_avhur",         50, 95, "up")},
     "valdarkram":       {"west":  ("repouso_dama",      96, 50, "left")},
+    "torre_andar1":     {"north": ("torre_andar2",      22, 43, "up"),
+                         "south": ("valdarkram",        50, 72, "down")},
+    "torre_andar2":     {"north": ("torre_andar3",      22, 43, "up"),
+                         "south": ("torre_andar1",      22, 5,  "down")},
+    "torre_andar3":     {"north": ("camara_varth",      50, 92, "up"),
+                         "south": ("torre_andar2",      22, 5,  "down")},
+    "camara_varth":     {"south": ("torre_andar3",      22, 5,  "down")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
     "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),
                          "north": ("fadrakor_vulcao",  50, 95, "up")},

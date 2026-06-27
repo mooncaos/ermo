@@ -558,6 +558,8 @@ def _resume(sid):
                     say = monsters_def.bark(r["say_cat"], cur.get("mtype"))
         else:
             steps, atk = combat.monster_decide(enc, cur)
+            if atk and atk.get("summon"):
+                _summon_minions(enc, cur, atk.get("summon_count", 1))
         _sync_monsters_to_world(enc)
         actions.append({"cid": cur["cid"], "name": cur["name"], "steps": steps, "attack": atk})
         if say:
@@ -1049,6 +1051,11 @@ def on_move(data):
     # pisou na boca da Mina de Avhur? sobe de volta pro deserto, em frente a piramide.
     if mp == "mina_avhur" and map_rows("mina_avhur")[player["y"]][player["x"]] == "p":
         _go_to(request.sid, "avasham", 76, 46, "up")
+        return
+
+    # pisou na PORTA da Torre do Lorde Necrotico (no cemiterio)? sobe pro andar 1.
+    if mp == "valdarkram" and map_rows("valdarkram")[player["y"]][player["x"]] == "Y":
+        _go_to(request.sid, "torre_andar1", 22, 43, "up")
         return
 
     # pisou numa passagem de borda? cai no mapa vizinho, virado pra dentro.

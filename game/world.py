@@ -458,6 +458,14 @@ class World:
             _spawn(type_id, x, y, "mina_avhur")
         for (type_id, x, y) in monsters_def.CAMARA_AVHUR_SPAWNS:
             _spawn(type_id, x, y, "camara_avhur")
+        for (type_id, x, y) in monsters_def.TORRE_ANDAR1_SPAWNS:
+            _spawn(type_id, x, y, "torre_andar1")
+        for (type_id, x, y) in monsters_def.TORRE_ANDAR2_SPAWNS:
+            _spawn(type_id, x, y, "torre_andar2")
+        for (type_id, x, y) in monsters_def.TORRE_ANDAR3_SPAWNS:
+            _spawn(type_id, x, y, "torre_andar3")
+        for (type_id, x, y) in monsters_def.CAMARA_VARTH_SPAWNS:
+            _spawn(type_id, x, y, "camara_varth")
         return self.monsters
 
     def monster_at(self, mp, x, y):

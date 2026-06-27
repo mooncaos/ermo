@@ -675,6 +675,15 @@ def monster_ability(enc, mon, tgt, ab):
                     "dmg": (splash[0]["dmg"] if splash else 0),
                     "target_hp": tgt["hp"], "killed": not tgt.get("alive")})
         return res
+    if kind == "summon":
+        have = int(mon.get("summons_left", 0))
+        n = min(int(ab.get("count", 2)), have)
+        if n > 0:
+            mon["summons_left"] = have - n
+        res.update({"summon": True, "summon_count": n, "self": True,
+                    "atk_name": ab.get("name", ""),
+                    "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"]})
+        return res
     if kind == "heal":
         amt = _roll_dmg(ab.get("heal", {"n": 4, "d": 8}), False)
         before = mon["hp"]; mon["hp"] = min(mon["hp_max"], mon["hp"] + amt)

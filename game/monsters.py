@@ -142,6 +142,53 @@ MONSTERS = {
         "drops": [("simbolo_varth", 1.0, 1, 2), ("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 4, 6)], "bronze": (1500, 2500),
     },
 
+    # ===================== TORRE DO LORDE NECROTICO =====================
+    # ANDAR 1 - mortos-vivos (~500 hp)
+    "tumular_torre": {
+        "name": "Tumular da Torre", "hp": 500, "ac": 16, "atk": 13,
+        "dmg": {"n": 3, "d": 10, "flat": 7}, "reach": 1, "speed": 5,
+        "xp": 800, "dex": 1, "glyph": "🧟", "kind": "undead",
+        "atk_name": "garras pútridas",
+        "drops": [("coin_gold", 1.0, 1, 2)], "bronze": (500, 850),
+    },
+    "carniceiro_torre": {
+        "name": "Carniceiro da Torre", "hp": 470, "ac": 15, "atk": 14,
+        "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 1, "speed": 6,
+        "xp": 870, "dex": 2, "glyph": "🪓", "kind": "undead",
+        "atk_name": "cutelo enferrujado",
+        "drops": [("coin_gold", 1.0, 1, 2)], "bronze": (650, 1000),
+    },
+    # ANDAR 2 - cavaleiros da morte (300-700 hp)
+    "cavaleiro_torre": {
+        "name": "Cavaleiro Profano", "hp": 650, "ac": 19, "atk": 16,
+        "dmg": {"n": 4, "d": 10, "flat": 9}, "reach": 1, "speed": 6,
+        "xp": 2000, "dex": 2, "glyph": "⚔️", "kind": "death_knight",
+        "atk_name": "lâmina profana",
+        "drops": [("simbolo_varth", 0.15, 1, 1), ("coin_gold", 1.0, 2, 3)], "bronze": (1800, 2800),
+    },
+    "algoz_torre": {
+        "name": "Algoz da Torre", "hp": 560, "ac": 18, "atk": 17,
+        "dmg": {"n": 5, "d": 8, "flat": 9}, "reach": 2, "speed": 6,
+        "xp": 2150, "dex": 3, "glyph": "🗡️", "kind": "death_knight",
+        "atk_name": "machado do carrasco",
+        "drops": [("simbolo_varth", 0.15, 1, 1), ("coin_gold", 1.0, 2, 4)], "bronze": (2000, 3000),
+    },
+    # ANDAR 3 - necromantes profanos (650 hp, MUITA armadura)
+    "necromante_torre": {
+        "name": "Necromante Profano", "hp": 650, "ac": 22, "atk": 16,
+        "dmg": {"n": 4, "d": 10, "flat": 9}, "reach": 5, "speed": 6,
+        "xp": 3500, "dex": 4, "glyph": "🔮", "kind": "necromante",
+        "atk_name": "raio profano", "summon_type": "esqueleto_guerreiro", "summons": 4,
+        "drops": [("simbolo_varth", 0.3, 1, 1), ("coin_gold", 1.0, 3, 5)], "bronze": (3000, 4500),
+    },
+    "profanador_torre": {
+        "name": "Profanador de Almas", "hp": 620, "ac": 23, "atk": 17,
+        "dmg": {"n": 5, "d": 8, "flat": 10}, "reach": 5, "speed": 6,
+        "xp": 3800, "dex": 4, "glyph": "💀", "kind": "necromante",
+        "atk_name": "toque dilacerador",
+        "drops": [("simbolo_varth", 0.3, 1, 1), ("coin_gold", 1.0, 3, 6)], "bronze": (3500, 5000),
+    },
+
     # ===================== DESERTO DE AVASHAM (mais forte que a floresta) =====================
     "lacraia_gigante": {
         "name": "Lacraia Gigante", "hp": 100, "ac": 15, "atk": 8,
@@ -566,7 +613,26 @@ VALDARKRAM_SPAWNS = [
     ("necromante_caido", 84, 26), ("necromante_caido", 82, 84), ("necromante_caido", 88, 46),
     ("abominacao_ossea", 86, 50), ("abominacao_ossea", 90, 70), ("abominacao_ossea", 84, 58),
     ("abominacao_ossea", 88, 34), ("abominacao_ossea", 82, 78),
-    ("lorde_varth", 92, 52),       # CHEFE FINAL do cemitério (necromante 4x4)
+]
+
+# ===================== TORRE DO LORDE NECROTICO =====================
+TORRE_ANDAR1_SPAWNS = [
+    ("tumular_torre", 10, 12), ("tumular_torre", 30, 12), ("carniceiro_torre", 20, 13),
+    ("tumular_torre", 12, 28), ("carniceiro_torre", 31, 28), ("tumular_torre", 10, 40),
+    ("carniceiro_torre", 31, 40), ("carniceiro_torre", 19, 38),
+]
+TORRE_ANDAR2_SPAWNS = [
+    ("cavaleiro_torre", 10, 12), ("algoz_torre", 30, 12), ("cavaleiro_torre", 20, 13),
+    ("algoz_torre", 12, 28), ("cavaleiro_torre", 31, 28), ("algoz_torre", 10, 40),
+    ("cavaleiro_torre", 31, 40), ("algoz_torre", 19, 38),
+]
+TORRE_ANDAR3_SPAWNS = [
+    ("necromante_torre", 10, 12), ("profanador_torre", 30, 12), ("necromante_torre", 20, 13),
+    ("profanador_torre", 12, 28), ("necromante_torre", 31, 28), ("profanador_torre", 10, 40),
+    ("necromante_torre", 31, 40),
+]
+CAMARA_VARTH_SPAWNS = [
+    ("lorde_varth", 50, 22),       # CHEFE FINAL no topo da Torre (saiu do cemitério)
 ]
 
 
@@ -693,6 +759,31 @@ MONSTER_ABILITIES = {
                        "save": "SAB", "dc": 18, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
                       {"id": "festim_macabro", "name": "Festim Macabro", "type": "heal",
                        "heal": {"n": 6, "d": 10}, "chance": 0.3, "cd": 4}],
+
+    # --- TORRE DO LORDE NECROTICO ---
+    "tumular_torre": [{"id": "garra_putrida", "name": "Garra Pútrida", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "carniceiro_torre": [{"id": "talho_sangrento", "name": "Talho Sangrento", "type": "inflict",
+                       "dmg_bonus": {"n": 2, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "cavaleiro_torre": [{"id": "lamina_profana", "name": "Lâmina Profana", "type": "heavy",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "maldicao", "turns": 3, "dot": {"n": 1, "d": 10}, "chance": 0.45, "cd": 2},
+                      {"id": "brado_de_guerra", "name": "Brado de Guerra", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "algoz_torre": [{"id": "ceifa_profana", "name": "Ceifa Profana", "type": "blast", "aoe": True,
+                       "dmg_bonus": {"n": 5, "d": 8}, "save": "DES", "dc": 16, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.4, "cd": 3},
+                      {"id": "golpe_executor", "name": "Golpe do Executor", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 8}, "chance": 0.4, "cd": 2}],
+    "necromante_torre": [{"id": "praga_necrotica", "name": "Praga Necrótica", "type": "blast", "aoe": True,
+                       "dmg_bonus": {"n": 6, "d": 8}, "save": "CON", "dc": 17, "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3},
+                      {"id": "dreno_sombrio", "name": "Dreno Sombrio", "type": "drain", "chance": 0.4, "cd": 2},
+                      {"id": "erguer_mortos", "name": "Erguer os Mortos", "type": "summon",
+                       "count": 2, "chance": 0.35, "cd": 4}],
+    "profanador_torre": [{"id": "explosao_almas", "name": "Explosão de Almas", "type": "blast", "aoe": True,
+                       "dmg_bonus": {"n": 7, "d": 8}, "save": "DES", "dc": 17, "status": "burning", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3},
+                      {"id": "toque_paralisante", "name": "Toque Paralisante", "type": "gaze",
+                       "save": "CON", "dc": 17, "status": "stunned", "turns": 1, "chance": 0.3, "cd": 3},
+                      {"id": "maldicao_alma", "name": "Maldição da Alma", "type": "inflict",
+                       "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.4, "cd": 2}],
 
     # --- MINA DE AVHUR: mortos-vivos egipcios ---
     "naja_tumular":  [{"id": "veneno_naja", "name": "Veneno da Naja", "type": "inflict",
