@@ -158,6 +158,25 @@ const ATMO = {                // tudo discreto (intensidade "sutil")
   bloom: 0.42,              // forca do brilho geral
   particlesMax: 26,         // teto de motas em tela
 };
+// MOOD por mapa: um veu de cor por cima da cena que da o clima de cada bioma.
+// {r,g,b,a} -> overlay; part:'#hex' -> cor das motas de ambiente daquele mapa.
+const MAP_AMBIENT = {
+  ermo:             {r:54,  g:46,  b:88,  a:0.10, part:'#b59cff'},  // crepusculo arcano
+  descampado:       {r:122, g:92,  b:52,  a:0.11, part:'#e8c98a'},  // descampado seco, poeira
+  avasham:          {r:255, g:200, b:110, a:0.12, part:'#ffd98a'},  // deserto: calor ambar
+  valdarkram:       {r:28,  g:38,  b:48,  a:0.40, part:'#9fb4c0'},  // cemiterio: bruma fria
+  salao:            {r:46,  g:34,  b:78,  a:0.12, part:'#caa6ff'},  // salao: penumbra sagrada
+  rasharan:         {r:232, g:182, b:92,  a:0.14, part:'#ffe6a0'},  // reino dourado do trigo
+  valoran:          {r:118, g:160, b:230, a:0.14, part:'#bfe0ff'},  // reino etereo azulado
+  fundamento:       {r:78,  g:58,  b:120, a:0.20, part:'#c89cff'},  // trono sombrio
+  falanor:          {r:150, g:210, b:200, a:0.12, part:'#d6fff4'},  // reino claro
+  fadrakor_litoral: {r:120, g:190, b:222, a:0.10, part:'#cfeeff'},  // litoral
+  fadrakor_selva:   {r:38,  g:108, b:58,  a:0.16, part:'#a9f0c0'},  // selva densa
+  fadrakor_vulcao:  {r:230, g:90,  b:40,  a:0.18, part:'#ffb070'},  // vulcao
+  repouso_dama:     {r:22,  g:44,  b:42,  a:0.10, part:'#a9f0c0'},  // mata fria esverdeada
+};
+// mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
+const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao']);
 
 // ---------- ciclo de dia e noite ----------
 let dayLength = 480;          // segundos por ciclo (o servidor manda o valor real)
@@ -269,13 +288,34 @@ function grassBase(c, px, py, ts, gx, gy){
   const tone = rng(gx,gy,17);
   c.fillStyle = tone < 0.20 ? COL.grassDk : (tone > 0.80 ? COL.grassLt : COL.grass);
   c.fillRect(px,py,ts,ts);
-  // tufos de grama (laminas verticais finas)
+  // mancha organica extra: clareira ou sombra suave
+  if(rng(gx,gy,31) > 0.72){
+    c.save(); c.globalAlpha = 0.45;
+    c.fillStyle = rng(gx,gy,32) > 0.5 ? COL.grassLt : COL.grassDk;
+    c.beginPath(); c.ellipse(px+rng(gx,gy,33)*ts, py+rng(gx,gy,34)*ts, ts*0.24, ts*0.14, 0, 0, Math.PI*2); c.fill();
+    c.restore();
+  }
+  // tufos de grama BALANCANDO ao vento (inclinacao por tempo)
+  const sway = Math.sin(Date.now()/900 + (gx*0.7 + gy*1.3)) * 0.9;
+  c.lineWidth = 1;
   for(let i=0;i<5;i++){
     const bx = px + rng(gx,gy,i+1)*ts;
     const by = py + ts*(0.35 + rng(gx,gy,i+6)*0.55);
     const h = 2 + rng(gx,gy,i+11)*2.5;
-    c.fillStyle = rng(gx,gy,i+16) > 0.5 ? COL.grassLt : COL.grassDk;
-    c.fillRect(bx, by-h, 1, h);
+    c.strokeStyle = rng(gx,gy,i+16) > 0.5 ? COL.grassLt : COL.grassDk;
+    c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + sway, by - h); c.stroke();
+  }
+  // florzinha rara
+  if(rng(gx,gy,41) > 0.93){
+    const fx = px + (0.3+rng(gx,gy,42)*0.4)*ts, fy = py + (0.3+rng(gx,gy,43)*0.4)*ts;
+    c.fillStyle = COL.flower[(gx+gy) % COL.flower.length];
+    c.beginPath(); c.arc(fx, fy, 1.5, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#f4d35e'; c.beginPath(); c.arc(fx, fy, 0.6, 0, Math.PI*2); c.fill();
+  }
+  // pedrinha rara
+  if(rng(gx,gy,51) > 0.95){
+    c.fillStyle = '#7d756a';
+    c.beginPath(); c.ellipse(px+rng(gx,gy,52)*ts, py+rng(gx,gy,53)*ts, 1.6, 1.1, 0, 0, Math.PI*2); c.fill();
   }
 }
 // piso do Salao (igual ao tile 'o'), usado de fundo das estatuas
@@ -642,6 +682,18 @@ function forestFloor(c, px, py, ts, gx, gy, bare){
       c.fillStyle = rng(gx,gy,i+16) > 0.5 ? FCOL.floorLt : FCOL.floorDk;
       c.fillRect(bx, by-2, 1, 2);
     }
+    // folhas caidas (manchas marrom/ocre)
+    if(rng(gx,gy,28) > 0.74){
+      c.fillStyle = rng(gx,gy,29) > 0.5 ? 'rgba(120,86,44,0.5)' : 'rgba(96,72,40,0.5)';
+      c.beginPath(); c.ellipse(px+rng(gx,gy,30)*ts, py+rng(gx,gy,31)*ts, 2.2, 1.4, rng(gx,gy,32)*3, 0, Math.PI*2); c.fill();
+    }
+    // cogumelo raro (chapeu vermelho com pintas)
+    if(rng(gx,gy,44) > 0.95){
+      const mx = px+(0.35+rng(gx,gy,45)*0.3)*ts, my = py+(0.55+rng(gx,gy,46)*0.25)*ts;
+      c.fillStyle='#e8e2d0'; c.fillRect(mx-0.6, my, 1.4, 2.4);
+      c.fillStyle='#b5432f'; c.beginPath(); c.ellipse(mx, my, 2.4, 1.5, 0, Math.PI, 0); c.fill();
+      c.fillStyle='#f0e8d8'; c.beginPath(); c.arc(mx-0.8, my-0.5, 0.4, 0, Math.PI*2); c.arc(mx+0.8, my-0.4, 0.4, 0, Math.PI*2); c.fill();
+    }
   }
 }
 function drawPine(c, px, py, ts, gx, gy){
@@ -666,6 +718,12 @@ function drawDesertTile(c, ch, px, py, ts, gx, gy){
     c.fillRect(px,py,ts,ts);
     c.strokeStyle='rgba(176,140,82,0.28)'; c.lineWidth=1;
     c.beginPath(); c.moveTo(px,py+ts*0.6+((gx+gy)%3)); c.quadraticCurveTo(px+ts/2,py+ts*0.45,px+ts,py+ts*0.62); c.stroke();
+    // segunda ondulacao de duna (mais clara, em cima)
+    c.strokeStyle='rgba(255,240,200,0.18)';
+    c.beginPath(); c.moveTo(px,py+ts*0.28+((gx*3+gy)%2)); c.quadraticCurveTo(px+ts/2,py+ts*0.18,px+ts,py+ts*0.3); c.stroke();
+    // graos/pedrinhas raras
+    if((gx*9+gy*5)%6===0){ c.fillStyle='rgba(150,120,72,0.5)'; c.fillRect(px+ts*(0.2+(gx%3)*0.22), py+ts*(0.5+(gy%3)*0.12), 1.6, 1.3); }
+    if((gx*7+gy*3)%9===0){ c.fillStyle='rgba(255,250,225,0.5)'; c.fillRect(px+ts*0.6, py+ts*0.36, 1.2, 1.2); }
   }
   switch(ch){
     case '.': sand(); return true;
@@ -698,6 +756,21 @@ function drawCemeteryTile(c, ch, px, py, ts, gx, gy){
     c.fillStyle=['#6b6a63','#727069','#65645d','#6e6d66'][h];
     c.fillRect(px,py,ts,ts);
     if((gx*13+gy*7)%5===0){ c.fillStyle='rgba(40,42,38,0.35)'; c.fillRect(px+(gx%4),py+(gy%4),3,2); }
+    // fissuras na terra rachada
+    if((gx*11+gy*17)%4===0){
+      c.strokeStyle='rgba(34,34,30,0.45)'; c.lineWidth=1;
+      c.beginPath(); c.moveTo(px+ts*0.2,py+ts*0.3); c.lineTo(px+ts*0.5,py+ts*0.5); c.lineTo(px+ts*0.4,py+ts*0.8); c.stroke();
+    }
+    // tufo de mato seco
+    if((gx*7+gy*13)%11===0){
+      c.strokeStyle='#7a7158'; c.lineWidth=1;
+      for(let k=-1;k<=1;k++){ c.beginPath(); c.moveTo(px+ts*0.5,py+ts*0.7); c.lineTo(px+ts*0.5+k*2.5,py+ts*0.5); c.stroke(); }
+    }
+    // ossinho esbranquicado raro
+    if((gx*19+gy*23)%17===0){
+      c.strokeStyle='rgba(210,205,190,0.7)'; c.lineWidth=1.5;
+      c.beginPath(); c.moveTo(px+ts*0.35,py+ts*0.4); c.lineTo(px+ts*0.62,py+ts*0.6); c.stroke();
+    }
   }
   switch(ch){
     case '.': dead(); return true;
@@ -783,14 +856,16 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       const tone = rng(gx,gy,5);
       c.fillStyle = tone < 0.5 ? COL.water : shade(COL.water,0.05);
       c.fillRect(px,py,ts,ts);
-      c.strokeStyle = 'rgba(210,232,255,0.45)'; c.lineWidth = 1.2;     // cristas das ondas
+      const wt = Date.now()/600 + (gx*0.6 + gy*0.9);                  // fase da onda
+      c.strokeStyle = 'rgba(210,232,255,0.45)'; c.lineWidth = 1.2;     // cristas ONDULANTES
       for(let i=0;i<2;i++){
-        const wy = py + ts*(0.3 + i*0.36) + rng(gx,gy,i)*3;
+        const wy = py + ts*(0.3 + i*0.36) + Math.sin(wt + i*1.6)*2.2;
         c.beginPath(); c.moveTo(px+3, wy); c.quadraticCurveTo(px+ts*0.5, wy-3, px+ts-3, wy); c.stroke();
       }
       c.fillStyle = COL.waterDk;                                       // pontos fundos
       c.fillRect(px+ts*(0.15+rng(gx,gy,3)*0.6), py+ts*(0.55+rng(gx,gy,4)*0.32), 2, 1.5);
-      c.fillStyle = 'rgba(255,255,255,0.5)';                           // reflexo brilhante
+      const glint = 0.30 + 0.4*Math.abs(Math.sin(wt*1.3));            // reflexo CINTILANTE
+      c.fillStyle = 'rgba(255,255,255,'+glint.toFixed(2)+')';
       c.fillRect(px+ts*(0.2+rng(gx,gy,7)*0.5), py+ts*(0.16+rng(gx,gy,8)*0.25), 1.5, 1);
       break;
     }
@@ -3327,13 +3402,16 @@ function spawnParticle(now){
   const wx = camX - margin + Math.random()*(canvas.width + margin*2);
   const wy = camY - margin + Math.random()*(canvas.height + margin*2);
   const night = isNightish(dayTime);
+  const amb = MAP_AMBIENT[mapName];
+  const biomeHue = amb && amb.part;                     // cor das motas daquele bioma
+  const glow = night || GLOW_MAPS.has(mapName);         // reinos/cemiterio/salao: brilho etereo
   particles.push({
     x:wx, y:wy,
     vx:(Math.random()-0.5)*6,
     vy: night ? -(4+Math.random()*6) : (2+Math.random()*4),
-    r: night ? 1.1+Math.random()*1.3 : 0.7+Math.random()*0.9,
+    r: glow ? 1.1+Math.random()*1.3 : 0.7+Math.random()*0.9,
     life: 4200+Math.random()*4200, t0:now,
-    glow: night, hue: night ? (Math.random()<0.5?'#f4e08a':'#a9f0c0') : '#d8d2c2',
+    glow: glow, hue: biomeHue || (night ? (Math.random()<0.5?'#f4e08a':'#a9f0c0') : '#d8d2c2'),
     ph: Math.random()*6.283
   });
 }
@@ -3616,23 +3694,19 @@ function frame(now){
   if(mapName === 'salao') drawPofnirLight(ctx, now);
   drawAtmoPool(ctx);
 
-  // ---- Repouso da Dama: o breu da mata fecha conforme se entra no fundo (leste) ----
+  // ---- MOOD por bioma: um veu de cor unificado pra todos os 13 mapas ----
+  const amb = MAP_AMBIENT[mapName];
+  if(amb){
+    ctx.fillStyle = 'rgba('+amb.r+','+amb.g+','+amb.b+','+amb.a+')';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  // Repouso da Dama: o breu da mata AINDA fecha conforme entra no fundo (leste)
   if(mapName === 'repouso_dama'){
     const me = players.get(myId);
     const depth = me ? Math.max(0, Math.min(1, me.x / 100)) : 0.3;
-    const g = 0.22 + depth * 0.5;                 // 0.22 na boca -> ~0.72 na clareira
+    const g = 0.20 + depth * 0.5;                 // 0.20 na boca -> ~0.70 na clareira
     ctx.fillStyle = 'rgba(6,9,14,' + g.toFixed(2) + ')';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(22,44,42,0.10)';        // friozinho esverdeado de floresta
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  if(mapName === 'avasham'){                      // deserto: calorzinho ambar
-    ctx.fillStyle = 'rgba(255,208,116,0.10)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  if(mapName === 'valdarkram'){                   // cemiterio: bruma fria e escura
-    ctx.fillStyle = 'rgba(18,24,28,0.42)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(90,110,120,0.06)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   // ---- ciclo de dia e noite: tinte por cima de tudo ----
