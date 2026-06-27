@@ -797,6 +797,13 @@ function drawMineTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle='rgba(255,240,190,0.35)'; c.fillRect(px+ts*0.16,py+ts*0.1,ts*0.68,ts*0.1);
       return true;
     }
+    case '+': {                                     // ESCADA da torre (sobe/desce) com brilho roxo
+      c.fillStyle='#241f30'; c.fillRect(px,py,ts,ts);
+      for(let i=0;i<4;i++){ c.fillStyle=shade('#4a3f5e',0.08*i); c.fillRect(px+ts*0.12,py+ts*(0.7-i*0.16),ts*0.76,ts*0.12); }
+      c.fillStyle='rgba(155,109,255,0.5)'; c.fillRect(px+ts*0.12,py+ts*0.08,ts*0.76,ts*0.1);
+      c.fillStyle='rgba(201,160,255,0.25)'; c.fillRect(px+ts*0.3,py,ts*0.4,ts);
+      return true;
+    }
   }
   return false;
 }
@@ -923,8 +930,8 @@ function drawCemeteryTile(c, ch, px, py, ts, gx, gy){
       c.strokeStyle='#33312c'; c.lineWidth=1;
       c.strokeRect(px+1,py+1,ts-2,ts*0.5); c.strokeRect(px+1,py+ts*0.5,ts-2,ts*0.48);
       return true;
-    case 'Y': dead();
-      c.fillStyle='#2a2536'; c.fillRect(px+ts*0.1,py,ts*0.8,ts);          // base de torre escura
+    case 'Z': dead();
+      c.fillStyle='#2a2536'; c.fillRect(px+ts*0.1,py,ts*0.8,ts);          // base de torre escura (porta da Torre)
       c.fillStyle='#1a1622'; c.fillRect(px+ts*0.1,py,ts*0.8,ts*0.14);
       c.fillStyle='#0c0a14'; c.beginPath();                                // porta arqueada
       c.moveTo(px+ts*0.3,py+ts); c.lineTo(px+ts*0.3,py+ts*0.42);
@@ -3589,6 +3596,21 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
   const cyc = ((walk||0) % WALK_CYCLE) / WALK_CYCLE;
   const frame = cyc < 0.5 ? 0 : 1;
   const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.4 : 0;
+
+  // aparicao radiante (ex.: Emissario de Valiria): forte luz branca pulsando ao
+  // redor da figura, desenhada ANTES do corpo pra ficar como halo por tras.
+  if(look.radiant){
+    const tt = Date.now()/520;
+    const a = 0.5 + 0.28*Math.abs(Math.sin(tt));
+    const gx = cx, gy = py+ts*0.5+bob, R = ts*1.35;
+    const g = c.createRadialGradient(gx, gy, ts*0.1, gx, gy, R);
+    g.addColorStop(0, 'rgba(255,255,255,'+a+')');
+    g.addColorStop(0.45, 'rgba(240,246,255,'+(a*0.45)+')');
+    g.addColorStop(1, 'rgba(210,228,255,0)');
+    c.save(); c.globalCompositeOperation='lighter';
+    c.fillStyle = g; c.beginPath(); c.arc(gx, gy, R, 0, Math.PI*2); c.fill();
+    c.restore();
+  }
 
   const skin = look.skin, cloak = look.cloak;
   const skinDk = shade(skin,-0.16), skinLt = shade(skin,0.15);

@@ -469,6 +469,37 @@ ROSTER.append({
 })
 
 
+# --- Emissario de Valiria: aparicao TEMPORARIA (evento) no centro da vila. Todo
+#     branco, irradiando uma forte luz branca (look.radiant). Fica parado no
+#     cruzamento central. Se quem falar com ele for PALADINO, ele "devolve a luz"
+#     com uma bencao de 200.000 de XP, uma UNICA vez por ficha (flag valiria_luz).
+#     Pra tirar o evento, basta remover este ROSTER.append. ---
+EMISSARIO_LINE = "Valiria manda devolver sua luz meu irmão"
+EMISSARIO_DONE = "a luz de Valiria ja corre em voce, irmão. carrega-a com honra."
+EMISSARIO_GREETINGS = [
+    "a luz de Valiria procura quem jurou carrega-la. es tu?",
+    "venho da Serena. ando o Ermo atras de um paladino digno.",
+    "sinto faiscas de aurora por perto, mas nao em ti. segue teu caminho.",
+]
+EMISSARIO_MURMURS = [
+    "a Serena me enviou. eu apenas devolvo o que e dela.",
+    "luz emprestada um dia volta a fonte.",
+    "onde anda o juramentado de Valiria?",
+]
+
+ROSTER.append({
+    "id": "npc:emissario_valiria", "name": "Emissário de Valiria",
+    "look": {"skin": "#ffffff", "cloak": "#ffffff", "hood": "up",
+             "hat": "none", "hair": "#ffffff", "staff": True, "radiant": True},
+    "map": "ermo",
+    "home": (20, 15), "radius": 0, "wanders": False, "step_every": 2.0,
+    "solid": False, "kind": "person", "gender": "H",
+    "murmurs": EMISSARIO_MURMURS, "murmur_min": 14, "murmur_max": 22,
+    "greetings": EMISSARIO_GREETINGS, "smiter": False,
+    "emissario_valiria": True,
+})
+
+
 # ============================================================================
 #  SAPOPEMBA DO CAIQUE — regiao sudoeste (cidade satirica de quebrada)
 # ============================================================================
@@ -511,7 +542,6 @@ SUCURI_MURMURS = [
     "barba fechada, mente aberta.",
     "ja fui mais magro. ja fui mais bobo, tambem.",
     "respeito aqui e de graca. so pegar.",
-    "sera que eu sou um meteoro?",
 ]
 SUCURI_GREETINGS = [
     "fala. eu sou o Sucuri Meteoro. nome grande pra homem grande.",

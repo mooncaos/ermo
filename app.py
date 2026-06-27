@@ -1054,7 +1054,7 @@ def on_move(data):
         return
 
     # pisou na PORTA da Torre do Lorde Necrotico (no cemiterio)? sobe pro andar 1.
-    if mp == "valdarkram" and map_rows("valdarkram")[player["y"]][player["x"]] == "Y":
+    if mp == "valdarkram" and map_rows("valdarkram")[player["y"]][player["x"]] == "Z":
         _go_to(request.sid, "torre_andar1", 22, 43, "up")
         return
 
@@ -1332,6 +1332,23 @@ def on_interact(_data=None):
             emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
             return
         # ja recebeu: cai na fala padrao abaixo
+
+    # Emissario de Valiria (aparicao no centro da vila): se quem fala for PALADINO,
+    # ele "devolve a luz" com uma bencao de 200.000 de XP, uma UNICA vez por ficha.
+    if npc.get("_spec", {}).get("emissario_valiria"):
+        ficha = player.get("ficha") or {}
+        is_pal = ficha.get("class_id") == "paladino"
+        if is_pal and not ficha.get("valiria_luz"):
+            ficha["valiria_luz"] = True
+            player["ficha"] = ficha
+            socketio.emit("speech", {"id": npc["id"], "text": npcs.EMISSARIO_LINE}, room=mp)
+            _award_xp(player, 200000, "Bênção de Valiria")   # salva a ficha (com a flag) e avisa o cliente
+        elif is_pal:
+            socketio.emit("speech", {"id": npc["id"], "text": npcs.EMISSARIO_DONE}, room=mp)
+        else:
+            greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
+            socketio.emit("speech", {"id": npc["id"], "text": greet}, room=mp)
+        return
 
     # Vendedor de Arma (Armas Peteco): abre a LOJA (comprar sets / vender itens)
     if npc["id"] == "npc:armeiro":
