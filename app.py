@@ -1914,6 +1914,14 @@ GOD_FAGULHA = {
         "line_none": "Frase bonita, mas cade a Fagulha? Lebre nao corre atras de promessa.",
         "line_other": "Hmm... essa Fagulha nao casa com tuas pernas, tu nao es ladino. Mas eu nunca recuso uma. *a lebre a engole num pulo* Toma essa pocao em troca, e segue teu caminho.",
     },
+    "god:valiria": {
+        "ability": "aurora_valiria", "class": "paladino", "flag": "dom_valiria",
+        "mark": "Aurora de Valíria",
+        "line": "*a elfa serena ergue a mao e uma luz de amanhecer desce sobre voce* Uma Fagulha. Aceito-a com gratidao. Recebe a Aurora de Valiria: quando a tua gente precisar, eu desco, todos os olhos do inimigo se voltam pra ti e nenhum golpe te derruba. Mas a luz cobra seu preco no teu braco. Carrega-a com honra, paladino.",
+        "line_repeat": "A Aurora ja e tua, paladino. Guarda tua Fagulha; a mesma luz nao desce duas vezes sobre o mesmo escudo.",
+        "line_none": "Vens me falar de Fagulha sem trazer nenhuma? A aurora nao nasce de promessa.",
+        "line_other": "*a luz hesita por um instante* Essa Fagulha nao foi talhada pra tua classe, mas eu a recebo com carinho. Leva esta pocao abencoada em troca, e segue em paz.",
+    },
 }
 # falas genericas pros deuses que ainda nao tem dom coordenado
 GENERIC_FAGULHA = {
@@ -1969,7 +1977,7 @@ def _fagulha_exchange(player, god_id):
             f[spec["flag"]] = True                                        # marca na ficha (ex: bola_pofnir)
         reward_txt = "Recebeu: " + ((items.get(spec["item"]) or {}).get("name", spec["item"]))
         line, dom = spec.get("line", ""), True
-    elif spec.get("ability") and (f.get("class") or "") == spec.get("class"):   # classe certa -> habilidade
+    elif spec.get("ability") and (f.get("class_id") or "") == spec.get("class"):   # classe certa -> habilidade
         ga = f.setdefault("god_abilities", [])
         if spec["ability"] not in ga:
             ga.append(spec["ability"])

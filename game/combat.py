@@ -277,6 +277,8 @@ def _apply_damage(target, dmg):
     blk = int(target.get("block", 0))
     if blk and dmg > 0:
         dmg = max(0, dmg - blk)
+    if dmg > 1 and has_status(target, "aurora"):      # Aurora de Valíria: no máximo 1 de dano por golpe
+        dmg = 1
     target["hp"] = max(0, target["hp"] - dmg)
     if target["hp"] <= 0:
         target["alive"] = False
@@ -435,6 +437,8 @@ def attack(enc, attacker, target):
                 res["smite"] = True
                 res["smite_dmg"] = sd                          # dano divino separado (pro somatorio)
             attacker["smite_armed"] = False
+        if has_status(attacker, "aurora_fraca"):          # Aurora de Valíria: ele causa metade do dano
+            dmg = dmg // 2
         if attacker.get("double_next"):                   # Poção Divina: este golpe vale o dobro
             dmg *= 2
             attacker["double_next"] = False
@@ -594,6 +598,13 @@ def use_ability(enc, actor, aid, target=None):
         amt = _roll_dmg({"n": 2, "d": 6, "flat": 0}, False)
         before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + amt)
         res.update({"heal": actor["hp"] - before, "self": True, "target": actor["cid"], "evade": True})
+    elif aid == "aurora_valiria":
+        if actor.get("_aurora_used"):
+            res["fail"] = True; return res
+        actor["_aurora_used"] = True
+        apply_status(actor, "aurora", 6)             # 6 turnos: teto de 1 de dano + provoca os inimigos
+        apply_status(actor, "aurora_fraca", 9)       # 9 turnos: o dano que ELE causa cai pela metade
+        res.update({"aura": True, "self": True, "target": actor["cid"]})
     else:
         res["fail"] = True
     return res
@@ -765,6 +776,9 @@ def monster_decide(enc, monster):
     targets = alive_of(enc, "player")
     if not targets:
         return ([], None)
+    taunters = [t for t in targets if has_status(t, "aurora")]    # Aurora de Valíria: força o foco
+    if taunters:
+        targets = taunters
     tgt = min(targets, key=lambda t: abs(t["x"] - monster["x"]) + abs(t["y"] - monster["y"]))
     steps = []
     budget = monster.get("speed", 6)
@@ -794,6 +808,9 @@ def boss_turn(enc, boss):
     targets = alive_of(enc, "player")
     if not targets:
         return out
+    taunters = [t for t in targets if has_status(t, "aurora")]    # Aurora de Valíria: força o foco
+    if taunters:
+        targets = taunters
     tgt = min(targets, key=lambda t: abs(t["x"] - boss["x"]) + abs(t["y"] - boss["y"]))
     hpfrac = boss["hp"] / max(1, boss["hp_max"])
     # 1) furia abaixo de 30% (uma vez): dano e ataque sobem, fica mais rapido

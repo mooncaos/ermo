@@ -3804,6 +3804,24 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
 }
 
 // O corvo: passarinho preto empoleirado, com um pulinho quando se move.
+function drawAuroraGlow(c, sx, sy, ts){
+  // brilho de amanhecer da Valíria em volta do paladino (Aurora de Valíria)
+  const t = Date.now()/500, a = 0.24 + 0.12*Math.abs(Math.sin(t));
+  const cx = sx + ts/2, cy = sy + ts*0.5;
+  const gl = c.createRadialGradient(cx, cy, ts*0.1, cx, cy, ts);
+  gl.addColorStop(0, 'rgba(255,238,180,'+a+')');
+  gl.addColorStop(0.6, 'rgba(255,206,110,'+(a*0.45).toFixed(3)+')');
+  gl.addColorStop(1, 'rgba(255,206,110,0)');
+  c.save();
+  c.fillStyle = gl; c.fillRect(sx-ts*0.75, sy-ts*0.75, ts*2.5, ts*2.5);
+  c.globalAlpha = a; c.strokeStyle = 'rgba(255,242,196,0.85)'; c.lineWidth = 2;
+  c.beginPath(); c.arc(cx, cy, ts*0.5 + Math.sin(t)*2, 0, 7); c.stroke();   // halo pulsante
+  c.globalAlpha = a*0.8; c.strokeStyle = 'rgba(255,228,160,0.7)'; c.lineWidth = 1.4;
+  for(let i=0;i<6;i++){ const an = t*0.4 + i*Math.PI/3;                     // raios de aurora subindo
+    c.beginPath(); c.moveTo(cx+Math.cos(an)*ts*0.42, cy+Math.sin(an)*ts*0.42);
+    c.lineTo(cx+Math.cos(an)*ts*0.62, cy+Math.sin(an)*ts*0.62); c.stroke(); }
+  c.restore();
+}
 function drawLebreForm(c, sx, sy, ts, p){
   // a forma de lebre de Nharé: translúcida (invisível) com brilho divino
   const t = Date.now()/300;
@@ -4593,7 +4611,10 @@ function frame(now){
     }
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
     else if(p.wild_form) drawWildForm(ctx, sx, sy, TS, p);
-    else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
+    else {
+      if(p._status && (p._status.aurora || p._status.aurora_fraca)) drawAuroraGlow(ctx, sx, sy, TS);
+      drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
+    }
   }
 
   // numeros de dano flutuantes (sobem e somem)
@@ -6321,6 +6342,7 @@ const MARCAS = [
   {flag:'banned_valoran',  icon:'💀', name:'Deixou o Pofnir Ansioso', desc:'Você insistiu no trono do Criador. Foi obliterado e está banido de Valoran.'},
   {flag:'dom_nhare',   icon:'🐇', name:'Nharé sabe se esconder', desc:'Nharé, a Lebre de Mil Saídas, te ensinou a Milésima Saída e a virar uma lebre invisível. Quando não houver mais saída, sempre existe mais uma.'},
   {flag:'bola_pofnir', icon:'🧶', name:'Pofnir deixou você brincar', desc:'Você ofereceu uma Fagulha ao gato branco e ele te deu a Bola de Lã dele. Poucos no Ermo já ouviram o Pofnir ronronar.'},
+  {flag:'dom_valiria', icon:'☀️', name:'Aurora de Valíria', desc:'Valíria, a Serena, fez a aurora descer sobre você e te deu o dom de mesmo nome. Quando os seus precisarem, você vira o escudo que nenhum golpe atravessa.'},
 ];
 let fichaTab = 'geral';
 
@@ -6931,9 +6953,9 @@ function popDamage(cid, text, color){
   dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
-  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣' };
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', aurora:'☀️', aurora_fraca:'🕯️' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
-  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado' };
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', aurora:'aura de Valíria', aurora_fraca:'luz consumida' };
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){

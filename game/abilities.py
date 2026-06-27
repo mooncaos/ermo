@@ -20,6 +20,7 @@ ABILITIES = {
     "sneak_attack": {"name": "Ataque Furtivo",     "slot": "passive", "desc": "+Xd6 no primeiro acerto do seu turno."},
     # --- habilidades CONCEDIDAS pelos deuses (via Fagulha de Divindade) ---
     "milesima_saida": {"name": "Milésima Saída",   "slot": "bonus",   "god": "Nhare", "desc": "Dom de Nharé. 1x por combate: some pela milésima saída — cura 2d6 e o PRÓXIMO ataque inimigo contra você erra automaticamente."},
+    "aurora_valiria": {"name": "Aurora de Valíria", "slot": "action",  "god": "Valiria", "desc": "Dom de Valíria. 1x por combate: a aurora desce sobre você. Por 6 turnos os inimigos só atacam você e nenhum golpe te tira mais de 1 de vida; em troca, por 9 turnos o seu próprio dano cai pela metade. Você brilha como a deusa."},
 }
 
 CLASS_ABILITIES = {
