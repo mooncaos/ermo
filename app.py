@@ -481,6 +481,49 @@ def _world_refresh(mp, sid=None):
         socketio.emit("world_refresh", payload, room=mp)
 
 
+PARTY_JOIN_RADIUS = 8     # parceiros de grupo a até 8 tiles entram na mesma luta
+
+
+def _combat_push(enc, extra=None):
+    """Manda o estado da luta pra TODOS os jogadores do encounter (cada um com o
+    SEU snapshot e o SEU your_turn). `extra` (dict) é a ação que acabou de rolar,
+    igual pra todos (player_action / spell_result / ability_result). Devolve o
+    outcome ('victory' / 'defeat' / None)."""
+    oc = combat.outcome(enc)
+    cur = combat.current(enc)
+    for s in list(enc.get("players", [])):
+        payload = {"snapshot": combat.snapshot(enc, s), "outcome": oc,
+                   "your_turn": (oc is None and cur["kind"] == "player"
+                                 and cur["cid"] == s and not combat.is_incapacitated(cur))}
+        if extra:
+            payload.update(extra)
+        socketio.emit("combat_state", payload, to=s)
+    return oc
+
+
+def _combat_party_members(sid, player):
+    """Sids que entram na luta junto com quem iniciou: ele + os parceiros de grupo
+    no MESMO mapa, perto, com classe e que ainda não estão em combate."""
+    pid = _player_party.get(sid)
+    if not pid:
+        return [sid]
+    out = [sid]
+    mp = player.get("map")
+    px, py = player["x"], player["y"]
+    for s in _parties.get(pid, []):
+        if s == sid or s in COMBAT:
+            continue
+        pl = world.players.get(s)
+        if not pl or pl.get("map") != mp:
+            continue
+        if not (pl.get("ficha") or {}).get("class_id"):
+            continue
+        if max(abs(pl["x"] - px), abs(pl["y"] - py)) > PARTY_JOIN_RADIUS:
+            continue
+        out.append(s)
+    return out[:PARTY_MAX]
+
+
 def _start_combat(sid, monster_list):
     player = world.players.get(sid)
     if not player or sid in COMBAT:
@@ -502,20 +545,34 @@ def _start_combat(sid, monster_list):
         player["invisible"] = False
         socketio.emit("player_form", {"id": sid, "form": None}, room=player.get("map", "ermo"))
         socketio.emit("form_set", {"form": None}, to=sid)
-    pc = combat.make_player_combatant(sid, player, ficha)
+    # quem entra na luta: quem iniciou + parceiros de grupo perto (mesmo mapa)
+    pcs, psids = [], []
+    for s in _combat_party_members(sid, player):
+        pl = world.players.get(s)
+        f = pl.get("ficha") or {}
+        if not f.get("class_id"):
+            continue
+        if "res" not in f:
+            leveling.compute_resources(f)   # garante recursos (fichas antigas)
+        pcs.append(combat.make_player_combatant(s, pl, f))
+        psids.append(s)
     mcs = [combat.make_monster_combatant(m) for m in monster_list]
-    enc = combat.start(pc, mcs, player.get("map", "descampado"))
+    enc = combat.start(pcs, mcs, player.get("map", "descampado"))
     enc["_monsters"] = {m["id"]: m for m in monster_list}
-    COMBAT[sid] = enc
-    player["in_combat"] = True
+    enc["players"] = psids
+    for s in psids:
+        COMBAT[s] = enc
+        pl = world.players.get(s)
+        if pl:
+            pl["in_combat"] = True
     for m in monster_list:
         m["in_combat"] = True
-    socketio.emit("combat_start", {"snapshot": combat.snapshot(enc, sid)}, to=sid)
     boss = next((c for c in enc["combs"].values() if c.get("boss")), None)
-    if boss:
-        line = monsters_def.bark("intro", boss.get("mtype"))
+    line = monsters_def.bark("intro", boss.get("mtype")) if boss else None
+    for s in psids:
+        socketio.emit("combat_start", {"snapshot": combat.snapshot(enc, s)}, to=s)
         if line:
-            socketio.emit("speech", {"id": boss["cid"], "text": line}, to=sid)
+            socketio.emit("speech", {"id": boss["cid"], "text": line}, to=s)
     _resume(sid)
 
 
@@ -581,13 +638,15 @@ def _resume(sid):
         combat.advance(enc)
     oc = combat.outcome(enc)
     cur = combat.current(enc)
-    socketio.emit("combat_state", {
-        "enemy_actions": actions, "snapshot": combat.snapshot(enc, sid),
-        "your_turn": (oc is None and cur["kind"] == "player" and not combat.is_incapacitated(cur)),
-        "outcome": oc,
-    }, to=sid)
+    for s in list(enc.get("players", [])):
+        socketio.emit("combat_state", {
+            "enemy_actions": actions, "snapshot": combat.snapshot(enc, s),
+            "your_turn": (oc is None and cur["kind"] == "player"
+                          and cur["cid"] == s and not combat.is_incapacitated(cur)),
+            "outcome": oc,
+        }, to=s)
     if oc:
-        _end_combat(sid, oc)
+        _end_combat(enc, oc)
 
 
 def _reset_monster(m):
@@ -660,25 +719,30 @@ def _collect_drops(player, enc):
     return out, bronze
 
 
-def _end_combat(sid, oc):
-    enc = COMBAT.pop(sid, None)
-    player = world.players.get(sid)
-    if player:
-        player["in_combat"] = False
-    if not enc:
+def _end_combat(enc, oc):
+    if not enc or enc.get("_ended"):
         return
+    enc["_ended"] = True
+    players = list(enc.get("players", []))
+    for s in players:
+        COMBAT.pop(s, None)
+        pl = world.players.get(s)
+        if pl:
+            pl["in_combat"] = False
     mp = enc["map"]
     for c in enc["combs"].values():        # libera todos os monstros do confronto
         if c["kind"] == "monster":
             m = enc["_monsters"].get(c["cid"])
             if m:
                 m["in_combat"] = False
-    # devolve os recursos gastos na luta pra ficha (a recarga e por andar, nao cura aqui)
-    pcomb = enc["combs"].get(sid)
-    if player and pcomb is not None and pcomb.get("res") is not None:
-        f0 = player.get("ficha") or {}
-        f0["res"] = pcomb["res"]
-        player["ficha"] = f0
+    # devolve os recursos gastos na luta pra ficha de cada jogador (recarga e por andar)
+    for s in players:
+        pl = world.players.get(s)
+        pcomb = enc["combs"].get(s)
+        if pl and pcomb is not None and pcomb.get("res") is not None:
+            f0 = pl.get("ficha") or {}
+            f0["res"] = pcomb["res"]
+            pl["ficha"] = f0
     if oc == "victory":
         xp = sum(c.get("xp", 0) for c in enc["combs"].values()
                  if c["kind"] == "monster" and not c.get("alive"))
@@ -688,35 +752,39 @@ def _end_combat(sid, oc):
                 if m:
                     m["alive"] = False
                     _MONSTER_RESPAWNS.append((m["id"], time.time() + 90))
-        if player:
-            f = player.get("ficha") or {}
-            f["hp"] = f.get("hp_max", f.get("hp", 1))   # cura apos a vitoria
-            player["ficha"] = f
-            drops, bronze = _collect_drops(player, enc)   # espolio dos caidos
+        for s in players:                  # cada jogador: cura/revive, espólio próprio, XP cheio
+            pl = world.players.get(s)
+            if not pl:
+                continue
+            f = pl.get("ficha") or {}
+            f["hp"] = f.get("hp_max", f.get("hp", 1))   # cura/revive após a vitória
+            pl["ficha"] = f
+            drops, bronze = _collect_drops(pl, enc)      # cada um rola o seu espólio
             try:
-                db.save_ficha(player["player_id"], f)
+                db.save_ficha(pl["player_id"], f)
                 if drops or bronze:
-                    db.save_inventory(player["player_id"], player["inventory"])
-                    db.save_wallet(player["player_id"], player.get("wallet", 0))
+                    db.save_inventory(pl["player_id"], pl["inventory"])
+                    db.save_wallet(pl["player_id"], pl.get("wallet", 0))
             except Exception:
                 pass
             if drops or bronze:
-                socketio.emit("inventory", {"bag": player["inventory"]}, to=sid)
-                socketio.emit("wallet", {"bronze": player.get("wallet", 0)}, to=sid)
+                socketio.emit("inventory", {"bag": pl["inventory"]}, to=s)
+                socketio.emit("wallet", {"bronze": pl.get("wallet", 0)}, to=s)
             socketio.emit("combat_over", {"outcome": "victory", "xp": xp,
                                           "drops": drops, "bronze": bronze,
-                                          "hp": f.get("hp"), "hp_max": f.get("hp_max")}, to=sid)
+                                          "hp": f.get("hp"), "hp_max": f.get("hp_max")}, to=s)
             if xp > 0:
-                _award_xp(player, xp, "vitória")
-        _world_refresh(mp, sid)
+                _award_xp(pl, xp, "vitória")
+        _world_refresh(mp)
     elif oc == "defeat":
-        for c in enc["combs"].values():     # sobreviventes voltam curados
+        for c in enc["combs"].values():     # sobreviventes (monstros) voltam curados
             if c["kind"] == "monster" and c.get("alive"):
                 m = enc["_monsters"].get(c["cid"])
                 if m:
                     _reset_monster(m)
-        socketio.emit("combat_over", {"outcome": "defeat"}, to=sid)
-        _player_death(sid)
+        for s in players:
+            socketio.emit("combat_over", {"outcome": "defeat"}, to=s)
+            _player_death(s)
         _world_refresh(mp)
 
 
@@ -777,7 +845,7 @@ def on_combat_engage(data):
 def on_combat_move(data):
     sid = request.sid
     enc = COMBAT.get(sid)
-    if not enc or combat.current(enc)["kind"] != "player":
+    if not enc or combat.current(enc)["kind"] != "player" or combat.current(enc)["cid"] != sid:
         return
     dxy = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}.get((data or {}).get("dir"))
     if not dxy:
@@ -791,14 +859,14 @@ def on_combat_move(data):
     if player:
         player["x"], player["y"] = nx, ny
         player["facing"] = (data or {}).get("dir")
-    emit("combat_state", {"snapshot": combat.snapshot(enc, sid), "your_turn": True})
+    _combat_push(enc)
 
 
 @socketio.on("combat_attack")
 def on_combat_attack(data):
     sid = request.sid
     enc = COMBAT.get(sid)
-    if not enc or combat.current(enc)["kind"] != "player":
+    if not enc or combat.current(enc)["kind"] != "player" or combat.current(enc)["cid"] != sid:
         return
     if enc["action_used"]:
         emit("combat_msg", {"text": "Você já agiu neste turno."})
@@ -814,18 +882,16 @@ def on_combat_attack(data):
     enc["action_used"] = True
     _sync_monsters_to_world(enc)
     _maybe_boss_hurt(enc, sid, tgt)
-    oc = combat.outcome(enc)
-    emit("combat_state", {"player_action": res, "snapshot": combat.snapshot(enc, sid),
-                          "your_turn": oc is None, "outcome": oc})
-    if oc == "victory":
-        _end_combat(sid, "victory")
+    oc = _combat_push(enc, {"player_action": res})
+    if oc:
+        _end_combat(enc, oc)
 
 
 @socketio.on("combat_cast")
 def on_combat_cast(data):
     sid = request.sid
     enc = COMBAT.get(sid)
-    if not enc or combat.current(enc)["kind"] != "player":
+    if not enc or combat.current(enc)["kind"] != "player" or combat.current(enc)["cid"] != sid:
         return
     if enc["action_used"]:
         emit("combat_msg", {"text": "Você já agiu neste turno."})
@@ -858,18 +924,16 @@ def on_combat_cast(data):
     enc["action_used"] = True
     _sync_monsters_to_world(enc)
     _maybe_boss_hurt(enc, sid, target)
-    oc = combat.outcome(enc)
-    emit("combat_state", {"spell_result": res, "snapshot": combat.snapshot(enc, sid),
-                          "your_turn": oc is None, "outcome": oc})
-    if oc == "victory":
-        _end_combat(sid, "victory")
+    oc = _combat_push(enc, {"spell_result": res})
+    if oc:
+        _end_combat(enc, oc)
 
 
 @socketio.on("combat_ability")
 def on_combat_ability(data):
     sid = request.sid
     enc = COMBAT.get(sid)
-    if not enc or combat.current(enc)["kind"] != "player":
+    if not enc or combat.current(enc)["kind"] != "player" or combat.current(enc)["cid"] != sid:
         return
     me = combat.current(enc)
     aid = (data or {}).get("ability")
@@ -902,18 +966,16 @@ def on_combat_ability(data):
     # 'special' (Surto de Ação / armar Castigo) nao consome acao nem bonus
     _sync_monsters_to_world(enc)
     _maybe_boss_hurt(enc, sid, target)
-    oc = combat.outcome(enc)
-    emit("combat_state", {"ability_result": res, "snapshot": combat.snapshot(enc, sid),
-                          "your_turn": oc is None, "outcome": oc})
-    if oc == "victory":
-        _end_combat(sid, "victory")
+    oc = _combat_push(enc, {"ability_result": res})
+    if oc:
+        _end_combat(enc, oc)
 
 
 @socketio.on("combat_end_turn")
 def on_combat_end_turn(data):
     sid = request.sid
     enc = COMBAT.get(sid)
-    if not enc or combat.current(enc)["kind"] != "player":
+    if not enc or combat.current(enc)["kind"] != "player" or combat.current(enc)["cid"] != sid:
         return
     combat.advance(enc)
     _resume(sid)
@@ -925,7 +987,7 @@ def on_combat_use_potion(data=None):
     (skip_next) -> o inimigo ganha 2 ataques. A ficha tambem cura (persiste)."""
     sid = request.sid
     enc = COMBAT.get(sid)
-    if not enc or combat.current(enc)["kind"] != "player":
+    if not enc or combat.current(enc)["kind"] != "player" or combat.current(enc)["cid"] != sid:
         return
     if enc["action_used"]:
         emit("combat_msg", {"text": "Você já agiu neste turno."})
@@ -962,7 +1024,7 @@ def on_combat_use_divine(data=None):
     dano no proximo acerto. Gasta so a acao (sem perder 2 turnos como a de vida)."""
     sid = request.sid
     enc = COMBAT.get(sid)
-    if not enc or combat.current(enc)["kind"] != "player":
+    if not enc or combat.current(enc)["kind"] != "player" or combat.current(enc)["cid"] != sid:
         return
     if enc["action_used"]:
         emit("combat_msg", {"text": "Você já agiu neste turno."})
@@ -991,7 +1053,7 @@ def on_combat_use_divine(data=None):
     enc["action_used"] = True
     emit("loadout", {"bag": bag, "equipment": player.get("equipment")})
     emit("combat_msg", {"text": "Você bebeu a Poção Divina! +%d de vida e o próximo golpe vale o DOBRO." % healed})
-    emit("combat_state", {"snapshot": combat.snapshot(enc, sid), "your_turn": True, "outcome": None})
+    _combat_push(enc)
 
 
 @socketio.on("set_form")
@@ -1037,7 +1099,7 @@ def on_combat_transform(data=None):
     enc = COMBAT.get(sid)
     if not enc:
         return
-    if combat.current(enc).get("kind") != "player":
+    if combat.current(enc).get("kind") != "player" or combat.current(enc).get("cid") != sid:
         emit("combat_msg", {"text": "Só dá pra se transformar no seu turno."})
         return
     player = world.players.get(sid)
@@ -1067,9 +1129,7 @@ def on_combat_transform(data=None):
     socketio.emit("player_form", {"id": sid, "form": (fid if form else None)},
                   room=player.get("map", "ermo"))
     nm = ("%s %s" % (form.get("icon", ""), form["name"])) if form else "forma normal"
-    emit("combat_state", {"player_action": {"transform": nm},
-                          "snapshot": combat.snapshot(enc, sid),
-                          "your_turn": True, "outcome": None})
+    _combat_push(enc, {"player_action": {"transform": nm}})
 
 
 @socketio.on("move")
@@ -2250,16 +2310,31 @@ def on_disconnect():
     _pending_race.pop(request.sid, None)
     _pending_class.pop(request.sid, None)
     _party_remove(request.sid)
-    # se caiu no meio de uma luta, libera os monstros do confronto.
+    # se caiu no meio de uma luta: tira ele do confronto. Se ainda sobrar gente no
+    # grupo, a luta continua (ele vira "caído"); se era o último/solo, libera os monstros.
     enc = COMBAT.pop(request.sid, None)
     if enc:
-        for c in enc["combs"].values():
-            if c["kind"] == "monster":
-                m = enc["_monsters"].get(c["cid"])
-                if m:
-                    m["in_combat"] = False
-                    if m.get("alive"):
-                        _reset_monster(m)
+        if request.sid in enc.get("players", []):
+            enc["players"].remove(request.sid)
+        pc = enc["combs"].get(request.sid)
+        if pc:
+            pc["alive"] = False
+        others = list(enc.get("players", []))
+        if others:
+            try:
+                if combat.current(enc)["cid"] == request.sid:
+                    combat.advance(enc)
+                _resume(others[0])
+            except Exception:
+                pass
+        else:
+            for c in enc["combs"].values():
+                if c["kind"] == "monster":
+                    m = enc["_monsters"].get(c["cid"])
+                    if m:
+                        m["in_combat"] = False
+                        if m.get("alive"):
+                            _reset_monster(m)
     player = world.remove_player(request.sid)
     if player:
         mp = player.get("map", "ermo")

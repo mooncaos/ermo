@@ -187,8 +187,10 @@ def add_combatant(enc, comb):
 
 # -------------------------------------------------------------------- confronto
 
-def start(player_combatant, monster_combatants, mp):
-    combs = {player_combatant["cid"]: player_combatant}
+def start(player_combatants, monster_combatants, mp):
+    if not isinstance(player_combatants, list):
+        player_combatants = [player_combatants]      # aceita 1 jogador OU vários (party)
+    combs = {pc["cid"]: pc for pc in player_combatants}
     for mc in monster_combatants:
         combs[mc["cid"]] = mc
     for c in combs.values():
