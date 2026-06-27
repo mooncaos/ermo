@@ -1172,8 +1172,94 @@ def on_interact(_data=None):
             return
         # ja recebeu: cai na fala padrao abaixo
 
+    # Vendedor de Arma (Armas Peteco): abre a LOJA (comprar sets / vender itens)
+    if npc["id"] == "npc:armeiro":
+        greet = npc.get("_spec", {}).get("greetings") or ["Da uma olhada na mercadoria, forasteiro."]
+        socketio.emit("speech", {"id": npc["id"], "text": random.choice(greet)}, room=mp)
+        emit("shop_open", {
+            "title": "Armas Peteco",
+            "sets": _shop_catalog(),
+            "wallet": int(player.get("wallet", 0)),
+            "sell_rate": items.SHOP_SELL_RATE,
+        })
+        return
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
+
+
+def _shop_catalog():
+    """Monta as secoes da loja: uma por classe, com a arma + armadura completa."""
+    secs = []
+    for s in items.SHOP_SETS:
+        cls = classes.get_class(s["class_id"]) or {}
+        entries = []
+        for iid in s["items"]:
+            cat = items.get(iid) or {}
+            entries.append({
+                "item": iid, "name": cat.get("name", iid), "kind": cat.get("kind"),
+                "slot": cat.get("slot"), "visual": cat.get("visual"),
+                "rarity": cat.get("rarity"), "color": cat.get("color"),
+                "ac": cat.get("ac", 0), "atk": cat.get("atk", 0), "dmg": cat.get("dmg"),
+                "price": items.SHOP_PRICE,
+            })
+        secs.append({"class_id": s["class_id"], "name": cls.get("name", s["class_id"]),
+                     "items": entries})
+    return secs
+
+
+def _persist_loadout_wallet(player):
+    if player.get("player_id"):
+        try:
+            db.save_wallet(player["player_id"], player["wallet"])
+            db.save_loadout(player["player_id"], player["inventory"],
+                            player["equipment"], player.get("look"))
+        except Exception as exc:
+            print("erro salvando loja:", exc)
+
+
+@socketio.on("shop_buy")
+def on_shop_buy(data):
+    """Compra uma peca da loja por SHOP_PRICE (3000) de bronze."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    item_id = (data or {}).get("item")
+    if item_id not in items.SHOP_ITEMS:
+        emit("toast", {"text": "Isso nao esta a venda."})
+        return
+    wallet = int(player.get("wallet", 0))
+    if wallet < items.SHOP_PRICE:
+        emit("toast", {"text": "Bronze insuficiente (custa %d)." % items.SHOP_PRICE})
+        return
+    player["wallet"] = wallet - items.SHOP_PRICE
+    items.add_to_bag(player.setdefault("inventory", []), item_id, 1)
+    _persist_loadout_wallet(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    emit("wallet", {"bronze": player["wallet"]})
+    emit("toast", {"text": "Comprou: %s" % (items.get(item_id) or {}).get("name", item_id)})
+
+
+@socketio.on("shop_sell")
+def on_shop_sell(data):
+    """Vende uma peca da mochila (trofeus inclusos) por uma fracao do valor."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    item_id = (data or {}).get("item")
+    cat = items.get(item_id)
+    if not cat:
+        return
+    bag = player.setdefault("inventory", [])
+    if not items.remove_from_bag(bag, item_id, 1):
+        emit("toast", {"text": "Voce nao tem isso na mochila."})
+        return
+    gain = max(1, int(round(int(cat.get("value", 1)) * items.SHOP_SELL_RATE)))
+    player["wallet"] = int(player.get("wallet", 0)) + gain
+    _persist_loadout_wallet(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    emit("wallet", {"bronze": player["wallet"]})
+    emit("toast", {"text": "Vendeu %s por %d bronze" % (cat.get("name", item_id), gain)})
 
 
 @socketio.on("confirm_ok")

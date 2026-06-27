@@ -3659,6 +3659,15 @@ function typingInField(e){
 
 window.addEventListener('keydown', e=>{
   if(!started || typingInField(e)) return;
+  if(e.code === 'Space'){          // espaco: passa o turno no combate
+    if(combat && combat.yourTurn){
+      e.preventDefault();
+      combat.pending = null;
+      if(typeof closeSpellMenu === 'function') closeSpellMenu();
+      socket.emit('combat_end_turn', {});
+    }
+    return;
+  }
   if(e.code === 'KeyE'){ e.preventDefault(); tryInteract(); return; }
   if(e.code === 'Enter'){ e.preventDefault(); openChat(); return; }
   const dir = KEYMAP[e.code]; if(!dir || e.repeat) return;
@@ -3824,15 +3833,20 @@ function connectWithToken(token){
   socket.on('wallet', d=>{
     updateWallet(d.bronze || 0);
     if(d && d.picked) toastMsg('+ ' + (d.picked.name || 'moeda'));
+    if(shopIsOpen()){ _updateShopWallet(); _renderShopBody(); }
   });
   socket.on('item_taken',   d=> ground.delete(d.x+','+d.y) );
   socket.on('item_spawned', d=> ground.set(d.x+','+d.y, d.item) );
+
+  // loja (Armas Peteco): abre o painel de comprar/vender
+  socket.on('shop_open', d=> openShop(d));
 
   // equipamento
   socket.on('loadout', d=>{
     inventory = Array.isArray(d.bag) ? d.bag : inventory;
     equipment = d.equipment || {};
     refreshInventory();
+    if(shopIsOpen()) _renderShopBody();
   });
   socket.on('player_look', d=>{
     const p = players.get(d.id); if(p && d.look) p.look = d.look;
@@ -4364,6 +4378,20 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
       c.fillStyle = hi; c.fillRect(-s*0.04, -s*0.3, s*0.02, s*0.36);              // fio
       c.fillStyle = '#5a3f28'; c.fillRect(-s*0.05, s*0.06, s*0.1, s*0.2);         // cabo
       c.restore(); return true; }
+    case 'bow': {
+      c.save(); c.translate(cx, cy);
+      c.strokeStyle = col; c.lineWidth = Math.max(2, s*0.07); c.lineCap = 'round';
+      c.beginPath(); c.arc(s*0.06, 0, s*0.34, -Math.PI*0.62, Math.PI*0.62); c.stroke();
+      const xa = s*0.06 + Math.cos(-Math.PI*0.62)*s*0.34;
+      const ya = Math.sin(-Math.PI*0.62)*s*0.34, yb = Math.sin(Math.PI*0.62)*s*0.34;
+      c.strokeStyle = '#e8e2cf'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(xa, ya); c.lineTo(xa, yb); c.stroke();
+      c.strokeStyle = '#6b5a44'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(xa, 0); c.lineTo(xa - s*0.36, 0); c.stroke();
+      c.fillStyle = '#cbd2d9'; c.beginPath();
+      c.moveTo(xa - s*0.36, 0); c.lineTo(xa - s*0.29, -s*0.045); c.lineTo(xa - s*0.29, s*0.045); c.closePath(); c.fill();
+      c.restore(); return true;
+    }
     case 'staff_magic': {
       const h = s*0.66, w = Math.max(2, s*0.08);
       c.fillStyle = '#6b5a44'; c.fillRect(cx-w/2, cy-h*0.28, w, h*0.84);
@@ -4492,6 +4520,114 @@ function toastItem(picked){
   clearTimeout(toastEl._t);
   toastEl._t = setTimeout(()=> toastEl.classList.remove('show'), 2200);
 }
+// ===========================================================================
+//  LOJA — Armas Peteco (Sapopemba): comprar sets por classe / vender itens
+// ===========================================================================
+let shopData = null, shopTab = 'buy', _shopEl = null, _shopBodyEl = null, _shopWalletEl = null;
+
+function shopIsOpen(){ return !!_shopEl; }
+function _updateShopWallet(){ if(_shopWalletEl) _shopWalletEl.textContent = walletBronze.toLocaleString('pt-BR') + ' 🟤'; }
+function closeShop(){ if(_shopEl){ _shopEl.remove(); _shopEl = null; } shopData = null; }
+
+function _shopStat(def){
+  if(def.dmg) return 'Dano ' + def.dmg.n + 'd' + def.dmg.d + (def.atk ? ' · +' + def.atk + ' atq' : '') + (def.ac ? ' · +' + def.ac + ' CA' : '');
+  if(def.ac) return '+' + def.ac + ' CA';
+  if(def.atk) return '+' + def.atk + ' atq';
+  return '';
+}
+function _shopRow(it, mode){
+  const def = catalog[it.item] || it;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;background:#1b1828;margin-bottom:6px;';
+  const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+  const rc = RARITY_COL[def.rarity || 'comum'] || RARITY_COL.comum;
+  cv.style.cssText = 'flex:0 0 auto;border:1px solid ' + rc + ';border-radius:7px;background:#0f0e17;';
+  drawItemIcon(cv.getContext('2d'), 20, 20, 40, it.item, false);
+  row.appendChild(cv);
+  const mid = document.createElement('div'); mid.style.cssText = 'flex:1 1 auto;min-width:0;';
+  const nm = document.createElement('div'); nm.textContent = def.name || it.item;
+  nm.style.cssText = 'font:600 13px Inter,sans-serif;color:' + rc + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  mid.appendChild(nm);
+  const stt = _shopStat(def);
+  if(stt){ const st = document.createElement('div'); st.textContent = stt; st.style.cssText = 'font-size:11px;color:#9b95b5;'; mid.appendChild(st); }
+  row.appendChild(mid);
+  const right = document.createElement('div'); right.style.cssText = 'flex:0 0 auto;text-align:right;';
+  if(mode === 'buy'){
+    const price = it.price || 0;
+    const pr = document.createElement('div'); pr.textContent = price.toLocaleString('pt-BR') + ' 🟤';
+    pr.style.cssText = 'font:600 12px Inter,sans-serif;color:#f4b860;margin-bottom:4px;';
+    const can = walletBronze >= price;
+    const b = _btn(can ? 'Comprar' : 'Sem grana', can);
+    b.style.cssText += ';padding:5px 11px;font-size:12px;';
+    if(!can){ b.disabled = true; b.style.opacity = '.5'; b.style.cursor = 'default'; }
+    else b.onclick = ()=> socket.emit('shop_buy', { item: it.item });
+    right.appendChild(pr); right.appendChild(b);
+  } else {
+    const val = (catalog[it.item] || {}).value || 1;
+    const sell = Math.max(1, Math.floor(val * (shopData.sell_rate || 0.4)));
+    const pr = document.createElement('div');
+    pr.textContent = 'Vende: ' + sell.toLocaleString('pt-BR') + ' 🟤' + (it.qty > 1 ? (' (x' + it.qty + ')') : '');
+    pr.style.cssText = 'font:600 12px Inter,sans-serif;color:#7ec27a;margin-bottom:4px;';
+    const b = _btn('Vender', false); b.style.cssText += ';padding:5px 11px;font-size:12px;';
+    b.onclick = ()=> socket.emit('shop_sell', { item: it.item });
+    right.appendChild(pr); right.appendChild(b);
+  }
+  row.appendChild(right);
+  return row;
+}
+function _renderShopBody(){
+  if(!_shopBodyEl || !shopData) return;
+  _shopBodyEl.innerHTML = '';
+  if(shopTab === 'buy'){
+    (shopData.sets || []).forEach(sec=>{
+      const h = document.createElement('div'); h.textContent = sec.name;
+      h.style.cssText = 'font:700 13px Cinzel,serif;color:#f4d8a0;margin:12px 2px 7px;border-bottom:1px solid #3a3556;padding-bottom:4px;';
+      _shopBodyEl.appendChild(h);
+      (sec.items || []).forEach(it=> _shopBodyEl.appendChild(_shopRow(it, 'buy')));
+    });
+  } else {
+    const sellable = (inventory || []).filter(s=> catalog[s.item]);
+    if(!sellable.length){
+      const e = document.createElement('div');
+      e.textContent = 'Mochila vazia. Cace, junte troféus e volte pra vender.';
+      e.style.cssText = 'color:#9b95b5;font-size:13px;padding:14px 4px;';
+      _shopBodyEl.appendChild(e);
+    } else sellable.forEach(s=> _shopBodyEl.appendChild(_shopRow(s, 'sell')));
+  }
+}
+function openShop(d){
+  shopData = d || {}; shopTab = 'buy';
+  if(typeof d.wallet === 'number') updateWallet(d.wallet);
+  if(_shopEl) _shopEl.remove();
+  const ov = _overlay(); const box = _box(440);
+  box.style.cssText += ';padding:0;display:flex;flex-direction:column;max-height:86vh;';
+  const hd = document.createElement('div');
+  hd.style.cssText = 'display:flex;align-items:center;gap:10px;padding:16px 18px 10px;border-bottom:1px solid #2a2540;';
+  const ti = document.createElement('div'); ti.textContent = d.title || 'Armas Peteco';
+  ti.style.cssText = 'font:700 19px Cinzel,serif;color:#f4d8a0;flex:1 1 auto;';
+  _shopWalletEl = document.createElement('div'); _shopWalletEl.style.cssText = 'font:600 13px Inter,sans-serif;color:#f4b860;';
+  const x = _btn('✕', false); x.style.cssText += ';padding:4px 10px;'; x.onclick = closeShop;
+  hd.appendChild(ti); hd.appendChild(_shopWalletEl); hd.appendChild(x); box.appendChild(hd);
+  const tabs = document.createElement('div'); tabs.style.cssText = 'display:flex;gap:8px;padding:10px 18px 0;';
+  const tBuy = _btn('Comprar', true), tSell = _btn('Vender', false);
+  [tBuy, tSell].forEach(b=> b.style.cssText += ';padding:7px 16px;font-size:13px;');
+  const setTab = (t)=>{ shopTab = t;
+    tBuy.style.background = t === 'buy' ? 'linear-gradient(180deg,#9b6dff,#7d4fe0)' : '#241f36';
+    tBuy.style.color = t === 'buy' ? '#fff' : '#c9c4dc';
+    tSell.style.background = t === 'sell' ? 'linear-gradient(180deg,#9b6dff,#7d4fe0)' : '#241f36';
+    tSell.style.color = t === 'sell' ? '#fff' : '#c9c4dc';
+    _renderShopBody();
+  };
+  tBuy.onclick = ()=> setTab('buy'); tSell.onclick = ()=> setTab('sell');
+  tabs.appendChild(tBuy); tabs.appendChild(tSell); box.appendChild(tabs);
+  _shopBodyEl = document.createElement('div');
+  _shopBodyEl.style.cssText = 'flex:1 1 auto;overflow-y:auto;padding:8px 18px 18px;';
+  box.appendChild(_shopBodyEl);
+  ov.appendChild(box); document.body.appendChild(ov); _shopEl = ov;
+  ov.addEventListener('click', e=>{ if(e.target === ov) closeShop(); });
+  _updateShopWallet(); _renderShopBody();
+}
+
 // ===========================================================================
 //  MODAIS (confirmacao + seletor de classe) e FICHA in-game
 // ===========================================================================
@@ -5072,7 +5208,7 @@ function renderCombatHud(){
       btns += cbBtn('ab:'+ab.id, ab.name, {disabled: !ab.ready || used});
     }
     if((your.spells||[]).length) btns += cbBtn('spells','✦ Magias', {disabled: your.action_used});
-    btns += cbBtn('pass','Passar', {});
+    btns += cbBtn('pass','Passar (espaço)', {});
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+btns+'</div>';
     if(combat.pending){
       html += '<div style="font-size:10.5px;color:#f4d8a0;margin-top:6px">▸ '+esc(combat.pending.label||'')+

@@ -155,7 +155,8 @@ def catalog():
             "stackable": v["stackable"], "color": v["color"],
             "equippable": "slot" in v, "slot": v.get("slot"),
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
-            "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg")}
+            "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
+            "value": v.get("value", 1)}
         for k, v in ITEMS.items()
     }
 
@@ -250,3 +251,69 @@ def enforce_uniques(bag, equipment):
                 changed = True
         out.append(stack)
     return out, changed
+
+
+# ===========================================================================
+#  SETS DE CLASSE — vendidos na Armas Peteco (Sapopemba), 3000 bronze/peca.
+#  Cada classe tem arma correspondente + armadura completa (6 pecas). Armas
+#  razoaveis (raro), abaixo do Cajado Magico lendario. Gerados por codigo.
+# ===========================================================================
+SHOP_PRICE = 3000          # preco fixo de qualquer peca da loja (puro money sink)
+SHOP_SELL_RATE = 0.4       # o mercador paga 40% do valor ao COMPRAR de voce (lowball RE4)
+
+# id_classe: (tema_do_nome, cor, arquetipo, (arma_nome, visual, dado_n, dado_d, atk, ac_extra))
+_CLASS_GEAR = {
+    "barbaro":     ("do Bárbaro",     "#9c4a2f", "pesada", ("Machado Brutal",        "sword", 1, 12, 1, 0)),
+    "guerreiro":   ("do Guerreiro",   "#8a929c", "pesada", ("Espada Longa de Aço",   "sword", 1, 8,  2, 0)),
+    "paladino":    ("do Paladino",    "#e6c66a", "pesada", ("Espada Consagrada",     "sword", 1, 8,  2, 1)),
+    "clerigo":     ("do Clérigo",     "#e8e2cf", "pesada", ("Maça Abençoada",        "sword", 1, 8,  1, 1)),
+    "patrulheiro": ("do Patrulheiro", "#5e7d4a", "media",  ("Arco Longo",            "bow",   1, 8,  2, 0)),
+    "ladino":      ("do Ladino",      "#4a4753", "media",  ("Florete Afiado",        "knife", 1, 8,  2, 0)),
+    "monge":       ("do Monge",       "#c8763a", "media",  ("Bastão de Combate",     "staff", 1, 8,  2, 0)),
+    "druida":      ("do Druida",      "#6a7d3a", "media",  ("Cimitarra de Espinhos", "knife", 1, 6,  2, 0)),
+    "bardo":       ("do Bardo",       "#c45a9c", "media",  ("Florete do Trovador",   "sword", 1, 8,  1, 0)),
+    "mago":        ("do Mago",        "#5a7de0", "robe",   ("Cajado Arcano",         "staff", 1, 6,  2, 0)),
+    "feiticeiro":  ("do Feiticeiro",  "#d0503a", "robe",   ("Cajado Dracônico",      "staff", 1, 6,  2, 0)),
+    "bruxo":       ("do Bruxo",       "#8a4ad0", "robe",   ("Lâmina do Pacto",       "sword", 1, 8,  1, 0)),
+}
+# AC por peca em cada arquetipo de armadura
+_ARQ = {
+    "pesada": {"head": 1, "shoulder": 1, "back": 1, "chest": 3, "legs": 2, "feet": 1, "anome": "Placa"},
+    "media":  {"head": 1, "shoulder": 1, "back": 0, "chest": 2, "legs": 1, "feet": 1, "anome": "Couro"},
+    "robe":   {"head": 0, "shoulder": 0, "back": 1, "chest": 1, "legs": 1, "feet": 0, "anome": "Manto"},
+}
+_SLOT_VIS = {
+    "head":     ("helmet",   "Elmo"),
+    "shoulder": ("pauldron", "Ombreira"),
+    "back":     ("cloak",    "Capa"),
+    "chest":    ("shirt",    "Peitoral"),
+    "legs":     ("pants",    "Calça"),
+    "feet":     ("sandal",   "Botas"),
+}
+
+SHOP_SETS = []          # [{"class_id":..., "items":[ids na ordem arma->botas]}]
+SHOP_ITEMS = set()      # todos os ids que a loja vende (pra validar compra)
+
+def _gen_class_sets():
+    for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
+        wn, wvis, dn, dd, watk, wac = weap
+        ids = []
+        wid = "set_%s_arma" % cid
+        ITEMS[wid] = {"name": wn, "kind": "weapon", "stackable": False, "color": cor,
+                      "slot": "hand", "visual": wvis, "rarity": "raro",
+                      "dmg": {"n": dn, "d": dd}, "atk": watk, "value": SHOP_PRICE}
+        if wac:
+            ITEMS[wid]["ac"] = wac
+        ids.append(wid)
+        a = _ARQ[arq]
+        for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
+            vis, slabel = _SLOT_VIS[slot]
+            iid = "set_%s_%s" % (cid, slot)
+            ITEMS[iid] = {"name": "%s %s" % (slabel, tema), "kind": "armor", "stackable": False,
+                          "color": cor, "slot": slot, "visual": vis, "rarity": "raro",
+                          "ac": a[slot], "value": SHOP_PRICE}
+            ids.append(iid)
+        SHOP_SETS.append({"class_id": cid, "items": ids})
+        SHOP_ITEMS.update(ids)
+
+_gen_class_sets()
