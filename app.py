@@ -1534,6 +1534,9 @@ def on_shop_sell(data):
     cat = items.get(item_id)
     if not cat:
         return
+    if cat.get("couraria_only"):
+        emit("toast", {"text": "Isso so o coureiro Valdir compra. Leva pra Couraria."})
+        return
     bag = player.setdefault("inventory", [])
     sell_all = bool((data or {}).get("all"))
     have = items.count_in_bag(bag, item_id)

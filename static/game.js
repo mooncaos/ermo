@@ -2209,9 +2209,9 @@ function drawFarao(c, sx, sy, ts, p){
   c.restore();
   // tag FARAO
   c.save(); c.font='800 8px Cinzel, serif'; c.textAlign='center'; c.textBaseline='bottom';
-  const tw=c.measureText('FARAÓ').width+10, tagY=sy-12;
+  const tw=c.measureText('AVHUR').width+10, tagY=sy-12;
   c.fillStyle='rgba(40,28,6,0.92)'; roundRect(c,cx-tw/2,tagY-11,tw,11,3); c.fill();
-  c.fillStyle='#f4d06a'; c.fillText('FARAÓ',cx,tagY-1.5); c.restore();
+  c.fillStyle='#f4d06a'; c.fillText('AVHUR',cx,tagY-1.5); c.restore();
   drawMonsterBarName(c, sx, sy, ts, p);
 }
 
@@ -5532,8 +5532,8 @@ function _shopRow(it, mode){
     else b.onclick = ()=> socket.emit('shop_buy', { item: it.item });
     right.appendChild(pr); right.appendChild(b);
   } else {
-    const val = (catalog[it.item] || {}).value || 1;
-    const sell = Math.max(1, Math.floor(val * (shopData.sell_rate || 0.4)));
+    const _sd = catalog[it.item] || {};
+    const sell = (_sd.sell_value != null) ? _sd.sell_value : Math.max(1, Math.floor((_sd.value || 1) * (shopData.sell_rate || 0.4)));
     const qty = it.qty || 1;
     const pr = document.createElement('div');
     pr.textContent = 'Vende: ' + sell.toLocaleString('pt-BR') + ' 🟤' + (qty > 1 ? (' cada (x' + qty + ')') : '');
@@ -5572,7 +5572,7 @@ function _renderShopBody(){
       (sec.items || []).forEach(it=> _shopBodyEl.appendChild(_shopRow(it, 'buy')));
     });
   } else {
-    const sellable = (inventory || []).filter(s=> catalog[s.item]);
+    const sellable = (inventory || []).filter(s=> catalog[s.item] && !catalog[s.item].couraria_only);
     if(!sellable.length){
       const e = document.createElement('div');
       e.textContent = 'Mochila vazia. Cace, junte troféus e volte pra vender.';

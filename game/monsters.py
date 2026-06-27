@@ -274,7 +274,7 @@ MONSTERS = {
         "name": "Chacal Anubita", "hp": 52, "ac": 14, "atk": 6,
         "dmg": {"n": 1, "d": 8, "flat": 3}, "reach": 1, "speed": 7,
         "xp": 120, "dex": 3, "glyph": "🐺", "kind": "besta", "atk_name": "dentada",
-        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (114, 180),
+        "drops": [("moeda_avhur", 1.0, 1, 1), ("pelo_chacal_avhur", 0.6, 1, 1)], "bronze": (114, 180),
     },
     "mumia_guerreira": {
         "name": "Múmia Guerreira", "hp": 66, "ac": 15, "atk": 7,
@@ -310,7 +310,7 @@ MONSTERS = {
         "name": "Guerreiro de Anúbis", "hp": 90, "ac": 16, "atk": 9,
         "dmg": {"n": 2, "d": 6, "flat": 4}, "reach": 1, "speed": 6,
         "xp": 200, "dex": 3, "glyph": "🐺", "kind": "besta", "atk_name": "khopesh",
-        "drops": [("moeda_avhur", 1.0, 1, 1), ("coin_gold", 0.2, 1, 1)], "bronze": (168, 258),
+        "drops": [("moeda_avhur", 1.0, 1, 1), ("pelo_chacal_avhur", 0.7, 1, 1), ("coin_gold", 0.2, 1, 1)], "bronze": (168, 258),
     },
     "abominacao_embalsamada": {
         "name": "Abominação Embalsamada", "hp": 124, "ac": 17, "atk": 10,
@@ -319,8 +319,8 @@ MONSTERS = {
         "drops": [("moeda_avhur", 1.0, 1, 2), ("coin_gold", 0.3, 1, 1)], "bronze": (210, 330),
     },
     "farao_avhur": {
-        "name": "Faraó Amaldiçoado de Avhur", "hp": 1400, "ac": 23, "atk": 17,
-        "dmg": {"n": 5, "d": 10, "flat": 12}, "reach": 2, "speed": 5,
+        "name": "Avhur, o Maldito", "hp": 1400, "ac": 23, "atk": 14,
+        "dmg": {"n": 4, "d": 10, "flat": 13}, "reach": 2, "speed": 5,
         "xp": 1800, "dex": 4, "glyph": "👑", "kind": "morto-vivo",
         "atk_name": "cetro real", "boss": True, "summon_type": "mumia_guerreira", "summons": 4,
         "drops": [("mascara_faraonica", 1.0, 1, 1), ("moeda_avhur", 1.0, 6, 10), ("coin_gold", 1.0, 3, 6)],
@@ -707,11 +707,11 @@ MONSTER_ABILITIES = {
 
     # --- O CHEFE: Faraó Amaldiçoado de Avhur (arsenal completo, como o Lorde Varth) ---
     "farao_avhur": [{"id": "cetro_real", "name": "Golpe do Cetro Real", "type": "heavy",
-                       "dmg_bonus": {"n": 4, "d": 12}, "chance": 0.5, "cd": 2},
+                       "dmg_bonus": {"n": 2, "d": 10}, "chance": 0.5, "cd": 2},
                       {"id": "dreno_real", "name": "Dreno do Faraó", "type": "drain",
                        "chance": 0.5, "cd": 2},
                       {"id": "praga_de_avhur", "name": "Praga de Avhur", "type": "inflict",
-                       "status": "poison", "turns": 4, "dot": {"n": 4, "d": 6}, "chance": 0.45, "cd": 2},
+                       "status": "poison", "turns": 4, "dot": {"n": 3, "d": 6}, "chance": 0.45, "cd": 2},
                       {"id": "maldicao_escaravelho", "name": "Maldição do Escaravelho", "type": "gaze",
                        "save": "CON", "dc": 18, "status": "stunned", "turns": 1, "chance": 0.35, "cd": 3},
                       {"id": "olhar_do_farao", "name": "Olhar do Faraó", "type": "fear",
