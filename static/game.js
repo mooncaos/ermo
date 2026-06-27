@@ -797,6 +797,13 @@ function drawMineTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle='rgba(255,240,190,0.35)'; c.fillRect(px+ts*0.16,py+ts*0.1,ts*0.68,ts*0.1);
       return true;
     }
+    case '+': {                                     // ESCADA da torre (sobe/desce) com brilho roxo
+      c.fillStyle='#241f30'; c.fillRect(px,py,ts,ts);
+      for(let i=0;i<4;i++){ c.fillStyle=shade('#4a3f5e',0.08*i); c.fillRect(px+ts*0.12,py+ts*(0.7-i*0.16),ts*0.76,ts*0.12); }
+      c.fillStyle='rgba(155,109,255,0.5)'; c.fillRect(px+ts*0.12,py+ts*0.08,ts*0.76,ts*0.1);
+      c.fillStyle='rgba(201,160,255,0.25)'; c.fillRect(px+ts*0.3,py,ts*0.4,ts);
+      return true;
+    }
   }
   return false;
 }
@@ -923,8 +930,8 @@ function drawCemeteryTile(c, ch, px, py, ts, gx, gy){
       c.strokeStyle='#33312c'; c.lineWidth=1;
       c.strokeRect(px+1,py+1,ts-2,ts*0.5); c.strokeRect(px+1,py+ts*0.5,ts-2,ts*0.48);
       return true;
-    case 'Y': dead();
-      c.fillStyle='#2a2536'; c.fillRect(px+ts*0.1,py,ts*0.8,ts);          // base de torre escura
+    case 'Z': dead();
+      c.fillStyle='#2a2536'; c.fillRect(px+ts*0.1,py,ts*0.8,ts);          // base de torre escura (porta da Torre)
       c.fillStyle='#1a1622'; c.fillRect(px+ts*0.1,py,ts*0.8,ts*0.14);
       c.fillStyle='#0c0a14'; c.beginPath();                                // porta arqueada
       c.moveTo(px+ts*0.3,py+ts); c.lineTo(px+ts*0.3,py+ts*0.42);
