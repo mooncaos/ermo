@@ -63,7 +63,7 @@ SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
                "A", "l", "q", "N", "I", "v", "y",
                "z", "G", "Y", "B", "F", "K",
                "4", "5", "6", "&", "X", "8", "7", "J",
-               "!", "$", "-", "i"}
+               "!", "$", "-"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -673,6 +673,9 @@ def _build_repouso_dama():
 
 
 REPOUSO_ROWS = _build_repouso_dama()
+# o pinheiro da floresta era 'i', MESMO char do marmore do Valoran (que precisa
+# ser passavel). Renomeia o pinheiro pra 'Y' (solido) e desfaz a colisao.
+REPOUSO_ROWS = [r.replace("i", "Y") for r in REPOUSO_ROWS]
 REPOUSO_SPAWN = [(3, 50), (4, 50), (3, 49), (3, 51)]   # logo dentro da boca oeste
 
 

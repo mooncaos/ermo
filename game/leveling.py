@@ -21,9 +21,9 @@ MAX_LEVEL = 20
 # padrao; acima do 5 a curva fica BRUTAL (nivel 20 = 1.000.000) pra segurar a
 # progressao agora que o Repouso da Dama da muito XP.
 XP_TABLE = [0, 0, 300, 900, 2700, 6500,
-            16000, 30000, 48000, 72000, 102000,
-            140000, 188000, 248000, 320000, 405000,
-            505000, 620000, 755000, 875000, 1000000]
+            16000, 30000, 48000, 80000, 135000,
+            220000, 360000, 580000, 920000, 1450000,
+            2300000, 3700000, 5900000, 9400000, 15000000]
 
 # XP de DESCOBERTA por mapa (1a visita). Mundos secretos valem mais.
 MAP_XP = {

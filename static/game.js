@@ -663,7 +663,7 @@ function drawForestTile(c, ch, px, py, ts, gx, gy){
   switch(ch){
     case 'd': forestFloor(c,px,py,ts,gx,gy,true); return true;
     case '.': forestFloor(c,px,py,ts,gx,gy,false); return true;
-    case 'i': forestFloor(c,px,py,ts,gx,gy,false); drawPine(c,px,py,ts,gx,gy); return true;
+    case 'Y': forestFloor(c,px,py,ts,gx,gy,false); drawPine(c,px,py,ts,gx,gy); return true;
     case ',':
       forestFloor(c,px,py,ts,gx,gy,false);
       c.fillStyle = FCOL.dirt; c.fillRect(px, py+ts*0.32, ts, ts*0.36);
