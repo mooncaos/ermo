@@ -74,12 +74,14 @@ def sanitize_look(raw, i=0):
 
 
 def sanitize_equipment(raw):
-    """Mantem so equipamentos validos: item existe e cabe naquele espaco."""
+    """Mantem so equipamentos validos: item existe e cabe naquele espaco. Aceita os
+    espacos de familia (arma em hand_r/hand_l, anel em ring1/ring2) -> sem isso a
+    arma equipada era descartada em todo reload/deploy."""
     eq = {}
     if isinstance(raw, dict):
         for slot in items.EQUIP_SLOTS:
             it = raw.get(slot)
-            if it and items.exists(it) and items.slot_of(it) == slot:
+            if it and items.exists(it) and items.fits_slot(it, slot):
                 eq[slot] = it
     return eq
 

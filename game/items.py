@@ -124,6 +124,13 @@ def slot_of(item_id):
     return it.get("slot") if it else None
 
 
+def fits_slot(item_id, slot):
+    """True se item_id pode ocupar a CHAVE de espaco 'slot', incluindo familias
+    (arma 'hand' cabe em hand_r/hand_l; anel 'ring' cabe em ring1/ring2)."""
+    base = slot_of(item_id)
+    return base == slot or slot in _FAMILY.get(base, [])
+
+
 def resolve_slot(item_id, equipment):
     """Espaco real onde o item vai. Familias (hand/ring) caem no primeiro livre;
     se ambos cheios, troca o primeiro. Espacos especificos vao direto."""
