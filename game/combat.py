@@ -16,7 +16,7 @@ idx (de quem e a vez), round, move_left (passos restantes do atual), action_used
 import random
 import copy
 
-from . import rules, races, spells, abilities as abil, items
+from . import rules, races, spells, abilities as abil, items, monsters as monsters_lib
 
 
 def _d20():
@@ -63,6 +63,13 @@ def make_player_combatant(sid, player, ficha):
     st["atk"] += eq["atk"]
     if eq["dmg"]:
         st["dmg"] = {"n": eq["dmg"]["n"], "d": eq["dmg"]["d"], "flat": st["dmg"]["flat"]}
+    # TALENTOS de combate que valem agora (os demais sao passivos/situacionais):
+    feats = list(ficha.get("feats", []))
+    if "movel" in feats:                       # Móvel: +deslocamento
+        st["speed"] += 2
+    if ("atacante_pesado" in feats) or ("atirador_elite" in feats):   # +dano de arma
+        st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + 3
+    init_bonus = 5 if "alerta" in feats else 0  # Alerta: +5 de iniciativa
     cid = ficha.get("class_id")
     final = ficha.get("attrs_final") or ficha.get("attrs") or {}
     lvl = int(ficha.get("level", 1))
@@ -79,6 +86,7 @@ def make_player_combatant(sid, player, ficha):
         "speed": st["speed"], "dex": st["dex"],
         "x": player["x"], "y": player["y"], "alive": True,
         "atk_name": "ataque", "level": lvl, "class_id": cid,
+        "init_bonus": init_bonus, "feats": feats,
         "cast_attr": cast_attr, "cast_mod": cast_mod,
         "spell_atk": prof + cast_mod, "spell_dc": 8 + prof + cast_mod,
         "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
@@ -106,6 +114,7 @@ def make_monster_combatant(m):
         "saves": {"FOR": m.get("str_save", 0), "DES": dexm, "CON": m.get("con_save", 0),
                   "INT": 0, "SAB": m.get("wis_save", 0), "CAR": 0},
         "summons_left": int(m.get("summons") or 0), "enraged": False,
+        "abilities": monsters_lib.abilities_for(m.get("type")),
     }
 
 
@@ -140,7 +149,7 @@ def start(player_combatant, monster_combatants, mp):
     for mc in monster_combatants:
         combs[mc["cid"]] = mc
     for c in combs.values():
-        c["_init"] = _d20() + c.get("dex", 0)
+        c["_init"] = _d20() + c.get("dex", 0) + c.get("init_bonus", 0)
     order = sorted(combs.keys(), key=lambda cid: combs[cid]["_init"], reverse=True)
     enc = {"map": mp, "combs": combs, "order": order, "idx": 0, "round": 1,
            "move_left": 0, "action_used": False}
@@ -154,10 +163,12 @@ def current(enc):
 
 def _begin_turn(enc):
     c = current(enc)
-    enc["move_left"] = c.get("speed", 6)
+    enc["_turn_fx"] = tick_statuses(enc, c)            # DoT + decremento no inicio
+    enc["move_left"] = 0 if is_restrained(c) else c.get("speed", 6)
     enc["action_used"] = False
     enc["bonus_used"] = False
     enc["sneak_used"] = False
+    enc["_incap"] = is_incapacitated(c)
 
 
 def advance(enc):
@@ -253,10 +264,88 @@ def _spend_slot(res, min_level=1):
     return 0
 
 
+# ===========================================================================
+#  MOTOR DE STATUS (Leva 3): efeitos de controle e dano-ao-longo-do-tempo.
+#  c["status"][nome] = {"turns": N, "dmg": {n,d}?}. Tickam no INICIO do turno.
+#    controle: stunned (perde o turno), restrained (deslocamento 0 + vantagem
+#      contra/desvantagem dele), frightened/blinded (desvantagem), slowed.
+#    DoT: poison/burning/bleeding (dano por turno; poison tambem desvantagem).
+# ===========================================================================
+INCAP_STATUS = ("stunned",)
+DOT_STATUS = ("poison", "burning", "bleeding")
+
+def apply_status(c, name, turns, dmg=None):
+    """Aplica/renova um status no combatente (fica a maior duracao)."""
+    if not c or not c.get("alive"):
+        return
+    st = c.setdefault("status", {})
+    prev = st.get(name) or {}
+    eff = {"turns": max(int(turns), int(prev.get("turns", 0)))}
+    if dmg:
+        eff["dmg"] = dmg
+    elif prev.get("dmg"):
+        eff["dmg"] = prev["dmg"]
+    st[name] = eff
+
+def has_status(c, name):
+    return ((c.get("status") or {}).get(name, {}) or {}).get("turns", 0) > 0
+
+def is_incapacitated(c):
+    return any(has_status(c, k) for k in INCAP_STATUS)
+
+def is_restrained(c):
+    return has_status(c, "restrained")
+
+def status_view(c):
+    """Resumo dos status ativos pro cliente: {nome: turnos_restantes}."""
+    st = c.get("status") or {}
+    return {k: v.get("turns", 0) for k, v in st.items() if v.get("turns", 0) > 0}
+
+def tick_statuses(enc, c):
+    """No inicio do turno de c: aplica DoT, decrementa e remove expirados.
+    Devolve evento {cid,name,fx:[...],dmg,hp,hp_max,killed} ou None."""
+    st = c.get("status")
+    if not st:
+        return None
+    fx = []; total = 0
+    for name in list(st.keys()):
+        eff = st[name]
+        if name in DOT_STATUS and eff.get("dmg"):
+            dd = _roll_dmg(eff["dmg"], False)
+            total += dd
+            fx.append({"type": name, "dmg": dd})
+        eff["turns"] = int(eff.get("turns", 0)) - 1
+        if eff["turns"] <= 0:
+            del st[name]
+            fx.append({"type": "expire", "status": name})
+    killed = False
+    if total > 0:
+        c["hp"] = max(0, c["hp"] - total)      # DoT ignora a resistencia da Furia
+        if c["hp"] <= 0:
+            c["alive"] = False; killed = True
+    if not st:
+        c.pop("status", None)
+    if not fx:
+        return None
+    return {"cid": c["cid"], "name": c["name"], "fx": fx, "dmg": total,
+            "hp": c["hp"], "hp_max": c["hp_max"], "killed": killed}
+
+def _adv_dis(attacker, target):
+    """+1 vantagem, -1 desvantagem, 0 normal, pelos status dos dois lados."""
+    adv = 0
+    if has_status(target, "restrained") or has_status(target, "stunned") or has_status(target, "blinded"):
+        adv += 1
+    if (has_status(attacker, "frightened") or has_status(attacker, "poisoned")
+            or has_status(attacker, "blinded") or has_status(attacker, "restrained")):
+        adv -= 1
+    return 1 if adv > 0 else (-1 if adv < 0 else 0)
+
+
 def attack(enc, attacker, target):
     """Resolve um ataque 5e com os extras de classe: Benção na jogada, Furia/Marca/
     Furtivo/Castigo no dano, e resistencia no alvo."""
-    d = _d20()
+    ad = _adv_dis(attacker, target)
+    d = max(_d20(), _d20()) if ad > 0 else (min(_d20(), _d20()) if ad < 0 else _d20())
     crit = (d == 20)
     total = d + attacker.get("atk", 0)
     if attacker.get("bless_die"):
@@ -265,7 +354,7 @@ def attack(enc, attacker, target):
     hit = crit or (d != 1 and total >= target["ac"])
     res = {"attacker": attacker["cid"], "attacker_name": attacker["name"],
            "target": target["cid"], "target_name": target["name"],
-           "d20": d, "total": total, "crit": crit, "hit": hit, "dmg": 0,
+           "d20": d, "total": total, "crit": crit, "hit": hit, "dmg": 0, "adv": ad,
            "atk_name": attacker.get("atk_name", "ataque"), "killed": False,
            "target_hp": target["hp"], "target_hp_max": target["hp_max"]}
     if hit:
@@ -358,6 +447,26 @@ def cast_spell(enc, caster, spell_id, target):
     elif k == "buff":
         caster["bless_die"] = sp.get("buff_die")
         res.update({"buff": True, "target": caster["cid"], "self": True})
+    elif k == "control":
+        # magia de controle: o alvo testa resistencia; falhou sofre o status
+        # (e dano opcional). 'status' = nome do efeito; 'turns' a duracao; 'dot' o
+        # dano por turno (pra veneno/fogo continuo).
+        roll = _d20() + _save_mod(target, sp["save"])
+        success = roll >= caster.get("spell_dc", 10)
+        dmg = 0
+        if sp.get("dmg"):
+            dmg = _roll_dmg(sp["dmg"], False)
+            if success:
+                dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
+        applied = None
+        if not success:
+            apply_status(target, sp["status"], int(sp.get("turns", 1)), sp.get("dot"))
+            applied = sp["status"]
+        res.update({"target": target["cid"], "target_name": target["name"], "save": sp["save"],
+                    "save_roll": roll, "dc": caster.get("spell_dc"), "success": success,
+                    "control": applied, "status": sp.get("status"), "turns": int(sp.get("turns", 1)),
+                    "dmg": (_apply_damage(target, dmg) if dmg > 0 else 0)})
+        res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     return res
 
 
@@ -474,9 +583,76 @@ def _step_toward(enc, c, tgt):
     return (None, None)
 
 
+def monster_ability(enc, mon, tgt, ab):
+    """Resolve uma habilidade especial de monstro. Devolve no formato de um ataque
+    (pro cliente animar), com extras: applied(status), self_heal, save/gaze."""
+    kind = ab.get("type", "inflict")
+    res = {"attacker": mon["cid"], "attacker_name": mon["name"], "target": tgt["cid"],
+           "target_name": tgt["name"], "ability": ab.get("name", "habilidade"),
+           "mon_ability": True, "dmg": 0, "killed": False, "atk_name": ab.get("name", ""),
+           "target_hp": tgt["hp"], "target_hp_max": tgt["hp_max"]}
+    if kind == "heal":
+        amt = _roll_dmg(ab.get("heal", {"n": 4, "d": 8}), False)
+        before = mon["hp"]; mon["hp"] = min(mon["hp_max"], mon["hp"] + amt)
+        res.update({"self_heal": mon["hp"] - before, "self": True,
+                    "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"]})
+        return res
+    if kind in ("gaze", "fear"):
+        save = ab.get("save", "CON")
+        roll = _d20() + _save_mod(tgt, save)
+        dc = int(ab.get("dc", 13))
+        success = roll >= dc
+        res.update({"save": save, "save_roll": roll, "dc": dc, "success": success, "gaze": True})
+        if not success:
+            apply_status(tgt, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
+            res["applied"] = ab["status"]
+        return res
+    # inflict / heavy / drain: rola um ATAQUE e, no acerto, aplica o efeito
+    base = attack(enc, mon, tgt)
+    res.update({"d20": base["d20"], "total": base["total"], "crit": base["crit"],
+                "hit": base["hit"], "adv": base.get("adv", 0)})
+    if base["hit"]:
+        extra = 0
+        if ab.get("dmg_bonus"):
+            extra = _roll_dmg(ab["dmg_bonus"], base["crit"])
+            _apply_damage(tgt, extra)
+        dealt = base["dmg"] + extra
+        res["dmg"] = dealt
+        if kind == "drain" and dealt > 0:
+            before = mon["hp"]; mon["hp"] = min(mon["hp_max"], mon["hp"] + dealt)
+            res.update({"self_heal": mon["hp"] - before, "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"]})
+        if ab.get("status") and tgt.get("alive"):
+            apply_status(tgt, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
+            res["applied"] = ab["status"]
+        res["target_hp"] = tgt["hp"]
+        res["killed"] = not tgt.get("alive")
+    else:
+        res["target_hp"] = tgt["hp"]
+    return res
+
+
+def _pick_monster_ability(enc, mon):
+    """Escolhe uma habilidade pronta (fora de cooldown) se a sorte bater."""
+    abl = mon.get("abilities")
+    if not abl:
+        return None
+    cds = mon.setdefault("_ab_cd", {})
+    rnd = enc.get("round", 1)
+    for ab in abl:
+        aid = ab.get("id")
+        if rnd < cds.get(aid, 0):
+            continue
+        if random.random() <= ab.get("chance", 0.35):
+            cds[aid] = rnd + int(ab.get("cd", 2))
+            return ab
+    return None
+
+
 def monster_decide(enc, monster):
     """IA simples: mira o jogador vivo mais perto, anda ate ele (ate o speed) e
     ataca se chegar no alcance. Devolve (passos [(x,y)...], resultado_do_ataque|None)."""
+    if is_incapacitated(monster):
+        return ([], None)                              # atordoado: perde o turno
     targets = alive_of(enc, "player")
     if not targets:
         return ([], None)
@@ -490,8 +666,12 @@ def monster_decide(enc, monster):
         monster["x"], monster["y"] = nx, ny
         steps.append((nx, ny))
         budget -= 1
-    atk = attack(enc, monster, tgt) if in_reach(monster, tgt) else None
-    return (steps, atk)
+    if not in_reach(monster, tgt):
+        return (steps, None)
+    ab = _pick_monster_ability(enc, monster)
+    if ab:
+        return (steps, monster_ability(enc, monster, tgt, ab))
+    return (steps, attack(enc, monster, tgt))
 
 
 def boss_turn(enc, boss):
@@ -500,6 +680,8 @@ def boss_turn(enc, boss):
     cria os reforcos e escolhe a fala pela categoria 'say_cat'."""
     out = {"steps": [], "atk": None, "summon": False, "summon_count": 0,
            "say_cat": None, "enraged": False}
+    if is_incapacitated(boss):
+        return out                                     # atordoado: perde o turno
     targets = alive_of(enc, "player")
     if not targets:
         return out
@@ -553,6 +735,7 @@ def snapshot(enc, my_cid):
             "alive": c.get("alive", True), "glyph": c.get("glyph"),
             "mtype": c.get("mtype"), "boss": bool(c.get("boss")), "enraged": bool(c.get("enraged")),
             "you": (cid == my_cid), "current": (cid == cur_cid), "ac": c["ac"],
+            "status": status_view(c),
         })
     me = enc["combs"].get(my_cid)
     your = None
@@ -568,6 +751,8 @@ def snapshot(enc, my_cid):
             "mark": enc.get("mark"),
             "bonus_used": enc.get("bonus_used", False) if is_my_turn else True,
             "action_used": enc.get("action_used", False) if is_my_turn else True,
+            "incapacitated": is_incapacitated(me),
+            "status": status_view(me),
         }
     return {
         "combatants": combs, "order": list(enc["order"]),

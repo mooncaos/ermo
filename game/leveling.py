@@ -17,13 +17,14 @@ from . import races
 
 MAX_LEVEL = 20
 
-# XP ACUMULADO pra atingir cada nivel (index = nivel). Niveis 1-5 seguem a 5e
-# padrao; acima do 5 a curva fica BRUTAL (nivel 20 = 1.000.000) pra segurar a
-# progressao agora que o Repouso da Dama da muito XP.
-XP_TABLE = [0, 0, 300, 900, 2700, 6500,
-            16000, 30000, 48000, 80000, 135000,
-            220000, 360000, 580000, 920000, 1450000,
-            2300000, 3700000, 5900000, 9400000, 15000000]
+# XP ACUMULADO pra atingir cada nivel (index = nivel). Recalibrado junto com a
+# QUEDA DRASTICA do XP dos monstros (esqueleto era 1000, virou 90). Comeco (1-10)
+# baixo e gostoso; do 10 ao 20 a curva EXPLODE (1.400x do 10 ao 20) pra fazer o
+# nivel 20 ser uma maratona brutal de caca no cemiterio.
+XP_TABLE = [0, 0, 50, 150, 350, 700,
+            1300, 2300, 4000, 6500, 12000,
+            26000, 56000, 120000, 250000, 520000,
+            1050000, 2100000, 4200000, 8400000, 16800000]
 
 # XP de DESCOBERTA por mapa (1a visita). Mundos secretos valem mais.
 MAP_XP = {

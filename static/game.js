@@ -1785,6 +1785,14 @@ function drawMonsterBarName(c, sx, sy, ts, p){
   c.font = '700 9px Inter, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
   c.lineWidth = 2.5; c.strokeStyle = 'rgba(8,7,15,0.85)'; c.strokeText(nm, cx, by - 3);
   c.fillStyle = '#f0d0a8'; c.fillText(nm, cx, by - 3);
+  const st = p._status;
+  if(st){
+    const ks = Object.keys(st).filter(k=> st[k] > 0);
+    if(ks.length){
+      c.font = '11px serif'; c.textBaseline = 'bottom';
+      c.fillText(ks.map(k=> (typeof STATUS_ICON!=='undefined' && STATUS_ICON[k]) || '✦').join(' '), cx, by - 14);
+    }
+  }
   c.restore();
 }
 
@@ -4168,7 +4176,14 @@ function connectWithToken(token){
     if(d.player_action) showAttackResult(d.player_action);
     if(d.spell_result) showSpellResult(d.spell_result);
     if(d.ability_result) showAbilityResult(d.ability_result);
-    if(d.enemy_actions){ for(const a of d.enemy_actions){ if(a && a.attack) showAttackResult(a.attack); } }
+    if(d.enemy_actions){
+      for(const a of d.enemy_actions){
+        if(!a) continue;
+        if(a.status_fx) showStatusFx(a.status_fx);
+        if(a.attack) showAttackResult(a.attack);
+        if(a.skipped === 'atordoado') toastMsg((a.name||'Inimigo')+' atordoado, perdeu o turno', true);
+      }
+    }
     applyCombatSnapshot(d.snapshot);
   });
   socket.on('combat_over', d=>{
@@ -5449,12 +5464,22 @@ function applyCombatSnapshot(snap){
     if(e){
       e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive;
       e.boss = !!c.boss; e._enraged = !!c.enraged; if(c.mtype) e.mtype = c.mtype;
+      e._status = c.status || null;
     }
     if(c.you && myFicha){ myFicha.hp = c.hp; myFicha.hp_max = c.hp_max; }
   }
   renderCombatHud();
 }
 
+function _playerStatusHtml(your){
+  const st = your && your.status;
+  if(!st) return '';
+  const ks = Object.keys(st).filter(k=> st[k] > 0);
+  if(!ks.length) return '';
+  const tags = ks.map(k=> '<span style="background:#2a1f33;border:1px solid #5a3f6e;border-radius:6px;padding:2px 7px;font:700 10px Inter;color:#e6b3ff">'+
+    (STATUS_ICON[k]||'✦')+' '+(STATUS_PT[k]||k)+' '+st[k]+'</span>').join(' ');
+  return '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">'+tags+'</div>';
+}
 function renderCombatHud(){
   if(!combat || !combat.snapshot) return;
   const s = combat.snapshot;
@@ -5507,6 +5532,7 @@ function renderCombatHud(){
     const who = (s.combatants.find(c=> c.cid === s.turn) || {}).name || 'inimigo';
     html += '<div style="font:700 12px Inter;color:#9b95b4;margin-top:8px">Turno de '+esc(who)+'…</div>'+resPips(your.res);
   }
+  html += _playerStatusHtml(your);
   combatHud.innerHTML = html;
   combatHud.querySelectorAll('button[data-cb]').forEach(b=>{ b.onclick = ()=> cbAction(b.getAttribute('data-cb')); });
 }
@@ -5621,11 +5647,33 @@ function popDamage(cid, text, color){
   const e = players.get(cid); if(!e) return;
   dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
 }
+const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌' };
+const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento' };
+function showStatusFx(fx){
+  if(!fx) return;
+  for(const f of (fx.fx||[])){
+    if(f.type === 'expire' || !f.dmg) continue;
+    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':'#ff7a7a');
+    popDamage(fx.cid, (STATUS_ICON[f.type]||'✦')+'-'+f.dmg, col);
+  }
+}
 function showAttackResult(res){
   if(!res) return;
+  // habilidade de monstro por resistencia (sem rolagem de ataque)
+  if(res.mon_ability && res.gaze){
+    spawnAt(res.target, 'mark', '#c9a0ff');
+    if(res.applied) toastMsg('✦ '+(res.ability||'habilidade')+': '+(STATUS_PT[res.applied]||res.applied)+'!', true);
+    else toastMsg('✦ '+(res.ability||'habilidade')+': resistiu');
+    return;
+  }
   spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
   if(res.hit) popDamage(res.target, '-'+res.dmg+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
   else popDamage(res.target, 'errou', '#9b95b4');
+  if(res.mon_ability && res.ability){
+    toastMsg('✦ '+res.ability+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):'')+(res.self_heal?(' · curou '+res.self_heal):''), true);
+  }
 }
 function popHeal(cid, text){
   const e = players.get(cid); if(!e) return;
@@ -5640,7 +5688,9 @@ function showSpellResult(r){
   if(r.save){
     spawnBolt(r.caster, r.target, vfxColorFor(r.name));
     if(r.dmg > 0) popDamage(r.target, '-'+r.dmg+(r.success?' ½':''), r.success?'#c9a0ff':'#ff7a7a');
-    else popDamage(r.target, 'resistiu', '#9b95b4');
+    else if(!r.status) popDamage(r.target, 'resistiu', '#9b95b4');
+    if(r.control) toastMsg('✦ '+(r.name||'Magia')+': '+(STATUS_PT[r.control]||r.control)+'!', true);
+    else if(r.status) popDamage(r.target, 'resistiu', '#9b95b4');
     return;
   }
   spawnBolt(r.caster, r.target, vfxColorFor(r.name));

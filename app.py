@@ -509,21 +509,41 @@ def _start_combat(sid, monster_list):
 
 
 def _resume(sid):
-    """Roda os turnos dos monstros ate cair no turno do jogador (ou a luta acabar)."""
+    """Roda os turnos dos monstros ate cair no turno JOGAVEL do jogador (ou a luta
+    acabar). Aplica o DoT/expira de status no inicio de cada turno e PULA o turno
+    do jogador se ele estiver atordoado (ou bebendo poção)."""
     enc = COMBAT.get(sid)
     if not enc:
         return
     actions = []
+    def _fx():
+        fx = enc.pop("_turn_fx", None)
+        if fx and fx.get("fx"):
+            actions.append({"cid": fx["cid"], "name": fx["name"], "steps": [],
+                            "attack": None, "status_fx": fx})
+        return fx
     while combat.outcome(enc) is None:
         cur = combat.current(enc)
+        fx = _fx()                                          # DoT/expira no inicio do turno
+        if fx and fx.get("killed"):
+            _sync_monsters_to_world(enc)
+            if cur["kind"] == "monster":
+                combat.advance(enc); continue
+            break                                           # jogador morto por DoT -> derrota
         if cur["kind"] != "monster":
-            if cur["kind"] == "player" and cur.get("skip_next", 0) > 0:
-                cur["skip_next"] -= 1                       # ainda bebendo a poção
-                actions.append({"cid": cur["cid"], "name": cur["name"],
-                                "steps": [], "attack": None, "skipped": "poção"})
+            incap = combat.is_incapacitated(cur)
+            sk = cur.get("skip_next", 0) > 0
+            if incap or sk:
+                if sk:
+                    cur["skip_next"] -= 1
+                    actions.append({"cid": cur["cid"], "name": cur["name"],
+                                    "steps": [], "attack": None, "skipped": "poção"})
+                else:
+                    actions.append({"cid": cur["cid"], "name": cur["name"],
+                                    "steps": [], "attack": None, "skipped": "atordoado"})
                 combat.advance(enc)
                 continue
-            break
+            break                                           # turno jogavel do jogador
         say = None
         if cur.get("boss"):
             r = combat.boss_turn(enc, cur)
@@ -545,9 +565,10 @@ def _resume(sid):
             break
         combat.advance(enc)
     oc = combat.outcome(enc)
+    cur = combat.current(enc)
     socketio.emit("combat_state", {
         "enemy_actions": actions, "snapshot": combat.snapshot(enc, sid),
-        "your_turn": (oc is None and combat.current(enc)["kind"] == "player"),
+        "your_turn": (oc is None and cur["kind"] == "player" and not combat.is_incapacitated(cur)),
         "outcome": oc,
     }, to=sid)
     if oc:

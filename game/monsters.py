@@ -22,37 +22,37 @@ MONSTERS = {
     "rato_gigante": {
         "name": "Rato Gigante", "hp": 7, "ac": 12, "atk": 4,
         "dmg": {"n": 1, "d": 4, "flat": 2}, "reach": 1, "speed": 6,
-        "xp": 25, "dex": 2, "glyph": "🐀", "kind": "bicho", "atk_name": "mordida",
+        "xp": 5, "dex": 2, "glyph": "🐀", "kind": "bicho", "atk_name": "mordida",
         "drops": [("rabo_rato", 0.6, 1, 1)], "bronze": (1, 3),
     },
     "lobo": {
         "name": "Lobo", "hp": 11, "ac": 13, "atk": 4,
         "dmg": {"n": 2, "d": 4, "flat": 2}, "reach": 1, "speed": 8,
-        "xp": 50, "dex": 2, "glyph": "🐺", "kind": "bicho", "atk_name": "mordida",
+        "xp": 8, "dex": 2, "glyph": "🐺", "kind": "bicho", "atk_name": "mordida",
         "drops": [("presa_lobo", 0.5, 1, 2), ("pelego_lobo", 0.3, 1, 1)], "bronze": (2, 5),
     },
     "javali": {
         "name": "Javali", "hp": 13, "ac": 11, "atk": 3,
         "dmg": {"n": 1, "d": 6, "flat": 1}, "reach": 1, "speed": 7,
-        "xp": 50, "dex": 0, "glyph": "🐗", "kind": "bicho", "atk_name": "presada",
+        "xp": 8, "dex": 0, "glyph": "🐗", "kind": "bicho", "atk_name": "presada",
         "drops": [("presa_javali", 0.5, 1, 2), ("couro_javali", 0.35, 1, 1)], "bronze": (2, 5),
     },
     "capanga": {
         "name": "Cria de Sapopemba", "hp": 13, "ac": 12, "atk": 3,
         "dmg": {"n": 1, "d": 6, "flat": 1}, "reach": 1, "speed": 6,
-        "xp": 30, "dex": 1, "glyph": "🔪", "kind": "capanga", "atk_name": "facão",
+        "xp": 6, "dex": 1, "glyph": "🔪", "kind": "capanga", "atk_name": "facão",
         "drops": [("bornal_cria", 0.4, 1, 1)], "bronze": (4, 9),
     },
     "capanga_brutamontes": {
         "name": "Traficante de Sapopemba", "hp": 36, "ac": 13, "atk": 6,
         "dmg": {"n": 2, "d": 6, "flat": 3}, "reach": 1, "speed": 6,
-        "xp": 175, "dex": 1, "glyph": "🪓", "kind": "capanga", "atk_name": "marreta",
+        "xp": 20, "dex": 1, "glyph": "🪓", "kind": "capanga", "atk_name": "marreta",
         "drops": [("marreta_velha", 0.4, 1, 1)], "bronze": (10, 18),
     },
     "maurao": {
         "name": "Maurão da Sapo", "hp": 140, "ac": 16, "atk": 8,
         "dmg": {"n": 3, "d": 6, "flat": 5}, "reach": 1, "speed": 6,
-        "xp": 700, "dex": 1, "glyph": "👑", "kind": "capanga",
+        "xp": 150, "dex": 1, "glyph": "👑", "kind": "capanga",
         "atk_name": "marretada", "boss": True, "summon_type": "capanga_brutamontes", "summons": 5,
         "drops": [("correntao_ouro", 1.0, 1, 1), ("microfone_patrao", 1.0, 1, 1),
                   ("coin_gold", 1.0, 1, 1)], "bronze": (60, 90),
@@ -60,7 +60,7 @@ MONSTERS = {
     "velho_bob": {
         "name": "O Velho Bob", "hp": 120, "ac": 14, "atk": 8,
         "dmg": {"n": 2, "d": 8, "flat": 6}, "reach": 1, "speed": 8,
-        "xp": 600, "dex": 2, "glyph": "🐗", "kind": "bicho",
+        "xp": 120, "dex": 2, "glyph": "🐗", "kind": "bicho",
         "atk_name": "investida", "boss": True, "summon_type": "javali", "summons": 3,
         "drops": [("presa_velho_bob", 1.0, 1, 1), ("couro_velho_bob", 1.0, 1, 2)],
         "bronze": (45, 70),
@@ -74,55 +74,55 @@ MONSTERS = {
     "lobo_negro": {
         "name": "Lobo Negro", "hp": 38, "ac": 15, "atk": 6,
         "dmg": {"n": 2, "d": 6, "flat": 4}, "reach": 1, "speed": 9,
-        "xp": 180, "dex": 3, "glyph": "🐺", "kind": "bicho", "atk_name": "dentada",
+        "xp": 14, "dex": 3, "glyph": "🐺", "kind": "bicho", "atk_name": "dentada",
         "drops": [("couro_lobo_negro", 0.7, 1, 2), ("presa_lobo", 0.4, 1, 1)], "bronze": (8, 16),
     },
     "harpia": {
         "name": "Harpia", "hp": 44, "ac": 15, "atk": 7,
         "dmg": {"n": 2, "d": 6, "flat": 3}, "reach": 1, "speed": 8,
-        "xp": 230, "dex": 4, "glyph": "🦅", "kind": "bicho", "atk_name": "garras",
+        "xp": 16, "dex": 4, "glyph": "🦅", "kind": "bicho", "atk_name": "garras",
         "drops": [("pena_harpia", 0.7, 1, 2), ("coin_silver", 0.3, 1, 1)], "bronze": (10, 20),
     },
     "bruxa_louca": {
         "name": "Bruxa Enlouquecida", "hp": 48, "ac": 14, "atk": 7,
         "dmg": {"n": 2, "d": 6, "flat": 4}, "reach": 4, "speed": 6,
-        "xp": 280, "dex": 2, "glyph": "🧙", "kind": "bruxa", "atk_name": "praga",
+        "xp": 20, "dex": 2, "glyph": "🧙", "kind": "bruxa", "atk_name": "praga",
         "drops": [("dedo_bruxa", 0.7, 1, 1), ("coin_silver", 0.4, 1, 1)], "bronze": (14, 26),
     },
     "alma_errante": {
         "name": "Alma Errante", "hp": 32, "ac": 16, "atk": 7,
         "dmg": {"n": 2, "d": 6, "flat": 4}, "reach": 1, "speed": 7,
-        "xp": 230, "dex": 4, "glyph": "👻", "kind": "espirito", "atk_name": "toque gelido",
+        "xp": 15, "dex": 4, "glyph": "👻", "kind": "espirito", "atk_name": "toque gelido",
         "drops": [("ectoplasma", 0.7, 1, 2)], "bronze": (10, 20),
     },
     "assombracao": {
         "name": "Assombracao", "hp": 42, "ac": 15, "atk": 7,
         "dmg": {"n": 3, "d": 4, "flat": 4}, "reach": 1, "speed": 6,
-        "xp": 270, "dex": 3, "glyph": "👻", "kind": "espirito", "atk_name": "lamento",
+        "xp": 18, "dex": 3, "glyph": "👻", "kind": "espirito", "atk_name": "lamento",
         "drops": [("veu_assombracao", 0.7, 1, 1)], "bronze": (12, 22),
     },
     "espectro": {
         "name": "Espectro", "hp": 36, "ac": 17, "atk": 8,
         "dmg": {"n": 2, "d": 8, "flat": 3}, "reach": 1, "speed": 8,
-        "xp": 300, "dex": 5, "glyph": "💀", "kind": "espirito", "atk_name": "garra eterea",
+        "xp": 22, "dex": 5, "glyph": "💀", "kind": "espirito", "atk_name": "garra eterea",
         "drops": [("cinza_espectral", 0.7, 1, 1), ("coin_silver", 0.3, 1, 1)], "bronze": (14, 24),
     },
     "vulto": {
         "name": "Vulto Sombrio", "hp": 48, "ac": 16, "atk": 8,
         "dmg": {"n": 2, "d": 6, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 340, "dex": 4, "glyph": "🌑", "kind": "espirito", "atk_name": "sombra",
+        "xp": 24, "dex": 4, "glyph": "🌑", "kind": "espirito", "atk_name": "sombra",
         "drops": [("essencia_sombria", 0.7, 1, 1)], "bronze": (16, 28),
     },
     "alma_penada": {
         "name": "Alma Penada", "hp": 54, "ac": 16, "atk": 8,
         "dmg": {"n": 3, "d": 6, "flat": 4}, "reach": 1, "speed": 6,
-        "xp": 380, "dex": 3, "glyph": "😱", "kind": "espirito", "atk_name": "grito sufocado",
+        "xp": 28, "dex": 3, "glyph": "😱", "kind": "espirito", "atk_name": "grito sufocado",
         "drops": [("lamento_petrificado", 0.7, 1, 1), ("coin_silver", 0.35, 1, 1)], "bronze": (18, 32),
     },
     "dama_noite": {
         "name": "A Dama da Noite", "hp": 520, "ac": 19, "atk": 12,
         "dmg": {"n": 4, "d": 10, "flat": 8}, "reach": 2, "speed": 7,
-        "xp": 5000, "dex": 5, "glyph": "💀", "kind": "espirito",
+        "xp": 600, "dex": 5, "glyph": "💀", "kind": "espirito",
         "atk_name": "lamento mortal", "boss": True, "summon_type": "alma_errante", "summons": 3,
         "drops": [("cajado_magico", 1.0, 1, 1), ("lagrima_da_dama", 1.0, 1, 1),
                   ("coin_gold", 1.0, 1, 1)], "bronze": (100, 150),
@@ -132,49 +132,49 @@ MONSTERS = {
     "lacraia_gigante": {
         "name": "Lacraia Gigante", "hp": 100, "ac": 15, "atk": 8,
         "dmg": {"n": 3, "d": 6, "flat": 4}, "reach": 1, "speed": 11,
-        "xp": 450, "dex": 5, "glyph": "🐛", "kind": "inseto", "atk_name": "ferroada",
+        "xp": 35, "dex": 5, "glyph": "🐛", "kind": "inseto", "atk_name": "ferroada",
         "drops": [("presa_lacraia", 0.7, 1, 2), ("coin_bronze", 0.3, 1, 1)], "bronze": (20, 36),
     },
     "hiena_ermo": {
         "name": "Hiena do Ermo", "hp": 110, "ac": 15, "atk": 8,
         "dmg": {"n": 3, "d": 6, "flat": 5}, "reach": 1, "speed": 9,
-        "xp": 500, "dex": 3, "glyph": "🐕", "kind": "bicho", "atk_name": "mordida",
+        "xp": 38, "dex": 3, "glyph": "🐕", "kind": "bicho", "atk_name": "mordida",
         "drops": [("couro_hiena", 0.7, 1, 2), ("presa_lobo", 0.3, 1, 1)], "bronze": (22, 40),
     },
     "abutre_carniceiro": {
         "name": "Abutre Carniceiro", "hp": 105, "ac": 16, "atk": 9,
         "dmg": {"n": 3, "d": 6, "flat": 4}, "reach": 1, "speed": 8,
-        "xp": 520, "dex": 4, "glyph": "🦅", "kind": "bicho", "atk_name": "bicada",
+        "xp": 40, "dex": 4, "glyph": "🦅", "kind": "bicho", "atk_name": "bicada",
         "drops": [("pena_abutre", 0.7, 1, 2), ("coin_silver", 0.3, 1, 1)], "bronze": (24, 42),
     },
     "naja_dunas": {
         "name": "Naja das Dunas", "hp": 120, "ac": 16, "atk": 9,
         "dmg": {"n": 3, "d": 8, "flat": 4}, "reach": 1, "speed": 9,
-        "xp": 580, "dex": 5, "glyph": "🐍", "kind": "bicho", "atk_name": "bote venenoso",
+        "xp": 45, "dex": 5, "glyph": "🐍", "kind": "bicho", "atk_name": "bote venenoso",
         "drops": [("veneno_naja", 0.7, 1, 1), ("coin_silver", 0.3, 1, 1)], "bronze": (26, 46),
     },
     "escorpiao_gigante": {
         "name": "Escorpião Gigante", "hp": 150, "ac": 17, "atk": 10,
         "dmg": {"n": 3, "d": 8, "flat": 5}, "reach": 1, "speed": 7,
-        "xp": 700, "dex": 3, "glyph": "🦂", "kind": "inseto", "atk_name": "ferrão",
+        "xp": 55, "dex": 3, "glyph": "🦂", "kind": "inseto", "atk_name": "ferrão",
         "drops": [("ferrao_escorpiao", 0.7, 1, 1), ("coin_silver", 0.35, 1, 1)], "bronze": (30, 52),
     },
     "verme_areias": {
         "name": "Verme das Areias", "hp": 175, "ac": 16, "atk": 10,
         "dmg": {"n": 4, "d": 6, "flat": 5}, "reach": 2, "speed": 6,
-        "xp": 780, "dex": 2, "glyph": "🪱", "kind": "bicho", "atk_name": "abocanhada",
+        "xp": 60, "dex": 2, "glyph": "🪱", "kind": "bicho", "atk_name": "abocanhada",
         "drops": [("placa_verme", 0.7, 1, 2)], "bronze": (32, 56),
     },
     "elemental_areia": {
         "name": "Elemental de Areia", "hp": 165, "ac": 18, "atk": 10,
         "dmg": {"n": 3, "d": 8, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 820, "dex": 3, "glyph": "🌪️", "kind": "elemental", "atk_name": "vendaval",
+        "xp": 65, "dex": 3, "glyph": "🌪️", "kind": "elemental", "atk_name": "vendaval",
         "drops": [("nucleo_areia", 0.7, 1, 1)], "bronze": (34, 58),
     },
     "basilisco_deserto": {
         "name": "Basilisco do Deserto", "hp": 210, "ac": 18, "atk": 11,
         "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 1, "speed": 6,
-        "xp": 950, "dex": 3, "glyph": "🦎", "kind": "bicho", "atk_name": "olhar petrificante",
+        "xp": 80, "dex": 3, "glyph": "🦎", "kind": "bicho", "atk_name": "olhar petrificante",
         "drops": [("olho_basilisco", 0.8, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (40, 70),
     },
 
@@ -182,50 +182,50 @@ MONSTERS = {
     "esqueleto_guerreiro": {
         "name": "Esqueleto Guerreiro", "hp": 190, "ac": 17, "atk": 9,
         "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 1000, "dex": 3, "glyph": "💀", "kind": "morto-vivo", "atk_name": "espadada",
+        "xp": 90, "dex": 3, "glyph": "💀", "kind": "morto-vivo", "atk_name": "espadada",
         "drops": [("osso_amaldicoado", 0.7, 1, 2), ("coin_silver", 0.3, 1, 1)], "bronze": (30, 52),
     },
     "zumbi_putrido": {
         "name": "Zumbi Pútrido", "hp": 240, "ac": 16, "atk": 9,
         "dmg": {"n": 4, "d": 6, "flat": 7}, "reach": 1, "speed": 4,
-        "xp": 1100, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garras podres",
+        "xp": 100, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garras podres",
         "drops": [("carne_putrida", 0.7, 1, 2)], "bronze": (32, 54),
     },
     "ghoul_faminto": {
         "name": "Ghoul Faminto", "hp": 210, "ac": 17, "atk": 10,
         "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 9,
-        "xp": 1200, "dex": 4, "glyph": "👹", "kind": "morto-vivo", "atk_name": "dilacerar",
+        "xp": 110, "dex": 4, "glyph": "👹", "kind": "morto-vivo", "atk_name": "dilacerar",
         "drops": [("garra_ghoul", 0.7, 1, 1), ("coin_silver", 0.3, 1, 1)], "bronze": (34, 56),
     },
     "aparicao_sepulcral": {
         "name": "Aparição Sepulcral", "hp": 200, "ac": 18, "atk": 10,
         "dmg": {"n": 4, "d": 8, "flat": 5}, "reach": 1, "speed": 8,
-        "xp": 1300, "dex": 5, "glyph": "👻", "kind": "espirito", "atk_name": "toque sepulcral",
+        "xp": 120, "dex": 5, "glyph": "👻", "kind": "espirito", "atk_name": "toque sepulcral",
         "drops": [("mortalha_espectral", 0.7, 1, 1)], "bronze": (36, 60),
     },
     "carnical_profanador": {
         "name": "Carniçal Profanador", "hp": 260, "ac": 18, "atk": 11,
         "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 1500, "dex": 3, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "presas",
+        "xp": 140, "dex": 3, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "presas",
         "drops": [("lingua_carnical", 0.7, 1, 1), ("coin_silver", 0.35, 1, 1)], "bronze": (40, 66),
     },
     "cavaleiro_morte": {
         "name": "Cavaleiro da Morte", "hp": 310, "ac": 19, "atk": 12,
         "dmg": {"n": 5, "d": 6, "flat": 7}, "reach": 1, "speed": 6,
-        "xp": 1900, "dex": 3, "glyph": "⚔️", "kind": "morto-vivo", "atk_name": "lâmina negra",
+        "xp": 170, "dex": 3, "glyph": "⚔️", "kind": "morto-vivo", "atk_name": "lâmina negra",
         "drops": [("elmo_cavaleiro_morte", 0.7, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (50, 84),
     },
     "necromante_caido": {
         "name": "Necromante Caído", "hp": 280, "ac": 18, "atk": 11,
         "dmg": {"n": 4, "d": 8, "flat": 7}, "reach": 5, "speed": 6,
-        "xp": 2000, "dex": 4, "glyph": "🧙", "kind": "morto-vivo", "atk_name": "raio sombrio",
+        "xp": 190, "dex": 4, "glyph": "🧙", "kind": "morto-vivo", "atk_name": "raio sombrio",
         "summon_type": "esqueleto_guerreiro", "summons": 2,
         "drops": [("grimorio_negro", 0.8, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (54, 90),
     },
     "abominacao_ossea": {
         "name": "Abominação Óssea", "hp": 380, "ac": 20, "atk": 13,
         "dmg": {"n": 5, "d": 8, "flat": 8}, "reach": 2, "speed": 5,
-        "xp": 2400, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
+        "xp": 240, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
         "drops": [("coracao_abominacao", 0.9, 1, 1), ("coin_gold", 0.4, 1, 1)], "bronze": (70, 120),
     },
 }
@@ -443,3 +443,63 @@ def catalog():
     """Pro cliente, se precisar: id -> {name, glyph, kind}."""
     return {k: {"name": v["name"], "glyph": v["glyph"], "kind": v["kind"]}
             for k, v in MONSTERS.items()}
+
+
+# ===========================================================================
+#  HABILIDADES ESPECIAIS DOS MONSTROS (Leva 3). Dict separado (mtype -> lista)
+#  pra nao tocar em cada stat block. O combate usa monster_ability() pra resolver.
+#  types:
+#    inflict  ataque normal que, no acerto, aplica um status (status/turns/dot)
+#    gaze     baseado em resistencia (save/dc), sem rolagem de ataque, aplica status
+#    fear     gaze que aplica 'frightened'
+#    heavy    ataque mais forte (dmg_bonus dados extras)
+#    drain    ataque que cura o monstro pelo dano causado
+#    heal     cura o proprio monstro (heal {n,d})
+#  cada habilidade: chance (prob. de usar quando pronta) e cd (recarga em rodadas).
+# ===========================================================================
+MONSTER_ABILITIES = {
+    # --- floresta (Repouso da Dama) ---
+    "harpia":        [{"id": "canto", "name": "Canto Hipnótico", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3}],
+    "bruxa_louca":   [{"id": "praga", "name": "Praga Pútrida", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 1, "d": 6}, "chance": 0.45, "cd": 2}],
+    "alma_penada":   [{"id": "grito", "name": "Grito Aterrorizante", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3}],
+    # --- deserto (Avasham) ---
+    "naja_dunas":    [{"id": "bote_venenoso", "name": "Bote Venenoso", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.5, "cd": 2}],
+    "escorpiao_gigante": [{"id": "ferrao", "name": "Ferrão Peçonhento", "type": "inflict",
+                       "status": "poison", "turns": 4, "dot": {"n": 2, "d": 8}, "chance": 0.5, "cd": 2}],
+    "basilisco_deserto": [{"id": "olhar_petrificante", "name": "Olhar Petrificante", "type": "gaze",
+                       "save": "CON", "dc": 15, "status": "stunned", "turns": 2, "chance": 0.35, "cd": 3}],
+    "elemental_areia": [{"id": "vendaval", "name": "Vendaval Cortante", "type": "heavy",
+                       "dmg_bonus": {"n": 3, "d": 8}, "chance": 0.45, "cd": 2}],
+    "verme_areias":  [{"id": "abocanhar", "name": "Abocanhada Brutal", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 8}, "chance": 0.4, "cd": 2}],
+    # --- cemiterio (Valdarkram) ---
+    "esqueleto_guerreiro": [{"id": "golpe_brutal", "name": "Golpe Brutal", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 10}, "chance": 0.4, "cd": 2}],
+    "zumbi_putrido": [{"id": "vomito", "name": "Vômito Ácido", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.4, "cd": 2}],
+    "ghoul_faminto": [{"id": "paralisia", "name": "Toque Paralisante", "type": "gaze",
+                       "save": "CON", "dc": 14, "status": "stunned", "turns": 2, "chance": 0.4, "cd": 3}],
+    "aparicao_sepulcral": [{"id": "dreno_vital", "name": "Dreno Vital", "type": "drain",
+                       "chance": 0.5, "cd": 2}],
+    "carnical_profanador": [{"id": "presas_imundas", "name": "Presas Imundas", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 3, "d": 6}, "chance": 0.45, "cd": 2}],
+    "cavaleiro_morte": [{"id": "lamina_negra", "name": "Lâmina Negra", "type": "heavy",
+                       "dmg_bonus": {"n": 3, "d": 10}, "chance": 0.4, "cd": 2},
+                      {"id": "presenca_terrivel", "name": "Presença Terrível", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 4}],
+    "necromante_caido": [{"id": "raio_sombrio", "name": "Raio Sombrio", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 8}, "chance": 0.45, "cd": 2}],
+    "abominacao_ossea": [{"id": "esmagar", "name": "Esmagamento Ósseo", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.4, "cd": 2},
+                      {"id": "rugido", "name": "Rugido Macabro", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 4}],
+}
+
+
+def abilities_for(type_id):
+    """Lista de habilidades especiais do tipo de monstro (vazia se nao tiver)."""
+    return MONSTER_ABILITIES.get(type_id, [])
