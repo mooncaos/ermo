@@ -746,12 +746,16 @@ def _build_valdarkram():
     g[50][0] = "+"; g[49][0] = "+"; g[51][0] = "+"  # boca oeste (vinda do Repouso)
     for x in range(1, 7):
         g[49][x] = "."; g[50][x] = "."; g[51][x] = "."
-    # TORRE DO LORDE NECROTICO (estrutura ao sul do cemiterio, entra pela porta 'Y')
-    _border(g, 45, 60, 55, 70, "H")               # paredes de pedra da torre
-    _rect(g, 46, 61, 54, 69, ".")                 # interior limpo
-    g[70][50] = "Y"                                # PORTA da torre (sul) -> andar 1
-    for y in range(71, 75):                        # caminho limpo ate a porta
-        g[y][49] = "."; g[y][50] = "."; g[y][51] = "."
+    # TORRE DO LORDE NECROTICO: torre escura no cemiterio, com a PORTA ao NORTE de
+    # frente pra quem chega (a porta 'Y' brilha roxo e leva ao andar 1). Fica logo
+    # ao sul do mausoleu central, ligada por um atrio limpo.
+    _border(g, 43, 61, 57, 76, "H")               # paredes de pedra (torre grande)
+    _rect(g, 44, 62, 56, 75, ".")                 # interior limpo
+    g[61][50] = "Z"                                # PORTA ao NORTE -> andar 1 (Z = caminhavel)
+    for y in range(56, 61):                        # atrio limpo levando ate a porta
+        for x in range(46, 55):
+            g[y][x] = "."
+    g[59][47] = "^"; g[59][53] = "^"              # 2 lapides marcando a entrada
     return ["".join(r) for r in g]
 
 
@@ -1291,7 +1295,7 @@ EDGE_LINKS = {
     "camara_avhur":     {"north": ("mina_avhur",         50, 95, "up")},
     "valdarkram":       {"west":  ("repouso_dama",      96, 50, "left")},
     "torre_andar1":     {"north": ("torre_andar2",      22, 43, "up"),
-                         "south": ("valdarkram",        50, 72, "down")},
+                         "south": ("valdarkram",        50, 58, "down")},
     "torre_andar2":     {"north": ("torre_andar3",      22, 43, "up"),
                          "south": ("torre_andar1",      22, 5,  "down")},
     "torre_andar3":     {"north": ("camara_varth",      50, 92, "up"),
