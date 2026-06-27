@@ -165,6 +165,7 @@ const MAP_AMBIENT = {
   ermo:             {r:54,  g:46,  b:88,  a:0.10, part:'#b59cff'},  // crepusculo arcano
   descampado:       {r:122, g:92,  b:52,  a:0.11, part:'#e8c98a'},  // descampado seco, poeira
   avasham:          {r:255, g:200, b:110, a:0.12, part:'#ffd98a'},  // deserto: calor ambar
+  cova_colosso:     {r:228, g:150, b:78,  a:0.18, part:'#e8a860'},  // cova do colosso: pedra quente, poeira
   valdarkram:       {r:28,  g:38,  b:48,  a:0.40, part:'#9fb4c0'},  // cemiterio: bruma fria
   salao:            {r:46,  g:34,  b:78,  a:0.12, part:'#caa6ff'},  // salao: penumbra sagrada
   rasharan:         {r:232, g:182, b:92,  a:0.14, part:'#ffe6a0'},  // reino dourado do trigo
@@ -748,6 +749,18 @@ function drawDesertTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle='#3a8fb0'; c.fillRect(px,py,ts,ts);
       c.fillStyle='rgba(255,255,255,0.16)'; c.fillRect(px,py+ts*0.3+((gx+gy)%2),ts,2);
       return true;
+    case 'd': {                                   // areia rachada/queimada (arena do Colosso)
+      const hh=((gx*7+gy*13)%4);
+      c.fillStyle=['#8a6f50','#7d6347','#86694c','#74593f'][hh];
+      c.fillRect(px,py,ts,ts);
+      c.strokeStyle='rgba(40,28,18,0.55)'; c.lineWidth=1.1;   // rachaduras escuras
+      c.beginPath();
+      c.moveTo(px+ts*0.1,py+ts*(0.3+(gx%3)*0.12)); c.lineTo(px+ts*0.5,py+ts*0.5); c.lineTo(px+ts*0.9,py+ts*(0.35+(gy%3)*0.1));
+      c.moveTo(px+ts*0.5,py+ts*0.5); c.lineTo(px+ts*(0.4+(gx%2)*0.2),py+ts*0.9);
+      c.stroke();
+      if((gx*5+gy*9)%7===0){ c.fillStyle='rgba(255,150,60,0.5)'; c.fillRect(px+ts*0.46,py+ts*0.46,2,2); }  // brasa presa
+      return true;
+    }
   }
   return false;
 }
@@ -820,7 +833,7 @@ function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0)){ drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
   if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
-  if(mapName === 'avasham' && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
+  if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'ermo' && drawSapoTile(c, ch, px, py, ts, gx, gy)) return;
   switch(ch){
@@ -2202,6 +2215,131 @@ function drawVarth(c, sx, sy, ts, p){
   drawValdrisGod(c, R, accent);                 // corpo de feiticeiro/necromante (4x4)
   c.restore();
   drawMonsterBarName(c, cx - ts/2, cy - R - 4, ts, p);   // nome + barra acima da figura
+}
+
+function drawColosso(c, sx, sy, ts, p){
+  // O COLOSSO DE AVASHAM: golem de pedra colossal (4x4), com fendas de energia
+  // ambar pulsando entre as placas e cascalho flutuando ao redor.
+  const N = p.size || 4;
+  const span = N*ts;
+  const cx = sx + ts*0.5, cy = sy + ts*0.5;
+  const t = performance.now();
+  const moving = !!p._moving;
+  const bob = moving ? Math.sin(((p.walk||0)/WALK_CYCLE)*Math.PI*2)*3 : Math.sin(t/950)*2.2;
+  const pulse = 0.5 + 0.5*Math.sin(t/520);
+  const S = span*0.42;                               // "raio" da figura
+  const STONE='#8d8275', STONE_D=shade('#8d8275',-0.24), STONE_L=shade('#8d8275',0.18);
+  const GLOW='#f4b860', HOT='#ff9a3a';
+
+  // sombra grande no chao
+  c.save();
+  c.fillStyle='rgba(0,0,0,.40)';
+  c.beginPath(); c.ellipse(cx, cy+S*0.96, S*0.78, S*0.22, 0, 0, Math.PI*2); c.fill();
+  c.restore();
+
+  // cascalho / poeira flutuando ao redor (ele desperta a terra)
+  c.save();
+  for(let i=0;i<7;i++){
+    const a=t/1500+i*0.9, rr=S*(0.85+0.12*Math.sin(t/650+i));
+    const dx=Math.cos(a)*rr, dy=Math.sin(a*1.2)*S*0.5 + bob;
+    c.fillStyle='rgba(150,138,118,'+(0.30+0.25*Math.sin(t/480+i))+')';
+    c.fillRect(cx+dx, cy+dy, 3, 3);
+  }
+  c.restore();
+
+  c.save();
+  c.translate(cx, cy+bob);
+
+  // pernas (pilares de pedra) + pes
+  c.fillStyle=STONE_D;
+  c.fillRect(-S*0.34, S*0.30, S*0.26, S*0.62);
+  c.fillRect( S*0.08, S*0.30, S*0.26, S*0.62);
+  c.fillStyle=shade(STONE_D,-0.15);
+  c.fillRect(-S*0.38, S*0.86, S*0.32, S*0.12);
+  c.fillRect( S*0.06, S*0.86, S*0.32, S*0.12);
+
+  // tronco macico + placas (textura)
+  c.fillStyle=STONE;
+  c.beginPath();
+  c.moveTo(-S*0.46,-S*0.10); c.lineTo(-S*0.40,S*0.40); c.lineTo(S*0.40,S*0.40);
+  c.lineTo(S*0.46,-S*0.10); c.lineTo(S*0.32,-S*0.34); c.lineTo(-S*0.32,-S*0.34);
+  c.closePath(); c.fill();
+  c.strokeStyle=STONE_D; c.lineWidth=Math.max(1.4,S*0.025);
+  c.beginPath();
+  c.moveTo(-S*0.30,-S*0.06); c.lineTo(S*0.30,-S*0.06);
+  c.moveTo(-S*0.22,S*0.18); c.lineTo(S*0.22,S*0.18);
+  c.moveTo(0,-S*0.34); c.lineTo(0,S*0.40); c.stroke();
+
+  // nucleo brilhante no peito (energia presa na pedra)
+  c.save(); c.globalAlpha=0.55+0.4*pulse;
+  const cg=c.createRadialGradient(0,S*0.02,1,0,S*0.02,S*0.40);
+  cg.addColorStop(0,HOT); cg.addColorStop(0.5,'rgba(244,184,96,0.5)'); cg.addColorStop(1,'rgba(244,184,96,0)');
+  c.fillStyle=cg; c.beginPath(); c.arc(0,S*0.02,S*0.40,0,Math.PI*2); c.fill();
+  c.restore();
+
+  // ombros (matacoes) + picos de pedra
+  c.fillStyle=STONE_L;
+  c.beginPath(); c.arc(-S*0.46,-S*0.16,S*0.24,0,Math.PI*2); c.fill();
+  c.beginPath(); c.arc( S*0.46,-S*0.16,S*0.24,0,Math.PI*2); c.fill();
+  c.fillStyle=shade(STONE_L,-0.22);
+  for(const sgn of [-1,1]){
+    for(const ox of [0.40,0.55]){
+      c.beginPath();
+      c.moveTo(sgn*S*ox,-S*0.34);
+      c.lineTo(sgn*(S*ox+S*0.05),-S*0.08);
+      c.lineTo(sgn*(S*ox-S*0.06),-S*0.20);
+      c.closePath(); c.fill();
+    }
+  }
+
+  // bracos + punhos gigantes
+  c.strokeStyle=STONE; c.lineWidth=S*0.20; c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.46,-S*0.08); c.lineTo(-S*0.60,S*0.30); c.stroke();
+  c.beginPath(); c.moveTo( S*0.46,-S*0.08); c.lineTo( S*0.60,S*0.30); c.stroke();
+  c.fillStyle=STONE_L;
+  c.beginPath(); c.arc(-S*0.62,S*0.36,S*0.18,0,Math.PI*2); c.fill();
+  c.beginPath(); c.arc( S*0.62,S*0.36,S*0.18,0,Math.PI*2); c.fill();
+  c.fillStyle=shade(STONE_L,-0.25);
+  for(const sgn of [-1,1]){
+    c.fillRect(sgn*S*0.66-S*0.04, S*0.26, S*0.08, S*0.07);
+    c.fillRect(sgn*S*0.66-S*0.04, S*0.37, S*0.08, S*0.06);
+  }
+
+  // fendas de energia pelo corpo
+  c.strokeStyle=GLOW; c.lineWidth=Math.max(1.6,S*0.04); c.shadowColor=HOT; c.shadowBlur=8+6*pulse;
+  c.globalAlpha=0.7+0.3*pulse; c.lineCap='round';
+  c.beginPath();
+  c.moveTo(-S*0.22,-S*0.30); c.lineTo(-S*0.08,-S*0.04); c.lineTo(-S*0.18,S*0.22);
+  c.moveTo( S*0.20,-S*0.26); c.lineTo( S*0.04,S*0.06); c.lineTo(S*0.12,S*0.34);
+  c.moveTo(-S*0.40,S*0.10); c.lineTo(-S*0.20,S*0.04);
+  c.stroke();
+  c.shadowBlur=0; c.globalAlpha=1;
+
+  // cabeca (bloco com coroa de picos)
+  c.fillStyle=STONE;
+  c.beginPath();
+  c.moveTo(-S*0.22,-S*0.34); c.lineTo(-S*0.20,-S*0.64); c.lineTo(S*0.20,-S*0.64);
+  c.lineTo(S*0.22,-S*0.34); c.closePath(); c.fill();
+  c.fillStyle=STONE_D;
+  c.fillRect(-S*0.18,-S*0.42, S*0.36, S*0.08);
+  c.fillStyle=shade(STONE_L,-0.05);
+  for(const ox of [-0.14,-0.05,0.05,0.14]){
+    c.beginPath();
+    c.moveTo(S*ox-S*0.05,-S*0.64); c.lineTo(S*ox,-S*0.80); c.lineTo(S*ox+S*0.05,-S*0.64);
+    c.closePath(); c.fill();
+  }
+  // olhos + boca brilhantes
+  c.fillStyle=HOT; c.shadowColor=HOT; c.shadowBlur=10;
+  c.beginPath();
+  c.arc(-S*0.09,-S*0.51,S*0.05,0,Math.PI*2);
+  c.arc( S*0.09,-S*0.51,S*0.05,0,Math.PI*2); c.fill();
+  c.lineWidth=Math.max(1.4,S*0.03); c.strokeStyle=HOT;
+  c.beginPath(); c.moveTo(-S*0.10,-S*0.40); c.lineTo(S*0.10,-S*0.40); c.stroke();
+  c.shadowBlur=0;
+
+  c.restore();
+
+  drawMonsterBarName(c, cx - ts/2, cy - S - 6, ts, p);   // nome + barra acima
 }
 function drawDeity(c, sx, sy, ts, p){
   const N = p.size || 4;
@@ -3705,7 +3843,10 @@ function frame(now){
     else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
-    else if(p.kind === 'monster' && (p.size||0) >= 4) drawVarth(ctx, sx, sy, TS, p);
+    else if(p.kind === 'monster' && (p.size||0) >= 4){
+      if(p.mtype === 'colosso_avasham') drawColosso(ctx, sx, sy, TS, p);
+      else drawVarth(ctx, sx, sy, TS, p);
+    }
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
     else if(p.wild_form) drawWildForm(ctx, sx, sy, TS, p);
     else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);

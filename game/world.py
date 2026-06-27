@@ -450,6 +450,8 @@ class World:
             _spawn(type_id, x, y, "repouso_dama")
         for (type_id, x, y) in monsters_def.AVASHAM_SPAWNS:
             _spawn(type_id, x, y, "avasham")
+        for (type_id, x, y) in monsters_def.COVA_COLOSSO_SPAWNS:
+            _spawn(type_id, x, y, "cova_colosso")
         for (type_id, x, y) in monsters_def.VALDARKRAM_SPAWNS:
             _spawn(type_id, x, y, "valdarkram")
         return self.monsters

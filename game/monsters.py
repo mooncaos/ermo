@@ -130,7 +130,7 @@ MONSTERS = {
     "colosso_avasham": {
         "name": "O Colosso de Avasham", "hp": 760, "ac": 20, "atk": 14,
         "dmg": {"n": 5, "d": 10, "flat": 10}, "reach": 2, "speed": 6,
-        "xp": 850, "dex": 3, "glyph": "🗿", "kind": "golem",
+        "xp": 850, "dex": 3, "glyph": "🗿", "kind": "golem", "size": 4,
         "atk_name": "punho de pedra", "boss": True, "summon_type": "elemental_areia", "summons": 3,
         "drops": [("coin_gold", 1.0, 2, 3)], "bronze": (180, 260),
     },
@@ -414,7 +414,12 @@ AVASHAM_SPAWNS = [
     ("elemental_areia", 22, 84),
     ("basilisco_deserto", 44, 86), ("basilisco_deserto", 66, 90), ("basilisco_deserto", 54, 82),
     ("basilisco_deserto", 74, 78), ("basilisco_deserto", 36, 90), ("basilisco_deserto", 60, 88),
-    ("colosso_avasham", 50, 90),   # CHEFE do deserto (fundo sul)
+]
+
+
+# COVA DO COLOSSO: arena de chefe, descendo pela boca SUL do deserto. So o Colosso.
+COVA_COLOSSO_SPAWNS = [
+    ("colosso_avasham", 50, 64),   # CHEFE do deserto, no centro da arena
 ]
 
 

@@ -700,6 +700,10 @@ def _build_avasham():
     g[0][49] = "+"; g[0][50] = "+"               # boca norte (vinda do Descampado)
     for y in range(1, 7):
         g[y][49] = "."; g[y][50] = "."
+    g[Hh - 1][49] = "+"; g[Hh - 1][50] = "+"     # boca SUL: desce pra Cova do Colosso
+    for yy in range(Hh - 8, Hh - 1):             # corredor limpo ate a boca da cova
+        for xx in (48, 49, 50, 51):
+            g[yy][xx] = "."
     return ["".join(r) for r in g]
 
 
@@ -733,6 +737,72 @@ def _build_valdarkram():
 
 AVASHAM_ROWS = _build_avasham()
 AVASHAM_SPAWN = [(49, 4), (50, 4), (49, 5), (50, 5)]      # logo dentro da boca norte
+
+
+def _build_cova_colosso():
+    """COVA DO COLOSSO (100x100): um desfiladeiro de pedra fechado, escondido no
+    fundo SUL do deserto de Avasham. Paredoes de rocha cercam uma grande arena de
+    areia rachada e escura onde O Colosso de Avasham aguarda, no meio das ossadas
+    de quem tentou antes. Entra pela boca NORTE (descendo do deserto). Tiles:
+    . areia  d areia rachada(arena)  ^ rocha(S)  T cacto morto(S)  , ossada
+    + passagem. Saida NORTE -> deserto."""
+    W, H = 100, 100
+    rows = _grid(W, H, ".")
+    rng = _rnd.Random(513)
+    midX = W // 2          # 50
+    arenaY = 66            # centro da arena, la no fundo
+
+    # paredoes: quanto mais longe do eixo central, mais rocha (canyon fechado)
+    for y in range(2, H - 2):
+        for x in range(2, W - 2):
+            wall = (abs(x - midX) - 13) / 26.0     # 0 perto do centro, 1 nas laterais
+            if wall > 0 and rng.random() < wall:
+                rows[y][x] = "^"
+            elif rng.random() < 0.045:
+                rows[y][x] = rng.choice(["^", "T", ",", ",", ","])
+
+    # ossadas espalhadas (vitimas), so onde ainda for areia
+    for _ in range(160):
+        x = rng.randint(4, W - 4); y = rng.randint(4, H - 4)
+        if rows[y][x] == "." and rng.random() < 0.55:
+            rows[y][x] = ","
+
+    # A ARENA: grande circulo de areia rachada cercado por um anel de rochas
+    arr = 17
+    for dx in range(-arr - 2, arr + 3):
+        for dy in range(-arr - 2, arr + 3):
+            x, y = midX + dx, arenaY + dy
+            if 2 < x < W - 2 and 2 < y < H - 2:
+                d2 = dx * dx + dy * dy
+                if d2 <= arr * arr:
+                    rows[y][x] = "d"                         # piso rachado da arena
+                elif d2 <= (arr + 2) * (arr + 2) and rng.random() < 0.8:
+                    rows[y][x] = "^"                         # anel de pedras
+
+    # pilares quebrados dentro da arena (cobertura + drama)
+    for (px, py) in [(midX - 10, arenaY - 7), (midX + 10, arenaY - 7),
+                     (midX - 10, arenaY + 7), (midX + 10, arenaY + 7),
+                     (midX, arenaY - 12), (midX, arenaY + 12)]:
+        if (px - midX) ** 2 + (py - arenaY) ** 2 <= arr * arr:
+            rows[py][px] = "^"
+
+    # corredor de descida do norte ate a arena: ABRE a entrada DEPOIS da arena,
+    # pra furar o anel de pedras e garantir caminho limpo de cima ate o centro
+    for y in range(1, arenaY + 1):
+        for x in range(midX - 3, midX + 4):
+            if rows[y][x] in "^T":
+                rows[y][x] = "."
+
+    # bordas de rocha + boca NORTE de volta pro deserto
+    _ring(rows, "^")
+    rows[0][midX - 1] = "+"; rows[0][midX] = "+"
+    for y in range(1, 6):
+        rows[y][midX - 1] = "."; rows[y][midX] = "."
+    return ["".join(r) for r in rows]
+
+
+COVA_COLOSSO_ROWS = _build_cova_colosso()
+COVA_COLOSSO_SPAWN = [(50, 3), (49, 3), (50, 4), (49, 4)]   # logo dentro da boca norte
 VALDARKRAM_ROWS = _build_valdarkram()
 VALDARKRAM_SPAWN = [(4, 50), (5, 50), (4, 49), (4, 51)]   # logo dentro da boca oeste
 
@@ -942,6 +1012,7 @@ MAPS = {
     "descampado":       {"rows": DESCAMPADO_ROWS,       "spawns": DESCAMPADO_SPAWN},
     "repouso_dama":     {"rows": REPOUSO_ROWS,          "spawns": REPOUSO_SPAWN},
     "avasham":          {"rows": AVASHAM_ROWS,          "spawns": AVASHAM_SPAWN},
+    "cova_colosso":     {"rows": COVA_COLOSSO_ROWS,     "spawns": COVA_COLOSSO_SPAWN},
     "valdarkram":       {"rows": VALDARKRAM_ROWS,       "spawns": VALDARKRAM_SPAWN},
 }
 
@@ -980,7 +1051,9 @@ EDGE_LINKS = {
                          "south": ("avasham",          49,  4, "down")},
     "repouso_dama":     {"west":  ("ermo",       ERMO_W - 3, OY + 15, "left"),
                          "east":  ("valdarkram",         4, 50, "right")},
-    "avasham":          {"north": ("descampado",       49, 96, "up")},
+    "avasham":          {"north": ("descampado",       49, 96, "up"),
+                         "south": ("cova_colosso",      50, 3,  "down")},
+    "cova_colosso":     {"north": ("avasham",           50, 95, "up")},
     "valdarkram":       {"west":  ("repouso_dama",      96, 50, "left")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
     "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),
