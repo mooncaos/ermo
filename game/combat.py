@@ -63,7 +63,7 @@ def make_player_combatant(sid, player, ficha):
     prof = int(ficha.get("prof", 2))
     cast_attr = spells.CASTING.get(cid)
     cast_mod = races.attr_mod(int(final.get(cast_attr, 10))) if cast_attr else 0
-    cs = spells.for_class(cid)
+    cs = spells.for_class(cid, lvl)
     sneak = ((lvl + 1) // 2) if cid == "ladino" else 0
     rage_dmg = 2 if lvl < 9 else (3 if lvl < 16 else 4)
     return {
@@ -289,16 +289,29 @@ def _castmod(c):
     return int(c.get("cast_mod", 0))
 
 
+def _scaled_dmg(sp, caster):
+    """Truques (nivel 0) ganham mais dados conforme o nivel do conjurador: 1/5/11/17."""
+    dmg = sp.get("dmg")
+    if not dmg or sp.get("level", 0) != 0:
+        return dmg
+    lvl = int(caster.get("level", 1))
+    tier = 1 + (lvl >= 5) + (lvl >= 11) + (lvl >= 17)
+    if tier <= 1:
+        return dmg
+    out = dict(dmg); out["n"] = int(dmg.get("n", 1)) * tier
+    return out
+
+
 def cast_spell(enc, caster, spell_id, target):
-    """Conjura uma magia/truque. Truque nao gasta espaco; magia de nivel gasta o
-    menor espaco disponivel. Devolve o resultado pro cliente animar."""
+    """Conjura uma magia/truque. Truque nao gasta espaco; magia de nivel gasta um
+    espaco daquele nivel (ou maior). Devolve o resultado pro cliente animar."""
     sp = spells.get(spell_id)
     if not sp:
         return {"kind": "spell", "error": True}
     res = {"kind": "spell", "spell": spell_id, "name": sp["name"], "level": sp["level"],
            "caster": caster["cid"], "caster_name": caster["name"]}
     if sp["level"] > 0:
-        used = _spend_slot(caster.get("res") or {}, 1)
+        used = _spend_slot(caster.get("res") or {}, sp["level"])
         if not used:
             return {"kind": "spell", "no_slot": True, "name": sp["name"]}
         res["slot"] = used
@@ -310,13 +323,13 @@ def cast_spell(enc, caster, spell_id, target):
         res.update({"target": target["cid"], "target_name": target["name"], "d20": d,
                     "total": total, "hit": hit, "crit": crit, "dmg": 0})
         if hit:
-            dmg = _roll_dmg(sp["dmg"], crit) + _mark_bonus(enc, caster, target, crit)
+            dmg = _roll_dmg(_scaled_dmg(sp, caster), crit) + _mark_bonus(enc, caster, target, crit)
             res["dmg"] = _apply_damage(target, dmg)
             res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "save":
         roll = _d20() + _save_mod(target, sp["save"])
         success = roll >= caster.get("spell_dc", 10)
-        dmg = _roll_dmg(sp["dmg"], False)
+        dmg = _roll_dmg(_scaled_dmg(sp, caster), False)
         if success:
             dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
         res.update({"target": target["cid"], "target_name": target["name"], "save": sp["save"],
@@ -416,7 +429,12 @@ def _ability_view(me):
 
 def _spell_view(me):
     out = []
-    has_slot = any(s.get("cur", 0) > 0 for s in (me.get("res") or {}).get("slots", {}).values())
+    slots = (me.get("res") or {}).get("slots", {})
+    def slot_for(lvl):                       # menor espaco >= lvl com carga
+        for k in sorted(slots.keys(), key=lambda s: int(s)):
+            if int(k) >= lvl and slots[k].get("cur", 0) > 0:
+                return int(k)
+        return None
     for sid in me.get("cantrips", []):
         sp = spells.get(sid)
         if sp:
@@ -425,8 +443,10 @@ def _spell_view(me):
     for sid in me.get("spells_known", []):
         sp = spells.get(sid)
         if sp:
+            usable = slot_for(sp["level"])
             out.append({"id": sid, "name": sp["name"], "level": sp["level"], "kind": sp["kind"],
-                        "range": sp["range"], "desc": sp["desc"], "castable": has_slot})
+                        "range": sp["range"], "desc": sp["desc"],
+                        "castable": usable is not None, "slot_used": usable})
     return out
 
 

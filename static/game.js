@@ -4620,26 +4620,46 @@ function openSpellMenu(){
   closeSpellMenu();
   const your = (combat.snapshot && combat.snapshot.your) || {};
   const list = your.spells || [];
+  const slots = (your.res && your.res.slots) || {};
   spellMenuEl = document.createElement('div');
   spellMenuEl.style.cssText = 'position:fixed;left:50%;bottom:128px;transform:translateX(-50%);width:min(420px,92vw);z-index:8600;'+
     'background:rgba(20,17,30,.97);border:1px solid #473e6e;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.6);padding:10px 12px;'+
-    'font-family:Inter;max-height:60vh;overflow:auto';
-  let rows = '';
-  for(const sp of list){
-    const lvl = sp.level === 0 ? 'Truque' : ('Nível '+sp.level);
-    const dis = !sp.castable;
-    const tag = sp.range === 'self' ? ' <span style="color:#5ec27a;font-size:10px">você</span>'
-              : (sp.range === 'ranged' ? ' <span style="color:#c9a0ff;font-size:10px">distância</span>' : '');
-    rows += '<button data-sp="'+sp.id+'"'+(dis?' disabled':'')+' style="display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;'+
-      'border-radius:10px;border:1px solid '+(dis?'#2e2a47':'#473e6e')+';background:'+(dis?'#1b1830':'#241d44')+';'+
-      'color:'+(dis?'#6c688a':'#e8e4f0')+';cursor:'+(dis?'default':'pointer')+'">'+
-      '<div style="font:700 12.5px Inter">'+esc(sp.name)+' <span style="font:600 10px Inter;color:#9b6dff">'+lvl+'</span>'+tag+'</div>'+
-      '<div style="font:500 10.5px Inter;color:#9b95b4;margin-top:2px">'+esc(sp.desc)+'</div></button>';
+    'font-family:Inter;max-height:62vh;overflow:auto';
+  const byLvl = {};
+  for(const sp of list){ (byLvl[sp.level] = byLvl[sp.level] || []).push(sp); }
+  const levels = Object.keys(byLvl).map(Number).sort((a,b)=> a-b);
+  let html = '<div style="font:800 12px Cinzel,serif;color:#f4d8a0;margin-bottom:4px">Magias</div>';
+  if(!levels.length){
+    html += '<div style="color:#9b95b4;font-size:11px;padding:6px">Nenhuma magia disponível.</div>';
   }
-  spellMenuEl.innerHTML = '<div style="font:800 12px Cinzel,serif;color:#f4d8a0;margin-bottom:4px">Magias</div>'+
-    (rows || '<div style="color:#9b95b4;font-size:11px;padding:6px">Nenhuma magia disponível.</div>')+
-    '<button data-sp="_cancel" style="width:100%;margin-top:6px;padding:7px;border-radius:9px;border:1px solid #2e2a47;'+
+  for(const lv of levels){
+    let label, info;
+    if(lv === 0){ label = 'Truques'; info = '<span style="color:#5ec27a">à vontade</span>'; }
+    else {
+      label = 'Nível '+lv;
+      const s = slots[String(lv)];
+      if(s){ const ok = s.cur > 0;
+        info = '<span style="color:'+(ok?'#c9a0ff':'#6c688a')+'">'+s.cur+'/'+s.max+' espaços</span>'; }
+      else info = '<span style="color:#6c688a">sem espaços</span>';
+    }
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin:9px 2px 3px;'+
+      'font:700 10.5px Inter;color:#9b6dff;border-bottom:1px solid #2a2742;padding-bottom:3px">'+
+      '<span>'+label+'</span>'+info+'</div>';
+    for(const sp of byLvl[lv]){
+      const dis = !sp.castable;
+      const tag = sp.range === 'self' ? ' <span style="color:#5ec27a;font-size:10px">você</span>'
+                : (sp.range === 'ranged' ? ' <span style="color:#c9a0ff;font-size:10px">distância</span>'
+                : ' <span style="color:#f4b860;font-size:10px">corpo a corpo</span>');
+      html += '<button data-sp="'+sp.id+'"'+(dis?' disabled':'')+' style="display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;'+
+        'border-radius:10px;border:1px solid '+(dis?'#2e2a47':'#473e6e')+';background:'+(dis?'#1b1830':'#241d44')+';'+
+        'color:'+(dis?'#6c688a':'#e8e4f0')+';cursor:'+(dis?'default':'pointer')+'">'+
+        '<div style="font:700 12.5px Inter">'+esc(sp.name)+tag+'</div>'+
+        '<div style="font:500 10.5px Inter;color:#9b95b4;margin-top:2px">'+esc(sp.desc)+'</div></button>';
+    }
+  }
+  html += '<button data-sp="_cancel" style="width:100%;margin-top:8px;padding:7px;border-radius:9px;border:1px solid #2e2a47;'+
     'background:#1b1830;color:#9b95b4;font:700 11px Inter;cursor:pointer">Fechar</button>';
+  spellMenuEl.innerHTML = html;
   document.body.appendChild(spellMenuEl);
   spellMenuEl.querySelectorAll('button[data-sp]').forEach(b=>{
     b.onclick = ()=>{

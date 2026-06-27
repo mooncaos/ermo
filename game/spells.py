@@ -1,53 +1,93 @@
 """
-MAGIAS (camada C). Cada classe conjuradora tem 1 truque (nivel 0, sem espaco) +
-2 magias de nivel. Foco no que e usavel em combate; o resto vem na Fase 4.
+MAGIAS (camada C). Biblioteca por niveis (Fase 4 / Leva 1: truques + 1 a 3).
+A infra de espacos (slots) ja escala ate o nivel 9 em leveling.py; aqui mora a
+lista de magias e que classe aprende o que, conforme o nivel.
 
 Cada magia: name, level (0 = truque), kind, range, e os dados do efeito.
   kind:
     'attack'  rolagem de ataque magico (d20 + bonus) vs CA; no acerto, dano.
-    'save'    o alvo faz um teste de resistencia vs a CD; falhou sofre dano
+    'save'    o alvo testa resistencia vs a CD; falhou sofre dano
               (save_effect 'half' = metade no sucesso, 'none' = nada no sucesso).
     'auto'    acerta automatico (ex.: Misseis Magicos), 'darts' dardos de dano.
     'heal'    cura o proprio conjurador.
     'mark'    concentra: marca um alvo; +mark_die de dano nos ataques contra ele.
     'buff'    concentra em si: +buff_die nas jogadas de ataque.
   range: 'melee' (alcance 1), 'ranged' (qualquer alvo do confronto) ou 'self'.
+
+Truques escalam o numero de dados com o nivel do conjurador (1/5/11/17).
+Magia de nivel gasta um espaco daquele nivel (ou maior).
 """
 
 SPELLS = {
-    # ---------- truques (nivel 0, a vontade) ----------
-    "raio_de_fogo":      {"name": "Raio de Fogo",      "level": 0, "kind": "attack", "range": "ranged", "dmg": {"n": 1, "d": 10}, "dtype": "fogo",
-                          "desc": "Ataque mágico à distância. 1d10 de fogo."},
-    "rajada_mistica":    {"name": "Rajada Mística",    "level": 0, "kind": "attack", "range": "ranged", "dmg": {"n": 1, "d": 10}, "dtype": "energia",
-                          "desc": "Ataque mágico à distância. 1d10 de energia."},
-    "chama_sagrada":     {"name": "Chama Sagrada",     "level": 0, "kind": "save", "save": "DES", "save_effect": "none", "range": "ranged", "dmg": {"n": 1, "d": 8}, "dtype": "radiante",
-                          "desc": "O alvo testa Destreza ou sofre 1d8 radiante."},
+    # ====================== TRUQUES (nivel 0, a vontade) ======================
+    "raio_de_fogo":      {"name": "Raio de Fogo", "level": 0, "kind": "attack", "range": "ranged", "dmg": {"n": 1, "d": 10}, "dtype": "fogo",
+                          "desc": "Ataque mágico à distância. 1d10 de fogo (escala com o nível)."},
+    "rajada_mistica":    {"name": "Rajada Mística", "level": 0, "kind": "attack", "range": "ranged", "dmg": {"n": 1, "d": 10}, "dtype": "energia",
+                          "desc": "Ataque mágico à distância. 1d10 de energia (escala)."},
+    "toque_chocante":    {"name": "Toque Chocante", "level": 0, "kind": "attack", "range": "melee", "dmg": {"n": 1, "d": 8}, "dtype": "raio",
+                          "desc": "Toque elétrico. 1d8 de raio corpo a corpo (escala)."},
+    "chama_sagrada":     {"name": "Chama Sagrada", "level": 0, "kind": "save", "save": "DES", "save_effect": "none", "range": "ranged", "dmg": {"n": 1, "d": 8}, "dtype": "radiante",
+                          "desc": "O alvo testa Destreza ou sofre 1d8 radiante (escala)."},
     "chicote_espinhos":  {"name": "Chicote de Espinhos", "level": 0, "kind": "attack", "range": "ranged", "dmg": {"n": 1, "d": 6}, "dtype": "perfurante",
-                          "desc": "Ataque mágico à distância. 1d6 perfurante."},
-    "zombaria_viciosa":  {"name": "Zombaria Viciosa",  "level": 0, "kind": "save", "save": "SAB", "save_effect": "none", "range": "ranged", "dmg": {"n": 1, "d": 4}, "dtype": "psíquico",
-                          "desc": "O alvo testa Sabedoria ou sofre 1d4 psíquico."},
+                          "desc": "Ataque mágico à distância. 1d6 perfurante (escala)."},
+    "zombaria_viciosa":  {"name": "Zombaria Viciosa", "level": 0, "kind": "save", "save": "SAB", "save_effect": "none", "range": "ranged", "dmg": {"n": 1, "d": 4}, "dtype": "psíquico",
+                          "desc": "O alvo testa Sabedoria ou sofre 1d4 psíquico (escala)."},
+    "respingo_acido":    {"name": "Respingo Ácido", "level": 0, "kind": "save", "save": "DES", "save_effect": "none", "range": "ranged", "dmg": {"n": 1, "d": 6}, "dtype": "ácido",
+                          "desc": "O alvo testa Destreza ou sofre 1d6 de ácido (escala)."},
+    "sopro_gelido":      {"name": "Sopro Gélido", "level": 0, "kind": "save", "save": "CON", "save_effect": "none", "range": "ranged", "dmg": {"n": 1, "d": 6}, "dtype": "gelo",
+                          "desc": "O alvo testa Constituição ou sofre 1d6 de gelo (escala)."},
 
-    # ---------- magias de nivel 1 ----------
-    "misseis_magicos":   {"name": "Mísseis Mágicos",   "level": 1, "kind": "auto", "range": "ranged", "darts": 3, "dmg": {"n": 1, "d": 4, "flat": 1}, "dtype": "energia",
+    # =========================== MAGIAS DE NIVEL 1 ===========================
+    "misseis_magicos":   {"name": "Mísseis Mágicos", "level": 1, "kind": "auto", "range": "ranged", "darts": 3, "dmg": {"n": 1, "d": 4, "flat": 1}, "dtype": "energia",
                           "desc": "3 dardos automáticos de 1d4+1 de energia."},
-    "maos_flamejantes":  {"name": "Mãos Flamejantes",  "level": 1, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 3, "d": 6}, "dtype": "fogo",
+    "maos_flamejantes":  {"name": "Mãos Flamejantes", "level": 1, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 3, "d": 6}, "dtype": "fogo",
                           "desc": "O alvo testa Destreza; 3d6 de fogo (metade no sucesso)."},
     "clarao_direcionador": {"name": "Clarão Direcionador", "level": 1, "kind": "attack", "range": "ranged", "dmg": {"n": 4, "d": 6}, "dtype": "radiante",
                           "desc": "Ataque mágico à distância. 4d6 radiante."},
-    "curar_ferimentos":  {"name": "Curar Ferimentos",  "level": 1, "kind": "heal", "range": "self", "heal": {"n": 1, "d": 8, "mod": True},
-                          "desc": "Cura 1d8 + modificador de conjuração."},
-    "maldicao":          {"name": "Maldição",          "level": 1, "kind": "mark", "range": "ranged", "mark_die": {"n": 1, "d": 6}, "dtype": "necrótico",
-                          "desc": "Marca o alvo: +1d6 necrótico nos seus ataques contra ele."},
-    "raio_bruxas":       {"name": "Raio das Bruxas",   "level": 1, "kind": "attack", "range": "ranged", "dmg": {"n": 1, "d": 12}, "dtype": "energia",
+    "raio_bruxas":       {"name": "Raio das Bruxas", "level": 1, "kind": "attack", "range": "ranged", "dmg": {"n": 1, "d": 12}, "dtype": "energia",
                           "desc": "Ataque mágico à distância. 1d12 de energia."},
     "investida_trovejante": {"name": "Investida Trovejante", "level": 1, "kind": "save", "save": "CON", "save_effect": "half", "range": "ranged", "dmg": {"n": 2, "d": 8}, "dtype": "trovão",
                           "desc": "O alvo testa Constituição; 2d8 de trovão (metade no sucesso)."},
     "sussurros_dissonantes": {"name": "Sussurros Dissonantes", "level": 1, "kind": "save", "save": "SAB", "save_effect": "half", "range": "ranged", "dmg": {"n": 3, "d": 6}, "dtype": "psíquico",
                           "desc": "O alvo testa Sabedoria; 3d6 psíquico (metade no sucesso)."},
-    "marca_cacador":     {"name": "Marca do Caçador",  "level": 1, "kind": "mark", "range": "ranged", "mark_die": {"n": 1, "d": 6}, "dtype": "perfurante",
+    "inflingir_ferimentos": {"name": "Infligir Ferimentos", "level": 1, "kind": "attack", "range": "melee", "dmg": {"n": 3, "d": 10}, "dtype": "necrótico",
+                          "desc": "Toque necrótico. 3d10 corpo a corpo no acerto."},
+    "curar_ferimentos":  {"name": "Curar Ferimentos", "level": 1, "kind": "heal", "range": "self", "heal": {"n": 1, "d": 8, "mod": True},
+                          "desc": "Cura 1d8 + modificador de conjuração."},
+    "palavra_curativa":  {"name": "Palavra Curativa", "level": 1, "kind": "heal", "range": "self", "heal": {"n": 1, "d": 4, "mod": True},
+                          "desc": "Cura 1d4 + modificador de conjuração."},
+    "maldicao":          {"name": "Maldição", "level": 1, "kind": "mark", "range": "ranged", "mark_die": {"n": 1, "d": 6}, "dtype": "necrótico",
+                          "desc": "Marca o alvo: +1d6 necrótico nos seus ataques contra ele."},
+    "marca_cacador":     {"name": "Marca do Caçador", "level": 1, "kind": "mark", "range": "ranged", "mark_die": {"n": 1, "d": 6}, "dtype": "perfurante",
                           "desc": "Marca o alvo: +1d6 nos seus ataques contra ele."},
-    "bencao":            {"name": "Bênção",            "level": 1, "kind": "buff", "range": "self", "buff_die": {"n": 1, "d": 4},
+    "bencao":            {"name": "Bênção", "level": 1, "kind": "buff", "range": "self", "buff_die": {"n": 1, "d": 4},
                           "desc": "+1d4 nas suas jogadas de ataque (concentração)."},
+
+    # =========================== MAGIAS DE NIVEL 2 ===========================
+    "flecha_acida":      {"name": "Flecha Ácida", "level": 2, "kind": "attack", "range": "ranged", "dmg": {"n": 4, "d": 4}, "dtype": "ácido",
+                          "desc": "Ataque mágico à distância. 4d4 de ácido."},
+    "estilhacar":        {"name": "Estilhaçar", "level": 2, "kind": "save", "save": "CON", "save_effect": "half", "range": "ranged", "dmg": {"n": 3, "d": 8}, "dtype": "trovão",
+                          "desc": "O alvo testa Constituição; 3d8 de trovão (metade no sucesso)."},
+    "raio_lunar":        {"name": "Raio Lunar", "level": 2, "kind": "save", "save": "CON", "save_effect": "half", "range": "ranged", "dmg": {"n": 2, "d": 10}, "dtype": "radiante",
+                          "desc": "O alvo testa Constituição; 2d10 radiante (metade no sucesso)."},
+    "esfera_flamejante": {"name": "Esfera Flamejante", "level": 2, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 2, "d": 6}, "dtype": "fogo",
+                          "desc": "O alvo testa Destreza; 2d6 de fogo (metade no sucesso)."},
+    "nuvem_adagas":      {"name": "Nuvem de Adagas", "level": 2, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 4, "d": 4}, "dtype": "cortante",
+                          "desc": "O alvo testa Destreza; 4d4 cortante (metade no sucesso)."},
+    "arma_espiritual":   {"name": "Arma Espiritual", "level": 2, "kind": "attack", "range": "ranged", "dmg": {"n": 2, "d": 8}, "dtype": "energia",
+                          "desc": "Ataque mágico à distância. 2d8 de energia."},
+
+    # =========================== MAGIAS DE NIVEL 3 ===========================
+    "bola_de_fogo":      {"name": "Bola de Fogo", "level": 3, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 8, "d": 6}, "dtype": "fogo",
+                          "desc": "O alvo testa Destreza; 8d6 de fogo (metade no sucesso)."},
+    "relampago":         {"name": "Relâmpago", "level": 3, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 8, "d": 6}, "dtype": "raio",
+                          "desc": "O alvo testa Destreza; 8d6 de raio (metade no sucesso)."},
+    "chamado_relampago": {"name": "Chamado do Relâmpago", "level": 3, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 3, "d": 10}, "dtype": "raio",
+                          "desc": "O alvo testa Destreza; 3d10 de raio (metade no sucesso)."},
+    "tempestade_gelo":   {"name": "Tempestade de Gelo", "level": 3, "kind": "save", "save": "DES", "save_effect": "half", "range": "ranged", "dmg": {"n": 6, "d": 6}, "dtype": "gelo",
+                          "desc": "O alvo testa Destreza; 6d6 de gelo (metade no sucesso)."},
+    "toque_vampirico":   {"name": "Toque Vampírico", "level": 3, "kind": "attack", "range": "melee", "dmg": {"n": 3, "d": 6}, "dtype": "necrótico",
+                          "desc": "Toque necrótico. 3d6 corpo a corpo no acerto."},
 }
 
 # atributo de conjuracao por classe
@@ -56,26 +96,113 @@ CASTING = {
     "feiticeiro": "CAR", "bruxo": "CAR", "bardo": "CAR", "paladino": "CAR",
 }
 
-# 1 truque + 2 magias por conjurador (paladino usa habilidades + 1 magia)
-CLASS_SPELLS = {
-    "mago":        {"cantrips": ["raio_de_fogo"],     "spells": ["misseis_magicos", "maos_flamejantes"]},
-    "feiticeiro":  {"cantrips": ["raio_de_fogo"],     "spells": ["misseis_magicos", "maos_flamejantes"]},
-    "bruxo":       {"cantrips": ["rajada_mistica"],   "spells": ["maldicao", "raio_bruxas"]},
-    "clerigo":     {"cantrips": ["chama_sagrada"],    "spells": ["curar_ferimentos", "clarao_direcionador"]},
-    "druida":      {"cantrips": ["chicote_espinhos"], "spells": ["curar_ferimentos", "investida_trovejante"]},
-    "bardo":       {"cantrips": ["zombaria_viciosa"], "spells": ["curar_ferimentos", "sussurros_dissonantes"]},
-    "paladino":    {"cantrips": [],                   "spells": ["bencao"]},
-    "patrulheiro": {"cantrips": [],                   "spells": ["marca_cacador", "curar_ferimentos"]},
+# preparadores escolhem da lista (mago/clerigo/druida/paladino); o resto conhece fixo.
+# (a ESCOLHA de preparar e a distincao real vem na Leva 2; aqui o repertorio ja cresce.)
+PREPARERS = {"mago", "clerigo", "druida", "paladino"}
+KNOWERS = {"feiticeiro", "bruxo", "bardo", "patrulheiro"}
+
+# lista da classe por nivel de magia (0 = truques). So conjuradores aparecem.
+CLASS_LIST = {
+    "mago": {
+        0: ["raio_de_fogo", "toque_chocante", "respingo_acido"],
+        1: ["misseis_magicos", "maos_flamejantes", "raio_bruxas"],
+        2: ["flecha_acida", "estilhacar", "nuvem_adagas", "esfera_flamejante"],
+        3: ["bola_de_fogo", "relampago", "tempestade_gelo", "toque_vampirico"],
+    },
+    "feiticeiro": {
+        0: ["raio_de_fogo", "toque_chocante", "sopro_gelido"],
+        1: ["misseis_magicos", "maos_flamejantes", "investida_trovejante"],
+        2: ["estilhacar", "esfera_flamejante", "flecha_acida"],
+        3: ["bola_de_fogo", "relampago", "tempestade_gelo"],
+    },
+    "bruxo": {
+        0: ["rajada_mistica", "respingo_acido"],
+        1: ["maldicao", "raio_bruxas"],
+        2: ["flecha_acida", "nuvem_adagas"],
+        3: ["toque_vampirico", "relampago"],
+    },
+    "clerigo": {
+        0: ["chama_sagrada"],
+        1: ["curar_ferimentos", "palavra_curativa", "inflingir_ferimentos", "clarao_direcionador"],
+        2: ["raio_lunar", "arma_espiritual"],
+        3: ["chamado_relampago"],
+    },
+    "druida": {
+        0: ["chicote_espinhos", "sopro_gelido"],
+        1: ["curar_ferimentos", "palavra_curativa", "investida_trovejante"],
+        2: ["raio_lunar", "esfera_flamejante"],
+        3: ["chamado_relampago", "tempestade_gelo"],
+    },
+    "bardo": {
+        0: ["zombaria_viciosa"],
+        1: ["curar_ferimentos", "palavra_curativa", "sussurros_dissonantes", "bencao"],
+        2: ["estilhacar", "nuvem_adagas"],
+        3: ["bola_de_fogo"],
+    },
+    "paladino": {
+        0: [],
+        1: ["bencao", "curar_ferimentos"],
+        2: ["arma_espiritual"],
+        3: [],
+    },
+    "patrulheiro": {
+        0: [],
+        1: ["marca_cacador", "curar_ferimentos"],
+        2: ["raio_lunar"],
+        3: [],
+    },
 }
+
+MAX_LIB_LEVEL = max((s["level"] for s in SPELLS.values()), default=0)   # ate onde a biblioteca vai hoje
+
+# nivel maximo de magia conjuravel por nivel de personagem
+_FULL_MAXSPELL = {1:1,2:1,3:2,4:2,5:3,6:3,7:4,8:4,9:5,10:5,11:6,12:6,13:7,14:7,15:8,16:8,17:9,18:9,19:9,20:9}
+_HALF_MAXSPELL = {1:0,2:1,3:1,4:1,5:2,6:2,7:2,8:2,9:3,10:3,11:3,12:3,13:4,14:4,15:4,16:4,17:5,18:5,19:5,20:5}
+_PACT_MAXSPELL = {1:1,2:1,3:2,4:2,5:3,6:3,7:4,8:4,9:5,10:5,11:5,12:5,13:5,14:5,15:5,16:5,17:5,18:5,19:5,20:5}
+_FULL = {"mago", "clerigo", "druida", "bardo", "feiticeiro"}
+_HALF = {"paladino", "patrulheiro"}
+
+
+def max_spell_level(class_id, level):
+    """Maior nivel de magia que a classe conjura naquele nivel de personagem."""
+    level = max(1, min(20, int(level)))
+    if class_id in _FULL:
+        return _FULL_MAXSPELL.get(level, 0)
+    if class_id in _HALF:
+        return _HALF_MAXSPELL.get(level, 0)
+    if class_id == "bruxo":
+        return _PACT_MAXSPELL.get(level, 0)
+    return 0
+
+
+def is_caster(class_id):
+    return class_id in CLASS_LIST
 
 
 def get(spell_id):
     return SPELLS.get(spell_id)
 
 
-def for_class(class_id):
-    return CLASS_SPELLS.get(class_id, {"cantrips": [], "spells": []})
-
-
 def catalog():
     return SPELLS
+
+
+def class_full_list(class_id):
+    """Toda a lista da classe (todos os niveis presentes na biblioteca)."""
+    return CLASS_LIST.get(class_id, {})
+
+
+def for_class(class_id, level=1):
+    """Repertorio disponivel agora: truques da classe + magias da lista ate o
+    menor entre (nivel maximo de magia da classe) e (ate onde a biblioteca vai).
+    Na Leva 1 expoe a lista inteira ate esse teto; os limites de conhecer/preparar
+    entram na Leva 2."""
+    cl = CLASS_LIST.get(class_id)
+    if not cl:
+        return {"cantrips": [], "spells": []}
+    top = min(max_spell_level(class_id, level), MAX_LIB_LEVEL)
+    cantrips = list(cl.get(0, []))
+    spells = []
+    for lv in range(1, top + 1):
+        spells.extend(cl.get(lv, []))
+    return {"cantrips": cantrips, "spells": spells}
