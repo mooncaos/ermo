@@ -4225,10 +4225,12 @@ function frame(now){
     if(combat && combat.yourTurn && combat.snapshot && p.kind === 'monster' && !p._dead){
       const me = players.get(myId);
       const pend = combat.pending;
-      const adj = me && Math.max(Math.abs(me.x - p.x), Math.abs(me.y - p.y)) <= 1;
+      const dist = me ? Math.max(Math.abs(me.x - p.x), Math.abs(me.y - p.y)) : 99;
+      const adj = dist <= 1;
+      const reach = (combat.snapshot.your && combat.snapshot.your.reach) || 1;
       let show = false, col = '#ff6a6a';
       if(pend){ col = '#9b6dff'; show = (pend.range === 'ranged') ? true : adj; }
-      else { show = combat.snapshot.your_action && adj; }
+      else { show = combat.snapshot.your_action && (dist <= reach); }
       if(show){
         ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
         ctx.strokeRect(sx+2, sy+2, TS-4, TS-4); ctx.restore();

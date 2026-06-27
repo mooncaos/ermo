@@ -62,7 +62,11 @@ def make_player_combatant(sid, player, ficha):
     st["ac"] += eq["ac"]
     st["atk"] += eq["atk"]
     if eq["dmg"]:
-        st["dmg"] = {"n": eq["dmg"]["n"], "d": eq["dmg"]["d"], "flat": st["dmg"]["flat"]}
+        st["dmg"] = {"n": eq["dmg"]["n"], "d": eq["dmg"]["d"],
+                     "flat": st["dmg"]["flat"] + int(eq["dmg"].get("flat", 0))}
+    st["reach"] = int(eq.get("rng", 1)) or 1       # arco/cajado atacam o basico a distancia
+    st["spell_pow"] = int(eq.get("spell_pow", 0))  # +poder magico (equip de caster)
+    st["block"] = int(eq.get("block", 0))          # bloqueio do escudo (reduz dano por golpe)
     # TALENTOS de combate que valem agora (os demais sao passivos/situacionais):
     feats = list(ficha.get("feats", []))
     if "movel" in feats:                       # Móvel: +deslocamento
@@ -98,7 +102,7 @@ def make_player_combatant(sid, player, ficha):
         "cid": sid, "kind": "player", "name": player.get("name", "Você"),
         "hp": int(ficha.get("hp", 1)), "hp_max": int(ficha.get("hp_max", 1)),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
-        "speed": st["speed"], "dex": st["dex"],
+        "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
         "x": player["x"], "y": player["y"], "alive": True,
         "atk_name": "ataque", "level": lvl, "class_id": cid,
         "init_bonus": init_bonus, "feats": feats, "luck": luck,
@@ -264,9 +268,13 @@ def in_reach(a, b):
 
 
 def _apply_damage(target, dmg):
-    """Aplica dano ao alvo, com resistencia da Furia (dano fisico pela metade)."""
+    """Aplica dano ao alvo: a Furia corta pela metade o dano fisico, e o BLOQUEIO do
+    escudo reduz um valor fixo de cada golpe (so quem tem escudo equipado tem block)."""
     if target.get("raging"):
         dmg = dmg // 2
+    blk = int(target.get("block", 0))
+    if blk and dmg > 0:
+        dmg = max(0, dmg - blk)
     target["hp"] = max(0, target["hp"] - dmg)
     if target["hp"] <= 0:
         target["alive"] = False
@@ -428,6 +436,11 @@ def _castmod(c):
     return int(c.get("cast_mod", 0))
 
 
+def _spow(c):
+    """+poder magico do equipamento de caster, somado no dano de cada magia."""
+    return int(c.get("spell_pow", 0))
+
+
 def _scaled_dmg(sp, caster):
     """Truques (nivel 0) ganham mais dados conforme o nivel do conjurador: 1/5/11/17."""
     dmg = sp.get("dmg")
@@ -462,13 +475,13 @@ def cast_spell(enc, caster, spell_id, target):
         res.update({"target": target["cid"], "target_name": target["name"], "d20": d,
                     "total": total, "hit": hit, "crit": crit, "dmg": 0})
         if hit:
-            dmg = _roll_dmg(_scaled_dmg(sp, caster), crit) + _mark_bonus(enc, caster, target, crit)
+            dmg = _roll_dmg(_scaled_dmg(sp, caster), crit) + _mark_bonus(enc, caster, target, crit) + _spow(caster)
             res["dmg"] = _apply_damage(target, dmg)
             res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "save":
         roll = _d20() + _save_mod(target, sp["save"])
         success = roll >= caster.get("spell_dc", 10)
-        dmg = _roll_dmg(_scaled_dmg(sp, caster), False)
+        dmg = _roll_dmg(_scaled_dmg(sp, caster), False) + _spow(caster)
         if success:
             dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
         res.update({"target": target["cid"], "target_name": target["name"], "save": sp["save"],
@@ -477,7 +490,7 @@ def cast_spell(enc, caster, spell_id, target):
         res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "auto":
         darts = int(sp.get("darts", 1))
-        dmg = sum(_roll_dmg(sp["dmg"], False) for _ in range(darts))
+        dmg = sum(_roll_dmg(sp["dmg"], False) for _ in range(darts)) + _spow(caster)
         res.update({"target": target["cid"], "target_name": target["name"], "auto": True,
                     "darts": darts, "dmg": _apply_damage(target, dmg)})
         res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
@@ -499,7 +512,7 @@ def cast_spell(enc, caster, spell_id, target):
         success = roll >= caster.get("spell_dc", 10)
         dmg = 0
         if sp.get("dmg"):
-            dmg = _roll_dmg(sp["dmg"], False)
+            dmg = _roll_dmg(sp["dmg"], False) + _spow(caster)
             if success:
                 dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
         applied = None
@@ -798,6 +811,8 @@ def snapshot(enc, my_cid):
             "bonus_used": enc.get("bonus_used", False) if is_my_turn else True,
             "action_used": enc.get("action_used", False) if is_my_turn else True,
             "incapacitated": is_incapacitated(me),
+            "reach": int(me.get("reach", 1)),
+            "block": int(me.get("block", 0)),
             "status": status_view(me),
         }
     return {

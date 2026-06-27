@@ -158,18 +158,23 @@ def rarity_of(item_id):
 
 
 def equip_summary(equipment):
-    """Soma os bonus de tudo que esta vestido: CA, acerto e o dano da arma."""
-    ac = atk = 0
+    """Soma os bonus de tudo que esta vestido: CA, acerto, dano da arma, poder
+    magico (caster), bloqueio (escudo) e o alcance da arma (ranged)."""
+    ac = atk = spell_pow = block = 0
     dmg = None
+    rng = 1
     for _slot, iid in (equipment or {}).items():
         it = ITEMS.get(iid)
         if not it:
             continue
         ac += int(it.get("ac", 0))
         atk += int(it.get("atk", 0))
-        if it.get("dmg"):          # arma equipada numa das maos define o dano
+        spell_pow += int(it.get("spell_pow", 0))
+        block += int(it.get("block", 0))
+        if it.get("dmg"):          # arma equipada numa das maos define o dano + alcance
             dmg = dict(it["dmg"])
-    return {"ac": ac, "atk": atk, "dmg": dmg}
+            rng = int(it.get("rng", 1))
+    return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow, "block": block, "rng": rng}
 
 
 # Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).
@@ -200,12 +205,19 @@ def describe(item_id):
     bits = []
     if k == "weapon":
         head = "Arma de mão."
-        if d: bits.append("%dd%d de dano" % (d.get("n", 1), d.get("d", 6)))
+        if d:
+            base = "%dd%d" % (d.get("n", 1), d.get("d", 6))
+            if d.get("flat"): base += "+%d" % d["flat"]
+            bits.append("%s de dano" % base)
+        if it.get("rng"):
+            bits.append("à distância" if it["rng"] >= 50 else ("alcance %d" % it["rng"]))
         if it.get("atk"): bits.append("+%d para acertar" % it["atk"])
+        if it.get("spell_pow"): bits.append("+%d de poder mágico" % it["spell_pow"])
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
     elif k == "armor":
         head = "Escudo." if it.get("slot") == "hand" else "Peça de armadura."
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+        if it.get("block"): bits.append("bloqueia %d de dano por golpe" % it["block"])
     elif k == "consumivel":
         head = "Consumível."
         if it.get("heal"): bits.append("cura %d%% da vida" % int(it["heal"] * 100))
@@ -226,6 +238,7 @@ def catalog():
             "equippable": "slot" in v, "slot": v.get("slot"),
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
             "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
+            "spell_pow": v.get("spell_pow", 0), "block": v.get("block", 0), "rng": v.get("rng"),
             "heal": v.get("heal"), "desc": describe(k), "protect": v.get("protect"),
             "animal": v.get("animal"), "value": v.get("value", 1),
             "sell_value": v.get("sell_value"), "couraria_only": v.get("couraria_only")}
@@ -385,62 +398,88 @@ SHOP_SETS = []          # [{"class_id":..., "items":[ids na ordem arma->botas]}]
 SHOP_ITEMS = set()      # todos os ids que a loja vende (pra validar compra)
 _SHIELD_AC = {"pesada": 3, "media": 2}   # escudo: arquetipos marciais (robe nao usa)
 
+# Classes que FOCAM EM MAGIA: a arma vira modesta, mas o equipamento da +poder
+# magico (somado no dano de TODA magia). As marciais batem forte na arma.
+CASTER_CLASSES = {"mago", "feiticeiro", "bruxo", "clerigo", "druida", "bardo"}
+# Armas que atacam o ataque basico A DISTANCIA: classe -> alcance em tiles
+# (arco = livre/combate todo; cajado de conjurador = medio).
+RANGED_RANGE = {"patrulheiro": 99, "mago": 6, "feiticeiro": 6}
+
 def _gen_class_sets():
+    """Set BASE (Armas Peteco), raridade COMUM. Arma = dado da classe. Escudo pros
+    arquetipos marciais (com bloqueio). Casters comecam sem +poder magico (vem nos tiers)."""
     for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
         wn, wvis, dn, dd, watk, wac = weap
         ids = []
         wid = "set_%s_arma" % cid
         ITEMS[wid] = {"name": wn, "kind": "weapon", "stackable": False, "color": cor,
-                      "slot": "hand", "visual": wvis, "rarity": "raro",
+                      "slot": "hand", "visual": wvis, "rarity": "comum",
                       "dmg": {"n": dn, "d": dd}, "atk": watk, "value": SHOP_PRICE}
         if wac:
             ITEMS[wid]["ac"] = wac
+        if cid in RANGED_RANGE:
+            ITEMS[wid]["rng"] = RANGED_RANGE[cid]
         ids.append(wid)
         a = _ARQ[arq]
         for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
             vis, slabel = _SLOT_VIS[slot]
             iid = "set_%s_%s" % (cid, slot)
             ITEMS[iid] = {"name": "%s %s" % (slabel, tema), "kind": "armor", "stackable": False,
-                          "color": cor, "slot": slot, "visual": vis, "rarity": "raro",
+                          "color": cor, "slot": slot, "visual": vis, "rarity": "comum",
                           "ac": a[slot], "value": SHOP_PRICE}
             ids.append(iid)
         if arq in _SHIELD_AC:
             sidh = "set_%s_escudo" % cid
             ITEMS[sidh] = {"name": "Escudo %s" % tema, "kind": "armor", "stackable": False,
-                           "color": cor, "slot": "hand", "visual": "shield", "rarity": "raro",
-                           "ac": _SHIELD_AC[arq], "value": SHOP_PRICE}
+                           "color": cor, "slot": "hand", "visual": "shield", "rarity": "comum",
+                           "ac": _SHIELD_AC[arq], "block": 2, "value": SHOP_PRICE}
             ids.append(sidh)
         SHOP_SETS.append({"class_id": cid, "items": ids})
         SHOP_ITEMS.update(ids)
 
 _gen_class_sets()
 # ===========================================================================
-#  3 MERCADORES PREMIUM (Mascate/Nomade/Coveiro): mesmos sets por classe, mas
-#  escalados em forca por mapa. Cada tier 3x mais dados de dano + atk maior,
-#  com nome especial. Preco tambem sobe (money sink pesado).
+#  3 MERCADORES PREMIUM (Mascate/Nomade/Coveiro): equipamento escalado por mapa
+#  E por classe. MARCIAL: a arma multiplica os dados (3/6/9) + dano fixo, e a CA
+#  sobe. CASTER: a arma fica modesta (1/2/3 dados) mas o equipamento da +PODER
+#  MAGICO, somado no dano de toda magia. Escudo ganha BLOQUEIO (reduz o dano de
+#  cada golpe). SEM lendario: o topo (Coveiro) e epico/roxo, drop de chefe que e lendario.
 # ===========================================================================
 TIER_SETS = {}    # prefixo -> [{"class_id", "items":[ids]}]
 TIER_ITEMS = {}   # prefixo -> set(ids vendidos)
 TIER_PRICE = {}   # prefixo -> preco por peca
 TIER_LABEL = {}   # prefixo -> rotulo da loja
-# (prefixo, sufixo_nome, dados_de_dano, bonus_atk, bonus_ca_por_peca, raridade, preco)
+# por tier: (prefixo, sufixo, raridade, preco,
+#            MARCIAL: mult_dados, dano_fixo, +atk, +CA/peca,
+#            CASTER:  mult_dados, +poder_magico, +atk,
+#            ESCUDO:  bloqueio)
 _TIERS = [
-    ("t1", "do Ermo",   3,  5, 1, "epico",    30000),
-    ("t2", "das Dunas", 6, 10, 2, "epico",    90000),
-    ("t3", "Sepulcral", 9, 15, 3, "lendario", 270000),
+    ("t1", "do Ermo",   "incomum", 30000,   3,  2,  5,  1,    1,  3,  2,    4),
+    ("t2", "das Dunas", "raro",    90000,   6,  5, 10,  2,    2,  6,  4,    6),
+    ("t3", "Sepulcral", "epico",   270000,  9, 10, 15,  3,    3, 12,  6,    9),
 ]
 def _gen_tier_sets():
-    for (pfx, suf, dmult, atkb, acb, rar, price) in _TIERS:
+    for (pfx, suf, rar, price, mdice, mflat, matk, acb,
+         cdice, cpow, catk, sblock) in _TIERS:
         sets = []; ids_all = set()
         for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
             wn, wvis, dn, dd, watk, wac = weap
+            caster = cid in CASTER_CLASSES
             ids = []
             wid = "%s_%s_arma" % (pfx, cid)
-            ITEMS[wid] = {"name": "%s %s" % (wn, suf), "kind": "weapon", "stackable": False,
-                          "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
-                          "dmg": {"n": dmult, "d": dd}, "atk": watk + atkb, "value": price}
+            wdmg = {"n": (cdice if caster else mdice), "d": dd}
+            if (not caster) and mflat:
+                wdmg["flat"] = mflat
+            W = {"name": "%s %s" % (wn, suf), "kind": "weapon", "stackable": False,
+                 "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
+                 "dmg": wdmg, "atk": watk + (catk if caster else matk), "value": price}
             if wac:
-                ITEMS[wid]["ac"] = wac + acb
+                W["ac"] = wac + acb
+            if caster and cpow:
+                W["spell_pow"] = cpow          # o foco magico carrega o poder do set
+            if cid in RANGED_RANGE:
+                W["rng"] = RANGED_RANGE[cid]
+            ITEMS[wid] = W
             ids.append(wid)
             a = _ARQ[arq]
             for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
@@ -454,7 +493,7 @@ def _gen_tier_sets():
                 sidh = "%s_%s_escudo" % (pfx, cid)
                 ITEMS[sidh] = {"name": "Escudo %s %s" % (tema, suf), "kind": "armor",
                                "stackable": False, "color": cor, "slot": "hand", "visual": "shield",
-                               "rarity": rar, "ac": _SHIELD_AC[arq] + acb, "value": price}
+                               "rarity": rar, "ac": _SHIELD_AC[arq] + acb, "block": sblock, "value": price}
                 ids.append(sidh)
             sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
         TIER_SETS[pfx] = sets; TIER_ITEMS[pfx] = ids_all; TIER_PRICE[pfx] = price
