@@ -36,6 +36,8 @@ MAP_XP = {
     "fadrakor_selva":   120,
     "fadrakor_vulcao":  120,
     "repouso_dama":     180,
+    "avasham":          250,
+    "valdarkram":        350,
 }
 GOD_XP = 100      # encontrar um deus (1a vez perto dele)
 SECRET_XP = 200   # benção / segredo raro (ex.: benção do Pofnir)

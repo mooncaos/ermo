@@ -442,6 +442,10 @@ class World:
             _spawn(type_id, x, y, "descampado")
         for (type_id, x, y) in monsters_def.REPOUSO_SPAWNS:
             _spawn(type_id, x, y, "repouso_dama")
+        for (type_id, x, y) in monsters_def.AVASHAM_SPAWNS:
+            _spawn(type_id, x, y, "avasham")
+        for (type_id, x, y) in monsters_def.VALDARKRAM_SPAWNS:
+            _spawn(type_id, x, y, "valdarkram")
         return self.monsters
 
     def monster_at(self, mp, x, y):

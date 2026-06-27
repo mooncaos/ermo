@@ -127,6 +127,107 @@ MONSTERS = {
         "drops": [("cajado_magico", 1.0, 1, 1), ("lagrima_da_dama", 1.0, 1, 1),
                   ("coin_gold", 1.0, 1, 1)], "bronze": (100, 150),
     },
+
+    # ===================== DESERTO DE AVASHAM (mais forte que a floresta) =====================
+    "lacraia_gigante": {
+        "name": "Lacraia Gigante", "hp": 100, "ac": 15, "atk": 8,
+        "dmg": {"n": 3, "d": 6, "flat": 4}, "reach": 1, "speed": 11,
+        "xp": 450, "dex": 5, "glyph": "🐛", "kind": "inseto", "atk_name": "ferroada",
+        "drops": [("presa_lacraia", 0.7, 1, 2), ("coin_bronze", 0.3, 1, 1)], "bronze": (20, 36),
+    },
+    "hiena_ermo": {
+        "name": "Hiena do Ermo", "hp": 110, "ac": 15, "atk": 8,
+        "dmg": {"n": 3, "d": 6, "flat": 5}, "reach": 1, "speed": 9,
+        "xp": 500, "dex": 3, "glyph": "🐕", "kind": "bicho", "atk_name": "mordida",
+        "drops": [("couro_hiena", 0.7, 1, 2), ("presa_lobo", 0.3, 1, 1)], "bronze": (22, 40),
+    },
+    "abutre_carniceiro": {
+        "name": "Abutre Carniceiro", "hp": 105, "ac": 16, "atk": 9,
+        "dmg": {"n": 3, "d": 6, "flat": 4}, "reach": 1, "speed": 8,
+        "xp": 520, "dex": 4, "glyph": "🦅", "kind": "bicho", "atk_name": "bicada",
+        "drops": [("pena_abutre", 0.7, 1, 2), ("coin_silver", 0.3, 1, 1)], "bronze": (24, 42),
+    },
+    "naja_dunas": {
+        "name": "Naja das Dunas", "hp": 120, "ac": 16, "atk": 9,
+        "dmg": {"n": 3, "d": 8, "flat": 4}, "reach": 1, "speed": 9,
+        "xp": 580, "dex": 5, "glyph": "🐍", "kind": "bicho", "atk_name": "bote venenoso",
+        "drops": [("veneno_naja", 0.7, 1, 1), ("coin_silver", 0.3, 1, 1)], "bronze": (26, 46),
+    },
+    "escorpiao_gigante": {
+        "name": "Escorpião Gigante", "hp": 150, "ac": 17, "atk": 10,
+        "dmg": {"n": 3, "d": 8, "flat": 5}, "reach": 1, "speed": 7,
+        "xp": 700, "dex": 3, "glyph": "🦂", "kind": "inseto", "atk_name": "ferrão",
+        "drops": [("ferrao_escorpiao", 0.7, 1, 1), ("coin_silver", 0.35, 1, 1)], "bronze": (30, 52),
+    },
+    "verme_areias": {
+        "name": "Verme das Areias", "hp": 175, "ac": 16, "atk": 10,
+        "dmg": {"n": 4, "d": 6, "flat": 5}, "reach": 2, "speed": 6,
+        "xp": 780, "dex": 2, "glyph": "🪱", "kind": "bicho", "atk_name": "abocanhada",
+        "drops": [("placa_verme", 0.7, 1, 2)], "bronze": (32, 56),
+    },
+    "elemental_areia": {
+        "name": "Elemental de Areia", "hp": 165, "ac": 18, "atk": 10,
+        "dmg": {"n": 3, "d": 8, "flat": 6}, "reach": 1, "speed": 7,
+        "xp": 820, "dex": 3, "glyph": "🌪️", "kind": "elemental", "atk_name": "vendaval",
+        "drops": [("nucleo_areia", 0.7, 1, 1)], "bronze": (34, 58),
+    },
+    "basilisco_deserto": {
+        "name": "Basilisco do Deserto", "hp": 210, "ac": 18, "atk": 11,
+        "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 1, "speed": 6,
+        "xp": 950, "dex": 3, "glyph": "🦎", "kind": "bicho", "atk_name": "olhar petrificante",
+        "drops": [("olho_basilisco", 0.8, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (40, 70),
+    },
+
+    # ============= CEMITÉRIO ANTIGO DE VALDARKRAM (mais forte que o deserto) =============
+    "esqueleto_guerreiro": {
+        "name": "Esqueleto Guerreiro", "hp": 190, "ac": 17, "atk": 9,
+        "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 7,
+        "xp": 1000, "dex": 3, "glyph": "💀", "kind": "morto-vivo", "atk_name": "espadada",
+        "drops": [("osso_amaldicoado", 0.7, 1, 2), ("coin_silver", 0.3, 1, 1)], "bronze": (30, 52),
+    },
+    "zumbi_putrido": {
+        "name": "Zumbi Pútrido", "hp": 240, "ac": 16, "atk": 9,
+        "dmg": {"n": 4, "d": 6, "flat": 7}, "reach": 1, "speed": 4,
+        "xp": 1100, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garras podres",
+        "drops": [("carne_putrida", 0.7, 1, 2)], "bronze": (32, 54),
+    },
+    "ghoul_faminto": {
+        "name": "Ghoul Faminto", "hp": 210, "ac": 17, "atk": 10,
+        "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 9,
+        "xp": 1200, "dex": 4, "glyph": "👹", "kind": "morto-vivo", "atk_name": "dilacerar",
+        "drops": [("garra_ghoul", 0.7, 1, 1), ("coin_silver", 0.3, 1, 1)], "bronze": (34, 56),
+    },
+    "aparicao_sepulcral": {
+        "name": "Aparição Sepulcral", "hp": 200, "ac": 18, "atk": 10,
+        "dmg": {"n": 4, "d": 8, "flat": 5}, "reach": 1, "speed": 8,
+        "xp": 1300, "dex": 5, "glyph": "👻", "kind": "espirito", "atk_name": "toque sepulcral",
+        "drops": [("mortalha_espectral", 0.7, 1, 1)], "bronze": (36, 60),
+    },
+    "carnical_profanador": {
+        "name": "Carniçal Profanador", "hp": 260, "ac": 18, "atk": 11,
+        "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 1, "speed": 7,
+        "xp": 1500, "dex": 3, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "presas",
+        "drops": [("lingua_carnical", 0.7, 1, 1), ("coin_silver", 0.35, 1, 1)], "bronze": (40, 66),
+    },
+    "cavaleiro_morte": {
+        "name": "Cavaleiro da Morte", "hp": 310, "ac": 19, "atk": 12,
+        "dmg": {"n": 5, "d": 6, "flat": 7}, "reach": 1, "speed": 6,
+        "xp": 1900, "dex": 3, "glyph": "⚔️", "kind": "morto-vivo", "atk_name": "lâmina negra",
+        "drops": [("elmo_cavaleiro_morte", 0.7, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (50, 84),
+    },
+    "necromante_caido": {
+        "name": "Necromante Caído", "hp": 280, "ac": 18, "atk": 11,
+        "dmg": {"n": 4, "d": 8, "flat": 7}, "reach": 5, "speed": 6,
+        "xp": 2000, "dex": 4, "glyph": "🧙", "kind": "morto-vivo", "atk_name": "raio sombrio",
+        "summon_type": "esqueleto_guerreiro", "summons": 2,
+        "drops": [("grimorio_negro", 0.8, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (54, 90),
+    },
+    "abominacao_ossea": {
+        "name": "Abominação Óssea", "hp": 380, "ac": 20, "atk": 13,
+        "dmg": {"n": 5, "d": 8, "flat": 8}, "reach": 2, "speed": 5,
+        "xp": 2400, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
+        "drops": [("coracao_abominacao", 0.9, 1, 1), ("coin_gold", 0.4, 1, 1)], "bronze": (70, 120),
+    },
 }
 
 
@@ -266,6 +367,71 @@ REPOUSO_SPAWNS = [
     ("espectro", 82, 42), ("alma_penada", 82, 58), ("vulto", 90, 44),
     ("alma_errante", 90, 56), ("assombracao", 84, 36), ("vulto", 84, 64),
     ("dama_noite", 86, 50),
+]
+
+
+# DESERTO DE AVASHAM: entra pelo NORTE (vindo do Descampado). Fraco no norte,
+# forte no fundo sul. Areia aberta, da pra espalhar a vontade.
+AVASHAM_SPAWNS = [
+    # norte (raso): lacraias e hienas
+    ("lacraia_gigante", 30, 12), ("lacraia_gigante", 60, 14), ("lacraia_gigante", 44, 20),
+    ("lacraia_gigante", 70, 18), ("lacraia_gigante", 22, 24), ("lacraia_gigante", 54, 26),
+    ("lacraia_gigante", 78, 28),
+    ("hiena_ermo", 36, 16), ("hiena_ermo", 66, 22), ("hiena_ermo", 28, 30),
+    ("hiena_ermo", 50, 32), ("hiena_ermo", 74, 34), ("hiena_ermo", 18, 20),
+    ("hiena_ermo", 82, 24),
+    # meio: abutres e najas
+    ("abutre_carniceiro", 32, 40), ("abutre_carniceiro", 62, 44), ("abutre_carniceiro", 24, 48),
+    ("abutre_carniceiro", 72, 50), ("abutre_carniceiro", 46, 52), ("abutre_carniceiro", 84, 42),
+    ("abutre_carniceiro", 16, 54),
+    ("naja_dunas", 40, 42), ("naja_dunas", 68, 38), ("naja_dunas", 30, 56),
+    ("naja_dunas", 56, 48), ("naja_dunas", 78, 54), ("naja_dunas", 50, 44),
+    ("naja_dunas", 22, 38),
+    # meio-sul: escorpioes
+    ("escorpiao_gigante", 34, 64), ("escorpiao_gigante", 60, 60), ("escorpiao_gigante", 46, 68),
+    ("escorpiao_gigante", 72, 66), ("escorpiao_gigante", 26, 62), ("escorpiao_gigante", 80, 70),
+    ("escorpiao_gigante", 54, 72),
+    # fundo sul (mortal): vermes, elementais, basiliscos
+    ("verme_areias", 36, 78), ("verme_areias", 64, 76), ("verme_areias", 48, 84),
+    ("verme_areias", 72, 82), ("verme_areias", 28, 80), ("verme_areias", 56, 88),
+    ("verme_areias", 80, 86),
+    ("elemental_areia", 40, 80), ("elemental_areia", 68, 84), ("elemental_areia", 32, 88),
+    ("elemental_areia", 60, 78), ("elemental_areia", 76, 88), ("elemental_areia", 50, 90),
+    ("elemental_areia", 22, 84),
+    ("basilisco_deserto", 44, 86), ("basilisco_deserto", 66, 90), ("basilisco_deserto", 54, 82),
+    ("basilisco_deserto", 74, 78), ("basilisco_deserto", 36, 90), ("basilisco_deserto", 60, 88),
+]
+
+
+# CEMITÉRIO ANTIGO DE VALDARKRAM: entra pelo OESTE (vindo do Repouso). Fraco no
+# oeste, forte no fundo leste. Tumulos e criptas espalhados.
+VALDARKRAM_SPAWNS = [
+    # oeste (raso): esqueletos e zumbis
+    ("esqueleto_guerreiro", 12, 30), ("esqueleto_guerreiro", 14, 60), ("esqueleto_guerreiro", 20, 18),
+    ("esqueleto_guerreiro", 18, 72), ("esqueleto_guerreiro", 24, 44), ("esqueleto_guerreiro", 22, 86),
+    ("esqueleto_guerreiro", 16, 50),
+    ("zumbi_putrido", 16, 22), ("zumbi_putrido", 22, 66), ("zumbi_putrido", 30, 36),
+    ("zumbi_putrido", 28, 78), ("zumbi_putrido", 20, 40), ("zumbi_putrido", 24, 12),
+    ("zumbi_putrido", 30, 56),
+    # meio: ghouls e aparicoes
+    ("ghoul_faminto", 38, 28), ("ghoul_faminto", 42, 60), ("ghoul_faminto", 34, 48),
+    ("ghoul_faminto", 46, 74), ("ghoul_faminto", 40, 18), ("ghoul_faminto", 36, 86),
+    ("ghoul_faminto", 48, 40),
+    ("aparicao_sepulcral", 44, 34), ("aparicao_sepulcral", 50, 66), ("aparicao_sepulcral", 38, 56),
+    ("aparicao_sepulcral", 52, 24), ("aparicao_sepulcral", 46, 84), ("aparicao_sepulcral", 42, 44),
+    ("aparicao_sepulcral", 54, 50),
+    # meio-leste: carnicais
+    ("carnical_profanador", 60, 30), ("carnical_profanador", 64, 62), ("carnical_profanador", 58, 46),
+    ("carnical_profanador", 68, 74), ("carnical_profanador", 62, 20), ("carnical_profanador", 56, 84),
+    ("carnical_profanador", 70, 40),
+    # fundo leste (mortal): cavaleiros, necromantes, abominacoes
+    ("cavaleiro_morte", 72, 32), ("cavaleiro_morte", 78, 64), ("cavaleiro_morte", 74, 48),
+    ("cavaleiro_morte", 82, 74), ("cavaleiro_morte", 76, 20), ("cavaleiro_morte", 70, 84),
+    ("cavaleiro_morte", 84, 40),
+    ("necromante_caido", 80, 36), ("necromante_caido", 86, 60), ("necromante_caido", 78, 52),
+    ("necromante_caido", 84, 26), ("necromante_caido", 82, 84), ("necromante_caido", 88, 46),
+    ("abominacao_ossea", 86, 50), ("abominacao_ossea", 90, 70), ("abominacao_ossea", 84, 58),
+    ("abominacao_ossea", 88, 34), ("abominacao_ossea", 82, 78),
 ]
 
 

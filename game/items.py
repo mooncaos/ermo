@@ -60,6 +60,26 @@ ITEMS = {
     "essencia_sombria":    {"name": "Essência Sombria",      "kind": "trofeu", "stackable": True, "color": "#1b1a26", "value": 32},
     "lamento_petrificado": {"name": "Lamento Petrificado",   "kind": "trofeu", "stackable": True, "color": "#c8a6e0", "value": 36},
     "lagrima_da_dama":     {"name": "Lágrima da Dama",       "kind": "tesouro", "stackable": False, "color": "#bcd0ff", "value": 500},
+
+    # trofeus do Deserto de Avasham (vendiveis na Armas Peteco)
+    "presa_lacraia":       {"name": "Presa de Lacraia",      "kind": "trofeu", "stackable": True, "color": "#caa46a", "value": 40},
+    "couro_hiena":         {"name": "Couro de Hiena",        "kind": "trofeu", "stackable": True, "color": "#b08d5a", "value": 44},
+    "pena_abutre":         {"name": "Pena de Abutre",        "kind": "trofeu", "stackable": True, "color": "#6a5a4a", "value": 46},
+    "veneno_naja":         {"name": "Veneno de Naja",        "kind": "trofeu", "stackable": True, "color": "#9bd06a", "value": 52},
+    "ferrao_escorpiao":    {"name": "Ferrão de Escorpião",   "kind": "trofeu", "stackable": True, "color": "#caa05a", "value": 64},
+    "placa_verme":         {"name": "Placa de Verme",        "kind": "trofeu", "stackable": True, "color": "#c08a5a", "value": 72},
+    "nucleo_areia":        {"name": "Núcleo de Areia",       "kind": "trofeu", "stackable": True, "color": "#e8cf8a", "value": 82},
+    "olho_basilisco":      {"name": "Olho de Basilisco",     "kind": "trofeu", "stackable": True, "color": "#d6b84a", "value": 120},
+
+    # trofeus do Cemitério Antigo de Valdarkram (vendiveis na Armas Peteco)
+    "osso_amaldicoado":    {"name": "Osso Amaldiçoado",      "kind": "trofeu", "stackable": True, "color": "#d8d2c0", "value": 100},
+    "carne_putrida":       {"name": "Carne Pútrida",         "kind": "trofeu", "stackable": True, "color": "#7a8a5a", "value": 110},
+    "garra_ghoul":         {"name": "Garra de Ghoul",        "kind": "trofeu", "stackable": True, "color": "#9a8a7a", "value": 120},
+    "mortalha_espectral":  {"name": "Mortalha Espectral",    "kind": "trofeu", "stackable": True, "color": "#c4ccd8", "value": 130},
+    "lingua_carnical":     {"name": "Língua de Carniçal",    "kind": "trofeu", "stackable": True, "color": "#b06a6a", "value": 150},
+    "elmo_cavaleiro_morte":{"name": "Elmo do Cavaleiro da Morte", "kind": "trofeu", "stackable": True, "color": "#3a4048", "value": 190},
+    "grimorio_negro":      {"name": "Grimório Negro",        "kind": "trofeu", "stackable": True, "color": "#2a2233", "value": 200},
+    "coracao_abominacao":  {"name": "Coração da Abominação", "kind": "tesouro", "stackable": False, "color": "#8a2a3a", "value": 400},
 }
 
 

@@ -679,6 +679,78 @@ REPOUSO_ROWS = [r.replace("i", "Y") for r in REPOUSO_ROWS]
 REPOUSO_SPAWN = [(3, 50), (4, 50), (3, 49), (3, 51)]   # logo dentro da boca oeste
 
 
+def _build_avasham():
+    """DESERTO DE AVASHAM (100x100): areia pura ao SUL do Descampado. Entra pela
+    boca norte. Rochas, cactos, ossadas e um oasis. Mais forte que a floresta."""
+    W = Hh = 100
+    g = _grid(W, Hh, ".")                       # areia por toda parte
+    rng = _rnd.Random(7)
+    for _ in range(300):                         # rochas, cactos e ossadas esparsos
+        x, y = rng.randint(2, W - 3), rng.randint(2, Hh - 3)
+        if 45 <= x <= 54 and y <= 9:             # corredor de entrada (norte) limpo
+            continue
+        r = rng.random()
+        if r < 0.42:   g[y][x] = "^"             # rocha (solido)
+        elif r < 0.58: g[y][x] = "T"             # cacto / arvore morta (solido)
+        elif r < 0.74: g[y][x] = ","             # ossada (deco passavel)
+    _rect(g, 14, 46, 20, 52, "~")                # lagoa do oasis (agua, meio-oeste)
+    for (px, py) in [(13, 46), (21, 46), (13, 52), (21, 52), (17, 45), (17, 53)]:
+        g[py][px] = "T"                          # palmeiras na borda do oasis
+    _ring(g, "T")                                # borda de rochas / arvores mortas
+    g[0][49] = "+"; g[0][50] = "+"               # boca norte (vinda do Descampado)
+    for y in range(1, 7):
+        g[y][49] = "."; g[y][50] = "."
+    return ["".join(r) for r in g]
+
+
+def _build_valdarkram():
+    """CEMITERIO ANTIGO DE VALDARKRAM (100x100): tumulos e criptas ao LESTE do
+    Repouso. Entra pela boca oeste. Mais forte que o deserto."""
+    W = Hh = 100
+    g = _grid(W, Hh, ".")                        # chao morto (cinza no cliente)
+    rng = _rnd.Random(13)
+    for _ in range(220):                          # arvores mortas e entulho esparsos
+        x, y = rng.randint(2, W - 3), rng.randint(2, Hh - 3)
+        if x <= 9 and 45 <= y <= 54:              # corredor de entrada (oeste) limpo
+            continue
+        r = rng.random()
+        if r < 0.30:   g[y][x] = "T"              # arvore morta (solido)
+        elif r < 0.50: g[y][x] = ","              # ossada / entulho (passavel)
+    for y in range(12, Hh - 12, 4):               # fileiras de lapides
+        for x in range(10, W - 10, 5):
+            if (x + y) % 7 != 0:
+                g[y][x] = "^"                      # lapide (solido)
+    _border(g, 44, 42, 56, 56, "H")               # mausoleu central (cripta)
+    _rect(g, 45, 43, 55, 55, ".")
+    for ry in range(56, 59):
+        g[ry][49] = "."; g[ry][50] = "."          # entrada sul do mausoleu
+    _ring(g, "T")                                 # borda de arvores mortas
+    g[50][0] = "+"; g[49][0] = "+"; g[51][0] = "+"  # boca oeste (vinda do Repouso)
+    for x in range(1, 7):
+        g[49][x] = "."; g[50][x] = "."; g[51][x] = "."
+    return ["".join(r) for r in g]
+
+
+AVASHAM_ROWS = _build_avasham()
+AVASHAM_SPAWN = [(49, 4), (50, 4), (49, 5), (50, 5)]      # logo dentro da boca norte
+VALDARKRAM_ROWS = _build_valdarkram()
+VALDARKRAM_SPAWN = [(4, 50), (5, 50), (4, 49), (4, 51)]   # logo dentro da boca oeste
+
+# --- liga o Descampado ao Deserto (boca sul do Descampado) ---
+_dr = [list(r) for r in DESCAMPADO_ROWS]
+for _y in range(88, 99):
+    _dr[_y][49] = "."; _dr[_y][50] = "."          # corredor descendo ate a borda sul
+_dr[99][49] = "+"; _dr[99][50] = "+"
+DESCAMPADO_ROWS = ["".join(r) for r in _dr]
+
+# --- liga o Repouso ao Cemiterio (boca leste do Repouso, passando a clareira) ---
+_rr = [list(r) for r in REPOUSO_ROWS]
+for _x in range(88, 99):
+    _rr[50][_x] = "d"                              # estende a trilha ate a borda leste
+_rr[50][99] = "+"; _rr[49][99] = "+"; _rr[51][99] = "+"
+REPOUSO_ROWS = ["".join(r) for r in _rr]
+
+
 # ===========================================================================
 #  INTERIORES — uma casa aconchegante reaproveitada por todas as portas.
 #  Chars (solidez global ja bate): 1 piso(passavel)  F parede  b cama  h lareira
@@ -869,6 +941,8 @@ MAPS = {
     "fadrakor_vulcao":  {"rows": FADRAKOR_VULCAO_ROWS,  "spawns": FADRAKOR_VULCAO_SPAWN},
     "descampado":       {"rows": DESCAMPADO_ROWS,       "spawns": DESCAMPADO_SPAWN},
     "repouso_dama":     {"rows": REPOUSO_ROWS,          "spawns": REPOUSO_SPAWN},
+    "avasham":          {"rows": AVASHAM_ROWS,          "spawns": AVASHAM_SPAWN},
+    "valdarkram":       {"rows": VALDARKRAM_ROWS,       "spawns": VALDARKRAM_SPAWN},
 }
 
 
@@ -902,8 +976,12 @@ for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba:
 EDGE_LINKS = {
     "ermo":             {"south": ("descampado",      50, 4,  "down"),
                          "east":  ("repouso_dama",     3, 50, "right")},
-    "descampado":       {"north": ("ermo",       OX + 19, ERMO_H - 3, "up")},
-    "repouso_dama":     {"west":  ("ermo",       ERMO_W - 3, OY + 15, "left")},
+    "descampado":       {"north": ("ermo",       OX + 19, ERMO_H - 3, "up"),
+                         "south": ("avasham",          49,  4, "down")},
+    "repouso_dama":     {"west":  ("ermo",       ERMO_W - 3, OY + 15, "left"),
+                         "east":  ("valdarkram",         4, 50, "right")},
+    "avasham":          {"north": ("descampado",       49, 96, "up")},
+    "valdarkram":       {"west":  ("repouso_dama",      96, 50, "left")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
     "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),
                          "north": ("fadrakor_vulcao",  50, 95, "up")},
