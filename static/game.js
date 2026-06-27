@@ -4275,7 +4275,7 @@ function connectWithToken(token){
       combatBanner('Vitória!', d.xp ? ('+'+d.xp+' XP') : '', '#5ec27a');
       if((d.drops && d.drops.length) || d.bronze) showSpoils(d.drops || [], d.bronze || 0);
     } else {
-      combatBanner('Você caiu...', 'renasceu no Ermo · sem perder XP, volte com tudo', '#d65a5a');
+      combatBanner('Você caiu...', 'renasceu no Ermo · perdeu metade do progresso do nível', '#d65a5a');
     }
   });
   socket.on('combat_msg', d=>{ if(d && d.text) toastMsg(d.text, true); });
@@ -5201,14 +5201,20 @@ function toggleFicha(force){
 // mostra nivel/progresso errado. Do 10 ao 20 a curva e brutal de proposito.
 const XP_TABLE = [0, 0, 50, 150, 350, 700,
                   1300, 2300, 4000, 6500, 12000,
-                  26000, 56000, 120000, 250000, 520000,
-                  1050000, 2100000, 4200000, 8400000, 16800000];
+                  260000, 700000, 1400000, 2700000, 4800000,
+                  8300000, 14400000, 24700000, 42200000, 72000000];
 function xpProgress(xp){
   xp = xp||0; let lvl=1;
   for(let L=2;L<=20;L++){ if(xp>=XP_TABLE[L]) lvl=L; else break; }
   if(lvl>=20) return {lvl:20, cur:0, need:0, pct:1};
   const base=XP_TABLE[lvl], nxt=XP_TABLE[lvl+1];
   return {lvl, cur:xp-base, need:nxt-base, pct:(xp-base)/(nxt-base)};
+}
+function fmtXP(n){
+  n = n||0;
+  if(n >= 1000000) return (n/1000000).toFixed(n%1000000===0?0:1).replace('.',',')+'M';
+  if(n >= 10000)   return Math.round(n/1000)+'k';
+  return n.toLocaleString('pt-BR');
 }
 // Marcas/titulos (vindas de flags da ficha). Mais virao ao longo do dev.
 const MARCAS = [
@@ -5246,7 +5252,7 @@ function _fichaGeral(f){
     const pr = xpProgress(f.xp||0);
     h += '<div style="margin:10px 0 4px;display:flex;justify-content:space-between;align-items:baseline">'+
       '<span style="font:700 15px Cinzel,serif;color:#f4d8a0">Nível '+(f.level||1)+'</span>'+
-      '<span style="font-size:11px;color:#8a86a0">'+(pr.need? (pr.cur.toLocaleString('pt-BR')+' / '+pr.need.toLocaleString('pt-BR')+' XP · '+Math.floor(pr.pct*100)+'%') : 'nível máximo')+'</span></div>';
+      '<span style="font-size:11px;color:#8a86a0">'+(pr.need? (fmtXP(pr.cur)+' / '+fmtXP(pr.need)+' XP · '+Math.floor(pr.pct*100)+'%') : 'nível máximo')+'</span></div>';
     h += _bar(pr.pct, 'linear-gradient(90deg,#9b6dff,#c9a0ff)');
     h += '<div style="margin:10px 0 4px;display:flex;justify-content:space-between;align-items:baseline">'+
       '<span style="color:#9b95b4;font-size:13px">Vida</span>'+

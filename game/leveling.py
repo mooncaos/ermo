@@ -23,8 +23,8 @@ MAX_LEVEL = 20
 # nivel 20 ser uma maratona brutal de caca no cemiterio.
 XP_TABLE = [0, 0, 50, 150, 350, 700,
             1300, 2300, 4000, 6500, 12000,
-            26000, 56000, 120000, 250000, 520000,
-            1050000, 2100000, 4200000, 8400000, 16800000]
+            260000, 700000, 1400000, 2700000, 4800000,
+            8300000, 14400000, 24700000, 42200000, 72000000]
 
 # XP de DESCOBERTA por mapa (1a visita). Mundos secretos valem mais.
 MAP_XP = {

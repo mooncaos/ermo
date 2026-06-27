@@ -589,10 +589,15 @@ def _player_death(sid):
     if not player:
         return
     f = player.get("ficha") or {}
-    # SEM penalidade de XP ao morrer. A curva 10->20 ja e brutal; perder progresso em
-    # cima disso parecia bug e desanimava. A punicao e renascer no inicio (longe da
-    # caca) e ter que voltar a pe, com a vida cheia.
-    leveling.recompute(f)                 # nivel/vida coerentes com o XP
+    # Penalidade de morte: perde METADE do progresso DENTRO do nivel atual. Nunca
+    # rebaixa de nivel (so come parte do que ja juntou pro proximo). Renasce no inicio.
+    xp = int(f.get("xp", 0))
+    lvl = int(f.get("level", 1))
+    thr = leveling.XP_TABLE[min(max(lvl, 1), leveling.MAX_LEVEL)]
+    within = max(0, xp - thr)
+    loss = within // 2
+    f["xp"] = xp - loss
+    leveling.recompute(f)                 # nivel se mantem; recalcula a vida
     f["hp"] = f.get("hp_max", 1)          # renasce com vida cheia
     player["ficha"] = f
     try:
@@ -600,8 +605,8 @@ def _player_death(sid):
     except Exception as exc:
         print("erro salvando morte:", exc)
     socketio.emit("xp", {
-        "xp": f.get("xp", 0), "level": f["level"], "hp": f["hp"], "hp_max": f["hp_max"],
-        "prof": f.get("prof"), "gained": 0, "reason": "morte",
+        "xp": f["xp"], "level": f["level"], "hp": f["hp"], "hp_max": f["hp_max"],
+        "prof": f.get("prof"), "gained": -loss, "reason": "morte",
         "pending_asi": f.get("pending_asi", []),
     }, to=sid)
     sx, sy = rules.pick_spawn(world, "ermo")
