@@ -492,6 +492,15 @@ def _start_combat(sid, monster_list):
     monster_list = [m for m in monster_list if m.get("alive", True) and not m.get("in_combat")]
     if not monster_list:
         return
+    if player.get("invisible"):                          # atacou estando invisivel (lebre) -> revela e desfaz
+        ficha["form"] = None
+        ficha["form_bonus"] = None
+        ficha["form_regen"] = 0
+        player["ficha"] = ficha
+        player["wild_form"] = None
+        player["invisible"] = False
+        socketio.emit("player_form", {"id": sid, "form": None}, room=player.get("map", "ermo"))
+        socketio.emit("form_set", {"form": None}, to=sid)
     pc = combat.make_player_combatant(sid, player, ficha)
     mcs = [combat.make_monster_combatant(m) for m in monster_list]
     enc = combat.start(pc, mcs, player.get("map", "descampado"))
@@ -734,7 +743,7 @@ def _monster_wander_loop():
             if moved:
                 socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)
             for sid, pl in list(world.players.items()):
-                if pl.get("map") != mp or pl.get("in_combat"):
+                if pl.get("map") != mp or pl.get("in_combat") or pl.get("invisible"):
                     continue
                 near = [m for m in world.monsters_near(mp, pl["x"], pl["y"], COMBAT_AGGRO)
                         if not m.get("in_combat")]
@@ -941,6 +950,44 @@ def on_combat_use_potion(data=None):
     _resume(sid)
 
 
+@socketio.on("combat_use_divine")
+def on_combat_use_divine(data=None):
+    """Bebe uma Pocao Divina no combate: cura 100 de vida na hora e ARMA o dobro de
+    dano no proximo acerto. Gasta so a acao (sem perder 2 turnos como a de vida)."""
+    sid = request.sid
+    enc = COMBAT.get(sid)
+    if not enc or combat.current(enc)["kind"] != "player":
+        return
+    if enc["action_used"]:
+        emit("combat_msg", {"text": "Você já agiu neste turno."})
+        return
+    me = combat.current(enc)
+    player = world.players.get(sid)
+    if not player:
+        return
+    bag = player.setdefault("inventory", [])
+    if not items.remove_from_bag(bag, "pocao_divina", 1):
+        emit("combat_msg", {"text": "Você não tem Poção Divina."})
+        return
+    before = me["hp"]
+    me["hp"] = min(me["hp_max"], me["hp"] + 100)
+    me["double_next"] = True
+    healed = me["hp"] - before
+    f = player.get("ficha") or {}
+    f["hp"] = me["hp"]
+    player["ficha"] = f
+    if player.get("player_id"):
+        try:
+            db.save_ficha(player["player_id"], f)
+            db.save_inventory(player["player_id"], bag)
+        except Exception:
+            pass
+    enc["action_used"] = True
+    emit("loadout", {"bag": bag, "equipment": player.get("equipment")})
+    emit("combat_msg", {"text": "Você bebeu a Poção Divina! +%d de vida e o próximo golpe vale o DOBRO." % healed})
+    emit("combat_state", {"snapshot": combat.snapshot(enc, sid), "your_turn": True, "outcome": None})
+
+
 @socketio.on("set_form")
 def on_set_form(data=None):
     """Assume/desfaz uma forma (Forma Selvagem etc.). Guarda na ficha o bonus e o
@@ -960,6 +1007,7 @@ def on_set_form(data=None):
     f["form_regen"] = (int(form.get("regen", 0)) if form else 0)
     player["ficha"] = f
     player["wild_form"] = (fid if form else None)        # transmitido: muda o boneco na tela
+    player["invisible"] = bool(form and form.get("invisible"))   # lebre de Nharé: some pra todos
     try:
         db.save_ficha(player["player_id"], f)
     except Exception:
@@ -1001,6 +1049,7 @@ def on_combat_transform(data=None):
     f["form_regen"] = (int(form.get("regen", 0)) if form else 0)
     player["ficha"] = f
     player["wild_form"] = (fid if form else None)
+    player["invisible"] = bool(form and form.get("invisible"))
     try:
         db.save_ficha(player["player_id"], f)
     except Exception:
@@ -1129,7 +1178,7 @@ def on_move(data):
                 pass
 
     # aggro: andou perto de um monstro em O Descampado -> a luta comeca.
-    if mp == "descampado" and not player.get("in_combat"):
+    if mp == "descampado" and not player.get("in_combat") and not player.get("invisible"):
         near = [m for m in world.monsters_near("descampado", player["x"], player["y"], COMBAT_AGGRO)
                 if not m.get("in_combat")]
         if near:
@@ -1843,24 +1892,34 @@ def on_throne(_data=None):
 
 
 # ============================ FAGULHA -> DEUSES ============================
-# O jogador chega perto de um deus, diz que tem uma Fagulha de Divindade, e o
-# deus a recebe. Cada deus recompensa SO na primeira fagulha que recebe daquele
-# personagem. Deus patrono de classe ensina uma habilidade (so pra essa classe);
-# o Pofnir da a Bola de La. Falas e recompensas ficam aqui.
+# O jogador chega perto de um deus, diz que tem uma Fagulha de Divindade, e a
+# entrega. Cada deus so concede o seu DOM (habilidade/bola) na PRIMEIRA fagulha
+# daquele personagem. Deus patrono ensina sua habilidade (so pra a classe dele);
+# o Pofnir da a Bola de La. Classe errada (ou deus ainda sem dom) ganha uma
+# Pocao Divina (o deus engole a fagulha mesmo assim, pois todos as desejam).
+# Quem recebe o dom ganha uma MARCA na ficha. Falas e recompensas ficam aqui.
 GOD_FAGULHA = {
     "god:pofnir": {
-        "item": "bola_la_pofnir",
+        "item": "bola_la_pofnir", "flag": "bola_pofnir",
+        "mark": "Pofnir deixou você brincar",
         "line": "Hmmmrrr... uma Fagulha. Da aqui. *o gato branco a engole inteira e ronrona fundo* Toma essa bola de la, amassei eu mesmo com as patas. Brinca com ela. Agora tu es meu amigo, humano.",
-        "line_repeat": "Ja te dei minha bola de la. Guarda tua Fagulha pra outro deus, eu ja tenho tudo o que eu quero.",
+        "line_repeat": "Ja te dei minha bola de la e ja engoli tua oferta. Guarda a proxima Fagulha pra outro deus.",
         "line_none": "Tu vens ate o gato branco de maos vazias? Volta quando tiver uma Fagulha de verdade.",
     },
     "god:nhare": {
-        "ability": "milesima_saida", "class": "ladino",
-        "line": "Uma Fagulha! Pra MIM?! *a lebre da um salto no ar* Entao recebe a Milesima Saida: quando te encurralarem sem nenhuma porta, sempre vai existir mais uma. Corre, ladino. Corre e nunca te pegam.",
-        "line_repeat": "Ja te ensinei a Milesima Saida. Uma so basta, o resto e' contigo e com tuas pernas.",
-        "line_noclass": "Ah, como eu quero essa Fagulha... mas o que eu ensino e' arte de ladino, e tu nao corres como um. Guarda-a e leva ao deus que e' teu.",
+        "ability": "milesima_saida", "class": "ladino", "flag": "dom_nhare",
+        "mark": "Nharé sabe se esconder",
+        "line": "Uma Fagulha! Pra MIM?! *a lebre da um salto no ar* Entao recebe a Milesima Saida: quando te encurralarem sem nenhuma porta, sempre vai existir mais uma. E aprende a virar lebre e sumir do mundo inteiro. Corre, ladino, e ninguem nunca te acha.",
+        "line_repeat": "Ja te ensinei a Milesima Saida e a forma de lebre. Guarda tua Fagulha, eu ja corri com a minha.",
         "line_none": "Frase bonita, mas cade a Fagulha? Lebre nao corre atras de promessa.",
+        "line_other": "Hmm... essa Fagulha nao casa com tuas pernas, tu nao es ladino. Mas eu nunca recuso uma. *a lebre a engole num pulo* Toma essa pocao em troca, e segue teu caminho.",
     },
+}
+# falas genericas pros deuses que ainda nao tem dom coordenado
+GENERIC_FAGULHA = {
+    "line_other": "*o deus encara a Fagulha com fome e a recebe* Eu ainda nao tenho um dom feito pra ti, mas tua oferta nunca fica sem resposta. Leva esta pocao divina.",
+    "line_none": "Voce nao tem nenhuma Fagulha pra me oferecer.",
+    "line_repeat": "Ja recebeste de mim o que eu tinha pra dar. Guarda tua Fagulha.",
 }
 
 
@@ -1883,55 +1942,61 @@ def _is_fagulha_phrase(text):
 
 
 def _fagulha_exchange(player, god_id):
-    """Entrega de uma Fagulha a um deus. Consome e recompensa SO na 1a vez por deus."""
+    """Entrega de uma Fagulha a um deus. O dom (habilidade/bola) so na 1a vez por
+    deus; classe errada ou deus sem dom -> Pocao Divina (consome a fagulha mesmo)."""
     mp = player.get("map", "ermo")
     sid = player.get("id")
     f = player.setdefault("ficha", {})
     given = f.setdefault("fagulhas_dadas", [])
     bag = player.setdefault("inventory", [])
-    spec = GOD_FAGULHA.get(god_id)
+    spec = GOD_FAGULHA.get(god_id, {})
 
     def say(txt):
         socketio.emit("speech", {"id": god_id, "text": txt}, room=mp)
 
-    if items.count_in_bag(bag, "fagulha_divindade") <= 0:          # nao tem fagulha
-        say((spec or {}).get("line_none") or "Voce nao tem nenhuma Fagulha pra me dar.")
+    if items.count_in_bag(bag, "fagulha_divindade") <= 0:                 # nao tem fagulha
+        say(spec.get("line_none") or GENERIC_FAGULHA["line_none"])
         return
-    if not spec:                                                   # deus sem recompensa ainda
-        say("Adoro tua Fagulha, mas guarda-a. Eu ainda nao tenho um dom pra te dar.")
-        return
-    if god_id in given:                                            # ja recompensou esse personagem
-        say(spec.get("line_repeat", "Ja te dei o que eu tinha. Guarda tua Fagulha."))
-        return
-    if spec.get("ability") and (f.get("class") or "") != spec.get("class"):   # classe errada
-        say(spec.get("line_noclass", "Tua Fagulha me tenta, mas o que eu dou e' so pra quem me serve."))
+    if god_id in given:                                                   # ja recebeu o DOM desse deus
+        say(spec.get("line_repeat") or GENERIC_FAGULHA["line_repeat"])
         return
 
-    # --- 1a vez (classe certa, ou Pofnir): consome a fagulha e recompensa ---
-    items.remove_from_bag(bag, "fagulha_divindade", 1)
-    given.append(god_id)
-    reward_txt = ""
-    if spec.get("item"):
+    # --- 1a vez: decide a recompensa ---
+    reward_txt, line, dom = "", "", False
+    if spec.get("item"):                                                  # Pofnir -> bola de la
         items.add_to_bag(bag, spec["item"], 1)
+        if spec.get("flag"):
+            f[spec["flag"]] = True                                        # marca na ficha (ex: bola_pofnir)
         reward_txt = "Recebeu: " + ((items.get(spec["item"]) or {}).get("name", spec["item"]))
-    if spec.get("ability"):
+        line, dom = spec.get("line", ""), True
+    elif spec.get("ability") and (f.get("class") or "") == spec.get("class"):   # classe certa -> habilidade
         ga = f.setdefault("god_abilities", [])
         if spec["ability"] not in ga:
             ga.append(spec["ability"])
+        if spec.get("flag"):
+            f[spec["flag"]] = True                                        # libera a forma (ex: a lebre)
         reward_txt = "Aprendeu: " + ((abilities_def.get(spec["ability"]) or {}).get("name", spec["ability"]))
+        line, dom = spec.get("line", ""), True
+    else:                                                                 # classe errada / deus sem dom -> pocao
+        items.add_to_bag(bag, "pocao_divina", 1)
+        reward_txt = "Recebeu: Poção Divina"
+        line = spec.get("line_other") or GENERIC_FAGULHA["line_other"]
+
+    items.remove_from_bag(bag, "fagulha_divindade", 1)                    # consome sempre
+    if dom:                                                               # so o dom marca o deus como ja-dado
+        given.append(god_id)
     pid = player.get("player_id")
     if pid:
         try: db.save_inventory(pid, bag)
         except Exception as exc: print("aviso save_inventory fagulha:", exc)
         try: db.save_ficha(pid, f)
         except Exception as exc: print("aviso save_ficha fagulha:", exc)
-    say(spec["line"])
+    say(line)
     if sid:
         socketio.emit("loadout", {"bag": bag, "equipment": player.get("equipment", {})}, to=sid)
+        socketio.emit("ficha", {"ficha": f}, to=sid)                     # atualiza marcas + forma no painel
         if reward_txt:
             socketio.emit("toast", {"text": reward_txt}, to=sid)
-
-
 @socketio.on("chat")
 def on_chat(data):
     """Mensagem de chat. Vira balao acima do jogador pra todo mundo perto.

@@ -3804,6 +3804,33 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
 }
 
 // O corvo: passarinho preto empoleirado, com um pulinho quando se move.
+function drawLebreForm(c, sx, sy, ts, p){
+  // a forma de lebre de Nharé: translúcida (invisível) com brilho divino
+  const t = Date.now()/300;
+  const cx = sx + ts*0.5;
+  const hop = p._moving ? Math.abs(Math.sin((p.walk/WALK_CYCLE)*Math.PI*2))*3 : 0;
+  const by = sy + ts*0.72 - hop;
+  const dir = (p.facing === 'left') ? -1 : 1;
+  c.save();
+  c.globalAlpha = 0.16; c.fillStyle = '#000';                       // sombra
+  c.beginPath(); c.ellipse(cx, sy+ts*0.84, ts*0.2, ts*0.06, 0, 0, 7); c.fill();
+  c.globalAlpha = 0.72;                                             // semi-transparente
+  c.fillStyle = '#e8e6ee';                                          // corpo
+  c.beginPath(); c.ellipse(cx, by, ts*0.2, ts*0.15, 0, 0, 7); c.fill();
+  c.beginPath(); c.arc(cx+dir*ts*0.15, by-ts*0.1, ts*0.1, 0, 7); c.fill();   // cabeça
+  c.fillStyle = '#dcdae4';                                          // orelhas longas
+  c.beginPath(); c.ellipse(cx+dir*ts*0.13, by-ts*0.27, ts*0.035, ts*0.13, dir*0.18, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(cx+dir*ts*0.21, by-ts*0.27, ts*0.035, ts*0.13, -dir*0.05, 0, 7); c.fill();
+  c.fillStyle = '#c9a0ff';                                          // interior das orelhas
+  c.beginPath(); c.ellipse(cx+dir*ts*0.13, by-ts*0.27, ts*0.014, ts*0.09, dir*0.18, 0, 7); c.fill();
+  c.fillStyle = '#2a2535';                                          // olho
+  c.beginPath(); c.arc(cx+dir*ts*0.18, by-ts*0.11, ts*0.02, 0, 7); c.fill();
+  c.fillStyle = '#fff';                                             // rabo de algodão
+  c.beginPath(); c.arc(cx-dir*ts*0.18, by, ts*0.05, 0, 7); c.fill();
+  c.globalAlpha = 0.45; c.fillStyle = 'hsl('+((t*30)%360)+',90%,82%)';      // brilho divino
+  c.beginPath(); c.arc(cx+Math.cos(t)*ts*0.12, by-ts*0.1+Math.sin(t)*ts*0.06, ts*0.028, 0, 7); c.fill();
+  c.restore();
+}
 function drawWildForm(c, sx, sy, ts, p){
   const form = p.wild_form;
   const fake = { mtype: form, facing: p.facing, _moving: p._moving, walk: p.walk };
@@ -3816,6 +3843,8 @@ function drawWildForm(c, sx, sy, ts, p){
     drawBeast(c, sx, sy, ts, fake);
   } else if(form === 'aguia'){
     drawCrow(c, sx, sy, ts, p.facing, p._moving, p.walk, p.look);
+  } else if(form === 'lebre'){
+    drawLebreForm(c, sx, sy, ts, p);
   } else {
     drawBeast(c, sx, sy, ts, fake);                    // lobo, urso
   }
@@ -4479,6 +4508,7 @@ function frame(now){
   const t = 1 - Math.exp(-dt/TAU);
 
   players.forEach(p=>{
+    if(p.wild_form === 'lebre' && p.id !== myId) return;   // lebre de Nharé: invisível pros outros
     const tx = p.x*TS, ty = p.y*TS;
     const moving = Math.abs(tx-p.rx) > 0.5 || Math.abs(ty-p.ry) > 0.5;
     p.rx += (tx - p.rx)*t; p.ry += (ty - p.ry)*t;
@@ -6289,6 +6319,8 @@ function fmtXP(n){
 const MARCAS = [
   {flag:'blessing_pofnir', icon:'🛡️', name:'Amigo do Pof', desc:'O Pofnir te abençoou em Valoran. Você carrega um pedaço da luz dele (+5 de vida máxima).'},
   {flag:'banned_valoran',  icon:'💀', name:'Deixou o Pofnir Ansioso', desc:'Você insistiu no trono do Criador. Foi obliterado e está banido de Valoran.'},
+  {flag:'dom_nhare',   icon:'🐇', name:'Nharé sabe se esconder', desc:'Nharé, a Lebre de Mil Saídas, te ensinou a Milésima Saída e a virar uma lebre invisível. Quando não houver mais saída, sempre existe mais uma.'},
+  {flag:'bola_pofnir', icon:'🧶', name:'Pofnir deixou você brincar', desc:'Você ofereceu uma Fagulha ao gato branco e ele te deu a Bola de Lã dele. Poucos no Ermo já ouviram o Pofnir ronronar.'},
 ];
 let fichaTab = 'geral';
 
@@ -6734,6 +6766,8 @@ function renderCombatHud(){
     if((your.spells||[]).length) btns += cbBtn('spells','✦ Magias', {disabled: your.action_used});
     const _pot = (inventory.find(s=> s.item === 'pocao_vida') || {}).qty || 0;
     if(_pot > 0) btns += cbBtn('potion','🧪 Poção ('+_pot+')', {disabled: your.action_used});
+    const _dpot = (inventory.find(s=> s.item === 'pocao_divina') || {}).qty || 0;
+    if(_dpot > 0) btns += cbBtn('divine','✨ Poção Divina ('+_dpot+')', {disabled: your.action_used});
     if(myFicha && transformsData[myFicha.class_id]){
       const cf = (transformsData[myFicha.class_id]||[]).find(x=> x.id === (myFicha.form||''));
       btns += cbBtn('transform', cf ? (cf.icon+' '+cf.name) : '🐾 Transformar', {});
@@ -6792,6 +6826,7 @@ function cbAction(id){
   const your = (combat.snapshot && combat.snapshot.your) || {};
   if(id === 'pass'){ combat.pending = null; socket.emit('combat_end_turn', {}); return; }
   if(id === 'potion'){ combat.pending = null; socket.emit('combat_use_potion', {}); return; }
+  if(id === 'divine'){ combat.pending = null; socket.emit('combat_use_divine', {}); return; }
   if(id === 'attack'){ combat.pending = {type:'attack', range:'melee', label:'Atacar'}; renderCombatHud(); return; }
   if(id === 'spells'){ openSpellMenu(); return; }
   if(id === 'transform'){ openFormMenu(); return; }

@@ -435,6 +435,10 @@ def attack(enc, attacker, target):
                 res["smite"] = True
                 res["smite_dmg"] = sd                          # dano divino separado (pro somatorio)
             attacker["smite_armed"] = False
+        if attacker.get("double_next"):                   # Poção Divina: este golpe vale o dobro
+            dmg *= 2
+            attacker["double_next"] = False
+            res["doubled"] = True
         dealt = _apply_damage(target, dmg)
         res["dmg"] = dealt
         res["target_hp"] = target["hp"]

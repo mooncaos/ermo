@@ -124,6 +124,12 @@ TRANSFORMS = {
          "requires": "blessing_pofnir",
          "bonus": {"ac": 4, "atk": 4, "dmg_flat": 4, "speed": 4}, "regen": 3},
     ],
+    "ladino": [
+        {"id": "lebre", "name": "Lebre de Nharé", "icon": "🐇",
+         "desc": "O dom de Nharé: vira uma lebre e some do mundo. Nenhum jogador ou monstro te enxerga, e os monstros não te atacam, até você atacar ou desfazer a forma. +3 de deslocamento.",
+         "requires": "dom_nhare", "invisible": True,
+         "bonus": {"speed": 3}},
+    ],
 }
 
 
