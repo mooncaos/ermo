@@ -21,6 +21,8 @@ import time
 from . import rules
 from . import items
 from . import npcs
+from . import monsters as monsters_def
+from . import world_map
 from .world_map import MAP_ROWS, TILE_SIZE, SPAWN_POINTS, map_rows, map_dims, get_map
 
 # Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
@@ -72,12 +74,14 @@ def sanitize_look(raw, i=0):
 
 
 def sanitize_equipment(raw):
-    """Mantem so equipamentos validos: item existe e cabe naquele espaco."""
+    """Mantem so equipamentos validos: item existe e cabe naquele espaco. Aceita os
+    espacos de familia (arma em hand_r/hand_l, anel em ring1/ring2) -> sem isso a
+    arma equipada era descartada em todo reload/deploy."""
     eq = {}
     if isinstance(raw, dict):
         for slot in items.EQUIP_SLOTS:
             it = raw.get(slot)
-            if it and items.exists(it) and items.slot_of(it) == slot:
+            if it and items.exists(it) and items.fits_slot(it, slot):
                 eq[slot] = it
     return eq
 
@@ -92,11 +96,31 @@ def public(p):
         "name": p["name"],
         "look": p["look"],
     }
+    if p.get("wild_form"):
+        out["wild_form"] = p["wild_form"]              # forma selvagem (lobo/urso/aguia/mainecoon)
     if p.get("is_npc"):
         out["npc"] = True
         out["kind"] = p.get("kind", "person")    # "person" ou "bird"
         out["solid"] = p.get("solid", True)       # corvo = False (da pra atravessar)
+    if p.get("kind") == "deity":                  # um deus: desenho grande proprio
+        out["form"] = p.get("form")               # cat_white, elf, owl, crow...
+        out["size"] = p.get("size", 4)            # tiles que ocupa (4 a 6)
+        out["accent"] = p.get("accent")           # cor do efeito ao andar
+        out["eyes"] = p.get("eyes")
     return out
+
+
+def monster_public(m):
+    """Versao publica de um monstro pro cliente (desenho proprio: glifo + barra de
+    vida). So o que o cliente precisa pra desenhar e mostrar a vida."""
+    return {
+        "size": m.get("size"),
+        "id": m["id"],
+        "x": m["x"], "y": m["y"], "facing": m.get("facing", "down"),
+        "monster": True, "kind": "monster",
+        "mtype": m["type"], "name": m["name"], "glyph": m["glyph"],
+        "hp": m["hp"], "hp_max": m["hp_max"],
+    }
 
 
 def _walkable_near(px, py, mp="ermo"):
@@ -125,6 +149,10 @@ class World:
         for i, (x, y, item_id, _r) in enumerate(items.GROUND_SPAWNS):
             self.ground[(x, y)] = {"item": item_id, "spawn": i}
 
+        # monstros vivos no mundo: monster_id -> entidade (bichos e capangas).
+        self.monsters = {}
+        self._monster_seq = 0
+
     def map_payload(self, mp="ermo"):
         """O mapa que vai pro cliente no 'init'/troca de mapa (fonte da verdade)."""
         rows = map_rows(mp)
@@ -140,7 +168,7 @@ class World:
     # ------------------------------------------------------------ jogadores
 
     def add_player(self, sid, player_id, name, look, x, y, facing="down",
-                   inventory=None, equipment=None):
+                   inventory=None, equipment=None, wallet=0):
         """Coloca no mundo um jogador ja carregado do banco."""
         player = {
             "id": sid,                # identidade da conexao (protocolo)
@@ -153,6 +181,7 @@ class World:
             "map": "ermo",            # jogador sempre nasce/reconecta no Ermo
             "inventory": items.sanitize_bag(inventory or []),
             "equipment": sanitize_equipment(equipment),
+            "wallet": int(wallet or 0),   # saldo total em bronze (carteira)
             "_last_move": 0.0,
             "_dirty": False,
         }
@@ -190,7 +219,10 @@ class World:
             if not spec.get("active", True):
                 continue   # NPC dormente (ex.: meninas guardadas pra economia)
             mp = spec.get("map", "ermo")
-            home = _walkable_near(spec["home"][0], spec["home"][1], mp)
+            hx, hy = spec["home"]
+            if mp == "ermo":                 # a vila vive no centro do 100x100
+                hx, hy = hx + world_map.OX, hy + world_map.OY
+            home = _walkable_near(hx, hy, mp)
             self.players[spec["id"]] = {
                 "id": spec["id"],
                 "player_id": None,
@@ -214,12 +246,40 @@ class World:
             }
         return [self.players[s["id"]] for s in npcs.ROSTER if s["id"] in self.players]
 
+    def spawn_deities(self):
+        """Coloca os deuses nos seus reinos (mapas secretos). Cada deus e uma
+        entidade is_npc com kind 'deity' e desenho grande proprio; eles andam e
+        soltam efeito. As falas e dados vem de secret_worlds.DEITIES."""
+        from game import secret_worlds as sw
+        specs = []
+        for mp, gods in sw.DEITIES.items():
+            for g in gods:
+                home = _walkable_near(g["home"][0], g["home"][1], mp)
+                self.players[g["id"]] = {
+                    "id": g["id"], "player_id": None,
+                    "x": home[0], "y": home[1], "facing": "down",
+                    "name": g["name"], "look": {}, "map": mp,
+                    "inventory": [], "equipment": {},
+                    "_last_move": 0.0, "_dirty": False, "is_npc": True,
+                    "solid": False,                 # deuses: da pra chegar perto
+                    "kind": "deity", "form": g["form"], "size": g.get("size", 4),
+                    "accent": g.get("accent"), "eyes": g.get("eyes"),
+                    "_home": home, "_radius": g.get("radius", 8), "_wanders": True,
+                    "_god": g,
+                }
+                specs.append({"id": g["id"], "map": mp,
+                              "step_every": g.get("step_every", 1.1),
+                              "fearless": True, "wanders": True})
+        return specs
+
     def wander_npc(self, npc_id):
         """Da um passo de um NPC: direcao aleatoria, passavel, livre e dentro do
         raio de casa dele. Devolve o NPC se mexeu/virou (pra rede avisar)."""
         npc = self.players.get(npc_id)
         if not npc or not npc.get("_wanders"):
             return None
+        if npc.get("_inside") or npc.get("_going_home"):
+            return None   # ta dormindo ou indo dormir: quem cuida e o night loop
         mp = npc.get("map", "ermo")
         hx, hy = npc["_home"]
         rad = npc["_radius"]
@@ -239,6 +299,30 @@ class World:
             return npc
         npc["facing"] = random.choice(dirs)   # cercado: so vira pra um lado
         return npc
+
+    def step_toward(self, npc_id, tx, ty):
+        """Um passo APROXIMANDO o NPC de (tx,ty), pra tile passavel e livre.
+        Ignora o raio de casa (precisa atravessar a vila ate a porta). Devolve o
+        NPC se mexeu/virou; None se ja chegou ou encurralou. Guloso (sem A*)."""
+        npc = self.players.get(npc_id)
+        if not npc or (npc["x"] == tx and npc["y"] == ty):
+            return None
+        mp = npc.get("map", "ermo")
+        cur = abs(npc["x"] - tx) + abs(npc["y"] - ty)
+        best, bestd = None, cur
+        for d, (dx, dy) in rules.DELTAS.items():
+            nx, ny = npc["x"] + dx, npc["y"] + dy
+            if not rules.is_walkable(nx, ny, mp):
+                continue
+            if rules._occupied_by_other(self, npc, nx, ny):
+                continue
+            dist = abs(nx - tx) + abs(ny - ty)
+            if dist < bestd:
+                best, bestd = (d, nx, ny), dist
+        if best:
+            npc["facing"], npc["x"], npc["y"] = best[0], best[1], best[2]
+            return npc
+        return None
 
     def flee_step(self, npc_id, threat_id):
         """Um passo AFASTANDO o NPC do `threat` (Chebyshev), pra tile passavel e
@@ -324,10 +408,113 @@ class World:
         return [public(p) for p in self.players.values()]
 
     def entities_in(self, mp):
-        """So as entidades (jogadores + NPCs) que estao NO mapa `mp`, em formato
-        publico. Usado no 'init' e na troca de mapa pra mandar so o que importa."""
-        return [public(p) for p in self.players.values()
-                if p.get("map", "ermo") == mp]
+        """So as entidades (jogadores + NPCs + monstros) que estao NO mapa `mp`, em
+        formato publico. Usado no 'init' e na troca de mapa pra mandar so o que importa."""
+        ents = [public(p) for p in self.players.values()
+                if p.get("map", "ermo") == mp and not p.get("_inside")]
+        ents += [monster_public(m) for m in self.monsters.values()
+                 if m.get("map") == mp and m.get("alive", True)]
+        return ents
+
+    # --------------------------------------------------------------- monstros
+
+    def spawn_monsters(self):
+        """Coloca os monstros iniciais no mundo (O Descampado e o Repouso da Dama).
+        Cada um e uma entidade viva em self.monsters, com o stat block copiado do
+        registro. Ficam parados ate o combate chegar; aqui so existem e aparecem."""
+        self.monsters.clear()
+
+        def _spawn(type_id, x, y, mp):
+            spec = monsters_def.get(type_id)
+            if not spec:
+                return
+            pos = _walkable_near(x, y, mp)
+            self._monster_seq += 1
+            mid = "mob:%d" % self._monster_seq
+            self.monsters[mid] = {
+                "id": mid, "type": type_id, "name": spec["name"],
+                "x": pos[0], "y": pos[1], "facing": "down", "map": mp,
+                "hp": spec["hp"], "hp_max": spec["hp"], "ac": spec["ac"],
+                "atk": spec["atk"], "dmg": dict(spec["dmg"]), "reach": spec["reach"],
+                "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
+                "glyph": spec["glyph"], "kind": "monster", "alive": True,
+                "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
+                "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
+                "size": spec.get("size"),
+                "_spawn": (type_id, pos[0], pos[1]),
+            }
+
+        for (type_id, x, y) in monsters_def.DESCAMPADO_SPAWNS:
+            _spawn(type_id, x, y, "descampado")
+        for (type_id, x, y) in monsters_def.REPOUSO_SPAWNS:
+            _spawn(type_id, x, y, "repouso_dama")
+        for (type_id, x, y) in monsters_def.AVASHAM_SPAWNS:
+            _spawn(type_id, x, y, "avasham")
+        for (type_id, x, y) in monsters_def.COVA_COLOSSO_SPAWNS:
+            _spawn(type_id, x, y, "cova_colosso")
+        for (type_id, x, y) in monsters_def.VALDARKRAM_SPAWNS:
+            _spawn(type_id, x, y, "valdarkram")
+        for (type_id, x, y) in monsters_def.MINA_AVHUR_SPAWNS:
+            _spawn(type_id, x, y, "mina_avhur")
+        for (type_id, x, y) in monsters_def.CAMARA_AVHUR_SPAWNS:
+            _spawn(type_id, x, y, "camara_avhur")
+        for (type_id, x, y) in monsters_def.TORRE_ANDAR1_SPAWNS:
+            _spawn(type_id, x, y, "torre_andar1")
+        for (type_id, x, y) in monsters_def.TORRE_ANDAR2_SPAWNS:
+            _spawn(type_id, x, y, "torre_andar2")
+        for (type_id, x, y) in monsters_def.TORRE_ANDAR3_SPAWNS:
+            _spawn(type_id, x, y, "torre_andar3")
+        for (type_id, x, y) in monsters_def.CAMARA_VARTH_SPAWNS:
+            _spawn(type_id, x, y, "camara_varth")
+        return self.monsters
+
+    def monster_at(self, mp, x, y):
+        """O monstro vivo nessa casa (ou None)."""
+        for m in self.monsters.values():
+            if m.get("alive", True) and m["map"] == mp and m["x"] == x and m["y"] == y:
+                return m
+        return None
+
+    def monsters_near(self, mp, x, y, radius):
+        """Monstros vivos a ate `radius` casas (distancia de Chebyshev) de (x, y)."""
+        out = []
+        for m in self.monsters.values():
+            if m.get("alive", True) and m["map"] == mp:
+                if max(abs(m["x"] - x), abs(m["y"] - y)) <= radius:
+                    out.append(m)
+        return out
+
+    def wander_monsters(self, mp="descampado", chance=0.4, leash=9):
+        """Um passo de perambulacao: cada monstro vivo e fora de combate tenta um
+        passo aleatorio (4 direcoes) dentro de uma coleira em torno do ponto de
+        origem, sem pisar em parede, agua, outro monstro ou jogador. Devolve a lista
+        dos que se moveram (id, x, y, facing) pro servidor transmitir."""
+        moved = []
+        dirs = (("up", 0, -1), ("down", 0, 1), ("left", -1, 0), ("right", 1, 0))
+        ptiles = {(p["x"], p["y"]) for p in self.players.values()
+                  if p.get("map") == mp and not p.get("_inside")}
+        occ = {(m["x"], m["y"]) for m in self.monsters.values()
+               if m.get("alive", True) and m.get("map") == mp}
+        for m in self.monsters.values():
+            if not m.get("alive", True) or m.get("map") != mp or m.get("in_combat") or m.get("boss"):
+                continue
+            if random.random() > chance:
+                continue
+            name, dx, dy = random.choice(dirs)
+            m["facing"] = name
+            nx, ny = m["x"] + dx, m["y"] + dy
+            _t, sx, sy = m["_spawn"]
+            if max(abs(nx - sx), abs(ny - sy)) > leash:
+                continue
+            if (nx, ny) in ptiles or (nx, ny) in occ:
+                continue
+            if not rules.is_walkable(nx, ny, mp):
+                continue
+            occ.discard((m["x"], m["y"]))
+            occ.add((nx, ny))
+            m["x"], m["y"] = nx, ny
+            moved.append({"id": m["id"], "x": nx, "y": ny, "facing": name})
+        return moved
 
     def set_map(self, sid, mp, x, y):
         """Move um jogador pra outro mapa, numa posicao. Ao SAIR do Ermo, lembra
@@ -383,6 +570,12 @@ class World:
 
         # economia: itens do chao NAO reaparecem mais. Pegou, acabou. (Os que ja
         # estao no mapa continuam la ate alguem pegar.)
+        cat = items.get(item_id) or {}
+        if cat.get("kind") == "currency":
+            # moeda vira SALDO na carteira (total em bronze), nao item de mochila.
+            player["wallet"] = int(player.get("wallet", 0)) + int(cat.get("value", 1))
+            return {"item": item_id, "x": tile[0], "y": tile[1], "currency": True,
+                    "wallet": player["wallet"]}
         items.add_to_bag(player["inventory"], item_id, 1)
         return {"item": item_id, "x": tile[0], "y": tile[1]}
 
@@ -406,9 +599,12 @@ class World:
     # ----------------------------------------------------------- equipamento
 
     def _sync_look(self, player):
-        """A aparencia segue o equipamento (por ora: cajado na mao)."""
-        hand = player["equipment"].get("hand")
-        player["look"]["staff"] = items.shows_staff(hand)
+        """A aparencia segue o equipamento (por ora: cajado em qualquer das maos)."""
+        look = player.get("look")
+        if look is None:
+            return
+        look["staff"] = any(items.shows_staff(player["equipment"].get(h))
+                            for h in ("hand_r", "hand_l"))
 
     def equip(self, player, item_id):
         """Tira o item da mochila e veste no espaco dele. Se o espaco ja tinha
@@ -417,7 +613,7 @@ class World:
             return False
         if not items.remove_from_bag(player["inventory"], item_id, 1):
             return False  # nao esta na mochila
-        slot = items.slot_of(item_id)
+        slot = items.resolve_slot(item_id, player["equipment"])
         prev = player["equipment"].get(slot)
         if prev:
             items.add_to_bag(player["inventory"], prev, 1)

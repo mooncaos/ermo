@@ -412,20 +412,61 @@ ITATINGA_MENINAS = [
      "murmur": ["barato e bom, papo bom de graca."]},
 ]
 
+# Cada menina mora na SUA casa (interior proprio). A Juliana divide com a Amanda.
+_MENINA_CASA = {
+    "Melissa": "casa_melissa", "Yasmin": "casa_yasmin", "Valentina": "casa_valentina",
+    "Isabelle": "casa_isabelle", "Giovanna": "casa_giovanna", "Beatriz": "casa_beatriz",
+    "Camila": "casa_camila", "Amanda": "casa_amanda", "Juliana": "casa_amanda",
+}
+_MENINA_IHOME = {"Amanda": (5, 4), "Juliana": (10, 4)}   # roommates em pontos distintos
+
 def _menina_spec(m):
+    casa = _MENINA_CASA.get(m["name"], "casa_comum")
     return {
         "id": "npc:menina_" + m["name"].lower(),
         "name": m["name"],
         "look": {"skin": m["skin"], "cloak": m["cloak"], "hood": "down",
                  "hat": "none", "hair": m["hair"], "staff": False},
-        "home": m["home"], "radius": 1, "wanders": True, "step_every": 1.5,
-        "solid": True, "kind": "person", "active": m.get("active", False),
+        "map": casa,                                  # mora dentro da casa dela
+        "home": _MENINA_IHOME.get(m["name"], (7, 4)), # ponto dentro do interior
+        "radius": 1, "wanders": True, "step_every": 1.6,
+        "solid": True, "kind": "person", "active": True,   # acordam todas
         "bronze": m["bronze"], "desc": m["desc"],
         "murmurs": m.get("murmur", []), "murmur_min": 18, "murmur_max": 28,
         "greetings": m["greet"], "smiter": False,
     }
 
 ROSTER.extend(_menina_spec(m) for m in ITATINGA_MENINAS)
+
+
+# --- Robetina: a assistente social de Itatinga (entrega o kit inicial) ---
+ROBETINA_GREETINGS = [
+    "oi, querido. ja te dei o kit, viu? cuida das suas coisas que aqui ninguem repoe.",
+    "tudo certo com voce? qualquer coisa a assistencia ta aqui. dentro do possivel.",
+    "se cuida nesses Ermo. o mundo ja e duro, nao precisa facilitar pra ele.",
+    "ja anotei seu nome na ficha. se sumir, pelo menos sei pra quem rezar.",
+]
+ROBETINA_MURMURS = [
+    "tanta gente chegando sem nada... e o orcamento e o que e.",
+    "ja preenchi formulario ate pra deus reclamar. nada muda.",
+    "um cobertor, um prato de comida. as vezes e so isso que separa a pessoa do fundo.",
+    "nao sou obrigada, mas alguem tem que ser.",
+]
+# Fala da PRIMEIRA vez (quando entrega o kit). Usada pelo servidor no on_interact.
+ROBETINA_FIRST = ("olha so, mais um chegando pelado nesses Ermo. pega esse kit aqui: uma "
+                  "roupa, um calcado, uma faca pra se virar. nao e luxo, mas cobre o corpo. "
+                  "agora vai, e se cuida la fora.")
+
+ROSTER.append({
+    "id": "npc:robetina", "name": "Robetina",
+    "look": {"skin": "#e8b58c", "cloak": "#5a8a6a", "hood": "down",
+             "hat": "none", "hair": "#cfc7bf", "staff": False},
+    "map": "ermo",
+    "home": (12, 10), "radius": 0, "wanders": False, "step_every": 2.0,
+    "solid": True, "kind": "person",
+    "murmurs": ROBETINA_MURMURS, "murmur_min": 16, "murmur_max": 26,
+    "greetings": ROBETINA_GREETINGS, "smiter": False,
+})
 
 
 # ============================================================================
@@ -611,11 +652,11 @@ SAPOPEMBA = [
         "murmurs": MACIO_MURMURS, "murmur_min": 6, "murmur_max": 12,
         "greetings": MACIO_GREETINGS, "smiter": False,
     },
-    {   # o mercador do RE4, vende Peteco + Mauser C96
+    {   # o mercador do RE4, vende Peteco + Mauser C96 (agora DENTRO da loja)
         "id": "npc:armeiro", "name": "Vendedor de Arma",
         "look": {"skin": "#8d5524", "cloak": "#3a3530", "hood": "up",
                  "hat": "none", "hair": "#2a2233", "staff": False},
-        "home": (10, 21), "radius": 1, "wanders": True, "step_every": 1.6,
+        "map": "loja_armas", "home": (7, 7), "radius": 0, "wanders": False, "step_every": 1.6,
         "solid": True, "kind": "person", "gender": "H",
         "murmurs": ARMEIRO_MURMURS, "murmur_min": 14, "murmur_max": 22,
         "greetings": ARMEIRO_GREETINGS, "smiter": False,
@@ -1035,3 +1076,103 @@ for _c in _classes.CLASSES:
     })
 
 ROSTER.extend(SALAO_MASTERS)
+
+
+# ===========================================================================
+#  ATUALIZACAO COMERCIAL: 3 mercadores premium (1 por mapa de caca) + a cigana
+#  vidente de Itatinga (vende Pocao de Vida). Equipamento escalado por mapa.
+# ===========================================================================
+MASCATE_GREETINGS = [
+    "ó a pechincha, forasteiro! equipamento de verdade pro Ermo, bem melhor que a tralha da Sapopemba.",
+    "compra logo que eu sou errante: amanhã já sumi por essas estradas.",
+    "ferro honesto por preço de ladrão. é o trato do Mascate.",
+]
+NOMADE_GREETINGS = [
+    "as dunas me deram o que vendo. armas das areias, três vezes mais fortes que as da cidade.",
+    "no deserto só sobrevive quem carrega ferro bom. eu carrego o ferro bom.",
+    "a raiz aguenta o sol e a tempestade. minha mercadoria também.",
+]
+COVEIRO_GREETINGS = [
+    "cavei muita cova pra juntar essas relíquias. equipamento sepulcral, o mais forte que existe.",
+    "os mortos não precisam mais disso, forasteiro. você precisa. paga e leva.",
+    "três vezes o aço do nômade, dez vezes o medo. é o que a morte deixou.",
+]
+CIGANA_GREETINGS = [
+    "psiu... a cigana lê teu futuro e vende teu remédio. Poção de Vida, 10 pratas, te enche a vida toda.",
+    "bebe a poção no meio da briga e ela cura tudo. mas cuidado, meu bem: virar o copo leva DOIS turnos, e nesses dois o bicho te bate à vontade. as cartas avisaram.",
+    "fora da luta ela cura na hora, sem custo. no combate, dois turnos parado bebendo. pense bem antes de beber.",
+]
+
+ROSTER.extend([
+    {
+        "id": "npc:mascate", "name": "Mascate Errante",
+        "look": {"skin": "#a9744f", "cloak": "#7a5a3a", "hood": "down",
+                 "hat": "cap", "hair": "#3a2a1a", "staff": False},
+        "map": "descampado", "home": (45, 50), "radius": 3, "wanders": True,
+        "step_every": 1.3, "solid": True, "kind": "person",
+        "greetings": MASCATE_GREETINGS, "smiter": False, "shop_tier": "t1",
+    },
+    {
+        "id": "npc:xama", "name": "Xamã Miranda",
+        "look": {"skin": "#7a5436", "cloak": "#4a6a4a", "hood": "up",
+                 "hat": "none", "hair": "#1a1410", "staff": True},
+        "map": "descampado", "home": (41, 47), "radius": 2, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "greetings": [
+            "Eu sou Miranda. Faço amarração contra a tua própria morte, viajante.",
+            "A morte cobra caro no Ermo. Por um preço, eu adio a conta dela.",
+            "Me traz os restos dos grandes e eu te dou proteção pro além.",
+        ],
+        "smiter": False, "xama": True,
+    },
+    {
+        "id": "npc:valdir", "name": "Valdir, o Coureiro",
+        "look": {"skin": "#9a6e44", "cloak": "#5a3a22", "hood": "down",
+                 "hat": "cap", "hair": "#3a2a1a", "staff": False},
+        "map": "ermo", "home": (5, 6), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "greetings": [
+            "Couro bom eu pago bem. De bicho, só. Lobo, javali, essas coisas.",
+            "Bem-vindo à couraria. Traz a pele que eu faço valer a pena.",
+            "Aqui o couro de fera vale 5 vezes mais que naquele mercado de ladrão.",
+        ],
+        "smiter": False, "couraria": True,
+    },
+    {
+        "id": "npc:marta", "name": "Marta",
+        "look": {"skin": "#c89a6a", "cloak": "#7a5a7a", "hood": "down",
+                 "hat": "none", "hair": "#2a1a12", "staff": False},
+        "map": "ermo", "home": (7, 6), "radius": 2, "wanders": True,
+        "step_every": 1.4, "solid": True, "kind": "person",
+        "greetings": [
+            "Meu pai é teimoso, mas paga o melhor preço por couro de bicho.",
+            "Se trouxer pele de lobo ou javali, fala com o Valdir ali.",
+            "A gente curte o couro aqui mesmo. O cheiro você acostuma.",
+        ],
+        "smiter": False,
+    },
+    {
+        "id": "npc:nomade", "name": "Nômade Raiz",
+        "look": {"skin": "#b07a4a", "cloak": "#c8a86a", "hood": "up",
+                 "hat": "none", "hair": "#2a2018", "staff": True},
+        "map": "avasham", "home": (50, 50), "radius": 3, "wanders": True,
+        "step_every": 1.3, "solid": True, "kind": "person",
+        "greetings": NOMADE_GREETINGS, "smiter": False, "shop_tier": "t2",
+    },
+    {
+        "id": "npc:coveiro", "name": "Coveiro Mórbido",
+        "look": {"skin": "#9a8a7a", "cloak": "#2a2a30", "hood": "up",
+                 "hat": "none", "hair": "#15131b", "staff": True},
+        "map": "valdarkram", "home": (50, 49), "radius": 3, "wanders": True,
+        "step_every": 1.4, "solid": True, "kind": "person",
+        "greetings": COVEIRO_GREETINGS, "smiter": False, "shop_tier": "t3",
+    },
+    {
+        "id": "npc:cigana", "name": "Cigana Vidente",
+        "look": {"skin": "#caa06a", "cloak": "#a0306a", "hood": "down",
+                 "hat": "none", "hair": "#1a1a22", "staff": False},
+        "map": "ermo", "home": (9, 8), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "greetings": CIGANA_GREETINGS, "smiter": False, "sells_potion": True,
+    },
+])
