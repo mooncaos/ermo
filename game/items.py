@@ -49,6 +49,17 @@ ITEMS = {
     "microfone_patrao":{"name": "Microfone do Patrão",  "kind": "tesouro", "stackable": False, "color": "#c9c2cc", "value": 120},
     "presa_velho_bob": {"name": "Presa Quebrada do Velho Bob", "kind": "tesouro", "stackable": False, "color": "#d9cba0", "value": 180},
     "couro_velho_bob": {"name": "Couro do Velho Bob",   "kind": "tesouro", "stackable": True,  "color": "#5a5048", "value": 20},
+
+    # trofeus do Repouso da Dama (todos vendiveis na Armas Peteco)
+    "couro_lobo_negro":    {"name": "Couro de Lobo Negro",   "kind": "trofeu", "stackable": True, "color": "#26242e", "value": 14},
+    "pena_harpia":         {"name": "Pena de Harpia",        "kind": "trofeu", "stackable": True, "color": "#4a3d57", "value": 18},
+    "dedo_bruxa":          {"name": "Dedo Mirrado de Bruxa", "kind": "trofeu", "stackable": True, "color": "#9bbf8a", "value": 24},
+    "ectoplasma":          {"name": "Ectoplasma",            "kind": "trofeu", "stackable": True, "color": "#cdd8ff", "value": 20},
+    "veu_assombracao":     {"name": "Véu de Assombração",    "kind": "trofeu", "stackable": True, "color": "#9fd8b0", "value": 24},
+    "cinza_espectral":     {"name": "Cinza Espectral",       "kind": "trofeu", "stackable": True, "color": "#c9ccd6", "value": 28},
+    "essencia_sombria":    {"name": "Essência Sombria",      "kind": "trofeu", "stackable": True, "color": "#1b1a26", "value": 32},
+    "lamento_petrificado": {"name": "Lamento Petrificado",   "kind": "trofeu", "stackable": True, "color": "#c8a6e0", "value": 36},
+    "lagrima_da_dama":     {"name": "Lágrima da Dama",       "kind": "tesouro", "stackable": False, "color": "#bcd0ff", "value": 500},
 }
 
 

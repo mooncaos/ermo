@@ -3365,7 +3365,7 @@ function frame(now){
   // ---- Repouso da Dama: o breu da mata fecha conforme se entra no fundo (leste) ----
   if(mapName === 'repouso_dama'){
     const me = players.get(myId);
-    const depth = me ? Math.max(0, Math.min(1, me.x / 72)) : 0.3;
+    const depth = me ? Math.max(0, Math.min(1, me.x / 100)) : 0.3;
     const g = 0.22 + depth * 0.5;                 // 0.22 na boca -> ~0.72 na clareira
     ctx.fillStyle = 'rgba(6,9,14,' + g.toFixed(2) + ')';
     ctx.fillRect(0, 0, canvas.width, canvas.height);

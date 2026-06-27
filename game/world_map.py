@@ -612,15 +612,15 @@ DESCAMPADO_SPAWN = [(50, 6), (49, 6), (51, 6), (50, 7)]   # logo abaixo da entra
 
 
 def _build_repouso_dama():
-    """REPOUSO DA DAMA: floresta escura ao LESTE do Ermo. Comeca rala (poucos
-    pinheiros, ainda com luz) na borda oeste e vai FECHANDO e escurecendo pro
-    fundo (leste), onde os espiritos vagam e a Dama da Noite (banshee) espera
-    numa clareira. Tiles: . mato  d chao de floresta (escuro)  i pinheiro(S)
-    T arvore(S)  ^ sarca(S)  4 pedra(S)  , trilha  + passagem. Saida OESTE -> Ermo."""
-    W, H = 72, 52
+    """REPOUSO DA DAMA: floresta escura ao LESTE do Ermo (100x100). Comeca rala
+    (poucos pinheiros, ainda com luz) na borda oeste e vai FECHANDO e escurecendo
+    pro fundo (leste), onde os espiritos vagam e a Dama da Noite (banshee) espera
+    numa clareira funda. Tiles: . mato  d chao escuro  i pinheiro(S)  T arvore(S)
+    ^ sarca(S)  4 pedra(S)  , trilha  + passagem. Saida OESTE -> Ermo."""
+    W, H = 100, 100
     rows = _grid(W, H, ".")
     rng = _rnd.Random(914)
-    midY = H // 2  # 26
+    midY = H // 2  # 50
 
     # gradiente: quanto mais pro leste (depth ~0->1), mais chao escuro e pinheiro
     for y in range(2, H - 2):
@@ -628,15 +628,17 @@ def _build_repouso_dama():
             depth = x / float(W)
             if depth > 0.42 and rng.random() < (depth - 0.38) * 0.95:
                 rows[y][x] = "d"
-            if rng.random() < (0.012 + depth * depth * 0.36):
+            if rng.random() < (0.012 + depth * depth * 0.40):
                 rows[y][x] = "i"
     # arvores soltas e sarcas (mais densas no fundo)
-    for _ in range(170):
+    for _ in range(420):
         x = rng.randint(3, W - 3); y = rng.randint(3, H - 3)
         if rows[y][x] in ".d" and rng.random() < (0.28 + (x / float(W)) * 0.5):
             rows[y][x] = rng.choice(["T", "^", "^"])
-    # afloramentos de pedra
-    for (cx, cy, r) in [(14, 9, 2), (18, 41, 3), (38, 13, 3), (45, 43, 3), (56, 7, 2), (58, 45, 3)]:
+    # afloramentos de pedra espalhados
+    for (cx, cy, r) in [(16, 14, 3), (22, 70, 4), (40, 22, 3), (52, 78, 4), (60, 12, 3),
+                        (48, 50, 3), (70, 64, 4), (74, 30, 3), (30, 44, 3), (66, 88, 3),
+                        (84, 18, 3), (88, 80, 4)]:
         for dx in range(-r, r + 1):
             for dy in range(-r, r + 1):
                 x, y = cx + dx, cy + dy
@@ -644,7 +646,7 @@ def _build_repouso_dama():
                     rows[y][x] = "4"
 
     # a CLAREIRA da Dama (fundo leste): chao escuro aberto cercado de pinheiros
-    clx, cly, crx, cry = 60, midY, 7, 6
+    clx, cly, crx, cry = 86, midY, 9, 8
     for dx in range(-crx - 1, crx + 2):
         for dy in range(-cry - 1, cry + 2):
             x, y = clx + dx, cly + dy
@@ -652,7 +654,7 @@ def _build_repouso_dama():
                 e = (dx / float(crx)) ** 2 + (dy / float(cry)) ** 2
                 if e <= 1.0:
                     rows[y][x] = "d"
-                elif e <= 1.55 and rng.random() < 0.72:
+                elif e <= 1.5 and rng.random() < 0.74:
                     rows[y][x] = "i"
 
     # trilha reta do oeste ate a clareira (garante caminho entre os pinheiros)
@@ -660,7 +662,7 @@ def _build_repouso_dama():
         rows[midY][x] = ","
     # boca de entrada limpa no oeste
     for yy in range(midY - 2, midY + 3):
-        for xx in range(1, 5):
+        for xx in range(1, 6):
             if rows[yy][xx] in "iT^": rows[yy][xx] = "."
 
     # bordas de pedra + passagem OESTE de volta pro Ermo
@@ -671,7 +673,7 @@ def _build_repouso_dama():
 
 
 REPOUSO_ROWS = _build_repouso_dama()
-REPOUSO_SPAWN = [(3, 26), (4, 26), (3, 25), (3, 27)]   # logo dentro da boca oeste
+REPOUSO_SPAWN = [(3, 50), (4, 50), (3, 49), (3, 51)]   # logo dentro da boca oeste
 
 
 # ===========================================================================
@@ -832,7 +834,7 @@ for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba:
 # Voce anda ate a faixa de '+' numa borda e cai no mapa vizinho, virado pra dentro.
 EDGE_LINKS = {
     "ermo":             {"south": ("descampado",      50, 4,  "down"),
-                         "east":  ("repouso_dama",     3, 26, "right")},
+                         "east":  ("repouso_dama",     3, 50, "right")},
     "descampado":       {"north": ("ermo",            20, 28, "up")},
     "repouso_dama":     {"west":  ("ermo",            37, 15, "left")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
