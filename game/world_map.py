@@ -704,6 +704,20 @@ def _build_avasham():
     for yy in range(Hh - 8, Hh - 1):             # corredor limpo ate a boca da cova
         for xx in (48, 49, 50, 51):
             g[yy][xx] = "."
+    # --- PIRAMIDE DE AVHUR (centro-leste): a boca da Mina Fechada de Avhur ---
+    pcx, pcy = 76, 38
+    for yy in range(pcy - 7, pcy + 8):
+        for xx in range(pcx - 7, pcx + 8):
+            if not (0 <= xx < W and 0 <= yy < Hh):
+                continue
+            rr = max(abs(xx - pcx), abs(yy - pcy))       # anel (distancia Chebyshev)
+            if rr <= 7:
+                g[yy][xx] = "b" if rr <= 3 else "B"      # 2 niveis: apice 'b', base 'B'
+    g[pcy + 7][pcx] = "p"                                 # PORTA na face sul -> Mina de Avhur
+    for yy in range(pcy + 8, pcy + 11):                  # areia limpa em frente a porta
+        if 0 <= yy < Hh:
+            for xx in (pcx - 1, pcx, pcx + 1):
+                if g[yy][xx] in "^T,": g[yy][xx] = "."
     return ["".join(r) for r in g]
 
 
@@ -801,8 +815,96 @@ def _build_cova_colosso():
     return ["".join(r) for r in rows]
 
 
+def _build_mina_avhur():
+    """MINA FECHADA DE AVHUR (100x100): a tumba-mina egipcia sob a piramide do
+    deserto. Corredores de arenito ligam camaras cheias de mortos-vivos ate a
+    CAMARA DO FARAO, la no fundo sul. Tiles: '.' chao de tumba  'd' chao da camara
+    real  '#' parede de arenito(S)  'H' sarcofago(S)  'L' tocha(S)  ',' entulho
+    'p' boca de saida (pisa aqui e volta pra piramide no deserto)."""
+    W = Hh = 100
+    rows = _grid(W, Hh, "#")            # tudo parede; escavamos corredores e camaras
+    rng = _rnd.Random(4040)
+
+    def carve_rect(x1, y1, x2, y2, ch="."):
+        for y in range(y1, y2 + 1):
+            for x in range(x1, x2 + 1):
+                if 1 <= x < W - 1 and 1 <= y < Hh - 1:
+                    rows[y][x] = ch
+
+    def carve_corr(x1, y1, x2, y2, wide=1):
+        cx, cy = x1, y1                 # corredor em L (horizontal, depois vertical)
+        while cx != x2:
+            for w in range(wide):
+                if 1 <= cy + w < Hh - 1: rows[cy + w][cx] = "."
+            cx += 1 if x2 > cx else -1
+        while cy != y2:
+            for w in range(wide):
+                if 1 <= cx + w < W - 1: rows[cy][cx + w] = "."
+            cy += 1 if y2 > cy else -1
+        if 1 <= x2 < W - 1 and 1 <= y2 < Hh - 1: rows[y2][x2] = "."
+
+    # --- camaras ---
+    carve_rect(45, 4, 55, 12)                       # hall de entrada (norte)
+    carve_rect(44, 38, 56, 50)                      # camara central
+    carve_rect(15, 20, 30, 32)                      # camara NO
+    carve_rect(70, 20, 85, 32)                      # camara NE
+    carve_rect(15, 56, 30, 68)                      # camara SO
+    carve_rect(70, 56, 85, 68)                      # camara SE
+    carve_rect(38, 76, 62, 92, "d")                 # CAMARA DO FARAO (chao real)
+
+    # --- corredores principais (garantem o caminho ate o farao) ---
+    carve_corr(50, 12, 50, 38, 2)                   # entrada -> central
+    carve_corr(50, 50, 50, 76, 2)                   # central -> camara do farao
+    carve_corr(44, 42, 22, 26, 1)                   # central -> NO
+    carve_corr(56, 42, 78, 26, 1)                   # central -> NE
+    carve_corr(44, 48, 22, 62, 1)                   # central -> SO
+    carve_corr(56, 48, 78, 62, 1)                   # central -> SE
+    # corredores que serpenteiam (clima de labirinto)
+    carve_corr(22, 32, 22, 56, 1)                   # liga NO-SO (parede oeste)
+    carve_corr(78, 32, 78, 56, 1)                   # liga NE-SE (parede leste)
+    carve_corr(30, 24, 45, 8, 1)                    # atalho NO -> hall
+    carve_corr(70, 24, 55, 8, 1)                    # atalho NE -> hall
+    # becos sem saida (so pra confundir o invasor)
+    for (bx, by, ex, ey) in [(35, 45, 35, 35), (65, 45, 65, 35),
+                             (40, 60, 30, 72), (60, 60, 70, 72),
+                             (50, 30, 38, 26), (50, 30, 62, 26)]:
+        carve_corr(bx, by, ex, ey, 1)
+
+    # --- boca de saida (p), no hall norte ---
+    rows[5][50] = "p"
+
+    # --- deco: sarcofagos nas camaras ---
+    for (cx, cy) in [(18, 22), (28, 30), (72, 22), (83, 30), (18, 58),
+                     (28, 66), (72, 58), (83, 66), (46, 40), (54, 48)]:
+        if rows[cy][cx] == ".": rows[cy][cx] = "H"
+    # tochas flanqueando os corredores principais (nas paredes)
+    for yy in range(14, 38, 5):
+        if rows[yy][49] == "#": rows[yy][49] = "L"
+        if rows[yy][52] == "#": rows[yy][52] = "L"
+    for yy in range(53, 76, 5):
+        if rows[yy][49] == "#": rows[yy][49] = "L"
+        if rows[yy][52] == "#": rows[yy][52] = "L"
+    # entulho espalhado nos corredores
+    for _ in range(140):
+        x, y = rng.randint(2, W - 3), rng.randint(2, Hh - 3)
+        if rows[y][x] == "." and rng.random() < 0.5:
+            rows[y][x] = ","
+
+    # --- CAMARA DO FARAO: tochas, sarcofagos dos servos e o trono ao fundo ---
+    for (tx, ty) in [(40, 78), (60, 78), (40, 90), (60, 90)]:
+        rows[ty][tx] = "L"                          # tochas nos cantos
+    for tx in (42, 46, 54, 58):                     # sarcofagos dos servos (longe da boca)
+        rows[78][tx] = "H"
+    rows[90][50] = "H"                              # trono / sarcofago real ao fundo
+
+    _ring(rows, "#")                                # borda solida
+    return ["".join(r) for r in rows]
+
+
 COVA_COLOSSO_ROWS = _build_cova_colosso()
 COVA_COLOSSO_SPAWN = [(50, 3), (49, 3), (50, 4), (49, 4)]   # logo dentro da boca norte
+MINA_AVHUR_ROWS = _build_mina_avhur()
+MINA_AVHUR_SPAWN = [(50, 7), (49, 7), (51, 7), (50, 8)]   # logo dentro da boca (vindo da piramide)
 VALDARKRAM_ROWS = _build_valdarkram()
 VALDARKRAM_SPAWN = [(4, 50), (5, 50), (4, 49), (4, 51)]   # logo dentro da boca oeste
 
@@ -1013,6 +1115,7 @@ MAPS = {
     "repouso_dama":     {"rows": REPOUSO_ROWS,          "spawns": REPOUSO_SPAWN},
     "avasham":          {"rows": AVASHAM_ROWS,          "spawns": AVASHAM_SPAWN},
     "cova_colosso":     {"rows": COVA_COLOSSO_ROWS,     "spawns": COVA_COLOSSO_SPAWN},
+    "mina_avhur":       {"rows": MINA_AVHUR_ROWS,       "spawns": MINA_AVHUR_SPAWN},
     "valdarkram":       {"rows": VALDARKRAM_ROWS,       "spawns": VALDARKRAM_SPAWN},
 }
 

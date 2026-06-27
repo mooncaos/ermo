@@ -726,7 +726,7 @@ def _monster_wander_loop():
     Quem perambula pra perto de um jogador parado tambem inicia a luta."""
     while True:
         socketio.sleep(1.2)
-        for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram"):
+        for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram", "mina_avhur"):
             moved = world.wander_monsters(mp)
             if moved:
                 socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)
@@ -1040,6 +1040,15 @@ def on_move(data):
     if map_rows(mp)[player["y"]][player["x"]] == "*":
         sx, sy = rules.pick_spawn(world, "rasharan")
         _go_to(request.sid, "rasharan", sx, sy)
+        return
+
+    # pisou na PORTA da Piramide de Avhur (no deserto)? desce pra Mina Fechada de Avhur.
+    if mp == "avasham" and map_rows("avasham")[player["y"]][player["x"]] == "p":
+        _go_to(request.sid, "mina_avhur", 50, 7, "down")
+        return
+    # pisou na boca da Mina de Avhur? sobe de volta pro deserto, em frente a piramide.
+    if mp == "mina_avhur" and map_rows("mina_avhur")[player["y"]][player["x"]] == "p":
+        _go_to(request.sid, "avasham", 76, 46, "up")
         return
 
     # pisou numa passagem de borda? cai no mapa vizinho, virado pra dentro.
@@ -1532,7 +1541,8 @@ def on_shop_sell(data):
     if qty < 1 or not items.remove_from_bag(bag, item_id, qty):
         emit("toast", {"text": "Voce nao tem isso na mochila."})
         return
-    unit = max(1, int(round(int(cat.get("value", 1)) * items.SHOP_SELL_RATE)))
+    unit = (int(cat["sell_value"]) if "sell_value" in cat
+            else max(1, int(round(int(cat.get("value", 1)) * items.SHOP_SELL_RATE))))
     gain = unit * qty
     player["wallet"] = int(player.get("wallet", 0)) + gain
     _persist_loadout_wallet(player)

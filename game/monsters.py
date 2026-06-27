@@ -242,6 +242,90 @@ MONSTERS = {
         "xp": 288, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
         "drops": [("coracao_abominacao", 0.9, 1, 1), ("coin_gold", 0.4, 1, 1)], "bronze": (70, 120),
     },
+
+    # ===================== MINA FECHADA DE AVHUR (tumba egipcia, pela piramide) =====================
+    # Mortos-vivos e escravos amaldicoados sob o deserto. Zona de GRANA: ~3x o bronze
+    # do cemiterio, ~0.8x o xp. TODOS largam a Moeda de Avhur (vale 500 nos mercadores).
+    "escaravelho_praga": {
+        "name": "Escaravelho da Praga", "hp": 30, "ac": 13, "atk": 4,
+        "dmg": {"n": 1, "d": 6, "flat": 1}, "reach": 1, "speed": 8,
+        "xp": 86, "dex": 4, "glyph": "🪲", "kind": "inseto", "atk_name": "ferroada",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (90, 150),
+    },
+    "servo_envolto": {
+        "name": "Servo Envolto", "hp": 44, "ac": 13, "atk": 5,
+        "dmg": {"n": 1, "d": 8, "flat": 1}, "reach": 1, "speed": 4,
+        "xp": 95, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garra enfaixada",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (96, 156),
+    },
+    "escravo_amaldicoado": {
+        "name": "Escravo Amaldiçoado", "hp": 50, "ac": 12, "atk": 5,
+        "dmg": {"n": 1, "d": 8, "flat": 2}, "reach": 1, "speed": 5,
+        "xp": 100, "dex": 2, "glyph": "⛓️", "kind": "morto-vivo", "atk_name": "corrente",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (102, 162),
+    },
+    "naja_tumular": {
+        "name": "Naja Tumular", "hp": 38, "ac": 14, "atk": 6,
+        "dmg": {"n": 1, "d": 6, "flat": 2}, "reach": 1, "speed": 6,
+        "xp": 110, "dex": 4, "glyph": "🐍", "kind": "serpente", "atk_name": "bote venenoso",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (108, 168),
+    },
+    "chacal_anubita": {
+        "name": "Chacal Anubita", "hp": 52, "ac": 14, "atk": 6,
+        "dmg": {"n": 1, "d": 8, "flat": 3}, "reach": 1, "speed": 7,
+        "xp": 120, "dex": 3, "glyph": "🐺", "kind": "besta", "atk_name": "dentada",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (114, 180),
+    },
+    "mumia_guerreira": {
+        "name": "Múmia Guerreira", "hp": 66, "ac": 15, "atk": 7,
+        "dmg": {"n": 1, "d": 10, "flat": 3}, "reach": 1, "speed": 4,
+        "xp": 140, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "machado ritual",
+        "drops": [("moeda_avhur", 1.0, 1, 1), ("coin_gold", 0.15, 1, 1)], "bronze": (126, 198),
+    },
+    "sacerdote_sombrio": {
+        "name": "Sacerdote Sombrio", "hp": 54, "ac": 13, "atk": 6,
+        "dmg": {"n": 1, "d": 8, "flat": 2}, "reach": 2, "speed": 5,
+        "xp": 150, "dex": 2, "glyph": "🧙", "kind": "morto-vivo", "atk_name": "praga sussurrada",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (138, 210),
+    },
+    "guardiao_arenito": {
+        "name": "Guardião de Arenito", "hp": 84, "ac": 16, "atk": 8,
+        "dmg": {"n": 1, "d": 12, "flat": 4}, "reach": 1, "speed": 4,
+        "xp": 160, "dex": 0, "glyph": "🗿", "kind": "golem", "atk_name": "punho de arenito",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (150, 228),
+    },
+    "espirito_faraonico": {
+        "name": "Espírito Faraônico", "hp": 48, "ac": 14, "atk": 7,
+        "dmg": {"n": 1, "d": 8, "flat": 3}, "reach": 1, "speed": 6,
+        "xp": 165, "dex": 3, "glyph": "👻", "kind": "espirito", "atk_name": "toque gélido",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (144, 216),
+    },
+    "carregador_canopo": {
+        "name": "Carregador Canopo", "hp": 72, "ac": 14, "atk": 7,
+        "dmg": {"n": 1, "d": 10, "flat": 4}, "reach": 1, "speed": 4,
+        "xp": 175, "dex": 1, "glyph": "🏺", "kind": "morto-vivo", "atk_name": "jarra canópica",
+        "drops": [("moeda_avhur", 1.0, 1, 1)], "bronze": (156, 240),
+    },
+    "anubis_guerreiro": {
+        "name": "Guerreiro de Anúbis", "hp": 90, "ac": 16, "atk": 9,
+        "dmg": {"n": 2, "d": 6, "flat": 4}, "reach": 1, "speed": 6,
+        "xp": 200, "dex": 3, "glyph": "🐺", "kind": "besta", "atk_name": "khopesh",
+        "drops": [("moeda_avhur", 1.0, 1, 1), ("coin_gold", 0.2, 1, 1)], "bronze": (168, 258),
+    },
+    "abominacao_embalsamada": {
+        "name": "Abominação Embalsamada", "hp": 124, "ac": 17, "atk": 10,
+        "dmg": {"n": 2, "d": 8, "flat": 5}, "reach": 2, "speed": 4,
+        "xp": 230, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "esmagar enfaixado",
+        "drops": [("moeda_avhur", 1.0, 1, 2), ("coin_gold", 0.3, 1, 1)], "bronze": (210, 330),
+    },
+    "farao_avhur": {
+        "name": "Faraó Amaldiçoado de Avhur", "hp": 1400, "ac": 23, "atk": 17,
+        "dmg": {"n": 5, "d": 10, "flat": 12}, "reach": 2, "speed": 5,
+        "xp": 1800, "dex": 4, "glyph": "👑", "kind": "morto-vivo",
+        "atk_name": "cetro real", "boss": True, "summon_type": "mumia_guerreira", "summons": 4,
+        "drops": [("mascara_faraonica", 1.0, 1, 1), ("moeda_avhur", 1.0, 6, 10), ("coin_gold", 1.0, 3, 6)],
+        "bronze": (500, 800),
+    },
 }
 
 
@@ -423,6 +507,35 @@ COVA_COLOSSO_SPAWNS = [
 ]
 
 
+# MINA FECHADA DE AVHUR: tumba egipcia sob a piramide do deserto. Camaras cheias
+# de mortos-vivos ate a CAMARA DO FARAO no fundo sul. Zona de GRANA (Moeda de Avhur).
+MINA_AVHUR_SPAWNS = [
+    # camara NO (rasos): escaravelhos, servos, escravos
+    ("escaravelho_praga", 20, 24), ("escaravelho_praga", 27, 29), ("escaravelho_praga", 18, 30),
+    ("servo_envolto", 23, 22), ("servo_envolto", 29, 25),
+    ("escravo_amaldicoado", 17, 27), ("escravo_amaldicoado", 25, 31),
+    # camara NE: najas, chacais, mumias
+    ("naja_tumular", 74, 24), ("naja_tumular", 81, 29),
+    ("chacal_anubita", 78, 22), ("chacal_anubita", 72, 31),
+    ("mumia_guerreira", 83, 26), ("mumia_guerreira", 76, 30),
+    # camara central: mix medio
+    ("sacerdote_sombrio", 47, 41), ("espirito_faraonico", 53, 47),
+    ("mumia_guerreira", 50, 40), ("naja_tumular", 45, 48),
+    # camara SO: sacerdotes, guardioes, espiritos
+    ("sacerdote_sombrio", 20, 60), ("sacerdote_sombrio", 27, 65),
+    ("guardiao_arenito", 18, 62), ("guardiao_arenito", 24, 67),
+    ("espirito_faraonico", 29, 59),
+    # camara SE: carregadores e Anubis (elite)
+    ("carregador_canopo", 74, 60), ("carregador_canopo", 81, 65),
+    ("anubis_guerreiro", 78, 62), ("anubis_guerreiro", 72, 67),
+    # corredor final, a guarda do farao: abominacoes embalsamadas
+    ("abominacao_embalsamada", 50, 66), ("abominacao_embalsamada", 45, 70),
+    ("abominacao_embalsamada", 55, 70),
+    # A CAMARA DO FARAO: so o rei amaldicoado
+    ("farao_avhur", 50, 84),
+]
+
+
 # CEMITÉRIO ANTIGO DE VALDARKRAM: entra pelo OESTE (vindo do Repouso). Fraco no
 # oeste, forte no fundo leste. Tumulos e criptas espalhados.
 VALDARKRAM_SPAWNS = [
@@ -573,6 +686,38 @@ MONSTER_ABILITIES = {
                        "save": "SAB", "dc": 18, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
                       {"id": "festim_macabro", "name": "Festim Macabro", "type": "heal",
                        "heal": {"n": 6, "d": 10}, "chance": 0.3, "cd": 4}],
+
+    # --- MINA DE AVHUR: mortos-vivos egipcios ---
+    "naja_tumular":  [{"id": "veneno_naja", "name": "Veneno da Naja", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "sacerdote_sombrio": [{"id": "praga_sussurrada", "name": "Praga Sussurrada", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 1, "d": 8}, "chance": 0.4, "cd": 2}],
+    "mumia_guerreira": [{"id": "presenca_terrivel", "name": "Presença Terrível", "type": "fear",
+                       "save": "SAB", "dc": 13, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "espirito_faraonico": [{"id": "dreno_faraonico", "name": "Dreno Faraônico", "type": "drain",
+                       "chance": 0.45, "cd": 2}],
+    "guardiao_arenito": [{"id": "punho_arenito", "name": "Punho de Arenito", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 10}, "chance": 0.4, "cd": 2}],
+    "anubis_guerreiro": [{"id": "golpe_khopesh", "name": "Golpe de Khopesh", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 10}, "chance": 0.45, "cd": 2}],
+    "abominacao_embalsamada": [{"id": "esmagar_embalsamado", "name": "Esmagamento Embalsamado", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 10}, "chance": 0.45, "cd": 2},
+                      {"id": "fedor_tumular", "name": "Fedor Tumular", "type": "fear",
+                       "save": "SAB", "dc": 14, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+
+    # --- O CHEFE: Faraó Amaldiçoado de Avhur (arsenal completo, como o Lorde Varth) ---
+    "farao_avhur": [{"id": "cetro_real", "name": "Golpe do Cetro Real", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 12}, "chance": 0.5, "cd": 2},
+                      {"id": "dreno_real", "name": "Dreno do Faraó", "type": "drain",
+                       "chance": 0.5, "cd": 2},
+                      {"id": "praga_de_avhur", "name": "Praga de Avhur", "type": "inflict",
+                       "status": "poison", "turns": 4, "dot": {"n": 4, "d": 6}, "chance": 0.45, "cd": 2},
+                      {"id": "maldicao_escaravelho", "name": "Maldição do Escaravelho", "type": "gaze",
+                       "save": "CON", "dc": 18, "status": "stunned", "turns": 1, "chance": 0.35, "cd": 3},
+                      {"id": "olhar_do_farao", "name": "Olhar do Faraó", "type": "fear",
+                       "save": "SAB", "dc": 18, "status": "frightened", "turns": 3, "chance": 0.35, "cd": 3},
+                      {"id": "banquete_dos_mortos", "name": "Banquete dos Mortos", "type": "heal",
+                       "heal": {"n": 6, "d": 8}, "chance": 0.3, "cd": 4}],
 }
 
 

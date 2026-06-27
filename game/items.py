@@ -34,6 +34,8 @@ ITEMS = {
     "tampa_panela":     {"name": "Tampa de Panela",  "kind": "armor",   "stackable": False, "color": "#9aa0aa", "slot": "hand_l",   "visual": "lid",      "rarity": "comum", "ac": 1, "value": 5},
     "anel_lata":        {"name": "Anel de Lata",     "kind": "trinket", "stackable": False, "color": "#b9b2a0", "slot": "ring",     "visual": "ring",     "rarity": "comum", "atk": 0, "value": 4},
     "anel_varth":       {"name": "Anel do Lorde Varth", "kind": "trinket", "stackable": False, "color": "#7a4ad0", "slot": "ring", "visual": "ring", "rarity": "lendario", "ac": 4, "atk": 4, "value": 2000, "desc": "O selo de Lorde Varth, pulsando com energia necromântica. +4 de armadura e +4 para acertar."},
+    "moeda_avhur":      {"name": "Moeda de Avhur", "kind": "trofeu", "stackable": True, "color": "#d8b24a", "value": 500, "sell_value": 500, "rarity": "raro", "desc": "Moeda antiga cunhada nas profundezas da Mina de Avhur. Os mercadores pagam 500 de bronze por ela. Dizem que ainda guarda outro proposito."},
+    "mascara_faraonica":{"name": "Máscara Faraônica", "kind": "tesouro", "stackable": False, "color": "#f4d06a", "slot": "head", "visual": "helmet", "rarity": "lendario", "ac": 5, "atk": 2, "value": 2500, "desc": "A máscara funerária de ouro do Faraó de Avhur, fria e pesada nas mãos. +5 de armadura e +2 para acertar. Os mortos ainda obedecem a quem a porta."},
     "cordao_fake":      {"name": "Cordão Banhado",   "kind": "trinket", "stackable": False, "color": "#d9c27a", "slot": "neck",     "visual": "amulet",   "rarity": "comum", "ac": 0, "value": 5},
 
     # --- trofeus de caca (bichos do Descampado) ---

@@ -166,6 +166,7 @@ const MAP_AMBIENT = {
   descampado:       {r:122, g:92,  b:52,  a:0.11, part:'#e8c98a'},  // descampado seco, poeira
   avasham:          {r:255, g:200, b:110, a:0.12, part:'#ffd98a'},  // deserto: calor ambar
   cova_colosso:     {r:228, g:150, b:78,  a:0.18, part:'#e8a860'},  // cova do colosso: pedra quente, poeira
+  mina_avhur:       {r:60,  g:42,  b:18,  a:0.34, part:'#e8b860'},  // tumba egipcia: penumbra de tocha, poeira dourada
   valdarkram:       {r:28,  g:38,  b:48,  a:0.40, part:'#9fb4c0'},  // cemiterio: bruma fria
   salao:            {r:46,  g:34,  b:78,  a:0.12, part:'#caa6ff'},  // salao: penumbra sagrada
   rasharan:         {r:232, g:182, b:92,  a:0.14, part:'#ffe6a0'},  // reino dourado do trigo
@@ -714,6 +715,69 @@ function drawPine(c, px, py, ts, gx, gy){
   }
   c.fillStyle = FCOL.pineTip; c.fillRect(cx-1, py+ts*0.08, 2, 3);
 }
+function drawMineTile(c, ch, px, py, ts, gx, gy){
+  // chao base de tumba: pedra arenosa empoeirada, iluminada por tochas (tom quente escuro)
+  function tomb(rich){
+    const h=((gx*7+gy*11)%4);
+    const pal = rich ? ['#b89348','#ab863f','#b08c42','#9e7c3a']    // camara real (dourado)
+                     : ['#7a6644','#6f5d3e','#746142','#665538'];   // tumba comum
+    c.fillStyle=pal[h]; c.fillRect(px,py,ts,ts);
+    c.strokeStyle='rgba(40,30,16,0.4)'; c.lineWidth=1; c.strokeRect(px+0.5,py+0.5,ts-1,ts-1);
+    if((gx*5+gy*9)%5===0){ c.fillStyle='rgba(30,22,12,0.4)'; c.fillRect(px+ts*(0.25+(gx%3)*0.2),py+ts*(0.4+(gy%2)*0.3),1.6,1.4); }
+    if(rich && (gx+gy)%2===0){ c.fillStyle='rgba(244,208,106,0.18)'; c.fillRect(px+ts*0.3,py+ts*0.3,ts*0.4,ts*0.4); }
+  }
+  switch(ch){
+    case '.': tomb(false); return true;
+    case 'd': tomb(true); return true;
+    case ',': tomb(false);                          // entulho / ossos no chao
+      c.strokeStyle='#d8cfb4'; c.lineWidth=1.3;
+      c.beginPath(); c.moveTo(px+ts*0.28,py+ts*0.62); c.lineTo(px+ts*0.66,py+ts*0.54); c.stroke();
+      c.fillStyle='#d8cfb4'; c.beginPath(); c.arc(px+ts*0.28,py+ts*0.62,1.6,0,Math.PI*2); c.arc(px+ts*0.66,py+ts*0.54,1.6,0,Math.PI*2); c.fill();
+      return true;
+    case '#': {                                     // parede de arenito (solido)
+      const base='#5a4a30';
+      c.fillStyle=base; c.fillRect(px,py,ts,ts);
+      c.fillStyle=shade(base,0.12); c.fillRect(px,py,ts,ts*0.5);
+      c.strokeStyle='rgba(28,20,10,0.55)'; c.lineWidth=1;
+      const off=((gx+gy)%2)?ts*0.5:0;
+      c.beginPath();
+      c.moveTo(px,py+ts*0.5); c.lineTo(px+ts,py+ts*0.5);
+      c.moveTo(px+off,py); c.lineTo(px+off,py+ts*0.5);
+      c.moveTo(px+(off?0:ts*0.5),py+ts*0.5); c.lineTo(px+(off?0:ts*0.5),py+ts);
+      c.stroke();
+      if((gx*3+gy*5)%7===0){ c.fillStyle='rgba(214,178,90,0.4)';
+        c.fillRect(px+ts*0.44,py+ts*0.28,2,ts*0.3); c.fillRect(px+ts*0.38,py+ts*0.28,ts*0.14,2);
+        c.fillRect(px+ts*0.38,py+ts*0.52,ts*0.14,2); }
+      return true;
+    }
+    case 'H': {                                     // sarcofago (solido)
+      tomb(false);
+      c.fillStyle='#9a7e3e'; roundRect(c,px+ts*0.22,py+ts*0.12,ts*0.56,ts*0.76,ts*0.16); c.fill();
+      c.fillStyle=shade('#9a7e3e',0.18); roundRect(c,px+ts*0.3,py+ts*0.18,ts*0.4,ts*0.3,ts*0.14); c.fill();
+      c.fillStyle='#3a2e16'; c.fillRect(px+ts*0.46,py+ts*0.5,ts*0.08,ts*0.3);
+      c.strokeStyle=shade('#9a7e3e',-0.3); c.lineWidth=1; c.strokeRect(px+ts*0.22,py+ts*0.12,ts*0.56,ts*0.76);
+      return true;
+    }
+    case 'L': {                                     // tocha de parede / braseiro (solido)
+      c.fillStyle='#4a3a22'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#6a5230'; c.fillRect(px+ts*0.44,py+ts*0.4,ts*0.12,ts*0.5);
+      const g=c.createRadialGradient(px+ts*0.5,py+ts*0.32,1,px+ts*0.5,py+ts*0.32,ts*0.55);
+      g.addColorStop(0,'rgba(255,220,120,0.95)'); g.addColorStop(0.5,'rgba(244,150,40,0.55)'); g.addColorStop(1,'rgba(244,150,40,0)');
+      c.fillStyle=g; c.fillRect(px,py,ts,ts*0.85);
+      c.fillStyle='#ffd86a'; c.beginPath();
+      c.moveTo(px+ts*0.5,py+ts*0.12); c.quadraticCurveTo(px+ts*0.62,py+ts*0.3,px+ts*0.5,py+ts*0.42); c.quadraticCurveTo(px+ts*0.38,py+ts*0.3,px+ts*0.5,py+ts*0.12); c.fill();
+      return true;
+    }
+    case 'p': {                                     // boca de saida: escada subindo pro deserto
+      c.fillStyle='#5a4a30'; c.fillRect(px,py,ts,ts);
+      for(let i=0;i<4;i++){ c.fillStyle=shade('#b89348',-0.05*i); c.fillRect(px+ts*0.16,py+ts*(0.16+i*0.18),ts*0.68,ts*0.14); }
+      c.fillStyle='rgba(255,240,190,0.35)'; c.fillRect(px+ts*0.16,py+ts*0.1,ts*0.68,ts*0.1);
+      return true;
+    }
+  }
+  return false;
+}
+
 function drawDesertTile(c, ch, px, py, ts, gx, gy){
   function sand(){
     const h=((gx*7+gy*13)%5);
@@ -759,6 +823,33 @@ function drawDesertTile(c, ch, px, py, ts, gx, gy){
       c.moveTo(px+ts*0.5,py+ts*0.5); c.lineTo(px+ts*(0.4+(gx%2)*0.2),py+ts*0.9);
       c.stroke();
       if((gx*5+gy*9)%7===0){ c.fillStyle='rgba(255,150,60,0.5)'; c.fillRect(px+ts*0.46,py+ts*0.46,2,2); }  // brasa presa
+      return true;
+    }
+    case 'B': case 'b': {                          // bloco de arenito da Piramide de Avhur
+      const base = (ch==='b') ? '#d9b25e' : '#c79a4e';   // apice 'b' mais claro (pega luz)
+      c.fillStyle=base; c.fillRect(px,py,ts,ts);
+      c.fillStyle=shade(base,0.20); c.fillRect(px,py,ts,ts*0.16);       // topo iluminado
+      c.fillStyle=shade(base,-0.20); c.fillRect(px,py+ts*0.84,ts,ts*0.16); // base na sombra
+      c.strokeStyle='rgba(90,64,28,0.45)'; c.lineWidth=1;               // juntas das pedras
+      const off=((gx+gy)%2)?ts*0.5:0;
+      c.beginPath();
+      c.moveTo(px,py+ts*0.5); c.lineTo(px+ts,py+ts*0.5);
+      c.moveTo(px+off,py); c.lineTo(px+off,py+ts*0.5);
+      c.moveTo(px+(off?0:ts*0.5),py+ts*0.5); c.lineTo(px+(off?0:ts*0.5),py+ts);
+      c.stroke();
+      if((gx*5+gy*7)%6===0){ c.fillStyle='rgba(120,86,36,0.5)';        // hieroglifo gravado
+        c.fillRect(px+ts*0.42,py+ts*0.3,ts*0.16,2); c.fillRect(px+ts*0.48,py+ts*0.3,2,ts*0.3); }
+      return true;
+    }
+    case 'p': {                                    // PORTA da piramide (boca da Mina de Avhur)
+      c.fillStyle='#c79a4e'; c.fillRect(px,py,ts,ts);
+      c.fillStyle=shade('#c79a4e',0.2); c.fillRect(px,py,ts,ts*0.14);
+      const grd=c.createLinearGradient(px,py,px,py+ts);               // vao escuro (entrada)
+      grd.addColorStop(0,'#241a10'); grd.addColorStop(1,'#0c0805');
+      c.fillStyle=grd; c.fillRect(px+ts*0.2,py+ts*0.16,ts*0.6,ts*0.84);
+      c.fillStyle='rgba(244,184,96,0.5)';                              // brilho de tocha la dentro
+      c.beginPath(); c.arc(px+ts*0.5,py+ts*0.72,ts*0.12,0,Math.PI*2); c.fill();
+      c.fillStyle=shade('#c79a4e',-0.3); c.fillRect(px+ts*0.16,py+ts*0.1,ts*0.68,ts*0.07); // verga
       return true;
     }
   }
@@ -835,6 +926,7 @@ function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'mina_avhur' && drawMineTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'ermo' && drawSapoTile(c, ch, px, py, ts, gx, gy)) return;
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;
@@ -1830,6 +1922,60 @@ function drawAbomination(c, sx, sy, ts, p){
   drawMonsterBarName(c, sx, sy, ts, p);
 }
 
+function drawFarao(c, sx, sy, ts, p){
+  const cx=sx+ts/2, t=performance.now();
+  const bob=Math.sin(t/700+cx)*1.4, cy=sy+ts*0.5+bob;
+  const GOLD='#e8c14e', GOLDD='#b8902f', LINEN='#e6dcc0', BLUE='#2f6fb0';
+  c.save();
+  c.fillStyle='rgba(0,0,0,.34)'; c.beginPath(); c.ellipse(cx,sy+ts*0.86,ts*0.3,ts*0.11,0,0,Math.PI*2); c.fill();
+  // aura sombria do rei amaldicoado
+  const aur=c.createRadialGradient(cx,cy,1,cx,cy,ts*0.5);
+  aur.addColorStop(0,'rgba(232,193,78,0.20)'); aur.addColorStop(1,'rgba(232,193,78,0)');
+  c.fillStyle=aur; c.fillRect(sx-ts*0.2,sy-ts*0.2,ts*1.4,ts*1.4);
+  // pernas enfaixadas
+  c.strokeStyle=LINEN; c.lineWidth=Math.max(2,ts*0.07); c.lineCap='round';
+  c.beginPath(); c.moveTo(cx-ts*0.08,cy+ts*0.14); c.lineTo(cx-ts*0.09,cy+ts*0.36); c.moveTo(cx+ts*0.08,cy+ts*0.14); c.lineTo(cx+ts*0.1,cy+ts*0.36); c.stroke();
+  // corpo / saiote dourado (shendyt)
+  c.fillStyle=GOLD; roundRect(c,cx-ts*0.15,cy-ts*0.16,ts*0.3,ts*0.34,ts*0.06); c.fill();
+  c.fillStyle=GOLDD; c.fillRect(cx-ts*0.15,cy+ts*0.04,ts*0.3,ts*0.05);            // cinto
+  c.strokeStyle=shade(LINEN,-0.1); c.lineWidth=1.2;                              // faixas de linho
+  for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(cx-ts*0.12,cy-ts*0.08+i*ts*0.06); c.lineTo(cx+ts*0.12,cy-ts*0.06+i*ts*0.06); c.stroke(); }
+  // bracos cruzados
+  c.strokeStyle=LINEN; c.lineWidth=Math.max(2,ts*0.055);
+  c.beginPath(); c.moveTo(cx-ts*0.12,cy-ts*0.06); c.lineTo(cx-ts*0.02,cy+ts*0.04); c.stroke();
+  c.beginPath(); c.moveTo(cx+ts*0.12,cy-ts*0.06); c.lineTo(cx+ts*0.02,cy+ts*0.04); c.stroke();
+  // cetro (heka) e mangual (nekhakha) cruzados sobre o peito
+  c.strokeStyle=GOLD; c.lineWidth=ts*0.04;
+  c.beginPath(); c.moveTo(cx-ts*0.06,cy+ts*0.08); c.lineTo(cx-ts*0.12,cy-ts*0.22); c.stroke();
+  c.beginPath(); c.arc(cx-ts*0.12,cy-ts*0.24,ts*0.03,Math.PI*0.5,Math.PI*1.8); c.stroke();
+  c.beginPath(); c.moveTo(cx+ts*0.06,cy+ts*0.08); c.lineTo(cx+ts*0.12,cy-ts*0.22); c.stroke();
+  c.fillStyle=GOLD; for(let k=-1;k<=1;k++){ c.beginPath(); c.arc(cx+ts*0.12+k*ts*0.03,cy-ts*0.24,ts*0.015,0,Math.PI*2); c.fill(); }
+  // cabeca + toucado nemes
+  const hy=cy-ts*0.28;
+  c.fillStyle=GOLD; c.beginPath();
+  c.moveTo(cx-ts*0.16,hy+ts*0.02); c.quadraticCurveTo(cx,hy-ts*0.16,cx+ts*0.16,hy+ts*0.02);
+  c.lineTo(cx+ts*0.14,hy+ts*0.14); c.lineTo(cx-ts*0.14,hy+ts*0.14); c.closePath(); c.fill();
+  c.strokeStyle=BLUE; c.lineWidth=1.4;
+  for(let i=-2;i<=2;i++){ c.beginPath(); c.moveTo(cx+i*ts*0.05,hy-ts*0.02); c.lineTo(cx+i*ts*0.055,hy+ts*0.13); c.stroke(); }
+  c.fillStyle=GOLD; c.fillRect(cx-ts*0.15,hy+ts*0.02,ts*0.04,ts*0.18); c.fillRect(cx+ts*0.11,hy+ts*0.02,ts*0.04,ts*0.18);
+  // rosto (mascara dourada)
+  c.fillStyle=shade(GOLD,0.08); c.beginPath(); c.ellipse(cx,hy+ts*0.05,ts*0.085,ts*0.1,0,0,Math.PI*2); c.fill();
+  // uraeus (cobra na testa)
+  c.fillStyle=BLUE; c.beginPath(); c.arc(cx,hy-ts*0.03,ts*0.018,0,Math.PI*2); c.fill();
+  // olhos brilhando (morte-viva)
+  c.fillStyle='#9be8ff'; c.shadowColor='#9be8ff'; c.shadowBlur=5;
+  c.beginPath(); c.arc(cx-ts*0.03,hy+ts*0.04,ts*0.016,0,Math.PI*2); c.arc(cx+ts*0.03,hy+ts*0.04,ts*0.016,0,Math.PI*2); c.fill(); c.shadowBlur=0;
+  // barba postica
+  c.fillStyle=GOLDD; c.fillRect(cx-ts*0.015,hy+ts*0.13,ts*0.03,ts*0.08);
+  c.restore();
+  // tag FARAO
+  c.save(); c.font='800 8px Cinzel, serif'; c.textAlign='center'; c.textBaseline='bottom';
+  const tw=c.measureText('FARAÓ').width+10, tagY=sy-12;
+  c.fillStyle='rgba(40,28,6,0.92)'; roundRect(c,cx-tw/2,tagY-11,tw,11,3); c.fill();
+  c.fillStyle='#f4d06a'; c.fillText('FARAÓ',cx,tagY-1.5); c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
 function drawMonster(c, sx, sy, ts, p){
   // cada tipo tem sua arte; o resto cai no emoji.
   const t = p.mtype;
@@ -1850,6 +1996,16 @@ function drawMonster(c, sx, sy, ts, p){
   if(t === 'aparicao_sepulcral'){ drawSpirit(c, sx, sy, ts, p); return; }
   if(t === 'necromante_caido'){ drawWitch(c, sx, sy, ts, p); return; }
   if(t === 'abominacao_ossea'){ drawAbomination(c, sx, sy, ts, p); return; }
+  // --- MINA DE AVHUR (mortos-vivos egipcios) ---
+  if(t === 'farao_avhur'){ drawFarao(c, sx, sy, ts, p); return; }
+  if(t === 'servo_envolto' || t === 'escravo_amaldicoado' || t === 'mumia_guerreira' || t === 'carregador_canopo'){ drawUndead(c, sx, sy, ts, p); return; }
+  if(t === 'sacerdote_sombrio'){ drawWitch(c, sx, sy, ts, p); return; }
+  if(t === 'abominacao_embalsamada'){ drawAbomination(c, sx, sy, ts, p); return; }
+  if(t === 'espirito_faraonico'){ drawSpirit(c, sx, sy, ts, p); return; }
+  if(t === 'escaravelho_praga'){ drawInsectoid(c, sx, sy, ts, p); return; }
+  if(t === 'naja_tumular'){ drawSerpent(c, sx, sy, ts, p); return; }
+  if(t === 'chacal_anubita' || t === 'anubis_guerreiro'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'guardiao_arenito'){ drawElemental(c, sx, sy, ts, p); return; }
   const cx = sx + ts/2, cy = sy + ts/2;
   c.save();
   c.fillStyle = 'rgba(0,0,0,0.28)';
