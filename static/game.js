@@ -4204,6 +4204,7 @@ function connectWithToken(token){
 
   // loja (Armas Peteco): abre o painel de comprar/vender
   socket.on('shop_open', d=> openShop(d));
+  socket.on('xama_open', d=> openXama(d));
 
   // equipamento
   socket.on('loadout', d=>{
@@ -4264,9 +4265,14 @@ function connectWithToken(token){
       if(d.hp_max!=null) myFicha.hp_max = d.hp_max;
       if(d.prof!=null) myFicha.prof = d.prof;
       if(d.pending_asi) myFicha.pending_asi = d.pending_asi;
+      if(d.reason === 'morte') myFicha.death_protect = 0;     // proteção consumida na morte
       renderFicha();
     }
-    if(d.gained) toastMsg((d.gained > 0 ? '+' : '') + d.gained + ' XP' + (d.reason ? ' · ' + d.reason : ''), d.gained < 0);
+    if(d.reason === 'morte' && d.protected){
+      toastMsg('🛡️ Amarração da Xamã segurou o baque · perdeu só ' + Math.max(0,50-d.protected) + '% em vez de 50%', true);
+    } else if(d.gained){
+      toastMsg((d.gained > 0 ? '+' : '') + d.gained + ' XP' + (d.reason ? ' · ' + d.reason : ''), d.gained < 0);
+    }
   });
   socket.on('levelup', d=>{
     if(!d) return;
@@ -5023,6 +5029,60 @@ function _renderShopBody(){
     } else sellable.forEach(s=> _shopBodyEl.appendChild(_shopRow(s, 'sell')));
   }
 }
+let _xamaEl = null, _xamaBodyEl = null;
+function closeXama(){ if(_xamaEl){ _xamaEl.remove(); _xamaEl = null; _xamaBodyEl = null; } }
+function openXama(d){
+  d = d || {};
+  if(myFicha && typeof d.protection === 'number') myFicha.death_protect = d.protection;
+  if(_xamaEl){ renderXamaBody(_xamaBodyEl, d); return; }    // ja aberta: so atualiza
+  const ov = _overlay(); const box = _box(440);
+  box.style.cssText += ';padding:0;display:flex;flex-direction:column;max-height:86vh;';
+  const hd = document.createElement('div');
+  hd.style.cssText = 'display:flex;align-items:center;gap:10px;padding:16px 18px 10px;border-bottom:1px solid #2a2540;';
+  const ti = document.createElement('div'); ti.textContent = d.title || 'Xamã Miranda';
+  ti.style.cssText = 'font:700 19px Cinzel,serif;color:#9bd6a0;flex:1 1 auto;';
+  const x = _btn('✕', false); x.style.cssText += ';padding:4px 10px;'; x.onclick = closeXama;
+  hd.appendChild(ti); hd.appendChild(x); box.appendChild(hd);
+  _xamaBodyEl = document.createElement('div');
+  _xamaBodyEl.style.cssText = 'padding:12px 18px 18px;overflow-y:auto;';
+  box.appendChild(_xamaBodyEl);
+  renderXamaBody(_xamaBodyEl, d);
+  ov.appendChild(box); document.body.appendChild(ov); _xamaEl = ov;
+  ov.addEventListener('click', e=>{ if(e.target === ov) closeXama(); });
+}
+function renderXamaBody(body, d){
+  if(!body) return;
+  const prot = d.protection||0, max = d.max||50, eff = Math.max(0, 50-prot);
+  let h = '';
+  if(d.greet) h += '<div style="font-size:13px;color:#c9c4dc;font-style:italic;line-height:1.4;margin-bottom:12px">"'+esc(d.greet)+'"</div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'+
+    '<span style="font:600 11px Inter;color:#9bd6a0;text-transform:uppercase;letter-spacing:.5px">Proteção pra próxima morte</span>'+
+    '<span style="font:700 14px Cinzel,serif;color:#9bd6a0">'+prot+'% / '+max+'%</span></div>';
+  h += '<div style="height:10px;background:#1b1830;border:1px solid #34304f;border-radius:6px;overflow:hidden;margin-bottom:6px">'+
+    '<div style="height:100%;width:'+Math.min(100,prot/max*100).toFixed(0)+'%;background:linear-gradient(90deg,#4a8a5a,#8fd6a0);border-radius:6px"></div></div>';
+  h += '<div style="font-size:11px;color:#8a86a0;line-height:1.45;margin-bottom:14px">Ao morrer você perde metade do progresso do nível. A proteção desconta disso: com <b style="color:#9bd6a0">'+prot+'%</b> você perderia <b style="color:#e8e2f0">'+eff+'%</b> em vez de 50%. Vale por uma morte.</div>';
+  h += '<div style="font:600 11px Inter;color:#8a86a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Oferendas aceitas</div>';
+  body.innerHTML = h;
+  (d.items||[]).forEach(it=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;background:#1b1828;margin-bottom:7px;';
+    const cv = document.createElement('canvas'); cv.width=40; cv.height=40;
+    cv.style.cssText = 'flex:0 0 auto;border:1px solid #34304f;border-radius:7px;background:#0f0e17;';
+    try{ drawItemIcon(cv.getContext('2d'), 20, 20, 40, it.item, false); }catch(e){}
+    row.appendChild(cv);
+    const mid = document.createElement('div'); mid.style.cssText='flex:1 1 auto;min-width:0;';
+    mid.innerHTML = '<div style="font:600 13px Inter;color:#e8e2f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(it.name)+'</div>'+
+      '<div style="font-size:11px;color:#9bd6a0">+'+it.protect+'% de proteção · você tem '+it.qty+'</div>';
+    row.appendChild(mid);
+    const can = it.qty>0 && prot<max;
+    const b = _btn(can?'Oferecer':(prot>=max?'No máximo':'Não tem'), can);
+    b.style.cssText += ';padding:5px 12px;font-size:12px;';
+    if(!can){ b.disabled=true; b.style.opacity='.5'; b.style.cursor='default'; }
+    else b.onclick = ()=> socket.emit('xama_offer', {item: it.item});
+    row.appendChild(b);
+    body.appendChild(row);
+  });
+}
 function openShop(d){
   shopData = d || {}; shopTab = 'buy';
   if(typeof d.wallet === 'number') updateWallet(d.wallet);
@@ -5291,6 +5351,11 @@ function _fichaGeral(f){
       '<span style="color:#9b95b4;font-size:13px">Vida</span>'+
       '<span style="font:700 14px Cinzel,serif;color:#e85d75">❤ '+(f.hp!=null?f.hp:'?')+' / '+(f.hp_max!=null?f.hp_max:'?')+'</span></div>';
     h += _bar(f.hp_max? (f.hp/f.hp_max):0, 'linear-gradient(90deg,#e85d75,#ff8aa0)');
+    if(f.death_protect > 0){
+      h += '<div style="margin:10px 0 2px;display:flex;justify-content:space-between;align-items:baseline;gap:8px">'+
+        '<span style="color:#9bd6a0;font-size:13px">🛡️ Proteção da Xamã</span>'+
+        '<span style="font:700 12px Cinzel,serif;color:#9bd6a0;text-align:right">'+f.death_protect+'% · perde '+Math.max(0,50-f.death_protect)+'% na próxima morte</span></div>';
+    }
     h += '<div style="margin-top:8px">'+_fichaLine('Proficiência', '+'+(f.prof||2))+'</div>';
     if((f.pending_asi||[]).length){
       h += '<button id="ficha-asi" style="width:100%;margin-top:10px;padding:9px;border-radius:9px;border:1px solid #9b6dff;'+

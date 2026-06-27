@@ -47,8 +47,8 @@ ITEMS = {
     # --- drops unicos de chefe ---
     "correntao_ouro":  {"name": "Correntão de Ouro",    "kind": "tesouro", "stackable": False, "color": "#f4d06a", "value": 250,
                         "slot": "neck", "visual": "chain", "rarity": "raro", "ac": 1, "atk": 1},
-    "microfone_patrao":{"name": "Microfone do Patrão",  "kind": "tesouro", "stackable": False, "color": "#c9c2cc", "value": 120},
-    "presa_velho_bob": {"name": "Presa Quebrada do Velho Bob", "kind": "tesouro", "stackable": False, "color": "#d9cba0", "value": 180},
+    "microfone_patrao":{"name": "Microfone do Patrão",  "kind": "tesouro", "stackable": True, "color": "#c9c2cc", "value": 120, "protect": 15},
+    "presa_velho_bob": {"name": "Dente Quebrado do Velho Bob", "kind": "tesouro", "stackable": True, "color": "#d9cba0", "value": 180, "protect": 10},
     "couro_velho_bob": {"name": "Couro do Velho Bob",   "kind": "tesouro", "stackable": True,  "color": "#5a5048", "value": 20},
 
     # trofeus do Repouso da Dama (todos vendiveis na Armas Peteco)
@@ -60,7 +60,7 @@ ITEMS = {
     "cinza_espectral":     {"name": "Cinza Espectral",       "kind": "trofeu", "stackable": True, "color": "#c9ccd6", "value": 28},
     "essencia_sombria":    {"name": "Essência Sombria",      "kind": "trofeu", "stackable": True, "color": "#1b1a26", "value": 32},
     "lamento_petrificado": {"name": "Lamento Petrificado",   "kind": "trofeu", "stackable": True, "color": "#c8a6e0", "value": 36},
-    "lagrima_da_dama":     {"name": "Lágrima da Dama",       "kind": "tesouro", "stackable": False, "color": "#bcd0ff", "value": 500},
+    "lagrima_da_dama":     {"name": "Lágrima da Dama",       "kind": "tesouro", "stackable": True, "color": "#bcd0ff", "value": 500, "protect": 20},
 
     # trofeus do Deserto de Avasham (vendiveis na Armas Peteco)
     "presa_lacraia":       {"name": "Presa de Lacraia",      "kind": "trofeu", "stackable": True, "color": "#caa46a", "value": 40},
@@ -222,10 +222,15 @@ def catalog():
             "equippable": "slot" in v, "slot": v.get("slot"),
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
             "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
-            "heal": v.get("heal"), "desc": describe(k),
+            "heal": v.get("heal"), "desc": describe(k), "protect": v.get("protect"),
             "value": v.get("value", 1)}
         for k, v in ITEMS.items()
     }
+
+
+def death_protect_items():
+    """Itens que a Xamã Miranda aceita por proteção contra a morte (id, protect%)."""
+    return [(k, v["protect"]) for k, v in ITEMS.items() if v.get("protect")]
 
 
 def starting_inventory():

@@ -595,8 +595,12 @@ def _player_death(sid):
     lvl = int(f.get("level", 1))
     thr = leveling.XP_TABLE[min(max(lvl, 1), leveling.MAX_LEVEL)]
     within = max(0, xp - thr)
-    loss = within // 2
+    protect = int(f.get("death_protect", 0))          # benção da Xamã Miranda (vale 1 morte)
+    eff_pct = max(0, 50 - protect)                    # 50% base menos a proteção
+    loss = within * eff_pct // 100
     f["xp"] = xp - loss
+    if protect:
+        f["death_protect"] = 0                        # consumida nesta morte
     leveling.recompute(f)                 # nivel se mantem; recalcula a vida
     f["hp"] = f.get("hp_max", 1)          # renasce com vida cheia
     player["ficha"] = f
@@ -607,7 +611,7 @@ def _player_death(sid):
     socketio.emit("xp", {
         "xp": f["xp"], "level": f["level"], "hp": f["hp"], "hp_max": f["hp_max"],
         "prof": f.get("prof"), "gained": -loss, "reason": "morte",
-        "pending_asi": f.get("pending_asi", []),
+        "protected": protect, "pending_asi": f.get("pending_asi", []),
     }, to=sid)
     sx, sy = rules.pick_spawn(world, "ermo")
     _go_to(sid, "ermo", sx, sy)            # renasce no inicio
@@ -1330,6 +1334,12 @@ def on_interact(_data=None):
         _open_shop(player, npc, "Cigana Vidente", [], 0, potions=[("pocao_vida", 1000)])
         return
 
+    # Xamã Miranda (Descampado): troca drops de chefe por proteção contra a morte
+    if npc.get("_spec", {}).get("xama"):
+        greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
+        emit("xama_open", _xama_payload(player, greet))
+        return
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 
@@ -1352,6 +1362,50 @@ def _shop_catalog(sets, price):
         secs.append({"class_id": s["class_id"], "name": cls.get("name", s["class_id"]),
                      "items": entries})
     return secs
+
+
+def _xama_payload(player, greet=None):
+    """Monta o que o cliente mostra na tela da Xamã: proteção atual + os itens que
+    ela aceita (com quantos o jogador tem)."""
+    bag = player.get("inventory", [])
+    f = player.get("ficha") or {}
+    rows = []
+    for (iid, pct) in items.death_protect_items():
+        cat = items.get(iid) or {}
+        rows.append({"item": iid, "name": cat.get("name", iid),
+                     "protect": pct, "qty": items.count_in_bag(bag, iid)})
+    rows.sort(key=lambda r: r["protect"])
+    return {"title": "Xamã Miranda", "greet": greet,
+            "protection": int(f.get("death_protect", 0)), "max": 50, "items": rows}
+
+
+@socketio.on("xama_offer")
+def on_xama_offer(data=None):
+    """Oferece UM item de proteção: tira da mochila e soma a % (teto 50). Vale pra 1 morte."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    item_id = (data or {}).get("item")
+    cat = items.get(item_id) or {}
+    pct = cat.get("protect")
+    if not pct:
+        return
+    bag = player.setdefault("inventory", [])
+    if not items.remove_from_bag(bag, item_id, 1):
+        emit("toast", {"text": "Você não tem isso na mochila."})
+        return
+    f = player.get("ficha") or {}
+    new = min(50, int(f.get("death_protect", 0)) + int(pct))
+    f["death_protect"] = new
+    player["ficha"] = f
+    _persist_loadout_wallet(player)
+    try:
+        db.save_ficha(player["player_id"], f)
+    except Exception:
+        pass
+    emit("loadout", {"bag": player["inventory"], "equipment": player.get("equipment", {})})
+    msg = ("A amarração está completa: %d%% de proteção." % new) if new >= 50         else ("A amarração ficou mais forte: %d%% de proteção." % new)
+    emit("xama_open", _xama_payload(player, msg))
 
 
 def _open_shop(player, npc, title, sets, price, potions=None):

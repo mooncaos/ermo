@@ -1113,6 +1113,19 @@ ROSTER.extend([
         "greetings": MASCATE_GREETINGS, "smiter": False, "shop_tier": "t1",
     },
     {
+        "id": "npc:xama", "name": "Xamã Miranda",
+        "look": {"skin": "#7a5436", "cloak": "#4a6a4a", "hood": "up",
+                 "hat": "none", "hair": "#1a1410", "staff": True},
+        "map": "descampado", "home": (41, 47), "radius": 2, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "greetings": [
+            "Eu sou Miranda. Faço amarração contra a tua própria morte, viajante.",
+            "A morte cobra caro no Ermo. Por um preço, eu adio a conta dela.",
+            "Me traz os restos dos grandes e eu te dou proteção pro além.",
+        ],
+        "smiter": False, "xama": True,
+    },
+    {
         "id": "npc:nomade", "name": "Nômade Raiz",
         "look": {"skin": "#b07a4a", "cloak": "#c8a86a", "hood": "up",
                  "hat": "none", "hair": "#2a2018", "staff": True},
