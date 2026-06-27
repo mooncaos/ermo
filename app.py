@@ -514,8 +514,16 @@ def _resume(sid):
     if not enc:
         return
     actions = []
-    while combat.current(enc)["kind"] == "monster" and combat.outcome(enc) is None:
+    while combat.outcome(enc) is None:
         cur = combat.current(enc)
+        if cur["kind"] != "monster":
+            if cur["kind"] == "player" and cur.get("skip_next", 0) > 0:
+                cur["skip_next"] -= 1                       # ainda bebendo a poção
+                actions.append({"cid": cur["cid"], "name": cur["name"],
+                                "steps": [], "attack": None, "skipped": "poção"})
+                combat.advance(enc)
+                continue
+            break
         say = None
         if cur.get("boss"):
             r = combat.boss_turn(enc, cur)
@@ -865,6 +873,43 @@ def on_combat_end_turn(data):
     _resume(sid)
 
 
+@socketio.on("combat_use_potion")
+def on_combat_use_potion(data=None):
+    """Bebe uma Poção de Vida no combate: cura 100%, gasta o turno E o proximo
+    (skip_next) -> o inimigo ganha 2 ataques. A ficha tambem cura (persiste)."""
+    sid = request.sid
+    enc = COMBAT.get(sid)
+    if not enc or combat.current(enc)["kind"] != "player":
+        return
+    if enc["action_used"]:
+        emit("combat_msg", {"text": "Você já agiu neste turno."})
+        return
+    me = combat.current(enc)
+    player = world.players.get(sid)
+    if not player:
+        return
+    bag = player.setdefault("inventory", [])
+    if not items.remove_from_bag(bag, "pocao_vida", 1):
+        emit("combat_msg", {"text": "Você não tem Poção de Vida."})
+        return
+    me["hp"] = me["hp_max"]
+    f = player.get("ficha") or {}
+    f["hp"] = f.get("hp_max", f.get("hp", 1))
+    player["ficha"] = f
+    if player.get("player_id"):
+        try:
+            db.save_ficha(player["player_id"], f)
+            db.save_inventory(player["player_id"], bag)
+        except Exception:
+            pass
+    me["skip_next"] = me.get("skip_next", 0) + 1
+    enc["action_used"] = True
+    emit("loadout", {"bag": bag, "equipment": player.get("equipment")})
+    emit("combat_msg", {"text": "Você virou a Poção de Vida! Vida cheia, mas perde 2 turnos bebendo."})
+    combat.advance(enc)
+    _resume(sid)
+
+
 @socketio.on("move")
 def on_move(data):
     pre = world.players.get(request.sid)
@@ -1174,24 +1219,29 @@ def on_interact(_data=None):
 
     # Vendedor de Arma (Armas Peteco): abre a LOJA (comprar sets / vender itens)
     if npc["id"] == "npc:armeiro":
-        greet = npc.get("_spec", {}).get("greetings") or ["Da uma olhada na mercadoria, forasteiro."]
-        socketio.emit("speech", {"id": npc["id"], "text": random.choice(greet)}, room=mp)
-        emit("shop_open", {
-            "title": "Armas Peteco",
-            "sets": _shop_catalog(),
-            "wallet": int(player.get("wallet", 0)),
-            "sell_rate": items.SHOP_SELL_RATE,
-        })
+        _open_shop(player, npc, "Armas Peteco", items.SHOP_SETS, items.SHOP_PRICE)
+        return
+
+    # Mercadores premium (Mascate/Nomade/Coveiro): set por classe escalado por mapa
+    _tier = npc.get("_spec", {}).get("shop_tier")
+    if _tier and _tier in items.TIER_SETS:
+        _open_shop(player, npc, items.TIER_LABEL.get(_tier, npc.get("name", "Mercador")),
+                   items.TIER_SETS[_tier], items.TIER_PRICE[_tier])
+        return
+
+    # Cigana Vidente (Itatinga): vende Pocao de Vida por 10 pratas (1000 bronze)
+    if npc.get("_spec", {}).get("sells_potion"):
+        _open_shop(player, npc, "Cigana Vidente", [], 0, potions=[("pocao_vida", 1000)])
         return
 
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 
 
-def _shop_catalog():
+def _shop_catalog(sets, price):
     """Monta as secoes da loja: uma por classe, com a arma + armadura completa."""
     secs = []
-    for s in items.SHOP_SETS:
+    for s in sets:
         cls = classes.get_class(s["class_id"]) or {}
         entries = []
         for iid in s["items"]:
@@ -1201,11 +1251,35 @@ def _shop_catalog():
                 "slot": cat.get("slot"), "visual": cat.get("visual"),
                 "rarity": cat.get("rarity"), "color": cat.get("color"),
                 "ac": cat.get("ac", 0), "atk": cat.get("atk", 0), "dmg": cat.get("dmg"),
-                "price": items.SHOP_PRICE,
+                "price": price,
             })
         secs.append({"class_id": s["class_id"], "name": cls.get("name", s["class_id"]),
                      "items": entries})
     return secs
+
+
+def _open_shop(player, npc, title, sets, price, potions=None):
+    """Abre a loja: emite a fala do NPC, monta o catalogo e GUARDA os precos no
+    player (pra validar a compra depois, ja que cada mercador cobra diferente)."""
+    mp = player.get("map", "ermo")
+    greet = npc.get("_spec", {}).get("greetings") or ["Da uma olhada na mercadoria."]
+    socketio.emit("speech", {"id": npc["id"], "text": random.choice(greet)}, room=mp)
+    cat = _shop_catalog(sets, price) if sets else []
+    prices = {}
+    for sec in cat:
+        for it in sec["items"]:
+            prices[it["item"]] = price
+    pots = []
+    for (pid, pprice) in (potions or []):
+        c = items.get(pid) or {}
+        pots.append({"item": pid, "name": c.get("name", pid), "price": pprice,
+                     "color": c.get("color"), "heal": c.get("heal")})
+        prices[pid] = pprice
+    player["_shop_prices"] = prices
+    emit("shop_open", {
+        "title": title, "sets": cat, "potions": pots,
+        "wallet": int(player.get("wallet", 0)), "sell_rate": items.SHOP_SELL_RATE,
+    })
 
 
 def _persist_loadout_wallet(player):
@@ -1225,14 +1299,16 @@ def on_shop_buy(data):
     if not player:
         return
     item_id = (data or {}).get("item")
-    if item_id not in items.SHOP_ITEMS:
+    prices = player.get("_shop_prices") or {}
+    price = prices.get(item_id)
+    if price is None:
         emit("toast", {"text": "Isso nao esta a venda."})
         return
     wallet = int(player.get("wallet", 0))
-    if wallet < items.SHOP_PRICE:
-        emit("toast", {"text": "Bronze insuficiente (custa %d)." % items.SHOP_PRICE})
+    if wallet < price:
+        emit("toast", {"text": "Bronze insuficiente (custa %d)." % price})
         return
-    player["wallet"] = wallet - items.SHOP_PRICE
+    player["wallet"] = wallet - price
     items.add_to_bag(player.setdefault("inventory", []), item_id, 1)
     _persist_loadout_wallet(player)
     emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
@@ -1251,15 +1327,20 @@ def on_shop_sell(data):
     if not cat:
         return
     bag = player.setdefault("inventory", [])
-    if not items.remove_from_bag(bag, item_id, 1):
+    sell_all = bool((data or {}).get("all"))
+    have = items.count_in_bag(bag, item_id)
+    qty = have if sell_all else 1
+    if qty < 1 or not items.remove_from_bag(bag, item_id, qty):
         emit("toast", {"text": "Voce nao tem isso na mochila."})
         return
-    gain = max(1, int(round(int(cat.get("value", 1)) * items.SHOP_SELL_RATE)))
+    unit = max(1, int(round(int(cat.get("value", 1)) * items.SHOP_SELL_RATE)))
+    gain = unit * qty
     player["wallet"] = int(player.get("wallet", 0)) + gain
     _persist_loadout_wallet(player)
     emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
     emit("wallet", {"bronze": player["wallet"]})
-    emit("toast", {"text": "Vendeu %s por %d bronze" % (cat.get("name", item_id), gain)})
+    _lbl = ("%dx %s" % (qty, cat.get("name", item_id))) if qty > 1 else cat.get("name", item_id)
+    emit("toast", {"text": "Vendeu %s por %d bronze" % (_lbl, gain)})
 
 
 @socketio.on("confirm_ok")

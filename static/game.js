@@ -4576,6 +4576,18 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
   const d1 = shade(col, -0.28), hi = shade(col, 0.3);
   c.lineJoin = 'round'; c.lineCap = 'round';
   switch(visual){
+    case 'potion': {
+      c.fillStyle = shade(col,-0.4);
+      c.fillRect(cx-s*0.06, cy-s*0.34, s*0.12, s*0.14);                 // gargalo
+      c.fillStyle = '#cdb892';
+      c.fillRect(cx-s*0.075, cy-s*0.4, s*0.15, s*0.07);                 // rolha
+      c.fillStyle = shade(col,0.12);                                    // vidro
+      c.beginPath(); c.arc(cx, cy+s*0.08, s*0.27, 0, Math.PI*2); c.fill();
+      c.fillStyle = col;                                               // liquido
+      c.beginPath(); c.arc(cx, cy+s*0.12, s*0.21, 0, Math.PI*2); c.fill();
+      c.fillStyle = hi;                                               // brilho
+      c.beginPath(); c.arc(cx-s*0.09, cy+s*0.02, s*0.06, 0, Math.PI*2); c.fill();
+      return true; }
     case 'helmet': {
       c.fillStyle = col;
       c.beginPath(); c.arc(cx, cy, s*0.32, Math.PI, 0); c.lineTo(cx+s*0.32, cy+s*0.1);
@@ -4784,13 +4796,14 @@ function _updateShopWallet(){ if(_shopWalletEl) _shopWalletEl.textContent = wall
 function closeShop(){ if(_shopEl){ _shopEl.remove(); _shopEl = null; } shopData = null; }
 
 function _shopStat(def){
+  if(def.heal) return 'Cura ' + Math.round(def.heal*100) + '% da vida';
   if(def.dmg) return 'Dano ' + def.dmg.n + 'd' + def.dmg.d + (def.atk ? ' · +' + def.atk + ' atq' : '') + (def.ac ? ' · +' + def.ac + ' CA' : '');
   if(def.ac) return '+' + def.ac + ' CA';
   if(def.atk) return '+' + def.atk + ' atq';
   return '';
 }
 function _shopRow(it, mode){
-  const def = catalog[it.item] || it;
+  const def = Object.assign({}, catalog[it.item] || {}, it);
   const row = document.createElement('div');
   row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;background:#1b1828;margin-bottom:6px;';
   const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
@@ -4819,12 +4832,21 @@ function _shopRow(it, mode){
   } else {
     const val = (catalog[it.item] || {}).value || 1;
     const sell = Math.max(1, Math.floor(val * (shopData.sell_rate || 0.4)));
+    const qty = it.qty || 1;
     const pr = document.createElement('div');
-    pr.textContent = 'Vende: ' + sell.toLocaleString('pt-BR') + ' 🟤' + (it.qty > 1 ? (' (x' + it.qty + ')') : '');
+    pr.textContent = 'Vende: ' + sell.toLocaleString('pt-BR') + ' 🟤' + (qty > 1 ? (' cada (x' + qty + ')') : '');
     pr.style.cssText = 'font:600 12px Inter,sans-serif;color:#7ec27a;margin-bottom:4px;';
-    const b = _btn('Vender', false); b.style.cssText += ';padding:5px 11px;font-size:12px;';
-    b.onclick = ()=> socket.emit('shop_sell', { item: it.item });
-    right.appendChild(pr); right.appendChild(b);
+    right.appendChild(pr);
+    const brow = document.createElement('div'); brow.style.cssText = 'display:flex;gap:6px;justify-content:flex-end;';
+    const b1 = _btn('Vender 1', false); b1.style.cssText += ';padding:5px 10px;font-size:12px;';
+    b1.onclick = ()=> socket.emit('shop_sell', { item: it.item });
+    brow.appendChild(b1);
+    if(qty > 1){
+      const ball = _btn('Vender todos', true); ball.style.cssText += ';padding:5px 10px;font-size:12px;';
+      ball.onclick = ()=> socket.emit('shop_sell', { item: it.item, all: true });
+      brow.appendChild(ball);
+    }
+    right.appendChild(brow);
   }
   row.appendChild(right);
   return row;
@@ -4833,6 +4855,14 @@ function _renderShopBody(){
   if(!_shopBodyEl || !shopData) return;
   _shopBodyEl.innerHTML = '';
   if(shopTab === 'buy'){
+    (shopData.potions || []).forEach((pt, i)=>{
+      if(i === 0){
+        const h = document.createElement('div'); h.textContent = 'Poções';
+        h.style.cssText = 'font:700 13px Cinzel,serif;color:#f4d8a0;margin:12px 2px 7px;border-bottom:1px solid #3a3556;padding-bottom:4px;';
+        _shopBodyEl.appendChild(h);
+      }
+      _shopBodyEl.appendChild(_shopRow({ item: pt.item, price: pt.price, name: pt.name, heal: pt.heal, color: pt.color, rarity: 'raro' }, 'buy'));
+    });
     (shopData.sets || []).forEach(sec=>{
       const h = document.createElement('div'); h.textContent = sec.name;
       h.style.cssText = 'font:700 13px Cinzel,serif;color:#f4d8a0;margin:12px 2px 7px;border-bottom:1px solid #3a3556;padding-bottom:4px;';
@@ -5462,6 +5492,8 @@ function renderCombatHud(){
       btns += cbBtn('ab:'+ab.id, ab.name, {disabled: !ab.ready || used});
     }
     if((your.spells||[]).length) btns += cbBtn('spells','✦ Magias', {disabled: your.action_used});
+    const _pot = (inventory.find(s=> s.item === 'pocao_vida') || {}).qty || 0;
+    if(_pot > 0) btns += cbBtn('potion','🧪 Poção ('+_pot+')', {disabled: your.action_used});
     btns += cbBtn('pass','Passar (espaço)', {});
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+btns+'</div>';
     if(combat.pending){
@@ -5514,6 +5546,7 @@ function cbAction(id){
   if(!combat || !combat.yourTurn) return;
   const your = (combat.snapshot && combat.snapshot.your) || {};
   if(id === 'pass'){ combat.pending = null; socket.emit('combat_end_turn', {}); return; }
+  if(id === 'potion'){ combat.pending = null; socket.emit('combat_use_potion', {}); return; }
   if(id === 'attack'){ combat.pending = {type:'attack', range:'melee', label:'Atacar'}; renderCombatHud(); return; }
   if(id === 'spells'){ openSpellMenu(); return; }
   if(id.indexOf('ab:') === 0){

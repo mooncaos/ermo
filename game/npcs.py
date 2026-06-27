@@ -1076,3 +1076,64 @@ for _c in _classes.CLASSES:
     })
 
 ROSTER.extend(SALAO_MASTERS)
+
+
+# ===========================================================================
+#  ATUALIZACAO COMERCIAL: 3 mercadores premium (1 por mapa de caca) + a cigana
+#  vidente de Itatinga (vende Pocao de Vida). Equipamento escalado por mapa.
+# ===========================================================================
+MASCATE_GREETINGS = [
+    "ó a pechincha, forasteiro! equipamento de verdade pro Ermo, bem melhor que a tralha da Sapopemba.",
+    "compra logo que eu sou errante: amanhã já sumi por essas estradas.",
+    "ferro honesto por preço de ladrão. é o trato do Mascate.",
+]
+NOMADE_GREETINGS = [
+    "as dunas me deram o que vendo. armas das areias, três vezes mais fortes que as da cidade.",
+    "no deserto só sobrevive quem carrega ferro bom. eu carrego o ferro bom.",
+    "a raiz aguenta o sol e a tempestade. minha mercadoria também.",
+]
+COVEIRO_GREETINGS = [
+    "cavei muita cova pra juntar essas relíquias. equipamento sepulcral, o mais forte que existe.",
+    "os mortos não precisam mais disso, forasteiro. você precisa. paga e leva.",
+    "três vezes o aço do nômade, dez vezes o medo. é o que a morte deixou.",
+]
+CIGANA_GREETINGS = [
+    "psiu... a cigana lê teu futuro e vende teu remédio. Poção de Vida, 10 pratas, te enche a vida toda.",
+    "bebe a poção no meio da briga e ela cura tudo. mas cuidado, meu bem: virar o copo leva DOIS turnos, e nesses dois o bicho te bate à vontade. as cartas avisaram.",
+    "fora da luta ela cura na hora, sem custo. no combate, dois turnos parado bebendo. pense bem antes de beber.",
+]
+
+ROSTER.extend([
+    {
+        "id": "npc:mascate", "name": "Mascate Errante",
+        "look": {"skin": "#a9744f", "cloak": "#7a5a3a", "hood": "down",
+                 "hat": "cap", "hair": "#3a2a1a", "staff": False},
+        "map": "descampado", "home": (45, 50), "radius": 3, "wanders": True,
+        "step_every": 1.3, "solid": True, "kind": "person",
+        "greetings": MASCATE_GREETINGS, "smiter": False, "shop_tier": "t1",
+    },
+    {
+        "id": "npc:nomade", "name": "Nômade Raiz",
+        "look": {"skin": "#b07a4a", "cloak": "#c8a86a", "hood": "up",
+                 "hat": "none", "hair": "#2a2018", "staff": True},
+        "map": "avasham", "home": (50, 50), "radius": 3, "wanders": True,
+        "step_every": 1.3, "solid": True, "kind": "person",
+        "greetings": NOMADE_GREETINGS, "smiter": False, "shop_tier": "t2",
+    },
+    {
+        "id": "npc:coveiro", "name": "Coveiro Mórbido",
+        "look": {"skin": "#9a8a7a", "cloak": "#2a2a30", "hood": "up",
+                 "hat": "none", "hair": "#15131b", "staff": True},
+        "map": "valdarkram", "home": (50, 49), "radius": 3, "wanders": True,
+        "step_every": 1.4, "solid": True, "kind": "person",
+        "greetings": COVEIRO_GREETINGS, "smiter": False, "shop_tier": "t3",
+    },
+    {
+        "id": "npc:cigana", "name": "Cigana Vidente",
+        "look": {"skin": "#caa06a", "cloak": "#a0306a", "hood": "down",
+                 "hat": "none", "hair": "#1a1a22", "staff": False},
+        "map": "ermo", "home": (9, 8), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "greetings": CIGANA_GREETINGS, "smiter": False, "sells_potion": True,
+    },
+])

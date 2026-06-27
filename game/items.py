@@ -16,6 +16,7 @@ ITEMS = {
     "coin_bronze":  {"name": "Moeda de Bronze", "kind": "currency", "stackable": True,  "color": "#cd7f32", "value": 1},
     "coin_silver":  {"name": "Moeda de Prata",  "kind": "currency", "stackable": True,  "color": "#cbd2d9", "value": 100},
     "coin_gold":    {"name": "Moeda de Ouro",   "kind": "currency", "stackable": True,  "color": "#f4b860", "value": 10000},
+    "pocao_vida":   {"name": "Poção de Vida",   "kind": "consumivel", "stackable": True, "color": "#d6314a", "visual": "potion", "heal": 1.0, "value": 400},
     "staff_portuz": {"name": "Cajado do Portuz", "kind": "weapon",   "stackable": False, "color": "#9b6dff",
                      "slot": "hand", "visual": "staff", "rarity": "raro", "dmg": {"n": 1, "d": 6}, "atk": 1},
     "cajado_magico": {"name": "Cajado Mágico", "kind": "weapon", "stackable": False, "color": "#7ad6ff",
@@ -238,6 +239,14 @@ def remove_from_bag(bag, item_id, qty=1):
             return True
     return False
 
+def count_in_bag(bag, item_id):
+    """Quantos desse item tem na mochila (0 se nenhum)."""
+    for st in (bag or []):
+        if st.get("item") == item_id:
+            return int(st.get("qty", 0))
+    return 0
+
+
 
 def sanitize_bag(raw):
     """Garante uma bag valida a partir do que veio do banco (JSONB)."""
@@ -348,3 +357,45 @@ def _gen_class_sets():
         SHOP_ITEMS.update(ids)
 
 _gen_class_sets()
+# ===========================================================================
+#  3 MERCADORES PREMIUM (Mascate/Nomade/Coveiro): mesmos sets por classe, mas
+#  escalados em forca por mapa. Cada tier 3x mais dados de dano + atk maior,
+#  com nome especial. Preco tambem sobe (money sink pesado).
+# ===========================================================================
+TIER_SETS = {}    # prefixo -> [{"class_id", "items":[ids]}]
+TIER_ITEMS = {}   # prefixo -> set(ids vendidos)
+TIER_PRICE = {}   # prefixo -> preco por peca
+TIER_LABEL = {}   # prefixo -> rotulo da loja
+# (prefixo, sufixo_nome, dados_de_dano, bonus_atk, bonus_ca_por_peca, raridade, preco)
+_TIERS = [
+    ("t1", "do Ermo",   3,  5, 1, "epico",    30000),
+    ("t2", "das Dunas", 6, 10, 2, "epico",    90000),
+    ("t3", "Sepulcral", 9, 15, 3, "lendario", 270000),
+]
+def _gen_tier_sets():
+    for (pfx, suf, dmult, atkb, acb, rar, price) in _TIERS:
+        sets = []; ids_all = set()
+        for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
+            wn, wvis, dn, dd, watk, wac = weap
+            ids = []
+            wid = "%s_%s_arma" % (pfx, cid)
+            ITEMS[wid] = {"name": "%s %s" % (wn, suf), "kind": "weapon", "stackable": False,
+                          "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
+                          "dmg": {"n": dmult, "d": dd}, "atk": watk + atkb, "value": price}
+            if wac:
+                ITEMS[wid]["ac"] = wac + acb
+            ids.append(wid)
+            a = _ARQ[arq]
+            for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
+                vis, slabel = _SLOT_VIS[slot]
+                iid = "%s_%s_%s" % (pfx, cid, slot)
+                ITEMS[iid] = {"name": "%s %s %s" % (slabel, tema, suf), "kind": "armor",
+                              "stackable": False, "color": cor, "slot": slot, "visual": vis,
+                              "rarity": rar, "ac": a[slot] + acb, "value": price}
+                ids.append(iid)
+            sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
+        TIER_SETS[pfx] = sets; TIER_ITEMS[pfx] = ids_all; TIER_PRICE[pfx] = price
+_gen_tier_sets()
+TIER_LABEL = {"t1": "Mascate Errante", "t2": "Nômade Raiz", "t3": "Coveiro Mórbido"}
+# todos os ids vendidos pelos 3 mercadores (pra validar compra)
+ALL_TIER_ITEMS = set().union(*TIER_ITEMS.values())
