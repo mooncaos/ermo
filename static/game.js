@@ -4205,6 +4205,7 @@ function connectWithToken(token){
   // loja (Armas Peteco): abre o painel de comprar/vender
   socket.on('shop_open', d=> openShop(d));
   socket.on('xama_open', d=> openXama(d));
+  socket.on('couraria_open', d=> openCouraria(d));
 
   // equipamento
   socket.on('loadout', d=>{
@@ -5028,6 +5029,65 @@ function _renderShopBody(){
       _shopBodyEl.appendChild(e);
     } else sellable.forEach(s=> _shopBodyEl.appendChild(_shopRow(s, 'sell')));
   }
+}
+let _courariaEl = null, _courariaBodyEl = null;
+function closeCouraria(){ if(_courariaEl){ _courariaEl.remove(); _courariaEl = null; _courariaBodyEl = null; } }
+function openCouraria(d){
+  d = d || {};
+  if(typeof d.wallet === 'number') updateWallet(d.wallet);
+  if(_courariaEl){ renderCourariaBody(_courariaBodyEl, d); return; }
+  const ov = _overlay(); const box = _box(440);
+  box.style.cssText += ';padding:0;display:flex;flex-direction:column;max-height:86vh;';
+  const hd = document.createElement('div');
+  hd.style.cssText = 'display:flex;align-items:center;gap:10px;padding:16px 18px 10px;border-bottom:1px solid #2a2540;';
+  const ti = document.createElement('div'); ti.textContent = d.title || 'Couraria do Valdir';
+  ti.style.cssText = 'font:700 19px Cinzel,serif;color:#d8a86a;flex:1 1 auto;';
+  const wl = document.createElement('div'); wl.id = '_courwallet'; wl.style.cssText = 'font:600 13px Inter;color:#f4b860;';
+  wl.textContent = (d.wallet||0).toLocaleString('pt-BR') + ' \ud83d\udfe4';
+  const x = _btn('\u2715', false); x.style.cssText += ';padding:4px 10px;'; x.onclick = closeCouraria;
+  hd.appendChild(ti); hd.appendChild(wl); hd.appendChild(x); box.appendChild(hd);
+  _courariaBodyEl = document.createElement('div');
+  _courariaBodyEl.style.cssText = 'padding:12px 18px 18px;overflow-y:auto;';
+  box.appendChild(_courariaBodyEl);
+  renderCourariaBody(_courariaBodyEl, d);
+  ov.appendChild(box); document.body.appendChild(ov); _courariaEl = ov;
+  ov.addEventListener('click', e=>{ if(e.target === ov) closeCouraria(); });
+}
+function renderCourariaBody(body, d){
+  if(!body) return;
+  const wl = document.getElementById('_courwallet'); if(wl && typeof d.wallet === 'number') wl.textContent = d.wallet.toLocaleString('pt-BR') + ' \ud83d\udfe4';
+  let h = '';
+  if(d.greet) h += '<div style="font-size:13px;color:#c9c4dc;font-style:italic;line-height:1.4;margin-bottom:12px">"'+esc(d.greet)+'"</div>';
+  const list = d.items || [];
+  if(!list.length){
+    body.innerHTML = h + '<div style="color:#9b95b4;font-size:12.5px;line-height:1.5;padding:8px 0">Você não tem couro de bicho na mochila. O Valdir compra pele e presa de <b style="color:#d8a86a">lobo, javali, hiena, abutre</b> e afins por 5x o preço normal.</div>';
+    return;
+  }
+  h += '<div style="font:600 11px Inter;color:#8a86a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Couro de bicho · paga 5x</div>';
+  body.innerHTML = h;
+  list.forEach(it=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;background:#1b1828;margin-bottom:7px;';
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+    cv.style.cssText = 'flex:0 0 auto;border:1px solid #34304f;border-radius:7px;background:#0f0e17;';
+    try{ drawItemIcon(cv.getContext('2d'), 20, 20, 40, it.item, false); }catch(e){}
+    row.appendChild(cv);
+    const mid = document.createElement('div'); mid.style.cssText = 'flex:1 1 auto;min-width:0;';
+    mid.innerHTML = '<div style="font:600 13px Inter;color:#e8e2f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(it.name)+'</div>'+
+      '<div style="font-size:11px;color:#d8a86a">'+it.unit+' \ud83d\udfe4 cada · você tem '+it.qty+'</div>';
+    row.appendChild(mid);
+    const btns = document.createElement('div'); btns.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex:0 0 auto';
+    const b1 = _btn('Vender', true); b1.style.cssText += ';padding:4px 10px;font-size:11px;';
+    b1.onclick = ()=> socket.emit('couraria_sell', {item: it.item});
+    btns.appendChild(b1);
+    if(it.qty > 1){
+      const ba = _btn('Tudo ('+it.qty+')', true); ba.style.cssText += ';padding:4px 10px;font-size:11px;';
+      ba.onclick = ()=> socket.emit('couraria_sell', {item: it.item, all: true});
+      btns.appendChild(ba);
+    }
+    row.appendChild(btns);
+    body.appendChild(row);
+  });
 }
 let _xamaEl = null, _xamaBodyEl = null;
 function closeXama(){ if(_xamaEl){ _xamaEl.remove(); _xamaEl = null; _xamaBodyEl = null; } }

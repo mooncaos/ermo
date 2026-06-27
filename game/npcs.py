@@ -1126,6 +1126,32 @@ ROSTER.extend([
         "smiter": False, "xama": True,
     },
     {
+        "id": "npc:valdir", "name": "Valdir, o Coureiro",
+        "look": {"skin": "#9a6e44", "cloak": "#5a3a22", "hood": "down",
+                 "hat": "cap", "hair": "#3a2a1a", "staff": False},
+        "map": "ermo", "home": (5, 6), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "greetings": [
+            "Couro bom eu pago bem. De bicho, só. Lobo, javali, essas coisas.",
+            "Bem-vindo à couraria. Traz a pele que eu faço valer a pena.",
+            "Aqui o couro de fera vale 5 vezes mais que naquele mercado de ladrão.",
+        ],
+        "smiter": False, "couraria": True,
+    },
+    {
+        "id": "npc:marta", "name": "Marta",
+        "look": {"skin": "#c89a6a", "cloak": "#7a5a7a", "hood": "down",
+                 "hat": "none", "hair": "#2a1a12", "staff": False},
+        "map": "ermo", "home": (7, 6), "radius": 2, "wanders": True,
+        "step_every": 1.4, "solid": True, "kind": "person",
+        "greetings": [
+            "Meu pai é teimoso, mas paga o melhor preço por couro de bicho.",
+            "Se trouxer pele de lobo ou javali, fala com o Valdir ali.",
+            "A gente curte o couro aqui mesmo. O cheiro você acostuma.",
+        ],
+        "smiter": False,
+    },
+    {
         "id": "npc:nomade", "name": "Nômade Raiz",
         "look": {"skin": "#b07a4a", "cloak": "#c8a86a", "hood": "up",
                  "hat": "none", "hair": "#2a2018", "staff": True},

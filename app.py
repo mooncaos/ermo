@@ -1340,6 +1340,12 @@ def on_interact(_data=None):
         emit("xama_open", _xama_payload(player, greet))
         return
 
+    # Couraria do Valdir (Ermo, noroeste): compra couro de bicho por 5x o preço normal
+    if npc.get("_spec", {}).get("couraria"):
+        greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
+        emit("couraria_open", _couraria_payload(player, greet))
+        return
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 
@@ -1362,6 +1368,49 @@ def _shop_catalog(sets, price):
         secs.append({"class_id": s["class_id"], "name": cls.get("name", s["class_id"]),
                      "items": entries})
     return secs
+
+
+COURARIA_MULT = 5   # Valdir paga 5x o que um mercador normal paga por couro de bicho
+
+def _couraria_payload(player, greet=None):
+    """O que a tela da Couraria mostra: os trofeus de animal que o jogador tem + preço 5x."""
+    bag = player.get("inventory", [])
+    rows = []
+    for iid in items.animal_trophies():
+        qty = items.count_in_bag(bag, iid)
+        if qty <= 0:
+            continue
+        cat = items.get(iid) or {}
+        unit = max(1, int(round(int(cat.get("value", 1)) * items.SHOP_SELL_RATE * COURARIA_MULT)))
+        rows.append({"item": iid, "name": cat.get("name", iid), "qty": qty, "unit": unit})
+    rows.sort(key=lambda r: -r["unit"])
+    return {"title": "Couraria do Valdir", "greet": greet,
+            "wallet": int(player.get("wallet", 0)), "items": rows}
+
+
+@socketio.on("couraria_sell")
+def on_couraria_sell(data=None):
+    """Vende couro de bicho pro Valdir (5x). Aceita item e all (vender tudo)."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    item_id = (data or {}).get("item")
+    cat = items.get(item_id) or {}
+    if not cat.get("animal"):
+        emit("toast", {"text": "O Valdir só compra couro de bicho."})
+        return
+    bag = player.setdefault("inventory", [])
+    have = items.count_in_bag(bag, item_id)
+    qty = have if (data or {}).get("all") else 1
+    if qty < 1 or not items.remove_from_bag(bag, item_id, qty):
+        emit("toast", {"text": "Você não tem isso na mochila."})
+        return
+    unit = max(1, int(round(int(cat.get("value", 1)) * items.SHOP_SELL_RATE * COURARIA_MULT)))
+    gain = unit * qty
+    player["wallet"] = int(player.get("wallet", 0)) + gain
+    _persist_loadout_wallet(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player.get("equipment", {})})
+    emit("couraria_open", _couraria_payload(player, "Bom couro. Tá pago: %d bronze." % gain))
 
 
 def _xama_payload(player, greet=None):

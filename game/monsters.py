@@ -127,6 +127,13 @@ MONSTERS = {
         "drops": [("cajado_magico", 1.0, 1, 1), ("lagrima_da_dama", 1.0, 1, 1),
                   ("coin_gold", 1.0, 1, 1)], "bronze": (100, 150),
     },
+    "colosso_avasham": {
+        "name": "O Colosso de Avasham", "hp": 760, "ac": 20, "atk": 14,
+        "dmg": {"n": 5, "d": 10, "flat": 10}, "reach": 2, "speed": 6,
+        "xp": 850, "dex": 3, "glyph": "🗿", "kind": "golem",
+        "atk_name": "punho de pedra", "boss": True, "summon_type": "elemental_areia", "summons": 3,
+        "drops": [("coin_gold", 1.0, 2, 3)], "bronze": (180, 260),
+    },
 
     # ===================== DESERTO DE AVASHAM (mais forte que a floresta) =====================
     "lacraia_gigante": {
@@ -182,37 +189,37 @@ MONSTERS = {
     "esqueleto_guerreiro": {
         "name": "Esqueleto Guerreiro", "hp": 190, "ac": 17, "atk": 9,
         "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 90, "dex": 3, "glyph": "💀", "kind": "morto-vivo", "atk_name": "espadada",
+        "xp": 108, "dex": 3, "glyph": "💀", "kind": "morto-vivo", "atk_name": "espadada",
         "drops": [("osso_amaldicoado", 0.7, 1, 2), ("coin_silver", 0.3, 1, 1)], "bronze": (30, 52),
     },
     "zumbi_putrido": {
         "name": "Zumbi Pútrido", "hp": 240, "ac": 16, "atk": 9,
         "dmg": {"n": 4, "d": 6, "flat": 7}, "reach": 1, "speed": 4,
-        "xp": 100, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garras podres",
+        "xp": 120, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garras podres",
         "drops": [("carne_putrida", 0.7, 1, 2)], "bronze": (32, 54),
     },
     "ghoul_faminto": {
         "name": "Ghoul Faminto", "hp": 210, "ac": 17, "atk": 10,
         "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 9,
-        "xp": 110, "dex": 4, "glyph": "👹", "kind": "morto-vivo", "atk_name": "dilacerar",
+        "xp": 132, "dex": 4, "glyph": "👹", "kind": "morto-vivo", "atk_name": "dilacerar",
         "drops": [("garra_ghoul", 0.7, 1, 1), ("coin_silver", 0.3, 1, 1)], "bronze": (34, 56),
     },
     "aparicao_sepulcral": {
         "name": "Aparição Sepulcral", "hp": 200, "ac": 18, "atk": 10,
         "dmg": {"n": 4, "d": 8, "flat": 5}, "reach": 1, "speed": 8,
-        "xp": 120, "dex": 5, "glyph": "👻", "kind": "espirito", "atk_name": "toque sepulcral",
+        "xp": 144, "dex": 5, "glyph": "👻", "kind": "espirito", "atk_name": "toque sepulcral",
         "drops": [("mortalha_espectral", 0.7, 1, 1)], "bronze": (36, 60),
     },
     "carnical_profanador": {
         "name": "Carniçal Profanador", "hp": 260, "ac": 18, "atk": 11,
         "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 140, "dex": 3, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "presas",
+        "xp": 168, "dex": 3, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "presas",
         "drops": [("lingua_carnical", 0.7, 1, 1), ("coin_silver", 0.35, 1, 1)], "bronze": (40, 66),
     },
     "cavaleiro_morte": {
         "name": "Cavaleiro da Morte", "hp": 310, "ac": 19, "atk": 12,
         "dmg": {"n": 5, "d": 6, "flat": 7}, "reach": 1, "speed": 6,
-        "xp": 170, "dex": 3, "glyph": "⚔️", "kind": "morto-vivo", "atk_name": "lâmina negra",
+        "xp": 204, "dex": 3, "glyph": "⚔️", "kind": "morto-vivo", "atk_name": "lâmina negra",
         "drops": [("elmo_cavaleiro_morte", 0.7, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (50, 84),
     },
     "necromante_caido": {
@@ -225,7 +232,7 @@ MONSTERS = {
     "abominacao_ossea": {
         "name": "Abominação Óssea", "hp": 380, "ac": 20, "atk": 13,
         "dmg": {"n": 5, "d": 8, "flat": 8}, "reach": 2, "speed": 5,
-        "xp": 240, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
+        "xp": 288, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
         "drops": [("coracao_abominacao", 0.9, 1, 1), ("coin_gold", 0.4, 1, 1)], "bronze": (70, 120),
     },
 }
@@ -400,6 +407,7 @@ AVASHAM_SPAWNS = [
     ("elemental_areia", 22, 84),
     ("basilisco_deserto", 44, 86), ("basilisco_deserto", 66, 90), ("basilisco_deserto", 54, 82),
     ("basilisco_deserto", 74, 78), ("basilisco_deserto", 36, 90), ("basilisco_deserto", 60, 88),
+    ("colosso_avasham", 50, 90),   # CHEFE do deserto (fundo sul)
 ]
 
 
@@ -531,6 +539,13 @@ MONSTER_ABILITIES = {
                        "save": "SAB", "dc": 16, "status": "frightened", "turns": 3, "chance": 0.35, "cd": 3},
                       {"id": "maldicao", "name": "Maldição da Dama", "type": "inflict",
                        "status": "poison", "turns": 4, "dot": {"n": 3, "d": 6}, "chance": 0.4, "cd": 3}],
+
+    "colosso_avasham": [{"id": "punho_colossal", "name": "Punho Colossal", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 12}, "chance": 0.5, "cd": 2},
+                      {"id": "rugido_de_pedra", "name": "Rugido de Pedra", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
+                      {"id": "tempestade_de_areia", "name": "Tempestade de Areia", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3}],
 }
 
 

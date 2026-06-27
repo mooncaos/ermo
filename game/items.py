@@ -33,14 +33,15 @@ ITEMS = {
     "faca_cozinha":     {"name": "Faca de Cozinha",  "kind": "weapon",  "stackable": False, "color": "#cbd2d9", "slot": "hand_r",   "visual": "knife",    "rarity": "comum", "dmg": {"n": 1, "d": 4}, "value": 6},
     "tampa_panela":     {"name": "Tampa de Panela",  "kind": "armor",   "stackable": False, "color": "#9aa0aa", "slot": "hand_l",   "visual": "lid",      "rarity": "comum", "ac": 1, "value": 5},
     "anel_lata":        {"name": "Anel de Lata",     "kind": "trinket", "stackable": False, "color": "#b9b2a0", "slot": "ring",     "visual": "ring",     "rarity": "comum", "atk": 0, "value": 4},
+    "anel_varth":       {"name": "Anel do Lorde Varth", "kind": "trinket", "stackable": False, "color": "#7a4ad0", "slot": "ring", "visual": "ring", "rarity": "lendario", "ac": 4, "atk": 4, "value": 2000, "desc": "O selo de Lorde Varth, pulsando com energia necromântica. +4 de armadura e +4 para acertar."},
     "cordao_fake":      {"name": "Cordão Banhado",   "kind": "trinket", "stackable": False, "color": "#d9c27a", "slot": "neck",     "visual": "amulet",   "rarity": "comum", "ac": 0, "value": 5},
 
     # --- trofeus de caca (bichos do Descampado) ---
-    "rabo_rato":     {"name": "Rabo de Rato",     "kind": "trofeu", "stackable": True, "color": "#8a857d", "value": 2},
-    "presa_lobo":    {"name": "Presa de Lobo",    "kind": "trofeu", "stackable": True, "color": "#e8e2d0", "value": 6},
-    "pelego_lobo":   {"name": "Pele de Lobo",     "kind": "trofeu", "stackable": True, "color": "#7a7d86", "value": 9},
-    "presa_javali":  {"name": "Presa de Javali",  "kind": "trofeu", "stackable": True, "color": "#efe6cf", "value": 6},
-    "couro_javali":  {"name": "Couro de Javali",  "kind": "trofeu", "stackable": True, "color": "#6e573e", "value": 8},
+    "rabo_rato":     {"name": "Rabo de Rato",     "kind": "trofeu", "stackable": True, "color": "#8a857d", "value": 2, "animal": True},
+    "presa_lobo":    {"name": "Presa de Lobo",    "kind": "trofeu", "stackable": True, "color": "#e8e2d0", "value": 6, "animal": True},
+    "pelego_lobo":   {"name": "Pele de Lobo",     "kind": "trofeu", "stackable": True, "color": "#7a7d86", "value": 9, "animal": True},
+    "presa_javali":  {"name": "Presa de Javali",  "kind": "trofeu", "stackable": True, "color": "#efe6cf", "value": 6, "animal": True},
+    "couro_javali":  {"name": "Couro de Javali",  "kind": "trofeu", "stackable": True, "color": "#6e573e", "value": 8, "animal": True},
     # --- espolio dos capangas ---
     "bornal_cria":   {"name": "Bornal da Cria",   "kind": "trofeu", "stackable": True, "color": "#6b5a3a", "value": 5},
     "marreta_velha": {"name": "Marreta Enferrujada", "kind": "trofeu", "stackable": True, "color": "#6b6256", "value": 14},
@@ -52,7 +53,7 @@ ITEMS = {
     "couro_velho_bob": {"name": "Couro do Velho Bob",   "kind": "tesouro", "stackable": True,  "color": "#5a5048", "value": 20},
 
     # trofeus do Repouso da Dama (todos vendiveis na Armas Peteco)
-    "couro_lobo_negro":    {"name": "Couro de Lobo Negro",   "kind": "trofeu", "stackable": True, "color": "#26242e", "value": 14},
+    "couro_lobo_negro":    {"name": "Couro de Lobo Negro",   "kind": "trofeu", "stackable": True, "color": "#26242e", "value": 14, "animal": True},
     "pena_harpia":         {"name": "Pena de Harpia",        "kind": "trofeu", "stackable": True, "color": "#4a3d57", "value": 18},
     "dedo_bruxa":          {"name": "Dedo Mirrado de Bruxa", "kind": "trofeu", "stackable": True, "color": "#9bbf8a", "value": 24},
     "ectoplasma":          {"name": "Ectoplasma",            "kind": "trofeu", "stackable": True, "color": "#cdd8ff", "value": 20},
@@ -63,9 +64,9 @@ ITEMS = {
     "lagrima_da_dama":     {"name": "Lágrima da Dama",       "kind": "tesouro", "stackable": True, "color": "#bcd0ff", "value": 500, "protect": 20},
 
     # trofeus do Deserto de Avasham (vendiveis na Armas Peteco)
-    "presa_lacraia":       {"name": "Presa de Lacraia",      "kind": "trofeu", "stackable": True, "color": "#caa46a", "value": 40},
-    "couro_hiena":         {"name": "Couro de Hiena",        "kind": "trofeu", "stackable": True, "color": "#b08d5a", "value": 44},
-    "pena_abutre":         {"name": "Pena de Abutre",        "kind": "trofeu", "stackable": True, "color": "#6a5a4a", "value": 46},
+    "presa_lacraia":       {"name": "Presa de Lacraia",      "kind": "trofeu", "stackable": True, "color": "#caa46a", "value": 40, "animal": True},
+    "couro_hiena":         {"name": "Couro de Hiena",        "kind": "trofeu", "stackable": True, "color": "#b08d5a", "value": 44, "animal": True},
+    "pena_abutre":         {"name": "Pena de Abutre",        "kind": "trofeu", "stackable": True, "color": "#6a5a4a", "value": 46, "animal": True},
     "veneno_naja":         {"name": "Veneno de Naja",        "kind": "trofeu", "stackable": True, "color": "#9bd06a", "value": 52},
     "ferrao_escorpiao":    {"name": "Ferrão de Escorpião",   "kind": "trofeu", "stackable": True, "color": "#caa05a", "value": 64},
     "placa_verme":         {"name": "Placa de Verme",        "kind": "trofeu", "stackable": True, "color": "#c08a5a", "value": 72},
@@ -223,9 +224,14 @@ def catalog():
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
             "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
             "heal": v.get("heal"), "desc": describe(k), "protect": v.get("protect"),
-            "value": v.get("value", 1)}
+            "animal": v.get("animal"), "value": v.get("value", 1)}
         for k, v in ITEMS.items()
     }
+
+
+def animal_trophies():
+    """Itens vindos de criaturas animais (lobo, javali, etc.) que o Valdir compra na Couraria."""
+    return [k for k, v in ITEMS.items() if v.get("animal")]
 
 
 def death_protect_items():
