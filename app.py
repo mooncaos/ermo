@@ -230,6 +230,7 @@ def _enter_world(player_id, row):
         "ficha": ficha,
         "feats": feats.catalog(),
         "class_features": class_features.FEATURES,
+        "transforms": classes.TRANSFORMS,
         "day_length": DAY_LENGTH,
         "server_now": time.time(),
     })
@@ -588,13 +589,10 @@ def _player_death(sid):
     if not player:
         return
     f = player.get("ficha") or {}
-    xp = int(f.get("xp", 0))
-    lvl = int(f.get("level", 1))
-    thr = leveling.XP_TABLE[min(max(lvl, 1), leveling.MAX_LEVEL)]
-    within = max(0, xp - thr)
-    loss = within // 2
-    f["xp"] = xp - loss
-    leveling.recompute(f)                 # nivel se mantem; recalcula a vida
+    # SEM penalidade de XP ao morrer. A curva 10->20 ja e brutal; perder progresso em
+    # cima disso parecia bug e desanimava. A punicao e renascer no inicio (longe da
+    # caca) e ter que voltar a pe, com a vida cheia.
+    leveling.recompute(f)                 # nivel/vida coerentes com o XP
     f["hp"] = f.get("hp_max", 1)          # renasce com vida cheia
     player["ficha"] = f
     try:
@@ -602,8 +600,8 @@ def _player_death(sid):
     except Exception as exc:
         print("erro salvando morte:", exc)
     socketio.emit("xp", {
-        "xp": f["xp"], "level": f["level"], "hp": f["hp"], "hp_max": f["hp_max"],
-        "prof": f.get("prof"), "gained": -loss, "reason": "morte",
+        "xp": f.get("xp", 0), "level": f["level"], "hp": f["hp"], "hp_max": f["hp_max"],
+        "prof": f.get("prof"), "gained": 0, "reason": "morte",
         "pending_asi": f.get("pending_asi", []),
     }, to=sid)
     sx, sy = rules.pick_spawn(world, "ermo")
@@ -929,6 +927,35 @@ def on_combat_use_potion(data=None):
     emit("combat_msg", {"text": "Você virou a Poção de Vida! Vida cheia, mas perde 2 turnos bebendo."})
     combat.advance(enc)
     _resume(sid)
+
+
+@socketio.on("set_form")
+def on_set_form(data=None):
+    """Assume/desfaz uma forma (Forma Selvagem etc.). Guarda na ficha o bonus, que
+    o combate aplica em make_player_combatant. Mandar form=None volta ao normal."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    f = player.get("ficha") or {}
+    cid = f.get("class_id")
+    fid = (data or {}).get("form")
+    form = classes.get_form(cid, fid) if fid else None
+    if fid and not form:
+        emit("toast", {"text": "Essa forma não está disponível."})
+        return
+    f["form"] = (fid if form else None)
+    f["form_bonus"] = (dict(form["bonus"]) if form else None)
+    player["ficha"] = f
+    try:
+        db.save_ficha(player["player_id"], f)
+    except Exception:
+        pass
+    emit("form_set", {"form": f.get("form"), "name": (form["name"] if form else None),
+                      "icon": (form.get("icon") if form else None)})
+    if form:
+        emit("toast", {"text": "Você assumiu a forma: %s %s" % (form.get("icon", ""), form["name"])})
+    else:
+        emit("toast", {"text": "Você voltou à forma normal."})
 
 
 @socketio.on("move")

@@ -101,3 +101,35 @@ def apply_class(ficha, class_id, plus2):
     from . import leveling   # local: evita import circular
     leveling.recompute(out)  # aplica XP ja acumulado (exploracao sem classe)
     return out, None
+
+
+# ===========================================================================
+#  TRANSFORMACOES (menu abaixo da ficha). Classes que podem assumir outra forma.
+#  Cada forma da um bonus de combate. Comeca pela Forma Selvagem do Druida; o
+#  sistema aceita novas classes/formas so adicionando aqui.
+# ===========================================================================
+TRANSFORMS = {
+    "druida": [
+        {"id": "lobo",  "name": "Lobo",  "icon": "🐺",
+         "desc": "Forma Selvagem do Lobo: veloz e feroz. +2 de dano e +2 de deslocamento.",
+         "bonus": {"dmg_flat": 2, "speed": 2}},
+        {"id": "urso",  "name": "Urso",  "icon": "🐻",
+         "desc": "Forma Selvagem do Urso: muralha de músculo. +3 de armadura e +1 de dano.",
+         "bonus": {"ac": 3, "dmg_flat": 1}},
+        {"id": "aguia", "name": "Águia", "icon": "🦅",
+         "desc": "Forma Selvagem da Águia: ágil e certeira. +2 de deslocamento e +2 para acertar.",
+         "bonus": {"speed": 2, "atk": 2}},
+    ],
+}
+
+
+def forms_for(class_id):
+    """Lista de formas que a classe pode assumir (vazia se nao se transforma)."""
+    return TRANSFORMS.get(class_id, [])
+
+
+def get_form(class_id, form_id):
+    for f in forms_for(class_id):
+        if f["id"] == form_id:
+            return f
+    return None

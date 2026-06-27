@@ -69,7 +69,21 @@ def make_player_combatant(sid, player, ficha):
         st["speed"] += 2
     if ("atacante_pesado" in feats) or ("atirador_elite" in feats):   # +dano de arma
         st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + 3
+    if "duas_armas" in feats:                   # Duas Armas: dano da mao secundaria
+        st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + 3
+    if "sentinela" in feats:                    # Sentinela: guarda a posicao (+CA)
+        st["ac"] += 2
     init_bonus = 5 if "alerta" in feats else 0  # Alerta: +5 de iniciativa
+    fb = ficha.get("form_bonus") or {}           # bonus da forma assumida (transformacao)
+    if fb:
+        st["ac"] += fb.get("ac", 0)
+        st["speed"] += fb.get("speed", 0)
+        st["atk"] += fb.get("atk", 0)
+        if fb.get("dmg_flat"):
+            st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + fb["dmg_flat"]
+    luck = 3 if "sortudo" in feats else 0       # Sortudo: re-rolagens de ataque ruim
+    save_bonus = 1 if "iniciado_magia" in feats else 0      # Iniciado em Magia: +1 resistencias
+    spell_bonus = 1 if "conjurador_guerra" in feats else 0  # Conjurador de Guerra: +1 ataque/CD magico
     cid = ficha.get("class_id")
     final = ficha.get("attrs_final") or ficha.get("attrs") or {}
     lvl = int(ficha.get("level", 1))
@@ -86,17 +100,17 @@ def make_player_combatant(sid, player, ficha):
         "speed": st["speed"], "dex": st["dex"],
         "x": player["x"], "y": player["y"], "alive": True,
         "atk_name": "ataque", "level": lvl, "class_id": cid,
-        "init_bonus": init_bonus, "feats": feats,
+        "init_bonus": init_bonus, "feats": feats, "luck": luck,
         "cast_attr": cast_attr, "cast_mod": cast_mod,
-        "spell_atk": prof + cast_mod, "spell_dc": 8 + prof + cast_mod,
+        "spell_atk": prof + cast_mod + spell_bonus, "spell_dc": 8 + prof + cast_mod + spell_bonus,
         "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
         "abilities": abil.for_class(cid), "sneak": sneak, "rage_dmg": rage_dmg,
         "res": copy.deepcopy(ficha.get("res") or {}),
         "raging": False, "bless_die": None, "smite_armed": False,
         "saves": {
-            "FOR": races.attr_mod(int(final.get("FOR", 10))), "DES": st["dex"],
-            "CON": races.attr_mod(int(final.get("CON", 10))), "INT": races.attr_mod(int(final.get("INT", 10))),
-            "SAB": races.attr_mod(int(final.get("SAB", 10))), "CAR": races.attr_mod(int(final.get("CAR", 10))),
+            "FOR": races.attr_mod(int(final.get("FOR", 10))) + save_bonus, "DES": st["dex"] + save_bonus,
+            "CON": races.attr_mod(int(final.get("CON", 10))) + save_bonus, "INT": races.attr_mod(int(final.get("INT", 10))) + save_bonus,
+            "SAB": races.attr_mod(int(final.get("SAB", 10))) + save_bonus, "CAR": races.attr_mod(int(final.get("CAR", 10))) + save_bonus,
         },
     }
 
@@ -346,6 +360,11 @@ def attack(enc, attacker, target):
     Furtivo/Castigo no dano, e resistencia no alvo."""
     ad = _adv_dis(attacker, target)
     d = max(_d20(), _d20()) if ad > 0 else (min(_d20(), _d20()) if ad < 0 else _d20())
+    if attacker.get("luck", 0) > 0 and d <= 7:        # Sortudo: re-rola um ataque ruim
+        nd = _d20()
+        if nd > d:
+            d = nd
+        attacker["luck"] -= 1
     crit = (d == 20)
     total = d + attacker.get("atk", 0)
     if attacker.get("bless_die"):
@@ -369,8 +388,10 @@ def attack(enc, attacker, target):
         if attacker.get("smite_armed"):
             lv = _spend_slot(attacker.get("res") or {})
             if lv:
-                dmg += _roll_dmg({"n": lv + 1, "d": 6}, crit)   # 2d6 no nivel 1, +1d6/nivel acima
+                sd = _roll_dmg({"n": lv + 1, "d": 6}, crit)   # 2d6 no nivel 1, +1d6/nivel acima
+                dmg += sd
                 res["smite"] = True
+                res["smite_dmg"] = sd                          # dano divino separado (pro somatorio)
             attacker["smite_armed"] = False
         dealt = _apply_damage(target, dmg)
         res["dmg"] = dealt
@@ -715,7 +736,8 @@ def boss_turn(enc, boss):
         out["steps"].append((nx, ny))
         budget -= 1
     if in_reach(boss, tgt):
-        out["atk"] = attack(enc, boss, tgt)
+        ab = _pick_monster_ability(enc, boss)              # chefe tambem usa habilidade
+        out["atk"] = monster_ability(enc, boss, tgt, ab) if ab else attack(enc, boss, tgt)
     if not out["say_cat"]:
         out["say_cat"] = "taunt"
     return out

@@ -497,6 +497,40 @@ MONSTER_ABILITIES = {
                        "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.4, "cd": 2},
                       {"id": "rugido", "name": "Rugido Macabro", "type": "fear",
                        "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 4}],
+
+    # --- 8 mobs intermediarios (floresta + deserto) ---
+    "lobo_negro":    [{"id": "dilacerar", "name": "Dilacerar", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "alma_errante":  [{"id": "lamento", "name": "Lamento Errante", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3}],
+    "assombracao":   [{"id": "assombrar", "name": "Assombrar", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3}],
+    "espectro":      [{"id": "dreno_espectral", "name": "Dreno Espectral", "type": "drain",
+                       "chance": 0.5, "cd": 2}],
+    "vulto_sombrio": [{"id": "garras_sombrias", "name": "Garras Sombrias", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "lacraia_gigante": [{"id": "picada_venenosa", "name": "Picada Venenosa", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "hiena_ermo":    [{"id": "dentada", "name": "Dentada Dilacerante", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "abutre_carniceiro": [{"id": "bicada_imunda", "name": "Bicada Imunda", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 1, "d": 6}, "chance": 0.45, "cd": 2}],
+
+    # --- 3 CHEFES (usados pelo boss_turn) ---
+    "maurao":        [{"id": "porrada_brutal", "name": "Porrada Brutal", "type": "heavy",
+                       "dmg_bonus": {"n": 3, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "berro", "name": "Berro Ensurdecedor", "type": "fear",
+                       "save": "SAB", "dc": 14, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
+    "velho_bob":     [{"id": "tiro_certeiro", "name": "Tiro Certeiro", "type": "heavy",
+                       "dmg_bonus": {"n": 3, "d": 8}, "chance": 0.5, "cd": 2},
+                      {"id": "praga_velha", "name": "Praga do Velho", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.35, "cd": 3}],
+    "dama_noite":    [{"id": "beijo_sombrio", "name": "Beijo Sombrio", "type": "drain",
+                       "chance": 0.45, "cd": 2},
+                      {"id": "grito_mortal", "name": "Grito Mortal", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 3, "chance": 0.35, "cd": 3},
+                      {"id": "maldicao", "name": "Maldição da Dama", "type": "inflict",
+                       "status": "poison", "turns": 4, "dot": {"n": 3, "d": 6}, "chance": 0.4, "cd": 3}],
 }
 
 

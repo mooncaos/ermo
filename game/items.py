@@ -187,6 +187,33 @@ def shows_staff(item_id):
     return bool(it and it.get("visual") == "staff")
 
 
+def describe(item_id):
+    """Gera uma descricao curta do item a partir dos atributos (ou usa 'desc' fixo)."""
+    it = ITEMS.get(item_id) or {}
+    if it.get("desc"):
+        return it["desc"]
+    k = it.get("kind"); d = it.get("dmg") or {}
+    bits = []
+    if k == "weapon":
+        head = "Arma de mão."
+        if d: bits.append("%dd%d de dano" % (d.get("n", 1), d.get("d", 6)))
+        if it.get("atk"): bits.append("+%d para acertar" % it["atk"])
+        if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+    elif k == "armor":
+        head = "Escudo." if it.get("slot") == "hand" else "Peça de armadura."
+        if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+    elif k == "consumivel":
+        head = "Consumível."
+        if it.get("heal"): bits.append("cura %d%% da vida" % int(it["heal"] * 100))
+    elif k == "currency":
+        return "Moeda do Ermo."
+    else:
+        head = it.get("name", "Item")
+    rare = it.get("rarity")
+    tail = (" Raridade: %s." % rare) if rare and rare != "comum" else ""
+    return head + ((" " + ", ".join(bits) + ".") if bits else "") + tail
+
+
 def catalog():
     """O que o cliente precisa pra nomear, desenhar, equipar e mostrar cada item."""
     return {
@@ -195,6 +222,7 @@ def catalog():
             "equippable": "slot" in v, "slot": v.get("slot"),
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
             "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
+            "heal": v.get("heal"), "desc": describe(k),
             "value": v.get("value", 1)}
         for k, v in ITEMS.items()
     }
@@ -340,6 +368,7 @@ _SLOT_VIS = {
 
 SHOP_SETS = []          # [{"class_id":..., "items":[ids na ordem arma->botas]}]
 SHOP_ITEMS = set()      # todos os ids que a loja vende (pra validar compra)
+_SHIELD_AC = {"pesada": 3, "media": 2}   # escudo: arquetipos marciais (robe nao usa)
 
 def _gen_class_sets():
     for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
@@ -360,6 +389,12 @@ def _gen_class_sets():
                           "color": cor, "slot": slot, "visual": vis, "rarity": "raro",
                           "ac": a[slot], "value": SHOP_PRICE}
             ids.append(iid)
+        if arq in _SHIELD_AC:
+            sidh = "set_%s_escudo" % cid
+            ITEMS[sidh] = {"name": "Escudo %s" % tema, "kind": "armor", "stackable": False,
+                           "color": cor, "slot": "hand", "visual": "shield", "rarity": "raro",
+                           "ac": _SHIELD_AC[arq], "value": SHOP_PRICE}
+            ids.append(sidh)
         SHOP_SETS.append({"class_id": cid, "items": ids})
         SHOP_ITEMS.update(ids)
 
@@ -400,6 +435,12 @@ def _gen_tier_sets():
                               "stackable": False, "color": cor, "slot": slot, "visual": vis,
                               "rarity": rar, "ac": a[slot] + acb, "value": price}
                 ids.append(iid)
+            if arq in _SHIELD_AC:
+                sidh = "%s_%s_escudo" % (pfx, cid)
+                ITEMS[sidh] = {"name": "Escudo %s %s" % (tema, suf), "kind": "armor",
+                               "stackable": False, "color": cor, "slot": "hand", "visual": "shield",
+                               "rarity": rar, "ac": _SHIELD_AC[arq] + acb, "value": price}
+                ids.append(sidh)
             sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
         TIER_SETS[pfx] = sets; TIER_ITEMS[pfx] = ids_all; TIER_PRICE[pfx] = price
 _gen_tier_sets()

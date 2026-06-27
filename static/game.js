@@ -136,6 +136,7 @@ let grimoireData = null;      // dados do Grimorio vindos do servidor (pool, lim
 let grimoireSel = null;       // selecao local em edicao {cantrips:Set, spells:Set}
 const SPELL_CLASSES = new Set(['mago','feiticeiro','bruxo','clerigo','druida','bardo','paladino','patrulheiro']);
 let classFeaturesData = {};   // features por classe (do servidor): id -> [[nivel,nome,desc],...]
+let transformsData = {};      // formas por classe (transformacoes): id -> [{id,name,icon,desc,bonus}]
 let featsCatalog = [];        // talentos do feat-or-ASI
 let combat = null;            // estado da luta por turnos (null = fora de combate)
 let dmgPops = [];             // numeros de dano flutuantes na tela
@@ -187,6 +188,7 @@ let lastPhase = '';           // pra so atualizar o HUD quando a fase muda
 // ---------- falas (balao), NPC e o raio do Valdris ----------
 const bubbles = new Map();    // id da entidade -> {text, until} (balao acima dela)
 const smites  = new Map();    // id do alvo -> {start} (efeito do raio cosmico)
+(function(){ const st=document.createElement('style'); st.textContent='@keyframes smiteBlink{0%,100%{opacity:1}50%{opacity:.3}}'; (document.head||document.documentElement).appendChild(st); })();
 const BUBBLE_MS = 4500;       // quanto tempo um balao fica na tela
 const SMITE_MS  = 700;        // duracao do raio + flash
 
@@ -4107,6 +4109,7 @@ function connectWithToken(token){
     Object.keys(catalog).forEach(k=> delete catalog[k]);
     Object.assign(catalog, data.items || {});
     classFeaturesData = data.class_features || {};
+    transformsData = data.transforms || {};
     featsCatalog = data.feats || [];
     ground.clear();
     for(const it of (data.ground||[])) ground.set(it.x+','+it.y, it.item);
@@ -4219,6 +4222,10 @@ function connectWithToken(token){
     if(fichaTab === 'grimorio' && fichaPanelOpen) renderFicha();
   });
   socket.on('toast', d=>{ if(d && d.text) toastMsg(d.text); });
+  socket.on('form_set', d=>{
+    if(myFicha){ myFicha.form = d.form || null; }
+    if(typeof fichaPanelOpen === 'undefined' || fichaPanelOpen) renderFicha();
+  });
   socket.on('xp', d=>{
     if(!d) return;
     if(myFicha){
@@ -4268,7 +4275,7 @@ function connectWithToken(token){
       combatBanner('Vitória!', d.xp ? ('+'+d.xp+' XP') : '', '#5ec27a');
       if((d.drops && d.drops.length) || d.bronze) showSpoils(d.drops || [], d.bronze || 0);
     } else {
-      combatBanner('Você caiu...', 'renasceu no Ermo · perdeu metade do XP do nível', '#d65a5a');
+      combatBanner('Você caiu...', 'renasceu no Ermo · sem perder XP, volte com tudo', '#d65a5a');
     }
   });
   socket.on('combat_msg', d=>{ if(d && d.text) toastMsg(d.text, true); });
@@ -4665,6 +4672,20 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
   const d1 = shade(col, -0.28), hi = shade(col, 0.3);
   c.lineJoin = 'round'; c.lineCap = 'round';
   switch(visual){
+    case 'shield': {
+      c.fillStyle = shade(col,-0.15);
+      c.beginPath();
+      c.moveTo(cx, cy-s*0.36); c.lineTo(cx+s*0.27, cy-s*0.22);
+      c.lineTo(cx+s*0.27, cy+s*0.12); c.lineTo(cx, cy+s*0.4);
+      c.lineTo(cx-s*0.27, cy+s*0.12); c.lineTo(cx-s*0.27, cy-s*0.22);
+      c.closePath(); c.fill();
+      c.strokeStyle = shade(col,0.22); c.lineWidth = 1.4; c.stroke();
+      c.strokeStyle = shade(col,0.1); c.lineWidth = 1;          // cruz/reforco
+      c.beginPath(); c.moveTo(cx, cy-s*0.3); c.lineTo(cx, cy+s*0.34);
+      c.moveTo(cx-s*0.22, cy-s*0.04); c.lineTo(cx+s*0.22, cy-s*0.04); c.stroke();
+      c.fillStyle = hi;                                         // bossa central
+      c.beginPath(); c.arc(cx, cy-s*0.02, s*0.07, 0, Math.PI*2); c.fill();
+      return true; }
     case 'potion': {
       c.fillStyle = shade(col,-0.4);
       c.fillRect(cx-s*0.06, cy-s*0.34, s*0.12, s*0.14);                 // gargalo
@@ -4906,6 +4927,7 @@ function _shopRow(it, mode){
   mid.appendChild(nm);
   const stt = _shopStat(def);
   if(stt){ const st = document.createElement('div'); st.textContent = stt; st.style.cssText = 'font-size:11px;color:#9b95b5;'; mid.appendChild(st); }
+  if(def.desc){ const ds = document.createElement('div'); ds.textContent = def.desc; ds.style.cssText = 'font-size:10px;color:#716c88;margin-top:1px;line-height:1.25;'; mid.appendChild(ds); }
   row.appendChild(mid);
   const right = document.createElement('div'); right.style.cssText = 'flex:0 0 auto;text-align:right;';
   if(mode === 'buy'){
@@ -5175,8 +5197,12 @@ function toggleFicha(force){
   if(fichaPanelOpen) renderFicha();
 }
 // Tabela de XP 5e (espelha o servidor) + progresso no nivel atual.
-const XP_TABLE = [0,0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,
-                  100000,120000,140000,165000,195000,225000,265000,305000,355000];
+// MESMA curva do servidor (game/leveling.py). Tem que bater EXATO, senao a barra
+// mostra nivel/progresso errado. Do 10 ao 20 a curva e brutal de proposito.
+const XP_TABLE = [0, 0, 50, 150, 350, 700,
+                  1300, 2300, 4000, 6500, 12000,
+                  26000, 56000, 120000, 250000, 520000,
+                  1050000, 2100000, 4200000, 8400000, 16800000];
 function xpProgress(xp){
   xp = xp||0; let lvl=1;
   for(let L=2;L<=20;L++){ if(xp>=XP_TABLE[L]) lvl=L; else break; }
@@ -5220,7 +5246,7 @@ function _fichaGeral(f){
     const pr = xpProgress(f.xp||0);
     h += '<div style="margin:10px 0 4px;display:flex;justify-content:space-between;align-items:baseline">'+
       '<span style="font:700 15px Cinzel,serif;color:#f4d8a0">Nível '+(f.level||1)+'</span>'+
-      '<span style="font-size:11px;color:#8a86a0">'+(pr.need? (pr.cur+' / '+pr.need+' XP') : 'máximo')+'</span></div>';
+      '<span style="font-size:11px;color:#8a86a0">'+(pr.need? (pr.cur.toLocaleString('pt-BR')+' / '+pr.need.toLocaleString('pt-BR')+' XP · '+Math.floor(pr.pct*100)+'%') : 'nível máximo')+'</span></div>';
     h += _bar(pr.pct, 'linear-gradient(90deg,#9b6dff,#c9a0ff)');
     h += '<div style="margin:10px 0 4px;display:flex;justify-content:space-between;align-items:baseline">'+
       '<span style="color:#9b95b4;font-size:13px">Vida</span>'+
@@ -5284,6 +5310,34 @@ function _fichaPassivas(f){
         '<div style="font-size:11.5px;color:#9b95b4;margin-top:2px;line-height:1.35">'+esc(fd.desc)+'</div></div>' : '';
     }).join('');
   }
+  h += _fichaTransform(f);
+  return h;
+}
+
+function _fichaTransform(f){
+  const forms = (f.class_id && transformsData[f.class_id]) ? transformsData[f.class_id] : [];
+  if(!forms.length) return '';                 // classe nao se transforma
+  const active = f.form || null;
+  let h = '<div style="font:600 11px Inter;color:#8a86a0;margin:16px 0 6px;letter-spacing:.5px;text-transform:uppercase">Transformação</div>';
+  if(active){
+    const af = forms.find(x=> x.id===active);
+    h += '<div style="margin:0 0 8px;padding:9px 11px;background:linear-gradient(135deg,#2a2140,#1f1b33);border:1px solid #6d4ea0;border-radius:10px;display:flex;align-items:center;gap:10px">'+
+      '<span style="font-size:22px;line-height:1">'+(af?af.icon:'✦')+'</span>'+
+      '<div style="flex:1;min-width:0"><div style="font:700 13px Cinzel,serif;color:#c9a0ff">Transformado: '+esc(af?af.name:active)+'</div>'+
+      '<div style="font-size:11px;color:#9b95b4;margin-top:1px;line-height:1.3">'+(af?esc(af.desc):'')+'</div></div></div>';
+    h += '<button data-form="" style="width:100%;padding:8px;margin-bottom:10px;background:#2a2433;border:1px solid #4a4360;border-radius:9px;color:#d8d2e8;font:600 12px Inter;cursor:pointer">↺ Voltar à forma normal</button>';
+  }
+  h += forms.map(fm=>{
+    const on = fm.id===active;
+    return '<div style="margin:0 0 7px;padding:9px 11px;background:'+(on?'#241d38':'#1b1830')+';border:1px solid '+(on?'#6d4ea0':'#2e2a47')+';border-radius:9px;display:flex;align-items:center;gap:9px">'+
+      '<span style="font-size:18px;line-height:1">'+fm.icon+'</span>'+
+      '<div style="flex:1;min-width:0"><div style="font:700 12.5px Inter;color:#e0c98a">'+esc(fm.name)+'</div>'+
+      '<div style="font-size:11px;color:#9b95b4;margin-top:1px;line-height:1.3">'+esc(fm.desc)+'</div></div>'+
+      (on ? '<span style="font:700 10px Inter;color:#c9a0ff;white-space:nowrap">ATIVA</span>'
+          : '<button data-form="'+esc(fm.id)+'" style="flex:0 0 auto;padding:5px 12px;background:#3a2f55;border:1px solid #6d4ea0;border-radius:7px;color:#e8e2ff;font:600 11px Inter;cursor:pointer">Assumir</button>')+
+      '</div>';
+  }).join('');
+  h += '<div style="font-size:10.5px;color:#6f6a86;margin-top:2px;line-height:1.3">A forma vale no combate (muda armadura, dano, deslocamento ou acerto). Pode trocar quando quiser.</div>';
   return h;
 }
 
@@ -5329,6 +5383,8 @@ function renderFicha(){
     b.onclick = ()=>{ const t=b.getAttribute('data-tab'); if(t==='grimorio') grimoireData=null; fichaTab=t; renderFicha(); });
   fichaPanel.querySelectorAll('[data-gtog]').forEach(b=>
     b.onclick = ()=> toggleGrimoire(b.getAttribute('data-gtog')));
+  fichaPanel.querySelectorAll('[data-form]').forEach(b=>
+    b.onclick = ()=>{ const fid=b.getAttribute('data-form'); socket.emit('set_form', { form: fid || null }); });
   const gsv = document.getElementById('grim-save'); if(gsv) gsv.onclick = saveGrimoire;
   if(fichaTab==='grimorio' && grimoireData===null) socket.emit('grimoire_get');
 }
@@ -5574,7 +5630,7 @@ function renderCombatHud(){
   if(combat.yourTurn){
     const badges = [];
     if(your.raging) badges.push('<span style="font:700 10px Inter;color:#ff8a5c">🔥 Furioso</span>');
-    if(your.smite_armed) badges.push('<span style="font:700 10px Inter;color:#f4d8a0">⚔️ Castigo armado</span>');
+    if(your.smite_armed) badges.push('<span style="font:700 10px Inter;color:#f4d8a0;animation:smiteBlink .8s ease-in-out infinite">⚔️ Castigo armado · próximo acerto</span>');
     if(your.mark) badges.push('<span style="font:700 10px Inter;color:#c9a0ff">🎯 '+esc(((your.mark||{}).name)||'Marca')+'</span>');
     const hasBonus = (your.abilities||[]).some(a=> a.slot==='bonus');
     html += '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'+
@@ -5743,8 +5799,10 @@ function showAttackResult(res){
     return;
   }
   spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
-  if(res.hit) popDamage(res.target, '-'+res.dmg+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
-  else popDamage(res.target, 'errou', '#9b95b4');
+  if(res.hit){
+    popDamage(res.target, '-'+res.dmg+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
+    if(res.smite_dmg){ spawnAt(res.target, 'buff', '#ffe08a'); toastMsg('⚔️ Castigo Divino: +'+res.smite_dmg+' radiante (já no total)', true); }
+  } else popDamage(res.target, 'errou', '#9b95b4');
   if(res.mon_ability && res.ability){
     toastMsg('✦ '+res.ability+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):'')+(res.self_heal?(' · curou '+res.self_heal):''), true);
   }
