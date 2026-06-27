@@ -728,7 +728,8 @@ def _monster_wander_loop():
     Quem perambula pra perto de um jogador parado tambem inicia a luta."""
     while True:
         socketio.sleep(1.2)
-        for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram", "mina_avhur", "camara_avhur"):
+        for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram", "mina_avhur", "camara_avhur",
+                   "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth"):
             moved = world.wander_monsters(mp)
             if moved:
                 socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)

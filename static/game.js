@@ -169,6 +169,10 @@ const MAP_AMBIENT = {
   mina_avhur:       {r:60,  g:42,  b:18,  a:0.34, part:'#e8b860'},  // tumba egipcia: penumbra de tocha, poeira dourada
   camara_avhur:     {r:72,  g:50,  b:16,  a:0.30, part:'#f4cf6a'},  // sala do trono: brilho dourado dos braseiros
   valdarkram:       {r:28,  g:38,  b:48,  a:0.40, part:'#9fb4c0'},  // cemiterio: bruma fria
+  torre_andar1:     {r:30,  g:22,  b:46,  a:0.36, part:'#b89bff'},  // torre: penumbra roxa gotica
+  torre_andar2:     {r:32,  g:21,  b:48,  a:0.38, part:'#c0a0ff'},
+  torre_andar3:     {r:36,  g:20,  b:52,  a:0.40, part:'#c9a0ff'},
+  camara_varth:     {r:42,  g:18,  b:56,  a:0.44, part:'#caa6ff'},  // trono do Lorde: necrose densa
   salao:            {r:46,  g:34,  b:78,  a:0.12, part:'#caa6ff'},  // salao: penumbra sagrada
   rasharan:         {r:232, g:182, b:92,  a:0.14, part:'#ffe6a0'},  // reino dourado do trigo
   valoran:          {r:118, g:160, b:230, a:0.14, part:'#bfe0ff'},  // reino etereo azulado
@@ -180,7 +184,7 @@ const MAP_AMBIENT = {
   repouso_dama:     {r:22,  g:44,  b:42,  a:0.10, part:'#a9f0c0'},  // mata fria esverdeada
 };
 // mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
-const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao']);
+const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth']);
 
 // ---------- ciclo de dia e noite ----------
 let dayLength = 480;          // segundos por ciclo (o servidor manda o valor real)
@@ -808,6 +812,73 @@ function drawMineTile(c, ch, px, py, ts, gx, gy){
   return false;
 }
 
+function drawTowerTile(c, ch, px, py, ts, gx, gy){
+  // ===== TORRE DO LORDE NECROTICO: pedra gotica fria + necrose roxa =====
+  function floor(){
+    const h=((gx*7+gy*13)%4);
+    c.fillStyle=['#26222f','#2a2633','#221e2a','#282431'][h];        // laje cinza-violacea escura
+    c.fillRect(px,py,ts,ts);
+    c.strokeStyle='rgba(10,8,16,0.6)'; c.lineWidth=1; c.strokeRect(px+0.5,py+0.5,ts-1,ts-1);  // juntas
+    if((gx*11+gy*17)%5===0){ c.fillStyle='rgba(155,109,255,0.05)'; c.fillRect(px+2,py+2,ts-4,ts-4); }   // brilho difuso
+    if((gx*13+gy*7)%4===0){                                          // rachaduras
+      c.strokeStyle='rgba(6,4,12,0.5)'; c.lineWidth=1;
+      c.beginPath(); c.moveTo(px+ts*0.2,py+ts*0.3); c.lineTo(px+ts*0.5,py+ts*0.55); c.lineTo(px+ts*0.42,py+ts*0.8); c.stroke();
+    }
+    if((gx*19+gy*23)%13===0){ c.fillStyle='rgba(70,90,70,0.16)'; c.beginPath(); c.arc(px+ts*0.62,py+ts*0.4,ts*0.16,0,Math.PI*2); c.fill(); }  // limo
+  }
+  switch(ch){
+    case 'd': floor(); return true;
+    case '.': floor(); return true;
+    case ',': floor();
+      c.strokeStyle='rgba(206,200,184,0.55)'; c.lineWidth=1.4;       // ossinho largado
+      c.beginPath(); c.moveTo(px+ts*0.3,py+ts*0.62); c.lineTo(px+ts*0.62,py+ts*0.5); c.stroke();
+      return true;
+    case '#': {                                                      // parede gotica (pedra escura nervurada)
+      c.fillStyle='#1a1724'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#241f30';
+      for(let r=0;r<3;r++){ const off=(r%2)*ts*0.25;
+        for(let k=-1;k<3;k++){ c.fillRect(px+off+k*ts*0.5+1,py+r*ts*0.34+1,ts*0.5-2,ts*0.32-1); } }
+      c.strokeStyle='rgba(6,4,12,0.7)'; c.lineWidth=1; c.strokeRect(px,py,ts,ts);
+      c.fillStyle='#2e2940'; c.fillRect(px+ts*0.44,py,ts*0.12,ts);                                  // nervura gotica
+      c.fillStyle='rgba(155,109,255,0.07)'; c.fillRect(px+ts*0.47,py,ts*0.06,ts);
+      return true;
+    }
+    case 'H': {                                                      // tumba/efigie gotica com cranio
+      c.fillStyle='#1e1a28'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#2c2738'; roundRect(c,px+ts*0.12,py+ts*0.08,ts*0.76,ts*0.84,ts*0.06); c.fill();
+      c.strokeStyle='#120f1a'; c.lineWidth=1.4; c.stroke();
+      c.strokeStyle='rgba(155,109,255,0.4)'; c.lineWidth=2;          // cruz gravada
+      c.beginPath(); c.moveTo(px+ts*0.5,py+ts*0.22); c.lineTo(px+ts*0.5,py+ts*0.58); c.moveTo(px+ts*0.37,py+ts*0.34); c.lineTo(px+ts*0.63,py+ts*0.34); c.stroke();
+      c.fillStyle='#d8d2c0'; c.beginPath(); c.arc(px+ts*0.5,py+ts*0.72,ts*0.1,0,Math.PI*2); c.fill();   // cranio
+      c.fillStyle='#120f1a'; c.beginPath(); c.arc(px+ts*0.455,py+ts*0.71,ts*0.022,0,Math.PI*2); c.arc(px+ts*0.545,py+ts*0.71,ts*0.022,0,Math.PI*2); c.fill();
+      c.fillStyle='#15121d'; c.fillRect(px+ts*0.47,py+ts*0.8,ts*0.06,ts*0.05);
+      return true;
+    }
+    case 'L': {                                                      // braseiro de chama NECROTICA (roxa)
+      const t=performance.now();
+      c.fillStyle='#1a1724'; c.fillRect(px,py,ts,ts);
+      c.fillStyle='#2c2738'; c.fillRect(px+ts*0.4,py+ts*0.55,ts*0.2,ts*0.35);                        // pe
+      c.fillStyle='#23202e'; roundRect(c,px+ts*0.26,py+ts*0.44,ts*0.48,ts*0.16,ts*0.04); c.fill();   // tigela
+      const fl=Math.sin(t/170+gx*1.7)*0.12;
+      const g=c.createRadialGradient(px+ts*0.5,py+ts*0.28,1,px+ts*0.5,py+ts*0.28,ts*0.36);
+      g.addColorStop(0,'rgba(224,196,255,0.95)'); g.addColorStop(0.45,'rgba(155,109,255,0.85)'); g.addColorStop(1,'rgba(91,58,160,0)');
+      c.fillStyle=g; c.beginPath();
+      c.moveTo(px+ts*0.5,py+ts*(0.04+fl)); c.quadraticCurveTo(px+ts*0.73,py+ts*0.3,px+ts*0.5,py+ts*0.5);
+      c.quadraticCurveTo(px+ts*0.27,py+ts*0.3,px+ts*0.5,py+ts*(0.04+fl)); c.fill();
+      c.fillStyle='rgba(155,109,255,0.12)'; c.beginPath(); c.arc(px+ts*0.5,py+ts*0.3,ts*0.42,0,Math.PI*2); c.fill();   // halo
+      return true;
+    }
+    case '+': {                                                      // ESCADA gotica brilhando roxo
+      c.fillStyle='#14111d'; c.fillRect(px,py,ts,ts);
+      for(let i=0;i<4;i++){ c.fillStyle=shade('#3a3450',0.1*i); c.fillRect(px+ts*0.1,py+ts*(0.72-i*0.16),ts*0.8,ts*0.12); }
+      c.fillStyle='rgba(155,109,255,0.55)'; c.fillRect(px+ts*0.1,py+ts*0.06,ts*0.8,ts*0.1);
+      c.fillStyle='rgba(201,160,255,0.22)'; c.fillRect(px+ts*0.28,py,ts*0.44,ts);
+      return true;
+    }
+  }
+  return false;
+}
+
 function drawDesertTile(c, ch, px, py, ts, gx, gy){
   function sand(){
     const h=((gx*7+gy*13)%5);
@@ -930,14 +1001,50 @@ function drawCemeteryTile(c, ch, px, py, ts, gx, gy){
       c.strokeStyle='#33312c'; c.lineWidth=1;
       c.strokeRect(px+1,py+1,ts-2,ts*0.5); c.strokeRect(px+1,py+ts*0.5,ts-2,ts*0.48);
       return true;
-    case 'Z': dead();
-      c.fillStyle='#2a2536'; c.fillRect(px+ts*0.1,py,ts*0.8,ts);          // base de torre escura (porta da Torre)
-      c.fillStyle='#1a1622'; c.fillRect(px+ts*0.1,py,ts*0.8,ts*0.14);
-      c.fillStyle='#0c0a14'; c.beginPath();                                // porta arqueada
-      c.moveTo(px+ts*0.3,py+ts); c.lineTo(px+ts*0.3,py+ts*0.42);
-      c.quadraticCurveTo(px+ts*0.5,py+ts*0.18,px+ts*0.7,py+ts*0.42);
-      c.lineTo(px+ts*0.7,py+ts); c.closePath(); c.fill();
-      c.fillStyle='rgba(155,109,255,0.28)'; c.fillRect(px+ts*0.34,py+ts*0.46,ts*0.32,ts*0.5);  // brilho roxo
+    case 'Z': dead();   // ENTRADA: torre gotica imponente desenhada subindo do tile
+      {
+      const t=performance.now(), cx=px+ts*0.5;
+      const bx0=px+ts*0.14, bx1=px+ts*0.86, bw=bx1-bx0;
+      const baseY=py+ts, topY=py-ts*1.7;                 // corpo: da base ate ~1.7 tiles acima
+      const STONE='#241f30', STONED='#171320', STONEL='#332c46';
+      // halo necrotico atras da torre
+      const halo=c.createRadialGradient(cx,py-ts*0.6,ts*0.3,cx,py-ts*0.6,ts*2.0);
+      halo.addColorStop(0,'rgba(155,109,255,0.18)'); halo.addColorStop(1,'rgba(155,109,255,0)');
+      c.fillStyle=halo; c.fillRect(px-ts*1.3,topY-ts*1.3,ts*3.6,ts*4.2);
+      // corpo da torre
+      c.fillStyle=STONE; c.fillRect(bx0,topY,bw,baseY-topY);
+      c.fillStyle=STONED; c.fillRect(bx0,topY,bw*0.2,baseY-topY);
+      c.fillStyle=STONEL; c.fillRect(bx1-bw*0.1,topY,bw*0.1,baseY-topY);
+      c.strokeStyle=STONED; c.lineWidth=1;               // fiadas de pedra
+      for(let yy=topY+ts*0.26; yy<baseY-2; yy+=ts*0.26){ c.beginPath(); c.moveTo(bx0,yy); c.lineTo(bx1,yy); c.stroke(); }
+      // ameias no topo do corpo
+      c.fillStyle=STONE; for(let i=0;i<4;i++){ c.fillRect(bx0+i*bw/4, topY-ts*0.16, bw/4*0.62, ts*0.16); }
+      // pinaculos de canto
+      c.fillStyle=STONEL;
+      c.beginPath(); c.moveTo(bx0-ts*0.03,topY+ts*0.02); c.lineTo(bx0+ts*0.05,topY-ts*0.34); c.lineTo(bx0+ts*0.13,topY+ts*0.02); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(bx1+ts*0.03,topY+ts*0.02); c.lineTo(bx1-ts*0.05,topY-ts*0.34); c.lineTo(bx1-ts*0.13,topY+ts*0.02); c.closePath(); c.fill();
+      // pinaculo CENTRAL pontudo (gotico) + finial brilhante
+      c.fillStyle=STONE; c.beginPath(); c.moveTo(cx-ts*0.22,topY-ts*0.08); c.lineTo(cx,topY-ts*1.0); c.lineTo(cx+ts*0.22,topY-ts*0.08); c.closePath(); c.fill();
+      c.fillStyle=STONED; c.beginPath(); c.moveTo(cx,topY-ts*1.0); c.lineTo(cx+ts*0.22,topY-ts*0.08); c.lineTo(cx,topY-ts*0.08); c.closePath(); c.fill();
+      c.fillStyle='#c9a0ff'; c.shadowColor='#9b6dff'; c.shadowBlur=8; c.beginPath(); c.arc(cx,topY-ts*1.0,ts*0.05,0,Math.PI*2); c.fill(); c.shadowBlur=0;
+      // janelas goticas (arco pontudo) brilhando roxo
+      function gwin(wy){
+        const ww=bw*0.3, wh=ts*0.46;
+        c.fillStyle='#0a0810'; c.beginPath();
+        c.moveTo(cx-ww/2,wy+wh); c.lineTo(cx-ww/2,wy+wh*0.42); c.lineTo(cx,wy); c.lineTo(cx+ww/2,wy+wh*0.42); c.lineTo(cx+ww/2,wy+wh); c.closePath(); c.fill();
+        const fl=0.5+Math.sin(t/420+wy)*0.2;
+        c.fillStyle='rgba(155,109,255,'+fl.toFixed(2)+')'; c.beginPath();
+        c.moveTo(cx-ww*0.3,wy+wh); c.lineTo(cx-ww*0.3,wy+wh*0.46); c.lineTo(cx,wy+wh*0.14); c.lineTo(cx+ww*0.3,wy+wh*0.46); c.lineTo(cx+ww*0.3,wy+wh); c.closePath(); c.fill();
+      }
+      gwin(topY+ts*0.34); gwin(topY+ts*1.04);
+      // PORTA gotica arqueada na base (a entrada) brilhando roxo
+      c.fillStyle=STONED; c.fillRect(bx0+ts*0.04,baseY-ts*0.86,bw-ts*0.08,ts*0.86);
+      c.fillStyle='#0a0810'; c.beginPath();
+      c.moveTo(cx-ts*0.18,baseY); c.lineTo(cx-ts*0.18,baseY-ts*0.5); c.lineTo(cx,baseY-ts*0.78); c.lineTo(cx+ts*0.18,baseY-ts*0.5); c.lineTo(cx+ts*0.18,baseY); c.closePath(); c.fill();
+      const dfl=0.44+Math.sin(t/360)*0.12;
+      c.fillStyle='rgba(155,109,255,'+dfl.toFixed(2)+')'; c.beginPath();
+      c.moveTo(cx-ts*0.12,baseY); c.lineTo(cx-ts*0.12,baseY-ts*0.44); c.lineTo(cx,baseY-ts*0.66); c.lineTo(cx+ts*0.12,baseY-ts*0.44); c.lineTo(cx+ts*0.12,baseY); c.closePath(); c.fill();
+      }
       return true;
   }
   return false;
@@ -967,7 +1074,7 @@ function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'mina_avhur' && drawMineTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'camara_avhur' && drawMineTile(c, ch, px, py, ts, gx, gy)) return;
-  if((mapName === 'torre_andar1' || mapName === 'torre_andar2' || mapName === 'torre_andar3' || mapName === 'camara_varth') && drawMineTile(c, ch, px, py, ts, gx, gy)) return;
+  if((mapName === 'torre_andar1' || mapName === 'torre_andar2' || mapName === 'torre_andar3' || mapName === 'camara_varth') && drawTowerTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'ermo' && drawSapoTile(c, ch, px, py, ts, gx, gy)) return;
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;

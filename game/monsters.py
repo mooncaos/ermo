@@ -617,19 +617,22 @@ VALDARKRAM_SPAWNS = [
 
 # ===================== TORRE DO LORDE NECROTICO =====================
 TORRE_ANDAR1_SPAWNS = [
-    ("tumular_torre", 10, 12), ("tumular_torre", 30, 12), ("carniceiro_torre", 20, 13),
-    ("tumular_torre", 12, 28), ("carniceiro_torre", 31, 28), ("tumular_torre", 10, 40),
-    ("carniceiro_torre", 31, 40), ("carniceiro_torre", 19, 38),
+    ("tumular_torre", 6, 34), ("carniceiro_torre", 9, 22), ("tumular_torre", 15, 28), ("carniceiro_torre", 15, 31),
+    ("tumular_torre", 21, 19), ("carniceiro_torre", 24, 13), ("tumular_torre", 24, 16), ("carniceiro_torre", 24, 28),
+    ("tumular_torre", 27, 28), ("carniceiro_torre", 30, 10), ("tumular_torre", 30, 43), ("carniceiro_torre", 33, 28),
+    ("tumular_torre", 36, 10), ("carniceiro_torre", 36, 16),
 ]
 TORRE_ANDAR2_SPAWNS = [
-    ("cavaleiro_torre", 10, 12), ("algoz_torre", 30, 12), ("cavaleiro_torre", 20, 13),
-    ("algoz_torre", 12, 28), ("cavaleiro_torre", 31, 28), ("algoz_torre", 10, 40),
-    ("cavaleiro_torre", 31, 40), ("algoz_torre", 19, 38),
+    ("cavaleiro_torre", 6, 34), ("algoz_torre", 9, 22), ("cavaleiro_torre", 15, 28), ("algoz_torre", 15, 31),
+    ("cavaleiro_torre", 21, 19), ("algoz_torre", 24, 13), ("cavaleiro_torre", 24, 16), ("algoz_torre", 24, 28),
+    ("cavaleiro_torre", 27, 28), ("algoz_torre", 30, 10), ("cavaleiro_torre", 30, 43), ("algoz_torre", 33, 28),
+    ("cavaleiro_torre", 36, 10), ("algoz_torre", 36, 16),
 ]
 TORRE_ANDAR3_SPAWNS = [
-    ("necromante_torre", 10, 12), ("profanador_torre", 30, 12), ("necromante_torre", 20, 13),
-    ("profanador_torre", 12, 28), ("necromante_torre", 31, 28), ("profanador_torre", 10, 40),
-    ("necromante_torre", 31, 40),
+    ("necromante_torre", 6, 34), ("profanador_torre", 9, 22), ("necromante_torre", 15, 28), ("profanador_torre", 15, 31),
+    ("necromante_torre", 21, 19), ("profanador_torre", 24, 13), ("necromante_torre", 24, 16), ("profanador_torre", 24, 28),
+    ("necromante_torre", 27, 28), ("profanador_torre", 30, 10), ("necromante_torre", 30, 43), ("profanador_torre", 33, 28),
+    ("necromante_torre", 36, 10), ("profanador_torre", 36, 16),
 ]
 CAMARA_VARTH_SPAWNS = [
     ("lorde_varth", 50, 22),       # CHEFE FINAL no topo da Torre (saiu do cemitério)
