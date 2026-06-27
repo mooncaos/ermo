@@ -18,6 +18,9 @@ ITEMS = {
     "coin_gold":    {"name": "Moeda de Ouro",   "kind": "currency", "stackable": True,  "color": "#f4b860", "value": 10000},
     "staff_portuz": {"name": "Cajado do Portuz", "kind": "weapon",   "stackable": False, "color": "#9b6dff",
                      "slot": "hand", "visual": "staff", "rarity": "raro", "dmg": {"n": 1, "d": 6}, "atk": 1},
+    "cajado_magico": {"name": "Cajado Mágico", "kind": "weapon", "stackable": False, "color": "#7ad6ff",
+                      "slot": "hand", "visual": "staff_magic", "rarity": "lendario",
+                      "dmg": {"n": 1, "d": 10}, "atk": 3, "ac": 2, "value": 2000},
 
     # --- equipamento inicial (o kit simples da Robetina, assistente social) ---
     "touca_la":         {"name": "Touca de Lã",      "kind": "armor",   "stackable": False, "color": "#8a7d63", "slot": "head",     "visual": "helmet",   "rarity": "comum", "ac": 0, "value": 4},

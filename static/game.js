@@ -615,9 +615,67 @@ function drawSapoTile(c, ch, px, py, ts, gx, gy){
   return true;
 }
 
+// ---- Repouso da Dama: chao escuro e pinheiros da floresta ----
+const FCOL = {
+  floor:'#2b3a2c', floorDk:'#243322', floorLt:'#33442f', dirt:'#2c2820',
+  bare:'#232b26', bareDk:'#1d241f',
+  pineDk:'#1f3a2a', pine:'#27482f', pineLt:'#346038', pineTip:'#5a7d4a',
+  ptrunk:'#3a2c1e'
+};
+function forestFloor(c, px, py, ts, gx, gy, bare){
+  const t = rng(gx,gy,17);
+  if(bare){
+    c.fillStyle = t < 0.5 ? FCOL.bare : FCOL.bareDk;
+    c.fillRect(px,py,ts,ts);
+    c.fillStyle = FCOL.dirt;
+    c.fillRect(px+ts*(0.2+rng(gx,gy,2)*0.5), py+ts*(0.3+rng(gx,gy,3)*0.4), 3, 1.5);
+    c.fillStyle = shade(FCOL.bare,-0.2);
+    c.fillRect(px+ts*rng(gx,gy,5), py+ts*rng(gx,gy,6), 1.5, 1.5);
+  } else {
+    c.fillStyle = t < 0.25 ? FCOL.floorDk : (t > 0.8 ? FCOL.floorLt : FCOL.floor);
+    c.fillRect(px,py,ts,ts);
+    for(let i=0;i<3;i++){
+      const bx = px+rng(gx,gy,i+1)*ts, by = py+ts*(0.4+rng(gx,gy,i+6)*0.5);
+      c.fillStyle = rng(gx,gy,i+16) > 0.5 ? FCOL.floorLt : FCOL.floorDk;
+      c.fillRect(bx, by-2, 1, 2);
+    }
+  }
+}
+function drawPine(c, px, py, ts, gx, gy){
+  const cx = px+ts*0.5;
+  c.fillStyle = 'rgba(0,0,0,0.22)';
+  c.beginPath(); c.ellipse(cx, py+ts*0.86, ts*0.26, ts*0.09, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = FCOL.ptrunk; c.fillRect(cx-ts*0.05, py+ts*0.6, ts*0.1, ts*0.28);
+  const tiers = [[0.66,0.34],[0.5,0.28],[0.34,0.2]];
+  for(let k=0;k<tiers.length;k++){
+    const baseY = py+ts*tiers[k][0], w = ts*tiers[k][1];
+    c.fillStyle = k===0?FCOL.pineDk:(k===1?FCOL.pine:FCOL.pineLt);
+    c.beginPath();
+    c.moveTo(cx, py+ts*(tiers[k][0]-0.26)); c.lineTo(cx-w, baseY); c.lineTo(cx+w, baseY);
+    c.closePath(); c.fill();
+  }
+  c.fillStyle = FCOL.pineTip; c.fillRect(cx-1, py+ts*0.08, 2, 3);
+}
+function drawForestTile(c, ch, px, py, ts, gx, gy){
+  switch(ch){
+    case 'd': forestFloor(c,px,py,ts,gx,gy,true); return true;
+    case '.': forestFloor(c,px,py,ts,gx,gy,false); return true;
+    case 'i': forestFloor(c,px,py,ts,gx,gy,false); drawPine(c,px,py,ts,gx,gy); return true;
+    case ',':
+      forestFloor(c,px,py,ts,gx,gy,false);
+      c.fillStyle = FCOL.dirt; c.fillRect(px, py+ts*0.32, ts, ts*0.36);
+      c.fillStyle = shade(FCOL.dirt,0.12);
+      c.fillRect(px+ts*rng(gx,gy,3), py+ts*(0.36+rng(gx,gy,4)*0.28), 2, 1.5);
+      return true;
+    case '+': forestFloor(c,px,py,ts,gx,gy,false); return true;
+  }
+  return false;   // T, ^, 4 usam o desenho padrao (o breu por cima escurece tudo)
+}
+
 function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0)){ drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
   if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'ermo' && drawSapoTile(c, ch, px, py, ts, gx, gy)) return;
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;
@@ -1452,8 +1510,12 @@ function drawMonster(c, sx, sy, ts, p){
   // cada tipo tem sua arte; o resto cai no emoji.
   const t = p.mtype;
   if(t === 'maurao'){ drawBoss(c, sx, sy, ts, p); return; }
+  if(t === 'dama_noite'){ drawBanshee(c, sx, sy, ts, p); return; }
   if(t === 'capanga' || t === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
-  if(t === 'velho_bob' || t === 'rato_gigante' || t === 'lobo' || t === 'javali'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'velho_bob' || t === 'rato_gigante' || t === 'lobo' || t === 'javali' || t === 'lobo_negro'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'harpia'){ drawHarpy(c, sx, sy, ts, p); return; }
+  if(t === 'bruxa_louca'){ drawWitch(c, sx, sy, ts, p); return; }
+  if(t === 'alma_errante' || t === 'assombracao' || t === 'espectro' || t === 'vulto' || t === 'alma_penada'){ drawSpirit(c, sx, sy, ts, p); return; }
   const cx = sx + ts/2, cy = sy + ts/2;
   c.save();
   c.fillStyle = 'rgba(0,0,0,0.28)';
@@ -1686,6 +1748,7 @@ function drawMic(c, cx, bodyTop, bodyW, ts, s, facing){
 const BEAST = {
   rato_gigante: {body:'#6f6a62', belly:'#8c877e', size:0.60, ear:'round', tail:'rat',  snout:'#b08f86', tusk:false, bristle:false},
   lobo:         {body:'#7c7f88', belly:'#9aa0a8', size:0.86, ear:'point', tail:'bush', snout:'#5a5d66', tusk:false, bristle:false},
+  lobo_negro:   {body:'#26242e', belly:'#3a3744', size:0.92, ear:'point', tail:'bush', snout:'#15131b', tusk:false, bristle:true},
   javali:       {body:'#5a4632', belly:'#6e573e', size:0.84, ear:'point', tail:'tuft', snout:'#3a2c1e', tusk:true,  bristle:true},
 };
 function _dirVec(f){ return f==='up'?[0,-1] : f==='down'?[0,1] : f==='left'?[-1,0] : [1,0]; }
@@ -2633,6 +2696,168 @@ function drawCat(c, px, py, ts, facing, moving, walk, look){
 
 // "O Gato Branco e Grande": a aparicao do Pofnir. Gato grande, branco e etereo,
 // com brilho frio e placa de nome. (Funcao propria pra nao tocar no Jose.)
+// ===== Repouso da Dama: harpia, bruxa, espiritos (5) e a banshee =====
+function drawHarpy(c, sx, sy, ts, p){
+  const cx = sx + ts/2, t = performance.now();
+  const flap = Math.sin(t/170) * 0.55;
+  const cy = sy + ts*0.46 + Math.sin(t/500)*2;
+  c.fillStyle = 'rgba(0,0,0,0.22)';
+  c.beginPath(); c.ellipse(cx, sy+ts*0.9, ts*0.24, ts*0.07, 0, 0, Math.PI*2); c.fill();
+  const feather='#4a3d57', fdk='#352b40', flt='#6b5a7d', skin='#d8b48f';
+  for(const sgn of [-1, 1]){
+    c.save(); c.translate(cx, cy-ts*0.05); c.rotate(sgn*(0.45+flap));
+    c.fillStyle = fdk; c.beginPath();
+    c.moveTo(0,0); c.quadraticCurveTo(sgn*ts*0.5, -ts*0.3, sgn*ts*0.62, ts*0.06);
+    c.quadraticCurveTo(sgn*ts*0.4, ts*0.12, 0, ts*0.04); c.closePath(); c.fill();
+    c.fillStyle = feather; c.beginPath();
+    c.moveTo(0,0); c.quadraticCurveTo(sgn*ts*0.4, -ts*0.2, sgn*ts*0.5, ts*0.02);
+    c.quadraticCurveTo(sgn*ts*0.3, ts*0.07, 0, ts*0.02); c.closePath(); c.fill();
+    c.strokeStyle = flt; c.lineWidth = 1;
+    for(let i=1;i<=3;i++){ c.beginPath(); c.moveTo(sgn*ts*0.12*i, 0.5); c.lineTo(sgn*ts*0.16*i, ts*0.06); c.stroke(); }
+    c.restore();
+  }
+  c.fillStyle = feather; c.beginPath(); c.ellipse(cx, cy+ts*0.08, ts*0.13, ts*0.2, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = fdk; c.beginPath(); c.ellipse(cx, cy+ts*0.14, ts*0.1, ts*0.12, 0, 0, Math.PI*2); c.fill();
+  const hy = cy - ts*0.18;
+  c.fillStyle = skin; c.beginPath(); c.arc(cx, hy, ts*0.11, 0, Math.PI*2); c.fill();
+  c.fillStyle = fdk; c.beginPath(); c.arc(cx, hy-ts*0.03, ts*0.12, Math.PI, 0); c.fill();
+  c.strokeStyle = fdk; c.lineWidth = 1.5;
+  for(let i=-2;i<=2;i++){ c.beginPath(); c.moveTo(cx+i*ts*0.04, hy-ts*0.06); c.lineTo(cx+i*ts*0.05, hy-ts*0.17); c.stroke(); }
+  c.fillStyle = '#f4d24a';
+  c.fillRect(cx-ts*0.055, hy-ts*0.01, ts*0.03, ts*0.02); c.fillRect(cx+ts*0.025, hy-ts*0.01, ts*0.03, ts*0.02);
+  c.strokeStyle = '#caa15a'; c.lineWidth = 2; c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(cx-ts*0.06, cy+ts*0.26); c.lineTo(cx-ts*0.08, cy+ts*0.37);
+  c.moveTo(cx+ts*0.06, cy+ts*0.26); c.lineTo(cx+ts*0.08, cy+ts*0.37); c.stroke();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawWitch(c, sx, sy, ts, p){
+  const cx = sx + ts/2, t = performance.now();
+  const sway = Math.sin(t/600) * 1.5;
+  const cy = sy + ts*0.5;
+  c.fillStyle = 'rgba(0,0,0,0.25)';
+  c.beginPath(); c.ellipse(cx, sy+ts*0.92, ts*0.24, ts*0.07, 0, 0, Math.PI*2); c.fill();
+  const cloak='#3a2f4a', cdk='#2a2138', skin='#9bbf8a', hat='#241c30';
+  c.strokeStyle = '#5a3f28'; c.lineWidth = 2.4; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(cx+ts*0.2, cy-ts*0.3); c.lineTo(cx+ts*0.22, cy+ts*0.34); c.stroke();
+  c.save(); c.shadowColor='#7ad6a0'; c.shadowBlur=6;
+  c.fillStyle = '#9ff0c0'; c.beginPath(); c.arc(cx+ts*0.2, cy-ts*0.32, ts*0.05, 0, Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = cloak; c.beginPath();
+  c.moveTo(cx, cy-ts*0.12); c.lineTo(cx-ts*0.22, cy+ts*0.38); c.lineTo(cx+ts*0.22, cy+ts*0.38); c.closePath(); c.fill();
+  c.fillStyle = cdk; c.beginPath();
+  c.moveTo(cx, cy-ts*0.1); c.lineTo(cx-ts*0.06, cy+ts*0.38); c.lineTo(cx+ts*0.06, cy+ts*0.38); c.closePath(); c.fill();
+  const hy = cy - ts*0.2;
+  c.fillStyle = skin; c.beginPath(); c.ellipse(cx, hy, ts*0.1, ts*0.12, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = shade(skin,-0.2); c.beginPath();
+  c.moveTo(cx, hy); c.lineTo(cx+ts*0.06, hy+ts*0.06); c.lineTo(cx, hy+ts*0.05); c.closePath(); c.fill();
+  c.fillStyle = '#f4d24a';
+  c.beginPath(); c.arc(cx-ts*0.035, hy-ts*0.01, ts*0.02, 0, Math.PI*2); c.arc(cx+ts*0.03, hy-ts*0.01, ts*0.02, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#000'; c.fillRect(cx-ts*0.04, hy-ts*0.012, 1.5, 1.5); c.fillRect(cx+ts*0.025, hy-ts*0.012, 1.5, 1.5);
+  c.save(); c.translate(cx, hy-ts*0.08); c.rotate(-0.15+sway*0.02);
+  c.fillStyle = hat; c.beginPath(); c.ellipse(0, 0, ts*0.18, ts*0.05, 0, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.moveTo(-ts*0.1, 0); c.lineTo(ts*0.04, -ts*0.3); c.lineTo(ts*0.08, 0); c.closePath(); c.fill();
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+const SPIRIT_KIND = {
+  alma_errante: {body:'#cdd8ff', glow:'rgba(190,210,255,', eye:'#bfe0ff', a:0.70, face:'soft'},
+  assombracao:  {body:'#9fd8b0', glow:'rgba(120,210,150,', eye:'#d8ffe0', a:0.68, face:'soft'},
+  espectro:     {body:'#c9ccd6', glow:'rgba(200,205,220,', eye:'#ff5a5a', a:0.82, face:'skull'},
+  vulto:        {body:'#1b1a26', glow:'rgba(120,70,170,',  eye:'#b06bff', a:0.92, face:'void'},
+  alma_penada:  {body:'#c8a6e0', glow:'rgba(180,120,220,', eye:'#ffe070', a:0.74, face:'wail'},
+};
+function drawSpirit(c, sx, sy, ts, p){
+  const cx = sx + ts/2, t = performance.now();
+  const k = SPIRIT_KIND[p.mtype] || SPIRIT_KIND.alma_errante;
+  const cy = sy + ts*0.46 + Math.sin(t/600 + cx)*2.2;
+  const grd = c.createRadialGradient(cx, cy, ts*0.08, cx, cy, ts*0.6);
+  grd.addColorStop(0, k.glow+'0.4)'); grd.addColorStop(1, k.glow+'0)');
+  c.fillStyle = grd; c.beginPath(); c.arc(cx, cy, ts*0.6, 0, Math.PI*2); c.fill();
+  c.save(); c.globalAlpha = k.a;
+  const wob = Math.sin(t/300)*ts*0.03;
+  c.fillStyle = k.body;
+  c.beginPath();
+  c.moveTo(cx-ts*0.18, cy-ts*0.02);
+  c.quadraticCurveTo(cx-ts*0.22, cy-ts*0.3, cx, cy-ts*0.34);
+  c.quadraticCurveTo(cx+ts*0.22, cy-ts*0.3, cx+ts*0.18, cy-ts*0.02);
+  c.quadraticCurveTo(cx+ts*0.12+wob, cy+ts*0.3, cx, cy+ts*0.42);
+  c.quadraticCurveTo(cx-ts*0.12-wob, cy+ts*0.3, cx-ts*0.18, cy-ts*0.02);
+  c.closePath(); c.fill();
+  c.fillStyle = 'rgba(0,0,0,0.35)';
+  c.beginPath(); c.ellipse(cx, cy-ts*0.16, ts*0.11, ts*0.14, 0, 0, Math.PI*2); c.fill();
+  const ey = cy - ts*0.17;
+  if(k.face === 'skull'){
+    c.fillStyle = '#e8e6dc'; c.beginPath(); c.arc(cx, ey+ts*0.02, ts*0.09, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#000';
+    c.beginPath(); c.arc(cx-ts*0.035, ey, ts*0.022, 0, Math.PI*2); c.arc(cx+ts*0.035, ey, ts*0.022, 0, Math.PI*2); c.fill();
+    c.fillStyle = k.eye;
+    c.beginPath(); c.arc(cx-ts*0.035, ey, ts*0.012, 0, Math.PI*2); c.arc(cx+ts*0.035, ey, ts*0.012, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#000'; c.lineWidth = 1;
+    for(let i=-1;i<=1;i++){ c.beginPath(); c.moveTo(cx+i*ts*0.025, ey+ts*0.05); c.lineTo(cx+i*ts*0.025, ey+ts*0.08); c.stroke(); }
+  } else {
+    c.shadowColor = k.eye; c.shadowBlur = 6; c.fillStyle = k.eye;
+    c.beginPath(); c.arc(cx-ts*0.05, ey, ts*0.025, 0, Math.PI*2); c.arc(cx+ts*0.05, ey, ts*0.025, 0, Math.PI*2); c.fill();
+    c.shadowBlur = 0;
+    if(k.face === 'wail'){ c.fillStyle = '#000'; c.beginPath(); c.ellipse(cx, ey+ts*0.09, ts*0.025, ts*0.045, 0, 0, Math.PI*2); c.fill(); }
+  }
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawBanshee(c, sx, sy, ts, p){
+  const cx = sx + ts/2, t = performance.now();
+  const enraged = !!p._enraged;
+  const S = ts*1.5;
+  const cy = sy + ts*0.5 + Math.sin(t/700)*3;
+  const pulse = 0.3 + 0.14*Math.abs(Math.sin(t/300));
+  const aur = c.createRadialGradient(cx, cy-ts*0.1, ts*0.1, cx, cy-ts*0.1, S*1.1);
+  aur.addColorStop(0, (enraged?'rgba(190,90,220,':'rgba(150,180,255,')+pulse+')');
+  aur.addColorStop(1, 'rgba(120,140,200,0)');
+  c.fillStyle = aur; c.fillRect(sx-ts, sy-ts, ts*3, ts*3);
+  c.fillStyle = 'rgba(0,0,0,0.25)';
+  c.beginPath(); c.ellipse(cx, sy+ts*0.96, ts*0.34, ts*0.09, 0, 0, Math.PI*2); c.fill();
+  const gown='#b9c6ee', gdk='#8c9bd0', hair='#cdd6f4', skin='#e8ecfb';
+  c.save(); c.globalAlpha = 0.92;
+  c.strokeStyle = hair; c.lineWidth = S*0.05; c.lineCap = 'round';
+  for(let i=-3;i<=3;i++){
+    const ph = t/400 + i;
+    c.beginPath();
+    c.moveTo(cx+i*S*0.05, cy-S*0.42);
+    c.quadraticCurveTo(cx+i*S*0.14+Math.sin(ph)*S*0.1, cy-S*0.1, cx+i*S*0.1+Math.sin(ph)*S*0.16, cy+S*0.2);
+    c.stroke();
+  }
+  const wob = Math.sin(t/350)*S*0.06;
+  c.fillStyle = gown;
+  c.beginPath();
+  c.moveTo(cx-S*0.26, cy-S*0.1);
+  c.quadraticCurveTo(cx-S*0.3, cy-S*0.4, cx, cy-S*0.46);
+  c.quadraticCurveTo(cx+S*0.3, cy-S*0.4, cx+S*0.26, cy-S*0.1);
+  c.quadraticCurveTo(cx+S*0.2+wob, cy+S*0.34, cx, cy+S*0.5);
+  c.quadraticCurveTo(cx-S*0.2-wob, cy+S*0.34, cx-S*0.26, cy-S*0.1);
+  c.closePath(); c.fill();
+  c.fillStyle = gdk;
+  c.beginPath(); c.moveTo(cx, cy-S*0.4); c.quadraticCurveTo(cx-S*0.04, cy+S*0.1, cx, cy+S*0.48);
+  c.quadraticCurveTo(cx+S*0.04, cy+S*0.1, cx, cy-S*0.4); c.closePath(); c.fill();
+  const hy = cy - S*0.32;
+  c.fillStyle = skin; c.beginPath(); c.ellipse(cx, hy, S*0.15, S*0.18, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = hair; c.beginPath(); c.arc(cx, hy-S*0.06, S*0.17, Math.PI*1.05, Math.PI*1.95); c.fill();
+  c.save(); c.shadowColor = enraged?'#d06bff':'#bfe0ff'; c.shadowBlur = 10;
+  c.fillStyle = enraged?'#e29bff':'#dff0ff';
+  c.beginPath(); c.ellipse(cx-S*0.06, hy-S*0.01, S*0.03, S*0.045, 0, 0, Math.PI*2);
+  c.ellipse(cx+S*0.06, hy-S*0.01, S*0.03, S*0.045, 0, 0, Math.PI*2); c.fill();
+  c.restore();
+  c.fillStyle = '#1a1426';
+  c.beginPath(); c.ellipse(cx, hy+S*0.1, S*0.04, S*0.08, 0, 0, Math.PI*2); c.fill();
+  c.restore();
+  c.save(); c.font = '700 9px Inter, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
+  c.lineWidth = 2.5; c.strokeStyle = 'rgba(8,7,15,0.9)';
+  c.strokeText('A DAMA DA NOITE', cx, sy - 16); c.fillStyle = enraged?'#e6a3ff':'#bcd0ff';
+  c.fillText('A DAMA DA NOITE', cx, sy - 16); c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
 function drawApparition(c, px, py, ts, facing, moving, walk, name){
   const cx = px + ts*0.5;
   const t = performance.now();
@@ -3136,6 +3361,17 @@ function frame(now){
   updateParticles(now, dt); drawParticles(ctx, now);
   if(mapName === 'salao') drawPofnirLight(ctx, now);
   drawAtmoPool(ctx);
+
+  // ---- Repouso da Dama: o breu da mata fecha conforme se entra no fundo (leste) ----
+  if(mapName === 'repouso_dama'){
+    const me = players.get(myId);
+    const depth = me ? Math.max(0, Math.min(1, me.x / 72)) : 0.3;
+    const g = 0.22 + depth * 0.5;                 // 0.22 na boca -> ~0.72 na clareira
+    ctx.fillStyle = 'rgba(6,9,14,' + g.toFixed(2) + ')';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(22,44,42,0.10)';        // friozinho esverdeado de floresta
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
   // ---- ciclo de dia e noite: tinte por cima de tudo ----
   const tint = dayTint(dayTime);
@@ -4128,6 +4364,23 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
       c.fillStyle = hi; c.fillRect(-s*0.04, -s*0.3, s*0.02, s*0.36);              // fio
       c.fillStyle = '#5a3f28'; c.fillRect(-s*0.05, s*0.06, s*0.1, s*0.2);         // cabo
       c.restore(); return true; }
+    case 'staff_magic': {
+      const h = s*0.66, w = Math.max(2, s*0.08);
+      c.fillStyle = '#6b5a44'; c.fillRect(cx-w/2, cy-h*0.28, w, h*0.84);
+      c.fillStyle = '#8a7659'; c.fillRect(cx-w/2, cy-h*0.28, w*0.4, h*0.84);
+      const oy = cy-h*0.4, orb = s*0.18;
+      c.save(); c.globalAlpha = 0.55;
+      const g = c.createRadialGradient(cx, oy, 1, cx, oy, orb*2.1);
+      g.addColorStop(0, col); g.addColorStop(1, 'rgba(122,214,255,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(cx, oy, orb*2.1, 0, 7); c.fill(); c.restore();
+      c.fillStyle = shade(col, 0.18); c.beginPath(); c.arc(cx, oy, orb, 0, 7); c.fill();
+      c.fillStyle = '#eafaff'; c.beginPath(); c.arc(cx-orb*0.3, oy-orb*0.3, orb*0.4, 0, 7); c.fill();
+      c.strokeStyle = '#6b5a44'; c.lineWidth = Math.max(1.5, s*0.04); c.lineCap = 'round';
+      for(const sg of [-1,1]){ c.beginPath(); c.moveTo(cx+sg*orb*0.7, oy+orb*0.5); c.quadraticCurveTo(cx+sg*orb*1.1, oy, cx+sg*orb*0.5, oy-orb*0.7); c.stroke(); }
+      c.fillStyle = '#dffaff';
+      for(let i=0;i<3;i++){ const a = i*2.1; c.fillRect(cx+Math.cos(a)*orb*1.4, oy+Math.sin(a)*orb*1.4, 1.5, 1.5); }
+      return true;
+    }
     case 'sword': case 'staff': {
       if(visual === 'staff'){
         const h = s*0.6, w = Math.max(2, s*0.08);

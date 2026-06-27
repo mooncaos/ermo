@@ -686,21 +686,21 @@ def _monster_respawn_loop():
 
 
 def _monster_wander_loop():
-    """Faz os monstros vagarem por O Descampado quando nao estao em combate. Quem
-    perambula pra perto de um jogador parado tambem inicia a luta."""
+    """Faz os monstros vagarem pelos mapas de caca quando nao estao em combate.
+    Quem perambula pra perto de um jogador parado tambem inicia a luta."""
     while True:
         socketio.sleep(1.2)
-        moved = world.wander_monsters("descampado")
-        if moved:
-            socketio.emit("monsters_moved", {"map": "descampado", "moves": moved},
-                          room="descampado")
-        for sid, pl in list(world.players.items()):
-            if pl.get("map") != "descampado" or pl.get("in_combat"):
-                continue
-            near = [m for m in world.monsters_near("descampado", pl["x"], pl["y"], COMBAT_AGGRO)
-                    if not m.get("in_combat")]
-            if near:
-                _start_combat(sid, near)
+        for mp in ("descampado", "repouso_dama"):
+            moved = world.wander_monsters(mp)
+            if moved:
+                socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)
+            for sid, pl in list(world.players.items()):
+                if pl.get("map") != mp or pl.get("in_combat"):
+                    continue
+                near = [m for m in world.monsters_near(mp, pl["x"], pl["y"], COMBAT_AGGRO)
+                        if not m.get("in_combat")]
+                if near:
+                    _start_combat(sid, near)
 
 
 @socketio.on("combat_engage")
@@ -897,10 +897,14 @@ def on_move(data):
         _go_to(request.sid, "rasharan", sx, sy)
         return
 
-    # pisou numa passagem de borda (Fadrakor)? cai no mapa vizinho, virado pra dentro.
+    # pisou numa passagem de borda? cai no mapa vizinho, virado pra dentro.
     if map_rows(mp)[player["y"]][player["x"]] == "+":
-        edge = ("north" if player["y"] <= 2 else
-                "south" if player["y"] >= len(map_rows(mp)) - 3 else None)
+        _rows = map_rows(mp); _W = len(_rows[0]); _H = len(_rows)
+        _x, _y = player["x"], player["y"]
+        edge = ("north" if _y <= 2 else
+                "south" if _y >= _H - 3 else
+                "west" if _x <= 2 else
+                "east" if _x >= _W - 3 else None)
         link = EDGE_LINKS.get(mp, {}).get(edge)
         if link:
             tmap, tx, ty, face = link

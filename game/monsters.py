@@ -65,6 +65,67 @@ MONSTERS = {
         "drops": [("presa_velho_bob", 1.0, 1, 1), ("couro_velho_bob", 1.0, 1, 2)],
         "bronze": (30, 45),
     },
+
+    # ===================================================================
+    #  REPOUSO DA DAMA — a floresta escura ao leste (zona de nivel alto)
+    # ===================================================================
+    # borda (rala): lobos negros. mata (densa): harpias e bruxas.
+    # fundo (breu): 5 tipos de espirito. clareira: a Dama da Noite (banshee).
+    "lobo_negro": {
+        "name": "Lobo Negro", "hp": 24, "ac": 14, "atk": 5,
+        "dmg": {"n": 2, "d": 6, "flat": 2}, "reach": 1, "speed": 9,
+        "xp": 120, "dex": 3, "glyph": "🐺", "kind": "bicho", "atk_name": "dentada",
+        "drops": [("presa_lobo", 0.5, 1, 2), ("pelego_lobo", 0.4, 1, 1)], "bronze": (4, 9),
+    },
+    "harpia": {
+        "name": "Harpia", "hp": 28, "ac": 14, "atk": 6,
+        "dmg": {"n": 2, "d": 4, "flat": 3}, "reach": 1, "speed": 8,
+        "xp": 150, "dex": 4, "glyph": "🦅", "kind": "bicho", "atk_name": "garras",
+        "drops": [("coin_silver", 0.4, 1, 1)], "bronze": (6, 12),
+    },
+    "bruxa_louca": {
+        "name": "Bruxa Enlouquecida", "hp": 30, "ac": 13, "atk": 6,
+        "dmg": {"n": 2, "d": 6, "flat": 2}, "reach": 4, "speed": 6,
+        "xp": 180, "dex": 2, "glyph": "🧙", "kind": "bruxa", "atk_name": "praga",
+        "drops": [("coin_silver", 0.5, 1, 1)], "bronze": (8, 15),
+    },
+    "alma_errante": {
+        "name": "Alma Errante", "hp": 20, "ac": 15, "atk": 6,
+        "dmg": {"n": 2, "d": 6, "flat": 2}, "reach": 1, "speed": 7,
+        "xp": 150, "dex": 4, "glyph": "👻", "kind": "espirito", "atk_name": "toque gelido",
+        "drops": [], "bronze": (6, 12),
+    },
+    "assombracao": {
+        "name": "Assombracao", "hp": 26, "ac": 14, "atk": 6,
+        "dmg": {"n": 3, "d": 4, "flat": 2}, "reach": 1, "speed": 6,
+        "xp": 170, "dex": 3, "glyph": "👻", "kind": "espirito", "atk_name": "lamento",
+        "drops": [], "bronze": (7, 13),
+    },
+    "espectro": {
+        "name": "Espectro", "hp": 22, "ac": 16, "atk": 7,
+        "dmg": {"n": 2, "d": 8, "flat": 2}, "reach": 1, "speed": 8,
+        "xp": 190, "dex": 5, "glyph": "💀", "kind": "espirito", "atk_name": "garra eterea",
+        "drops": [("coin_silver", 0.3, 1, 1)], "bronze": (8, 14),
+    },
+    "vulto": {
+        "name": "Vulto Sombrio", "hp": 30, "ac": 15, "atk": 7,
+        "dmg": {"n": 2, "d": 6, "flat": 4}, "reach": 1, "speed": 7,
+        "xp": 210, "dex": 4, "glyph": "🌑", "kind": "espirito", "atk_name": "sombra",
+        "drops": [], "bronze": (9, 16),
+    },
+    "alma_penada": {
+        "name": "Alma Penada", "hp": 34, "ac": 15, "atk": 7,
+        "dmg": {"n": 3, "d": 6, "flat": 2}, "reach": 1, "speed": 6,
+        "xp": 230, "dex": 3, "glyph": "😱", "kind": "espirito", "atk_name": "grito sufocado",
+        "drops": [("coin_silver", 0.35, 1, 1)], "bronze": (10, 18),
+    },
+    "dama_noite": {
+        "name": "A Dama da Noite", "hp": 320, "ac": 18, "atk": 10,
+        "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 2, "speed": 7,
+        "xp": 3000, "dex": 5, "glyph": "💀", "kind": "espirito",
+        "atk_name": "lamento mortal", "boss": True, "summon_type": "alma_errante", "summons": 2,
+        "drops": [("cajado_magico", 1.0, 1, 1), ("coin_gold", 1.0, 1, 1)], "bronze": (60, 90),
+    },
 }
 
 
@@ -171,6 +232,29 @@ DESCAMPADO_SPAWNS = [
     ("javali", 42, 82), ("javali", 46, 82), ("javali", 41, 85),
     ("javali", 47, 85), ("javali", 44, 87),
     ("velho_bob", 44, 84),
+]
+
+
+# REPOUSO DA DAMA: zonas por profundidade (oeste raso -> leste/fundo no breu).
+REPOUSO_SPAWNS = [
+    # borda oeste (rala): lobos negros
+    ("lobo_negro", 8, 20), ("lobo_negro", 10, 30), ("lobo_negro", 12, 16),
+    ("lobo_negro", 14, 36), ("lobo_negro", 16, 24), ("lobo_negro", 18, 40),
+    ("lobo_negro", 11, 12), ("lobo_negro", 15, 44),
+    # mata media (densa): harpias e bruxas
+    ("harpia", 24, 14), ("harpia", 28, 38), ("harpia", 30, 20), ("harpia", 26, 31),
+    ("harpia", 34, 12), ("harpia", 32, 42),
+    ("bruxa_louca", 30, 26), ("bruxa_louca", 36, 18), ("bruxa_louca", 38, 34),
+    ("bruxa_louca", 34, 24),
+    # fundo (breu): os 5 espiritos
+    ("alma_errante", 44, 22), ("assombracao", 46, 30), ("espectro", 48, 16),
+    ("vulto", 50, 38), ("alma_penada", 52, 26), ("alma_errante", 54, 20),
+    ("espectro", 56, 32), ("assombracao", 53, 41), ("vulto", 49, 12),
+    ("alma_penada", 52, 44),
+    # a clareira da Dama: a banshee + espiritos de guarda
+    ("espectro", 57, 23), ("alma_penada", 57, 29), ("alma_errante", 63, 24),
+    ("vulto", 63, 28),
+    ("dama_noite", 60, 26),
 ]
 
 

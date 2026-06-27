@@ -17,10 +17,13 @@ from . import races
 
 MAX_LEVEL = 20
 
-# XP ACUMULADO pra atingir cada nivel (index = nivel). XP_TABLE[1]=0 ... [20]=355000.
-XP_TABLE = [0, 0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000,
-            85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000,
-            305000, 355000]
+# XP ACUMULADO pra atingir cada nivel (index = nivel). Niveis 1-5 seguem a 5e
+# padrao; acima do 5 a curva fica BRUTAL (nivel 20 = 1.000.000) pra segurar a
+# progressao agora que o Repouso da Dama da muito XP.
+XP_TABLE = [0, 0, 300, 900, 2700, 6500,
+            16000, 30000, 48000, 72000, 102000,
+            140000, 188000, 248000, 320000, 405000,
+            505000, 620000, 755000, 875000, 1000000]
 
 # XP de DESCOBERTA por mapa (1a visita). Mundos secretos valem mais.
 MAP_XP = {
@@ -32,6 +35,7 @@ MAP_XP = {
     "fadrakor_litoral": 120,
     "fadrakor_selva":   120,
     "fadrakor_vulcao":  120,
+    "repouso_dama":     180,
 }
 GOD_XP = 100      # encontrar um deus (1a vez perto dele)
 SECRET_XP = 200   # benção / segredo raro (ex.: benção do Pofnir)

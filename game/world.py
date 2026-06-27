@@ -410,20 +410,21 @@ class World:
     # --------------------------------------------------------------- monstros
 
     def spawn_monsters(self):
-        """Coloca os monstros iniciais no mundo (hoje so em O Descampado). Cada um e
-        uma entidade viva em self.monsters, com o stat block copiado do registro.
-        Ficam parados ate o combate (passo B2) chegar; aqui so existem e aparecem."""
+        """Coloca os monstros iniciais no mundo (O Descampado e o Repouso da Dama).
+        Cada um e uma entidade viva em self.monsters, com o stat block copiado do
+        registro. Ficam parados ate o combate chegar; aqui so existem e aparecem."""
         self.monsters.clear()
-        for (type_id, x, y) in monsters_def.DESCAMPADO_SPAWNS:
+
+        def _spawn(type_id, x, y, mp):
             spec = monsters_def.get(type_id)
             if not spec:
-                continue
-            pos = _walkable_near(x, y, "descampado")
+                return
+            pos = _walkable_near(x, y, mp)
             self._monster_seq += 1
             mid = "mob:%d" % self._monster_seq
             self.monsters[mid] = {
                 "id": mid, "type": type_id, "name": spec["name"],
-                "x": pos[0], "y": pos[1], "facing": "down", "map": "descampado",
+                "x": pos[0], "y": pos[1], "facing": "down", "map": mp,
                 "hp": spec["hp"], "hp_max": spec["hp"], "ac": spec["ac"],
                 "atk": spec["atk"], "dmg": dict(spec["dmg"]), "reach": spec["reach"],
                 "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
@@ -432,6 +433,11 @@ class World:
                 "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
                 "_spawn": (type_id, pos[0], pos[1]),
             }
+
+        for (type_id, x, y) in monsters_def.DESCAMPADO_SPAWNS:
+            _spawn(type_id, x, y, "descampado")
+        for (type_id, x, y) in monsters_def.REPOUSO_SPAWNS:
+            _spawn(type_id, x, y, "repouso_dama")
         return self.monsters
 
     def monster_at(self, mp, x, y):

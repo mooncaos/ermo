@@ -63,7 +63,7 @@ SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
                "A", "l", "q", "N", "I", "v", "y",
                "z", "G", "Y", "B", "F", "K",
                "4", "5", "6", "&", "X", "8", "7", "J",
-               "!", "$", "-"}
+               "!", "$", "-", "i"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -611,6 +611,69 @@ DESCAMPADO_ROWS = _build_descampado()
 DESCAMPADO_SPAWN = [(50, 6), (49, 6), (51, 6), (50, 7)]   # logo abaixo da entrada norte
 
 
+def _build_repouso_dama():
+    """REPOUSO DA DAMA: floresta escura ao LESTE do Ermo. Comeca rala (poucos
+    pinheiros, ainda com luz) na borda oeste e vai FECHANDO e escurecendo pro
+    fundo (leste), onde os espiritos vagam e a Dama da Noite (banshee) espera
+    numa clareira. Tiles: . mato  d chao de floresta (escuro)  i pinheiro(S)
+    T arvore(S)  ^ sarca(S)  4 pedra(S)  , trilha  + passagem. Saida OESTE -> Ermo."""
+    W, H = 72, 52
+    rows = _grid(W, H, ".")
+    rng = _rnd.Random(914)
+    midY = H // 2  # 26
+
+    # gradiente: quanto mais pro leste (depth ~0->1), mais chao escuro e pinheiro
+    for y in range(2, H - 2):
+        for x in range(2, W - 2):
+            depth = x / float(W)
+            if depth > 0.42 and rng.random() < (depth - 0.38) * 0.95:
+                rows[y][x] = "d"
+            if rng.random() < (0.012 + depth * depth * 0.36):
+                rows[y][x] = "i"
+    # arvores soltas e sarcas (mais densas no fundo)
+    for _ in range(170):
+        x = rng.randint(3, W - 3); y = rng.randint(3, H - 3)
+        if rows[y][x] in ".d" and rng.random() < (0.28 + (x / float(W)) * 0.5):
+            rows[y][x] = rng.choice(["T", "^", "^"])
+    # afloramentos de pedra
+    for (cx, cy, r) in [(14, 9, 2), (18, 41, 3), (38, 13, 3), (45, 43, 3), (56, 7, 2), (58, 45, 3)]:
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                x, y = cx + dx, cy + dy
+                if dx * dx + dy * dy <= r * r and 2 < x < W - 2 and 2 < y < H - 2:
+                    rows[y][x] = "4"
+
+    # a CLAREIRA da Dama (fundo leste): chao escuro aberto cercado de pinheiros
+    clx, cly, crx, cry = 60, midY, 7, 6
+    for dx in range(-crx - 1, crx + 2):
+        for dy in range(-cry - 1, cry + 2):
+            x, y = clx + dx, cly + dy
+            if 2 < x < W - 2 and 2 < y < H - 2:
+                e = (dx / float(crx)) ** 2 + (dy / float(cry)) ** 2
+                if e <= 1.0:
+                    rows[y][x] = "d"
+                elif e <= 1.55 and rng.random() < 0.72:
+                    rows[y][x] = "i"
+
+    # trilha reta do oeste ate a clareira (garante caminho entre os pinheiros)
+    for x in range(1, clx + 1):
+        rows[midY][x] = ","
+    # boca de entrada limpa no oeste
+    for yy in range(midY - 2, midY + 3):
+        for xx in range(1, 5):
+            if rows[yy][xx] in "iT^": rows[yy][xx] = "."
+
+    # bordas de pedra + passagem OESTE de volta pro Ermo
+    _ring(rows, "4")
+    for y in range(midY - 1, midY + 2):
+        rows[y][0] = "+"; rows[y][1] = "+"; rows[y][2] = ","
+    return ["".join(r) for r in rows]
+
+
+REPOUSO_ROWS = _build_repouso_dama()
+REPOUSO_SPAWN = [(3, 26), (4, 26), (3, 25), (3, 27)]   # logo dentro da boca oeste
+
+
 # ===========================================================================
 #  INTERIORES — uma casa aconchegante reaproveitada por todas as portas.
 #  Chars (solidez global ja bate): 1 piso(passavel)  F parede  b cama  h lareira
@@ -719,6 +782,13 @@ FADRAKOR_VULCAO_SPAWN  = [(50, 90), (49, 90), (50, 91), (49, 91)]  # corredor su
 
 
 # ---- registro dos mapas (fonte unica) ----
+# abre a passagem LESTE do Ermo (na altura da estrada, linha 15) -> Repouso da Dama
+_er = [list(r) for r in MAP_ROWS]
+for _y in (14, 15, 16):
+    _er[_y][38] = "="      # estende a estrada ate a borda
+    _er[_y][39] = "+"      # faixa de passagem
+MAP_ROWS = ["".join(r) for r in _er]
+
 MAPS = {
     "ermo":             {"rows": MAP_ROWS,             "spawns": SPAWN_POINTS},
     "salao":            {"rows": SALAO_ROWS,           "spawns": SALAO_SPAWN},
@@ -730,6 +800,7 @@ MAPS = {
     "fadrakor_selva":   {"rows": FADRAKOR_SELVA_ROWS,   "spawns": FADRAKOR_SELVA_SPAWN},
     "fadrakor_vulcao":  {"rows": FADRAKOR_VULCAO_ROWS,  "spawns": FADRAKOR_VULCAO_SPAWN},
     "descampado":       {"rows": DESCAMPADO_ROWS,       "spawns": DESCAMPADO_SPAWN},
+    "repouso_dama":     {"rows": REPOUSO_ROWS,          "spawns": REPOUSO_SPAWN},
 }
 
 
@@ -760,8 +831,10 @@ for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba:
 # ---- motor de passagem por borda: (mapa, borda) -> (mapa destino, x, y, facing) ----
 # Voce anda ate a faixa de '+' numa borda e cai no mapa vizinho, virado pra dentro.
 EDGE_LINKS = {
-    "ermo":             {"south": ("descampado",      50, 4,  "down")},
+    "ermo":             {"south": ("descampado",      50, 4,  "down"),
+                         "east":  ("repouso_dama",     3, 26, "right")},
     "descampado":       {"north": ("ermo",            20, 28, "up")},
+    "repouso_dama":     {"west":  ("ermo",            37, 15, "left")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
     "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),
                          "north": ("fadrakor_vulcao",  50, 95, "up")},
