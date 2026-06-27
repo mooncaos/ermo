@@ -319,7 +319,7 @@ def _spend_slot(res, min_level=1):
 #    DoT: poison/burning/bleeding (dano por turno; poison tambem desvantagem).
 # ===========================================================================
 INCAP_STATUS = ("stunned",)
-DOT_STATUS = ("poison", "burning", "bleeding")
+DOT_STATUS = ("poison", "burning", "bleeding", "maldicao")
 
 def apply_status(c, name, turns, dmg=None):
     """Aplica/renova um status no combatente (fica a maior duracao)."""
@@ -383,7 +383,8 @@ def _adv_dis(attacker, target):
     if has_status(target, "restrained") or has_status(target, "stunned") or has_status(target, "blinded"):
         adv += 1
     if (has_status(attacker, "frightened") or has_status(attacker, "poisoned")
-            or has_status(attacker, "blinded") or has_status(attacker, "restrained")):
+            or has_status(attacker, "blinded") or has_status(attacker, "restrained")
+            or has_status(attacker, "maldicao")):
         adv -= 1
     return 1 if adv > 0 else (-1 if adv < 0 else 0)
 
@@ -654,6 +655,26 @@ def monster_ability(enc, mon, tgt, ab):
            "target_name": tgt["name"], "ability": ab.get("name", "habilidade"),
            "mon_ability": True, "dmg": 0, "killed": False, "atk_name": ab.get("name", ""),
            "target_hp": tgt["hp"], "target_hp_max": tgt["hp_max"]}
+    # AoE explosivo: a magia estoura e acerta TODOS os jogadores vivos (teste pra metade do dano)
+    if ab.get("aoe"):
+        save = ab.get("save")
+        dc = int(ab.get("dc", 14))
+        splash = []
+        for pl in alive_of(enc, "player"):
+            dd = _roll_dmg(ab.get("dmg_bonus", {"n": 6, "d": 6}), False)
+            saved = False
+            if save and (_d20() + _save_mod(pl, save)) >= dc:
+                saved = True; dd = dd // 2
+            _apply_damage(pl, dd)
+            if ab.get("status") and pl.get("alive") and not saved:
+                apply_status(pl, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
+            splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": dd,
+                           "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": not pl.get("alive")})
+        res.update({"aoe": True, "splash": splash, "save": save, "dc": dc,
+                    "applied": ab.get("status"),
+                    "dmg": (splash[0]["dmg"] if splash else 0),
+                    "target_hp": tgt["hp"], "killed": not tgt.get("alive")})
+        return res
     if kind == "heal":
         amt = _roll_dmg(ab.get("heal", {"n": 4, "d": 8}), False)
         before = mon["hp"]; mon["hp"] = min(mon["hp_max"], mon["hp"] + amt)
@@ -754,9 +775,10 @@ def boss_turn(enc, boss):
     if hpfrac <= 0.30 and not boss.get("enraged"):
         boss["enraged"] = True
         d = boss["dmg"]
-        boss["dmg"] = {"n": d.get("n", 1) + 1, "d": d.get("d", 6), "flat": d.get("flat", 0) + 4}
-        boss["atk"] = boss.get("atk", 0) + 2
+        boss["dmg"] = {"n": d.get("n", 1) + 2, "d": d.get("d", 6), "flat": d.get("flat", 0) + 6}
+        boss["atk"] = boss.get("atk", 0) + 3
         boss["speed"] = boss.get("speed", 6) + 1
+        boss["_ab_cd"] = {}                  # enlouqueceu: zera os cooldowns e despeja habilidades
         out["enraged"] = True
         out["say_cat"] = "enrage"
     # 2) chama o bonde (gasta o turno): tem invocacoes e a vida ja baixou (<=70%)

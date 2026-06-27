@@ -128,18 +128,18 @@ MONSTERS = {
                   ("coin_gold", 1.0, 1, 1)], "bronze": (100, 150),
     },
     "colosso_avasham": {
-        "name": "O Colosso de Avasham", "hp": 760, "ac": 20, "atk": 14,
-        "dmg": {"n": 5, "d": 10, "flat": 10}, "reach": 2, "speed": 6,
-        "xp": 850, "dex": 3, "glyph": "🗿", "kind": "golem", "size": 4,
-        "atk_name": "punho de pedra", "boss": True, "summon_type": "elemental_areia", "summons": 3,
-        "drops": [("coin_gold", 1.0, 2, 3)], "bronze": (180, 260),
+        "name": "O Colosso de Avasham", "hp": 1520, "ac": 21, "atk": 16,
+        "dmg": {"n": 6, "d": 10, "flat": 14}, "reach": 2, "speed": 6,
+        "xp": 1500, "dex": 3, "glyph": "🗿", "kind": "golem", "size": 4,
+        "atk_name": "punho de pedra", "boss": True, "summon_type": "elemental_areia", "summons": 4,
+        "drops": [("correntes_colosso", 1.0, 1, 1), ("coin_gold", 1.0, 3, 5)], "bronze": (400, 650),
     },
     "lorde_varth": {
-        "name": "Lorde Varth", "hp": 1200, "ac": 22, "atk": 16,
-        "dmg": {"n": 6, "d": 10, "flat": 12}, "reach": 3, "speed": 5,
-        "xp": 2400, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 4,
+        "name": "Lorde Varth", "hp": 2400, "ac": 23, "atk": 18,
+        "dmg": {"n": 7, "d": 10, "flat": 16}, "reach": 3, "speed": 5,
+        "xp": 4200, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 4,
         "atk_name": "raio necromântico", "boss": True, "summon_type": "esqueleto_guerreiro", "summons": 4,
-        "drops": [("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 3, 5)], "bronze": (300, 450),
+        "drops": [("simbolo_varth", 1.0, 1, 2), ("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 4, 6)], "bronze": (1500, 2500),
     },
 
     # ===================== DESERTO DE AVASHAM (mais forte que a floresta) =====================
@@ -667,7 +667,10 @@ MONSTER_ABILITIES = {
                       {"id": "maldicao", "name": "Maldição da Dama", "type": "inflict",
                        "status": "poison", "turns": 4, "dot": {"n": 3, "d": 6}, "chance": 0.4, "cd": 3}],
 
-    "colosso_avasham": [{"id": "punho_colossal", "name": "Punho Colossal", "type": "heavy",
+    "colosso_avasham": [{"id": "pisao_sismico", "name": "Pisão Sísmico", "type": "blast", "aoe": True,
+                       "dmg_bonus": {"n": 8, "d": 10}, "save": "DES", "dc": 17,
+                       "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3},
+                      {"id": "punho_colossal", "name": "Punho Colossal", "type": "heavy",
                        "dmg_bonus": {"n": 4, "d": 12}, "chance": 0.5, "cd": 2},
                       {"id": "rugido_de_pedra", "name": "Rugido de Pedra", "type": "fear",
                        "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
@@ -675,7 +678,10 @@ MONSTER_ABILITIES = {
                        "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3}],
 
     # arsenal do necromante: muitas magias, ele varia a cada turno
-    "lorde_varth": [{"id": "raio_necrotico", "name": "Raio Necrótico", "type": "heavy",
+    "lorde_varth": [{"id": "nova_necrotica", "name": "Nova Necrótica", "type": "blast", "aoe": True,
+                       "dmg_bonus": {"n": 10, "d": 8}, "save": "CON", "dc": 18,
+                       "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.45, "cd": 3},
+                      {"id": "raio_necrotico", "name": "Raio Necrótico", "type": "heavy",
                        "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 1},
                       {"id": "dreno_de_vida", "name": "Dreno de Vida", "type": "drain",
                        "chance": 0.5, "cd": 2},

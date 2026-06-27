@@ -6590,19 +6590,28 @@ function popDamage(cid, text, color){
   dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
-  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌' };
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
-  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento' };
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado' };
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){
     if(f.type === 'expire' || !f.dmg) continue;
-    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':'#ff7a7a');
+    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':(f.type==='maldicao'?'#b06bff':'#ff7a7a'));
     popDamage(fx.cid, (STATUS_ICON[f.type]||'✦')+'-'+f.dmg, col);
   }
 }
 function showAttackResult(res){
   if(!res) return;
+  // AoE explosivo: estoura em todos os alvos atingidos
+  if(res.aoe && Array.isArray(res.splash)){
+    for(const s of res.splash){
+      spawnAt(s.cid, 'slash', '#ff8a3a');
+      popDamage(s.cid, '-'+s.dmg, '#ff9a4a');
+    }
+    toastMsg('💥 '+(res.ability||'Explosão')+'!'+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):''), true);
+    return;
+  }
   // habilidade de monstro por resistencia (sem rolagem de ataque)
   if(res.mon_ability && res.gaze){
     spawnAt(res.target, 'mark', '#c9a0ff');
