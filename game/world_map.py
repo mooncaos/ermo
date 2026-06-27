@@ -817,22 +817,22 @@ def _build_cova_colosso():
 
 def _build_mina_avhur():
     """MINA FECHADA DE AVHUR (100x100): a tumba-mina egipcia sob a piramide do
-    deserto. Corredores de arenito ligam camaras cheias de mortos-vivos ate a
-    CAMARA DO FARAO, la no fundo sul. Tiles: '.' chao de tumba  'd' chao da camara
-    real  '#' parede de arenito(S)  'H' sarcofago(S)  'L' tocha(S)  ',' entulho
-    'p' boca de saida (pisa aqui e volta pra piramide no deserto)."""
+    deserto, agora MAIOR e mais ramificada. Nove camaras de arenito ligadas por
+    largos corredores, cheias de mortos-vivos. La no FUNDO SUL, uma grande
+    antecamara guarda a descida selada pra CAMARA DE AVHUR (a sala do trono).
+    Tiles: '.' chao  'd' chao nobre  '#' parede(S)  'H' sarcofago(S)  'L' tocha(S)
+    ',' entulho  'p' saida pro deserto (norte)  '+' descida pra Camara de Avhur (sul)."""
     W = Hh = 100
-    rows = _grid(W, Hh, "#")            # tudo parede; escavamos corredores e camaras
+    rows = _grid(W, Hh, "#")
     rng = _rnd.Random(4040)
 
     def carve_rect(x1, y1, x2, y2, ch="."):
-        for y in range(y1, y2 + 1):
-            for x in range(x1, x2 + 1):
-                if 1 <= x < W - 1 and 1 <= y < Hh - 1:
-                    rows[y][x] = ch
+        for y in range(max(1, y1), min(Hh - 1, y2 + 1)):
+            for x in range(max(1, x1), min(W - 1, x2 + 1)):
+                rows[y][x] = ch
 
-    def carve_corr(x1, y1, x2, y2, wide=1):
-        cx, cy = x1, y1                 # corredor em L (horizontal, depois vertical)
+    def carve_corr(x1, y1, x2, y2, wide=2):
+        cx, cy = x1, y1
         while cx != x2:
             for w in range(wide):
                 if 1 <= cy + w < Hh - 1: rows[cy + w][cx] = "."
@@ -841,63 +841,108 @@ def _build_mina_avhur():
             for w in range(wide):
                 if 1 <= cx + w < W - 1: rows[cy][cx + w] = "."
             cy += 1 if y2 > cy else -1
-        if 1 <= x2 < W - 1 and 1 <= y2 < Hh - 1: rows[y2][x2] = "."
 
-    # --- camaras ---
-    carve_rect(45, 4, 55, 12)                       # hall de entrada (norte)
-    carve_rect(44, 38, 56, 50)                      # camara central
-    carve_rect(15, 20, 30, 32)                      # camara NO
-    carve_rect(70, 20, 85, 32)                      # camara NE
-    carve_rect(15, 56, 30, 68)                      # camara SO
-    carve_rect(70, 56, 85, 68)                      # camara SE
-    carve_rect(38, 76, 62, 92, "d")                 # CAMARA DO FARAO (chao real)
+    # --- 9 camaras + a grande antecamara do trono ---
+    carve_rect(44, 3, 56, 13)         # ENTRADA (norte)
+    carve_rect(10, 17, 28, 33)        # NO
+    carve_rect(40, 16, 60, 30)        # N
+    carve_rect(72, 17, 90, 33)        # NE
+    carve_rect(10, 42, 28, 58)        # O
+    carve_rect(38, 40, 62, 56)        # CENTRAL
+    carve_rect(72, 42, 90, 58)        # E
+    carve_rect(10, 64, 28, 80)        # SO
+    carve_rect(72, 64, 90, 80)        # SE
+    carve_rect(36, 76, 64, 94, "d")   # ANTECAMARA do trono (chao nobre)
 
-    # --- corredores principais (garantem o caminho ate o farao) ---
-    carve_corr(50, 12, 50, 38, 2)                   # entrada -> central
-    carve_corr(50, 50, 50, 76, 2)                   # central -> camara do farao
-    carve_corr(44, 42, 22, 26, 1)                   # central -> NO
-    carve_corr(56, 42, 78, 26, 1)                   # central -> NE
-    carve_corr(44, 48, 22, 62, 1)                   # central -> SO
-    carve_corr(56, 48, 78, 62, 1)                   # central -> SE
-    # corredores que serpenteiam (clima de labirinto)
-    carve_corr(22, 32, 22, 56, 1)                   # liga NO-SO (parede oeste)
-    carve_corr(78, 32, 78, 56, 1)                   # liga NE-SE (parede leste)
-    carve_corr(30, 24, 45, 8, 1)                    # atalho NO -> hall
-    carve_corr(70, 24, 55, 8, 1)                    # atalho NE -> hall
-    # becos sem saida (so pra confundir o invasor)
-    for (bx, by, ex, ey) in [(35, 45, 35, 35), (65, 45, 65, 35),
-                             (40, 60, 30, 72), (60, 60, 70, 72),
-                             (50, 30, 38, 26), (50, 30, 62, 26)]:
-        carve_corr(bx, by, ex, ey, 1)
+    # --- corredores largos: eixo central + ramais pras 8 camaras ---
+    carve_corr(50, 13, 50, 40, 3)     # entrada -> N -> central
+    carve_corr(50, 56, 50, 76, 3)     # central -> antecamara
+    carve_corr(38, 46, 28, 25, 2)     # central -> NO
+    carve_corr(62, 46, 72, 25, 2)     # central -> NE
+    carve_corr(38, 50, 28, 50, 2)     # central -> O
+    carve_corr(62, 50, 72, 50, 2)     # central -> E
+    carve_corr(38, 54, 28, 72, 2)     # central -> SO
+    carve_corr(62, 54, 72, 72, 2)     # central -> SE
+    # --- aneis externos (aproveita mais o mapa + labirinto) ---
+    carve_corr(19, 33, 19, 42, 2)     # NO <-> O
+    carve_corr(81, 33, 81, 42, 2)     # NE <-> E
+    carve_corr(19, 58, 19, 64, 2)     # O <-> SO
+    carve_corr(81, 58, 81, 64, 2)     # E <-> SE
+    carve_corr(28, 72, 36, 85, 2)     # SO -> antecamara
+    carve_corr(72, 72, 64, 85, 2)     # SE -> antecamara
+    carve_corr(28, 25, 40, 22, 2)     # NO -> N
+    carve_corr(72, 25, 60, 22, 2)     # NE -> N
 
-    # --- boca de saida (p), no hall norte ---
+    # --- saida pro deserto (p) + descida pra Camara de Avhur (sul) ---
     rows[5][50] = "p"
+    for yy in range(90, 99):           # passagem larga ate a boca sul
+        for xx in (49, 50, 51):
+            rows[yy][xx] = "."
 
-    # --- deco: sarcofagos nas camaras ---
-    for (cx, cy) in [(18, 22), (28, 30), (72, 22), (83, 30), (18, 58),
-                     (28, 66), (72, 58), (83, 66), (46, 40), (54, 48)]:
+    # --- deco: sarcofagos nas camaras, tochas no eixo, entulho ---
+    for (cx, cy) in [(14, 21), (24, 30), (50, 19), (76, 21), (86, 30), (14, 46),
+                     (24, 55), (76, 46), (86, 55), (14, 68), (24, 77), (76, 68),
+                     (86, 77), (44, 43), (56, 53)]:
         if rows[cy][cx] == ".": rows[cy][cx] = "H"
-    # tochas flanqueando os corredores principais (nas paredes)
-    for yy in range(14, 38, 5):
-        if rows[yy][49] == "#": rows[yy][49] = "L"
-        if rows[yy][52] == "#": rows[yy][52] = "L"
-    for yy in range(53, 76, 5):
-        if rows[yy][49] == "#": rows[yy][49] = "L"
-        if rows[yy][52] == "#": rows[yy][52] = "L"
-    # entulho espalhado nos corredores
-    for _ in range(140):
+    for yy in range(16, 56, 5):
+        if rows[yy][48] == "#": rows[yy][48] = "L"
+        if rows[yy][53] == "#": rows[yy][53] = "L"
+    for _ in range(220):
         x, y = rng.randint(2, W - 3), rng.randint(2, Hh - 3)
-        if rows[y][x] == "." and rng.random() < 0.5:
+        if rows[y][x] == "." and rng.random() < 0.42:
             rows[y][x] = ","
 
-    # --- CAMARA DO FARAO: tochas, sarcofagos dos servos e o trono ao fundo ---
-    for (tx, ty) in [(40, 78), (60, 78), (40, 90), (60, 90)]:
-        rows[ty][tx] = "L"                          # tochas nos cantos
-    for tx in (42, 46, 54, 58):                     # sarcofagos dos servos (longe da boca)
-        rows[78][tx] = "H"
-    rows[90][50] = "H"                              # trono / sarcofago real ao fundo
+    # --- antecamara: tochas e sarcofagos dos servos guardando a descida ---
+    for (tx, ty) in [(38, 78), (62, 78), (38, 92), (62, 92)]:
+        rows[ty][tx] = "L"
+    for tx in range(40, 61, 5):
+        rows[77][tx] = "H"
+    rows[93][48] = "L"; rows[93][53] = "L"
 
-    _ring(rows, "#")                                # borda solida
+    _ring(rows, "#")
+    rows[Hh - 1][49] = "+"; rows[Hh - 1][50] = "+"   # boca SUL -> Camara de Avhur
+    return ["".join(r) for r in rows]
+
+
+def _build_camara_avhur():
+    """CAMARA DE AVHUR (100x100): a sala do trono de Avhur, o Maldito, selada no
+    fundo da Mina Fechada. Um grande salao hipostilo de arenito dourado, com
+    fileiras de colunas, braseiros e sarcofagos dos servos, e o trono ao sul.
+    Entra pela boca NORTE (descendo da mina). Saida NORTE -> mina."""
+    W, H = 100, 100
+    rows = _grid(W, H, "#")
+    midX = W // 2
+    hx0, hy0, hx1, hy1 = 20, 14, 80, 88
+
+    for y in range(hy0, hy1 + 1):                # o grande salao (chao nobre)
+        for x in range(hx0, hx1 + 1):
+            rows[y][x] = "d"
+    for y in range(1, hy0 + 1):                  # corredor de entrada (norte)
+        for x in (midX - 1, midX, midX + 1):
+            rows[y][x] = "d"
+
+    # colunas (pilares 2x2) em grade, deixando o corredor central livre
+    for cy in range(hy0 + 6, hy1 - 8, 12):
+        for cx in range(hx0 + 6, hx1 - 5, 13):
+            if abs(cx - midX) < 6:
+                continue
+            for ox in (0, 1):
+                for oy in (0, 1):
+                    if hx0 < cx + ox < hx1 and hy0 < cy + oy < hy1:
+                        rows[cy + oy][cx + ox] = "#"
+
+    for ty in range(hy0 + 5, hy1 - 5, 10):       # braseiros flanqueando o corredor
+        rows[ty][midX - 6] = "L"; rows[ty][midX + 6] = "L"
+    for sy in range(hy0 + 3, hy1 - 3, 7):        # sarcofagos nas paredes laterais
+        rows[sy][hx0 + 1] = "H"; rows[sy][hx1 - 1] = "H"
+    for tx in range(midX - 5, midX + 6):         # o TRONO ao sul (podio de sarcofagos)
+        rows[hy1 - 2][tx] = "H"
+    rows[hy1 - 4][midX - 3] = "L"; rows[hy1 - 4][midX + 3] = "L"
+
+    _ring(rows, "#")
+    rows[0][midX - 1] = "+"; rows[0][midX] = "+"   # boca NORTE -> mina
+    for y in range(1, 6):
+        rows[y][midX - 1] = "d"; rows[y][midX] = "d"
     return ["".join(r) for r in rows]
 
 
@@ -905,6 +950,8 @@ COVA_COLOSSO_ROWS = _build_cova_colosso()
 COVA_COLOSSO_SPAWN = [(50, 3), (49, 3), (50, 4), (49, 4)]   # logo dentro da boca norte
 MINA_AVHUR_ROWS = _build_mina_avhur()
 MINA_AVHUR_SPAWN = [(50, 7), (49, 7), (51, 7), (50, 8)]   # logo dentro da boca (vindo da piramide)
+CAMARA_AVHUR_ROWS = _build_camara_avhur()
+CAMARA_AVHUR_SPAWN = [(50, 3), (49, 3), (51, 3), (50, 4)]   # logo dentro da boca norte (vindo da mina)
 VALDARKRAM_ROWS = _build_valdarkram()
 VALDARKRAM_SPAWN = [(4, 50), (5, 50), (4, 49), (4, 51)]   # logo dentro da boca oeste
 
@@ -1116,6 +1163,7 @@ MAPS = {
     "avasham":          {"rows": AVASHAM_ROWS,          "spawns": AVASHAM_SPAWN},
     "cova_colosso":     {"rows": COVA_COLOSSO_ROWS,     "spawns": COVA_COLOSSO_SPAWN},
     "mina_avhur":       {"rows": MINA_AVHUR_ROWS,       "spawns": MINA_AVHUR_SPAWN},
+    "camara_avhur":     {"rows": CAMARA_AVHUR_ROWS,     "spawns": CAMARA_AVHUR_SPAWN},
     "valdarkram":       {"rows": VALDARKRAM_ROWS,       "spawns": VALDARKRAM_SPAWN},
 }
 
@@ -1157,6 +1205,8 @@ EDGE_LINKS = {
     "avasham":          {"north": ("descampado",       49, 96, "up"),
                          "south": ("cova_colosso",      50, 3,  "down")},
     "cova_colosso":     {"north": ("avasham",           50, 95, "up")},
+    "mina_avhur":       {"south": ("camara_avhur",       50, 3,  "down")},
+    "camara_avhur":     {"north": ("mina_avhur",         50, 95, "up")},
     "valdarkram":       {"west":  ("repouso_dama",      96, 50, "left")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
     "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),

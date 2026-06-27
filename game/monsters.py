@@ -137,7 +137,7 @@ MONSTERS = {
     "lorde_varth": {
         "name": "Lorde Varth", "hp": 1200, "ac": 22, "atk": 16,
         "dmg": {"n": 6, "d": 10, "flat": 12}, "reach": 3, "speed": 5,
-        "xp": 1500, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 4,
+        "xp": 2400, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 4,
         "atk_name": "raio necromântico", "boss": True, "summon_type": "esqueleto_guerreiro", "summons": 4,
         "drops": [("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 3, 5)], "bronze": (300, 450),
     },
@@ -196,50 +196,50 @@ MONSTERS = {
     "esqueleto_guerreiro": {
         "name": "Esqueleto Guerreiro", "hp": 190, "ac": 17, "atk": 9,
         "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 108, "dex": 3, "glyph": "💀", "kind": "morto-vivo", "atk_name": "espadada",
+        "xp": 173, "dex": 3, "glyph": "💀", "kind": "morto-vivo", "atk_name": "espadada",
         "drops": [("osso_amaldicoado", 0.7, 1, 2), ("coin_silver", 0.3, 1, 1)], "bronze": (30, 52),
     },
     "zumbi_putrido": {
         "name": "Zumbi Pútrido", "hp": 240, "ac": 16, "atk": 9,
         "dmg": {"n": 4, "d": 6, "flat": 7}, "reach": 1, "speed": 4,
-        "xp": 120, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garras podres",
+        "xp": 192, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "garras podres",
         "drops": [("carne_putrida", 0.7, 1, 2)], "bronze": (32, 54),
     },
     "ghoul_faminto": {
         "name": "Ghoul Faminto", "hp": 210, "ac": 17, "atk": 10,
         "dmg": {"n": 4, "d": 6, "flat": 6}, "reach": 1, "speed": 9,
-        "xp": 132, "dex": 4, "glyph": "👹", "kind": "morto-vivo", "atk_name": "dilacerar",
+        "xp": 211, "dex": 4, "glyph": "👹", "kind": "morto-vivo", "atk_name": "dilacerar",
         "drops": [("garra_ghoul", 0.7, 1, 1), ("coin_silver", 0.3, 1, 1)], "bronze": (34, 56),
     },
     "aparicao_sepulcral": {
         "name": "Aparição Sepulcral", "hp": 200, "ac": 18, "atk": 10,
         "dmg": {"n": 4, "d": 8, "flat": 5}, "reach": 1, "speed": 8,
-        "xp": 144, "dex": 5, "glyph": "👻", "kind": "espirito", "atk_name": "toque sepulcral",
+        "xp": 230, "dex": 5, "glyph": "👻", "kind": "espirito", "atk_name": "toque sepulcral",
         "drops": [("mortalha_espectral", 0.7, 1, 1)], "bronze": (36, 60),
     },
     "carnical_profanador": {
         "name": "Carniçal Profanador", "hp": 260, "ac": 18, "atk": 11,
         "dmg": {"n": 4, "d": 8, "flat": 6}, "reach": 1, "speed": 7,
-        "xp": 168, "dex": 3, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "presas",
+        "xp": 269, "dex": 3, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "presas",
         "drops": [("lingua_carnical", 0.7, 1, 1), ("coin_silver", 0.35, 1, 1)], "bronze": (40, 66),
     },
     "cavaleiro_morte": {
         "name": "Cavaleiro da Morte", "hp": 310, "ac": 19, "atk": 12,
         "dmg": {"n": 5, "d": 6, "flat": 7}, "reach": 1, "speed": 6,
-        "xp": 204, "dex": 3, "glyph": "⚔️", "kind": "morto-vivo", "atk_name": "lâmina negra",
+        "xp": 326, "dex": 3, "glyph": "⚔️", "kind": "morto-vivo", "atk_name": "lâmina negra",
         "drops": [("elmo_cavaleiro_morte", 0.7, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (50, 84),
     },
     "necromante_caido": {
         "name": "Necromante Caído", "hp": 280, "ac": 18, "atk": 11,
         "dmg": {"n": 4, "d": 8, "flat": 7}, "reach": 5, "speed": 6,
-        "xp": 190, "dex": 4, "glyph": "🧙", "kind": "morto-vivo", "atk_name": "raio sombrio",
+        "xp": 304, "dex": 4, "glyph": "🧙", "kind": "morto-vivo", "atk_name": "raio sombrio",
         "summon_type": "esqueleto_guerreiro", "summons": 2,
         "drops": [("grimorio_negro", 0.8, 1, 1), ("coin_gold", 0.3, 1, 1)], "bronze": (54, 90),
     },
     "abominacao_ossea": {
-        "name": "Abominação Óssea", "hp": 380, "ac": 20, "atk": 13,
-        "dmg": {"n": 5, "d": 8, "flat": 8}, "reach": 2, "speed": 5,
-        "xp": 288, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
+        "name": "Abominação Óssea", "hp": 440, "ac": 20, "atk": 14,
+        "dmg": {"n": 5, "d": 8, "flat": 10}, "reach": 2, "speed": 5,
+        "xp": 461, "dex": 2, "glyph": "☠️", "kind": "morto-vivo", "atk_name": "esmagar ósseo",
         "drops": [("coracao_abominacao", 0.9, 1, 1), ("coin_gold", 0.4, 1, 1)], "bronze": (70, 120),
     },
 
@@ -313,8 +313,8 @@ MONSTERS = {
         "drops": [("moeda_avhur", 1.0, 1, 1), ("pelo_chacal_avhur", 0.7, 1, 1), ("coin_gold", 0.2, 1, 1)], "bronze": (168, 258),
     },
     "abominacao_embalsamada": {
-        "name": "Abominação Embalsamada", "hp": 124, "ac": 17, "atk": 10,
-        "dmg": {"n": 2, "d": 8, "flat": 5}, "reach": 2, "speed": 4,
+        "name": "Abominação Embalsamada", "hp": 150, "ac": 17, "atk": 11,
+        "dmg": {"n": 2, "d": 8, "flat": 7}, "reach": 2, "speed": 4,
         "xp": 230, "dex": 1, "glyph": "🧟", "kind": "morto-vivo", "atk_name": "esmagar enfaixado",
         "drops": [("moeda_avhur", 1.0, 1, 2), ("coin_gold", 0.3, 1, 1)], "bronze": (210, 330),
     },
@@ -510,29 +510,30 @@ COVA_COLOSSO_SPAWNS = [
 # MINA FECHADA DE AVHUR: tumba egipcia sob a piramide do deserto. Camaras cheias
 # de mortos-vivos ate a CAMARA DO FARAO no fundo sul. Zona de GRANA (Moeda de Avhur).
 MINA_AVHUR_SPAWNS = [
-    # camara NO (rasos): escaravelhos, servos, escravos
-    ("escaravelho_praga", 20, 24), ("escaravelho_praga", 27, 29), ("escaravelho_praga", 18, 30),
-    ("servo_envolto", 23, 22), ("servo_envolto", 29, 25),
-    ("escravo_amaldicoado", 17, 27), ("escravo_amaldicoado", 25, 31),
-    # camara NE: najas, chacais, mumias
-    ("naja_tumular", 74, 24), ("naja_tumular", 81, 29),
-    ("chacal_anubita", 78, 22), ("chacal_anubita", 72, 31),
-    ("mumia_guerreira", 83, 26), ("mumia_guerreira", 76, 30),
-    # camara central: mix medio
-    ("sacerdote_sombrio", 47, 41), ("espirito_faraonico", 53, 47),
-    ("mumia_guerreira", 50, 40), ("naja_tumular", 45, 48),
-    # camara SO: sacerdotes, guardioes, espiritos
-    ("sacerdote_sombrio", 20, 60), ("sacerdote_sombrio", 27, 65),
-    ("guardiao_arenito", 18, 62), ("guardiao_arenito", 24, 67),
-    ("espirito_faraonico", 29, 59),
-    # camara SE: carregadores e Anubis (elite)
-    ("carregador_canopo", 74, 60), ("carregador_canopo", 81, 65),
-    ("anubis_guerreiro", 78, 62), ("anubis_guerreiro", 72, 67),
-    # corredor final, a guarda do farao: abominacoes embalsamadas
-    ("abominacao_embalsamada", 50, 66), ("abominacao_embalsamada", 45, 70),
-    ("abominacao_embalsamada", 55, 70),
-    # A CAMARA DO FARAO: so o rei amaldicoado
-    ("farao_avhur", 50, 84),
+    # camara NO (rasos)
+    ("escaravelho_praga", 16, 21), ("escaravelho_praga", 24, 30), ("servo_envolto", 20, 25), ("escravo_amaldicoado", 14, 28),
+    # camara N
+    ("escaravelho_praga", 46, 22), ("naja_tumular", 54, 20), ("mumia_guerreira", 50, 26),
+    # camara NE
+    ("naja_tumular", 76, 21), ("chacal_anubita", 82, 25), ("mumia_guerreira", 86, 30),
+    # camara O
+    ("sacerdote_sombrio", 16, 46), ("espirito_faraonico", 24, 54),
+    # camara CENTRAL
+    ("mumia_guerreira", 46, 44), ("sacerdote_sombrio", 56, 52), ("naja_tumular", 50, 48),
+    # camara E
+    ("chacal_anubita", 76, 46), ("carregador_canopo", 86, 54),
+    # camara SO
+    ("guardiao_arenito", 16, 68), ("espirito_faraonico", 24, 77), ("sacerdote_sombrio", 20, 72),
+    # camara SE
+    ("carregador_canopo", 76, 68), ("anubis_guerreiro", 84, 74), ("chacal_anubita", 86, 70),
+    # ANTECAMARA do trono (a guarda da descida): abominacoes + Anubis + guardiao
+    ("abominacao_embalsamada", 44, 84), ("abominacao_embalsamada", 56, 84), ("abominacao_embalsamada", 50, 88),
+    ("anubis_guerreiro", 42, 88), ("anubis_guerreiro", 58, 88), ("guardiao_arenito", 50, 82),
+]
+
+# CAMARA DE AVHUR: a sala do trono. So o chefe Avhur (invoca mumias em combate).
+CAMARA_AVHUR_SPAWNS = [
+    ("farao_avhur", 50, 70),
 ]
 
 

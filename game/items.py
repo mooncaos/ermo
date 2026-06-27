@@ -84,7 +84,7 @@ ITEMS = {
     "lingua_carnical":     {"name": "Língua de Carniçal",    "kind": "trofeu", "stackable": True, "color": "#b06a6a", "value": 150},
     "elmo_cavaleiro_morte":{"name": "Elmo do Cavaleiro da Morte", "kind": "trofeu", "stackable": True, "color": "#3a4048", "value": 190},
     "grimorio_negro":      {"name": "Grimório Negro",        "kind": "trofeu", "stackable": True, "color": "#2a2233", "value": 200},
-    "coracao_abominacao":  {"name": "Coração da Abominação", "kind": "tesouro", "stackable": False, "color": "#8a2a3a", "value": 400},
+    "coracao_abominacao":  {"name": "Coração da Abominação", "kind": "tesouro", "stackable": True, "color": "#8a2a3a", "value": 400, "protect": 2},
 }
 
 

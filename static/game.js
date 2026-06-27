@@ -167,6 +167,7 @@ const MAP_AMBIENT = {
   avasham:          {r:255, g:200, b:110, a:0.12, part:'#ffd98a'},  // deserto: calor ambar
   cova_colosso:     {r:228, g:150, b:78,  a:0.18, part:'#e8a860'},  // cova do colosso: pedra quente, poeira
   mina_avhur:       {r:60,  g:42,  b:18,  a:0.34, part:'#e8b860'},  // tumba egipcia: penumbra de tocha, poeira dourada
+  camara_avhur:     {r:72,  g:50,  b:16,  a:0.30, part:'#f4cf6a'},  // sala do trono: brilho dourado dos braseiros
   valdarkram:       {r:28,  g:38,  b:48,  a:0.40, part:'#9fb4c0'},  // cemiterio: bruma fria
   salao:            {r:46,  g:34,  b:78,  a:0.12, part:'#caa6ff'},  // salao: penumbra sagrada
   rasharan:         {r:232, g:182, b:92,  a:0.14, part:'#ffe6a0'},  // reino dourado do trigo
@@ -949,6 +950,7 @@ function drawTile(c, ch, px, py, ts, gx, gy){
   if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'mina_avhur' && drawMineTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'camara_avhur' && drawMineTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'ermo' && drawSapoTile(c, ch, px, py, ts, gx, gy)) return;
   switch(ch){
     case '.': grassBase(c,px,py,ts,gx,gy); break;

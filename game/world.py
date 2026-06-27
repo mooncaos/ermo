@@ -456,6 +456,8 @@ class World:
             _spawn(type_id, x, y, "valdarkram")
         for (type_id, x, y) in monsters_def.MINA_AVHUR_SPAWNS:
             _spawn(type_id, x, y, "mina_avhur")
+        for (type_id, x, y) in monsters_def.CAMARA_AVHUR_SPAWNS:
+            _spawn(type_id, x, y, "camara_avhur")
         return self.monsters
 
     def monster_at(self, mp, x, y):
