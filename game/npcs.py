@@ -1191,3 +1191,13 @@ ROSTER.extend([
         "greetings": CIGANA_GREETINGS, "smiter": False, "sells_potion": True,
     },
 ])
+
+# A Mesa de Confraternizações: um NPC que é uma mesa, no centro da taverna.
+# Clicar nela abre a interface de formação de party (ready check mútuo).
+ROSTER.append({
+    "id": "npc:mesa_confra", "name": "Mesa de Confraternizações",
+    "look": {"skin": "#caa06a", "cloak": "#6a4a2a"},
+    "map": "taverna", "home": (10, 7), "radius": 0, "wanders": False,
+    "step_every": 999, "solid": True, "kind": "mesa",
+    "greetings": ["..."], "party_table": True,
+})

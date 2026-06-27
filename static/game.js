@@ -4077,6 +4077,37 @@ function drawLebreForm(c, sx, sy, ts, p){
   c.beginPath(); c.arc(cx+Math.cos(t)*ts*0.12, by-ts*0.1+Math.sin(t)*ts*0.06, ts*0.028, 0, 7); c.fill();
   c.restore();
 }
+function drawMesaParty(c, sx, sy, ts, p){
+  const cx = sx + ts/2, cy = sy + ts/2;
+  c.fillStyle = 'rgba(0,0,0,0.22)';                                  // sombra
+  c.beginPath(); c.ellipse(cx, cy+ts*0.34, ts*0.42, ts*0.14, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#5a3d28'; c.fillRect(cx-ts*0.06, cy+ts*0.04, ts*0.12, ts*0.3);   // pé central
+  c.fillStyle = '#6e4a2e';                                           // tampo redondo
+  c.beginPath(); c.ellipse(cx, cy, ts*0.46, ts*0.3, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#86603c';
+  c.beginPath(); c.ellipse(cx, cy-ts*0.03, ts*0.42, ts*0.26, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = 'rgba(74,49,32,0.55)'; c.lineWidth = 1;            // veios da madeira
+  c.beginPath(); c.ellipse(cx, cy-ts*0.03, ts*0.28, ts*0.17, 0, 0, Math.PI*2); c.stroke();
+  c.beginPath(); c.ellipse(cx, cy-ts*0.03, ts*0.15, ts*0.09, 0, 0, Math.PI*2); c.stroke();
+  const mugs = [[-0.22,-0.04],[0.18,-0.1],[0.02,0.08]];             // canecas em cima
+  for(const m of mugs){
+    c.fillStyle = '#c8a868'; c.fillRect(cx+m[0]*ts-2, cy+m[1]*ts-4, 5, 6);
+    c.fillStyle = '#e8d49a'; c.fillRect(cx+m[0]*ts-2, cy+m[1]*ts-4, 5, 2);
+    c.fillStyle = '#a8884a'; c.fillRect(cx+m[0]*ts+3, cy+m[1]*ts-3, 1.5, 3);
+  }
+  const pul = 0.28 + 0.22*Math.abs(Math.sin(Date.now()/650));        // brilho pulsante (clicável)
+  c.strokeStyle = 'rgba(244,184,96,'+pul.toFixed(2)+')'; c.lineWidth = 2;
+  c.beginPath(); c.ellipse(cx, cy, ts*0.52, ts*0.36, 0, 0, Math.PI*2); c.stroke();
+  const label = '\ud83c\udf7b Mesa de Confraterniza\u00e7\u00f5es';  // rótulo flutuante
+  c.font = '600 11px Inter, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  const tw = c.measureText(label).width, ly = cy - ts*0.5;
+  c.fillStyle = 'rgba(20,16,30,0.82)';
+  if(c.roundRect){ c.beginPath(); c.roundRect(cx-tw/2-6, ly-9, tw+12, 18, 5); c.fill(); }
+  else c.fillRect(cx-tw/2-6, ly-9, tw+12, 18);
+  c.fillStyle = '#f4d8a0'; c.fillText(label, cx, ly);
+  c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+}
+
 function drawWildForm(c, sx, sy, ts, p){
   const form = p.wild_form;
   const fake = { mtype: form, facing: p.facing, _moving: p._moving, walk: p.walk };
@@ -4835,6 +4866,7 @@ function frame(now){
     else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
+    else if(p.kind === 'mesa') drawMesaParty(ctx, sx, sy, TS, p);
     else if(p.kind === 'monster' && (p.size||0) >= 4){
       if(p.mtype === 'colosso_avasham') drawColosso(ctx, sx, sy, TS, p);
       else drawVarth(ctx, sx, sy, TS, p);
@@ -5308,6 +5340,7 @@ function connectWithToken(token){
   // entidades e o chao, e recoloca a camera no jogador. Mochila/ficha/relogio
   // continuam como estao.
   socket.on('map_change', data=>{
+    if(_partyEl) closePartyTable(true);   // saiu da taverna: fecha o lobby (servidor já te tirou)
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
     mapW = data.map.width; mapH = data.map.height; mapName = data.map.map || 'ermo';
     throneBounds = computeThroneBounds();
@@ -5359,6 +5392,9 @@ function connectWithToken(token){
   socket.on('shop_open', d=> openShop(d));
   socket.on('xama_open', d=> openXama(d));
   socket.on('couraria_open', d=> openCouraria(d));
+  socket.on('party_open', d=> openPartyTable(d));
+  socket.on('party_update', d=>{ _partyData = d; if(_partyEl) renderPartyTableBody(_partyBodyEl, d); });
+  socket.on('party_formed', d=> onPartyFormed(d));
 
   // equipamento
   socket.on('loadout', d=>{
@@ -6347,6 +6383,97 @@ function renderXamaBody(body, d){
     body.appendChild(row);
   });
 }
+// ===========================================================================
+//  PARTY — a Mesa de Confraternizações: lobby de formação (ready check mútuo).
+//  Dois lados: "Na mesa" (esperando) e "No grupo" (aceito por todos). Cada um
+//  clica no nome dos OUTROS; quando todos se aceitam (2 a 6), o grupo forma.
+// ===========================================================================
+let _partyEl = null, _partyBodyEl = null, _partyData = null, myParty = null;
+
+function closePartyTable(silent){
+  if(_partyEl){ _partyEl.remove(); _partyEl = null; _partyBodyEl = null; }
+  if(!silent) socket.emit('party_leave');
+}
+
+function openPartyTable(d){
+  _partyData = d || {};
+  if(_partyEl){ renderPartyTableBody(_partyBodyEl, _partyData); return; }
+  const ov = _overlay(); const box = _box(460);
+  box.style.cssText += ';padding:0;display:flex;flex-direction:column;max-height:86vh;';
+  const hd = document.createElement('div');
+  hd.style.cssText = 'display:flex;align-items:center;gap:10px;padding:16px 18px 10px;border-bottom:1px solid #2a2540;';
+  const ti = document.createElement('div'); ti.textContent = 'Mesa de Confraternizações';
+  ti.style.cssText = 'font:700 18px Cinzel,serif;color:#f4d8a0;flex:1 1 auto;';
+  const x = _btn('\u2715', false); x.style.cssText += ';padding:4px 10px;'; x.onclick = ()=> closePartyTable(false);
+  hd.appendChild(ti); hd.appendChild(x); box.appendChild(hd);
+  _partyBodyEl = document.createElement('div');
+  _partyBodyEl.style.cssText = 'padding:12px 18px 18px;overflow-y:auto;';
+  box.appendChild(_partyBodyEl);
+  renderPartyTableBody(_partyBodyEl, _partyData);
+  ov.appendChild(box); document.body.appendChild(ov); _partyEl = ov;
+  ov.addEventListener('click', e=>{ if(e.target === ov) closePartyTable(false); });
+}
+
+function renderPartyTableBody(body, d){
+  if(!body) return;
+  const members = d.members || [];
+  const waiting = members.filter(m=> !m.confirmed);
+  const grouped = members.filter(m=> m.confirmed);
+  let h = '<div style="font-size:12px;color:#9b95b4;line-height:1.45;margin-bottom:12px">Cada um clica no nome dos <b style="color:#e8e2f0">outros</b> pra aceitar. Quando todos se aceitarem (2 a '+(d.max||6)+'), o grupo é formado.</div>';
+  h += '<div style="display:flex;gap:8px;align-items:stretch">';
+  h += '<div style="flex:1 1 0;min-width:0"><div style="font:600 11px Inter;color:#8a86a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Na mesa</div><div id="_pt_wait"></div></div>';
+  h += '<div style="flex:0 0 auto;display:flex;align-items:center;color:#6a6488;font-size:20px">&raquo;</div>';
+  h += '<div style="flex:1 1 0;min-width:0"><div style="font:600 11px Inter;color:#8fd6a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">No grupo</div><div id="_pt_group"></div></div>';
+  h += '</div>';
+  if(d.ready) h += '<div style="margin-top:14px;text-align:center;font:700 13px Cinzel,serif;color:#8fd6a0">Prontos! Formando o grupo...</div>';
+  else h += '<div style="margin-top:14px;text-align:center;font-size:12px;color:#9b95b4">'+grouped.length+' de '+members.length+' no grupo</div>';
+  body.innerHTML = h;
+  const mkRow = (m)=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:8px;background:'+(m.confirmed?'#16261b':'#1b1828')+';margin-bottom:6px';
+    const nm = document.createElement('div');
+    nm.style.cssText = 'flex:1 1 auto;min-width:0;font:600 12.5px Inter;color:#e8e2f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    nm.innerHTML = esc(m.name) + (m.you ? ' <span style="color:#f4d8a0;font-size:10px">(você)</span>' : '');
+    row.appendChild(nm);
+    if(!m.you){
+      const b = _btn(m.accepted ? '\u2713 Aceito' : 'Aceitar', m.accepted);
+      b.style.cssText += ';padding:4px 9px;font-size:11px';
+      b.onclick = ()=> socket.emit('party_accept', {target: m.id});
+      row.appendChild(b);
+    } else if(m.confirmed){
+      const ok = document.createElement('span'); ok.textContent = '\u2713';
+      ok.style.cssText = 'color:#8fd6a0;font-size:13px;padding:0 6px'; row.appendChild(ok);
+    }
+    return row;
+  };
+  const wEl = body.querySelector('#_pt_wait'), gEl = body.querySelector('#_pt_group');
+  if(wEl){ if(!waiting.length) wEl.innerHTML = '<div style="font-size:11px;color:#6a6488;padding:6px 2px">(ninguém esperando)</div>'; else waiting.forEach(m=> wEl.appendChild(mkRow(m))); }
+  if(gEl){ if(!grouped.length) gEl.innerHTML = '<div style="font-size:11px;color:#6a6488;padding:6px 2px">(vazio)</div>'; else grouped.forEach(m=> gEl.appendChild(mkRow(m))); }
+}
+
+function onPartyFormed(d){
+  myParty = d || null;
+  closePartyTable(true);
+  renderPartyHud();
+  const names = (d.members||[]).filter(m=>!m.you).map(m=>m.name);
+  toastMsg('Grupo formado' + (names.length ? ' com ' + names.join(', ') : '') + '!');
+}
+
+function renderPartyHud(){
+  let el = document.getElementById('_partyhud');
+  if(!myParty || !(myParty.members||[]).length){ if(el) el.remove(); return; }
+  if(!el){
+    el = document.createElement('div'); el.id = '_partyhud';
+    el.style.cssText = 'position:fixed;left:10px;top:118px;z-index:40;background:rgba(20,16,30,0.82);border:1px solid #2a2540;border-radius:10px;padding:8px 11px;font-family:Inter,sans-serif;pointer-events:none;max-width:180px';
+    document.body.appendChild(el);
+  }
+  let h = '<div style="font:700 11px Cinzel,serif;color:#f4d8a0;margin-bottom:5px">\ud83e\udd1d Grupo</div>';
+  (myParty.members||[]).forEach(m=>{
+    h += '<div style="font-size:12px;color:'+(m.you?'#f4d8a0':'#d8d2e8')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(m.name)+(m.you?' (você)':'')+'</div>';
+  });
+  el.innerHTML = h;
+}
+
 function openShop(d){
   shopData = d || {}; shopTab = 'buy';
   if(typeof d.wallet === 'number') updateWallet(d.wallet);

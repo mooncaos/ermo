@@ -315,6 +315,7 @@ def _go_to(sid, target_map, x, y, facing=None):
     if not player:
         return
     old_map = player.get("map", "ermo")
+    _party_remove(sid)              # trocou de mapa: sai do lobby da Mesa
     socketio.emit("player_left", {"id": sid}, room=old_map, skip_sid=sid)
     try:
         socketio.server.leave_room(sid, old_map, namespace="/")
@@ -1428,6 +1429,18 @@ def on_interact(_data=None):
         emit("couraria_open", _marion_payload(player, greet))
         return
 
+    # Mesa de Confraternizações (taverna): entra no lobby e abre a interface da party
+    if npc.get("_spec", {}).get("party_table"):
+        if request.sid not in _party_lobby:
+            if len(_party_lobby) >= PARTY_MAX:
+                emit("toast", {"text": "A mesa já está cheia (%d na mesa)." % PARTY_MAX})
+                return
+            _party_lobby.append(request.sid)
+            _party_accepts.setdefault(request.sid, set())
+        emit("party_open", _party_state_for(request.sid))
+        _party_broadcast()
+        return
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 
@@ -1535,6 +1548,109 @@ def on_marion_sell(data=None):
     _persist_loadout_wallet(player)
     emit("loadout", {"bag": player["inventory"], "equipment": player.get("equipment", {})})
     emit("couraria_open", _marion_payload(player, "Negócio fechado. Tá pago: %d de bronze." % gain))
+
+
+# ===========================================================================
+#  PARTY — a Mesa de Confraternizações (na taverna). Quem clica na mesa entra
+#  num lobby. Cada um clica no nome dos outros (ready check MÚTUO): um jogador
+#  passa pro lado do grupo quando TODOS os outros já o aceitaram. Quando todos
+#  do lobby se aceitaram (2 a 6), a party é formada e todos veem o grupo.
+# ===========================================================================
+PARTY_MAX = 6
+_party_lobby   = []      # sids na mesa, em ordem de chegada
+_party_accepts = {}      # sid -> set de sids que ele já aceitou
+_parties       = {}      # party_id -> [sids]
+_player_party  = {}      # sid -> party_id
+_party_seq     = [0]
+
+
+def _party_confirmed(sid):
+    """sid já passou pro lado do grupo? (foi aceito por TODOS os outros do lobby)"""
+    others = [s for s in _party_lobby if s != sid]
+    if not others:
+        return False
+    return all(sid in _party_accepts.get(o, set()) for o in others)
+
+
+def _party_ready():
+    """todo o lobby se aceitou mutuamente (2 a 6 jogadores)?"""
+    if not (2 <= len(_party_lobby) <= PARTY_MAX):
+        return False
+    return all(_party_confirmed(s) for s in _party_lobby)
+
+
+def _party_state_for(sid):
+    """o estado do lobby do ponto de vista de um jogador (quem ele já aceitou)."""
+    members = []
+    for s in _party_lobby:
+        p = world.players.get(s)
+        if not p:
+            continue
+        members.append({
+            "id": s,
+            "name": p.get("name", "?"),
+            "you": (s == sid),
+            "confirmed": _party_confirmed(s),                  # já está no lado do grupo
+            "accepted": (s in _party_accepts.get(sid, set())),  # você já aceitou esse
+        })
+    return {"members": members, "max": PARTY_MAX, "ready": _party_ready()}
+
+
+def _party_broadcast():
+    for s in list(_party_lobby):
+        socketio.emit("party_update", _party_state_for(s), room=s)
+
+
+def _party_remove(sid):
+    """tira o jogador do lobby (fechou a interface, saiu da taverna ou caiu)."""
+    if sid not in _party_lobby and sid not in _party_accepts:
+        return
+    if sid in _party_lobby:
+        _party_lobby.remove(sid)
+    _party_accepts.pop(sid, None)
+    for accs in _party_accepts.values():
+        accs.discard(sid)
+    _party_broadcast()
+
+
+def _party_form():
+    members = list(_party_lobby)
+    _party_seq[0] += 1
+    pid = "pt%d" % _party_seq[0]
+    _parties[pid] = members
+    for s in members:
+        _player_party[s] = pid
+    for s in members:
+        socketio.emit("party_formed", {"party_id": pid, "members": [
+            {"id": m, "name": (world.players.get(m) or {}).get("name", "?"), "you": (m == s)}
+            for m in members
+        ]}, room=s)
+    _party_lobby.clear()
+    _party_accepts.clear()
+
+
+@socketio.on("party_accept")
+def on_party_accept(data=None):
+    sid = request.sid
+    if sid not in _party_lobby:
+        return
+    target = (data or {}).get("target")
+    if not target or target == sid or target not in _party_lobby:
+        return
+    accs = _party_accepts.setdefault(sid, set())
+    if target in accs:
+        accs.discard(target)        # toggle: clicou de novo, desfaz
+    else:
+        accs.add(target)
+    if _party_ready():
+        _party_form()
+    else:
+        _party_broadcast()
+
+
+@socketio.on("party_leave")
+def on_party_leave(data=None):
+    _party_remove(request.sid)
 
 
 def _xama_payload(player, greet=None):
@@ -2133,6 +2249,7 @@ def on_chat(data):
 def on_disconnect():
     _pending_race.pop(request.sid, None)
     _pending_class.pop(request.sid, None)
+    _party_remove(request.sid)
     # se caiu no meio de uma luta, libera os monstros do confronto.
     enc = COMBAT.pop(request.sid, None)
     if enc:
