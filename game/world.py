@@ -114,6 +114,7 @@ def monster_public(m):
     """Versao publica de um monstro pro cliente (desenho proprio: glifo + barra de
     vida). So o que o cliente precisa pra desenhar e mostrar a vida."""
     return {
+        "size": m.get("size"),
         "id": m["id"],
         "x": m["x"], "y": m["y"], "facing": m.get("facing", "down"),
         "monster": True, "kind": "monster",
@@ -439,6 +440,7 @@ class World:
                 "glyph": spec["glyph"], "kind": "monster", "alive": True,
                 "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
                 "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
+                "size": spec.get("size"),
                 "_spawn": (type_id, pos[0], pos[1]),
             }
 

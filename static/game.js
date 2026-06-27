@@ -2189,6 +2189,20 @@ function drawBeast(c, sx, sy, ts, p){
   }
   drawMonsterBarName(c, sx, sy, ts, p);
 }
+function drawVarth(c, sx, sy, ts, p){
+  const N = p.size || 4;
+  const span = N*ts;
+  const cx = sx + ts*0.5, cy = sy + ts*0.5;
+  const R = span*0.42;
+  const moving = !!p._moving;
+  const accent = '#8a4ad0';
+  const bob = moving ? Math.sin(((p.walk||0)/WALK_CYCLE)*Math.PI*2)*3 : Math.sin(Date.now()/700)*1.6;
+  if(typeof _deityAura === 'function') _deityAura(c, cx, cy+bob, R, accent, moving);
+  c.save(); c.translate(cx, cy+bob);
+  drawValdrisGod(c, R, accent);                 // corpo de feiticeiro/necromante (4x4)
+  c.restore();
+  drawMonsterBarName(c, cx - ts/2, cy - R - 4, ts, p);   // nome + barra acima da figura
+}
 function drawDeity(c, sx, sy, ts, p){
   const N = p.size || 4;
   const span = N*ts;
@@ -3691,6 +3705,7 @@ function frame(now){
     else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
+    else if(p.kind === 'monster' && (p.size||0) >= 4) drawVarth(ctx, sx, sy, TS, p);
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
     else if(p.wild_form) drawWildForm(ctx, sx, sy, TS, p);
     else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
@@ -5762,7 +5777,7 @@ function applyCombatSnapshot(snap){
     }
     if(e){
       e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive;
-      e.boss = !!c.boss; e._enraged = !!c.enraged; if(c.mtype) e.mtype = c.mtype;
+      e.boss = !!c.boss; e._enraged = !!c.enraged; if(c.mtype) e.mtype = c.mtype; if(c.size) e.size = c.size;
       e._status = c.status || null;
     }
     if(c.you && myFicha){ myFicha.hp = c.hp; myFicha.hp_max = c.hp_max; }

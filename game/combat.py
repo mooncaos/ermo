@@ -121,7 +121,7 @@ def make_monster_combatant(m):
     dexm = m.get("dex", 0)
     return {
         "cid": m["id"], "kind": "monster", "mid": m["id"], "name": m["name"],
-        "mtype": m.get("type"), "boss": bool(m.get("boss")),
+        "mtype": m.get("type"), "boss": bool(m.get("boss")), "size": m.get("size"),
         "summon_type": m.get("summon_type"),
         "hp": int(m["hp"]), "hp_max": int(m["hp_max"]), "ac": m["ac"], "atk": m["atk"],
         "dmg": dict(m["dmg"]), "reach": m["reach"], "speed": m["speed"], "dex": dexm,
@@ -779,6 +779,7 @@ def snapshot(enc, my_cid):
             "x": c["x"], "y": c["y"], "hp": c["hp"], "hp_max": c["hp_max"],
             "alive": c.get("alive", True), "glyph": c.get("glyph"),
             "mtype": c.get("mtype"), "boss": bool(c.get("boss")), "enraged": bool(c.get("enraged")),
+            "size": c.get("size"),
             "you": (cid == my_cid), "current": (cid == cur_cid), "ac": c["ac"],
             "status": status_view(c),
         })

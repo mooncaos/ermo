@@ -134,6 +134,13 @@ MONSTERS = {
         "atk_name": "punho de pedra", "boss": True, "summon_type": "elemental_areia", "summons": 3,
         "drops": [("coin_gold", 1.0, 2, 3)], "bronze": (180, 260),
     },
+    "lorde_varth": {
+        "name": "Lorde Varth", "hp": 1200, "ac": 22, "atk": 16,
+        "dmg": {"n": 6, "d": 10, "flat": 12}, "reach": 3, "speed": 5,
+        "xp": 1500, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 4,
+        "atk_name": "raio necromântico", "boss": True, "summon_type": "esqueleto_guerreiro", "summons": 4,
+        "drops": [("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 3, 5)], "bronze": (300, 450),
+    },
 
     # ===================== DESERTO DE AVASHAM (mais forte que a floresta) =====================
     "lacraia_gigante": {
@@ -440,6 +447,7 @@ VALDARKRAM_SPAWNS = [
     ("necromante_caido", 84, 26), ("necromante_caido", 82, 84), ("necromante_caido", 88, 46),
     ("abominacao_ossea", 86, 50), ("abominacao_ossea", 90, 70), ("abominacao_ossea", 84, 58),
     ("abominacao_ossea", 88, 34), ("abominacao_ossea", 82, 78),
+    ("lorde_varth", 92, 52),       # CHEFE FINAL do cemitério (necromante 4x4)
 ]
 
 
@@ -546,6 +554,20 @@ MONSTER_ABILITIES = {
                        "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
                       {"id": "tempestade_de_areia", "name": "Tempestade de Areia", "type": "inflict",
                        "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3}],
+
+    # arsenal do necromante: muitas magias, ele varia a cada turno
+    "lorde_varth": [{"id": "raio_necrotico", "name": "Raio Necrótico", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 1},
+                      {"id": "dreno_de_vida", "name": "Dreno de Vida", "type": "drain",
+                       "chance": 0.5, "cd": 2},
+                      {"id": "praga_mortal", "name": "Praga Mortal", "type": "inflict",
+                       "status": "poison", "turns": 4, "dot": {"n": 4, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "toque_paralisante", "name": "Toque Paralisante", "type": "gaze",
+                       "save": "CON", "dc": 18, "status": "stunned", "turns": 1, "chance": 0.35, "cd": 3},
+                      {"id": "terror_da_cripta", "name": "Terror da Cripta", "type": "fear",
+                       "save": "SAB", "dc": 18, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
+                      {"id": "festim_macabro", "name": "Festim Macabro", "type": "heal",
+                       "heal": {"n": 6, "d": 10}, "chance": 0.3, "cd": 4}],
 }
 
 
