@@ -5767,6 +5767,21 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
         c.fillStyle = hi; c.beginPath(); c.arc(cx, cy+s*0.16, s*0.04, 0, 7); c.fill();
       }
       return true; }
+    case 'divine_orb': {                          // Bola de Lã do Pofnir: esfera multicolorida
+      const t = performance.now();
+      c.strokeStyle = shade(col, 0.1); c.lineWidth = 1.6;                        // correntinha
+      c.beginPath(); c.arc(cx, cy-s*0.14, s*0.24, Math.PI*0.2, Math.PI*0.8); c.stroke();
+      const oy = cy + s*0.12, orad = s*0.2, hue = (t/20) % 360;
+      const g = c.createRadialGradient(cx-orad*0.3, oy-orad*0.3, 1, cx, oy, orad);
+      g.addColorStop(0, 'hsl('+hue+',90%,80%)');
+      g.addColorStop(0.5, 'hsl('+((hue+120)%360)+',85%,62%)');
+      g.addColorStop(1, 'hsl('+((hue+240)%360)+',80%,48%)');
+      c.fillStyle = g; c.beginPath(); c.arc(cx, oy, orad, 0, 7); c.fill();        // esfera
+      c.globalAlpha = 0.5; c.fillStyle = 'hsl('+((hue+60)%360)+',95%,85%)';       // brilho
+      c.beginPath(); c.arc(cx-orad*0.3, oy-orad*0.3, orad*0.3, 0, 7); c.fill(); c.globalAlpha = 1;
+      c.strokeStyle = 'hsl('+((hue+200)%360)+',70%,78%)'; c.lineWidth = 1;        // fiapos de la
+      for(let i=0;i<3;i++){ const a=t/600+i*2.1; c.beginPath(); c.moveTo(cx+Math.cos(a)*orad, oy+Math.sin(a)*orad); c.lineTo(cx+Math.cos(a)*orad*1.5, oy+Math.sin(a)*orad*1.5); c.stroke(); }
+      return true; }
   }
   return false;
 }

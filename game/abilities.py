@@ -18,6 +18,8 @@ ABILITIES = {
     "divine_smite": {"name": "Castigo Divino",     "slot": "special", "desc": "Arma: o próximo acerto corpo a corpo gasta um espaço e causa +2d6 radiante."},
     "bardic":       {"name": "Inspiração",         "slot": "bonus",   "desc": "+1d6 na sua próxima jogada de ataque."},
     "sneak_attack": {"name": "Ataque Furtivo",     "slot": "passive", "desc": "+Xd6 no primeiro acerto do seu turno."},
+    # --- habilidades CONCEDIDAS pelos deuses (via Fagulha de Divindade) ---
+    "milesima_saida": {"name": "Milésima Saída",   "slot": "bonus",   "god": "Nhare", "desc": "Dom de Nharé. 1x por combate: some pela milésima saída — cura 2d6 e o PRÓXIMO ataque inimigo contra você erra automaticamente."},
 }
 
 CLASS_ABILITIES = {

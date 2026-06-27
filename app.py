@@ -1842,6 +1842,96 @@ def on_throne(_data=None):
         "text": "Sai de perto do cheiro dele."}, to=request.sid)
 
 
+# ============================ FAGULHA -> DEUSES ============================
+# O jogador chega perto de um deus, diz que tem uma Fagulha de Divindade, e o
+# deus a recebe. Cada deus recompensa SO na primeira fagulha que recebe daquele
+# personagem. Deus patrono de classe ensina uma habilidade (so pra essa classe);
+# o Pofnir da a Bola de La. Falas e recompensas ficam aqui.
+GOD_FAGULHA = {
+    "god:pofnir": {
+        "item": "bola_la_pofnir",
+        "line": "Hmmmrrr... uma Fagulha. Da aqui. *o gato branco a engole inteira e ronrona fundo* Toma essa bola de la, amassei eu mesmo com as patas. Brinca com ela. Agora tu es meu amigo, humano.",
+        "line_repeat": "Ja te dei minha bola de la. Guarda tua Fagulha pra outro deus, eu ja tenho tudo o que eu quero.",
+        "line_none": "Tu vens ate o gato branco de maos vazias? Volta quando tiver uma Fagulha de verdade.",
+    },
+    "god:nhare": {
+        "ability": "milesima_saida", "class": "ladino",
+        "line": "Uma Fagulha! Pra MIM?! *a lebre da um salto no ar* Entao recebe a Milesima Saida: quando te encurralarem sem nenhuma porta, sempre vai existir mais uma. Corre, ladino. Corre e nunca te pegam.",
+        "line_repeat": "Ja te ensinei a Milesima Saida. Uma so basta, o resto e' contigo e com tuas pernas.",
+        "line_noclass": "Ah, como eu quero essa Fagulha... mas o que eu ensino e' arte de ladino, e tu nao corres como um. Guarda-a e leva ao deus que e' teu.",
+        "line_none": "Frase bonita, mas cade a Fagulha? Lebre nao corre atras de promessa.",
+    },
+}
+
+
+def _nearest_deity(player, radius):
+    """(god_id, entidade) do deus mais perto do jogador no mesmo mapa, ou None."""
+    mp = player.get("map", "ermo")
+    best, bestd = None, radius + 1
+    for gid, ent in world.players.items():
+        if ent.get("kind") != "deity" or ent.get("map", "ermo") != mp:
+            continue
+        dd = max(abs(player["x"] - ent["x"]), abs(player["y"] - ent["y"]))
+        if dd <= radius and dd < bestd:
+            best, bestd = (gid, ent), dd
+    return best
+
+
+def _is_fagulha_phrase(text):
+    n = secret_worlds.norm(text)
+    return "fagulha" in n and any(w in n for w in ("tenho", "toma", "tome", "pega", "aceita", "quer", "trago"))
+
+
+def _fagulha_exchange(player, god_id):
+    """Entrega de uma Fagulha a um deus. Consome e recompensa SO na 1a vez por deus."""
+    mp = player.get("map", "ermo")
+    sid = player.get("id")
+    f = player.setdefault("ficha", {})
+    given = f.setdefault("fagulhas_dadas", [])
+    bag = player.setdefault("inventory", [])
+    spec = GOD_FAGULHA.get(god_id)
+
+    def say(txt):
+        socketio.emit("speech", {"id": god_id, "text": txt}, room=mp)
+
+    if items.count_in_bag(bag, "fagulha_divindade") <= 0:          # nao tem fagulha
+        say((spec or {}).get("line_none") or "Voce nao tem nenhuma Fagulha pra me dar.")
+        return
+    if not spec:                                                   # deus sem recompensa ainda
+        say("Adoro tua Fagulha, mas guarda-a. Eu ainda nao tenho um dom pra te dar.")
+        return
+    if god_id in given:                                            # ja recompensou esse personagem
+        say(spec.get("line_repeat", "Ja te dei o que eu tinha. Guarda tua Fagulha."))
+        return
+    if spec.get("ability") and (f.get("class") or "") != spec.get("class"):   # classe errada
+        say(spec.get("line_noclass", "Tua Fagulha me tenta, mas o que eu dou e' so pra quem me serve."))
+        return
+
+    # --- 1a vez (classe certa, ou Pofnir): consome a fagulha e recompensa ---
+    items.remove_from_bag(bag, "fagulha_divindade", 1)
+    given.append(god_id)
+    reward_txt = ""
+    if spec.get("item"):
+        items.add_to_bag(bag, spec["item"], 1)
+        reward_txt = "Recebeu: " + ((items.get(spec["item"]) or {}).get("name", spec["item"]))
+    if spec.get("ability"):
+        ga = f.setdefault("god_abilities", [])
+        if spec["ability"] not in ga:
+            ga.append(spec["ability"])
+        reward_txt = "Aprendeu: " + ((abilities_def.get(spec["ability"]) or {}).get("name", spec["ability"]))
+    pid = player.get("player_id")
+    if pid:
+        try: db.save_inventory(pid, bag)
+        except Exception as exc: print("aviso save_inventory fagulha:", exc)
+        try: db.save_ficha(pid, f)
+        except Exception as exc: print("aviso save_ficha fagulha:", exc)
+    say(spec["line"])
+    if sid:
+        socketio.emit("loadout", {"bag": bag, "equipment": player.get("equipment", {})}, to=sid)
+        if reward_txt:
+            socketio.emit("toast", {"text": reward_txt}, to=sid)
+
+
 @socketio.on("chat")
 def on_chat(data):
     """Mensagem de chat. Vira balao acima do jogador pra todo mundo perto.
@@ -1872,6 +1962,13 @@ def on_chat(data):
             and world.near_entity(player, "god:pofnir", 7)):
         _grant_pofnir_blessing(player)
         return
+
+    # --- entregar uma Fagulha de Divindade ao deus que estiver perto ---
+    if _is_fagulha_phrase(text):
+        nd = _nearest_deity(player, 7)
+        if nd:
+            _fagulha_exchange(player, nd[0])
+            return
 
     socketio.emit("speech", {"id": player["id"], "text": text},
                   room=player.get("map", "ermo"))

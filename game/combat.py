@@ -112,7 +112,7 @@ def make_player_combatant(sid, player, ficha):
         "cast_attr": cast_attr, "cast_mod": cast_mod,
         "spell_atk": prof + cast_mod + spell_bonus, "spell_dc": 8 + prof + cast_mod + spell_bonus,
         "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
-        "abilities": abil.for_class(cid), "sneak": sneak, "rage_dmg": rage_dmg,
+        "abilities": abil.for_class(cid) + list(ficha.get("god_abilities", [])), "sneak": sneak, "rage_dmg": rage_dmg,
         "res": copy.deepcopy(ficha.get("res") or {}),
         "raging": False, "bless_die": None, "smite_armed": False,
         "saves": {
@@ -405,10 +405,14 @@ def attack(enc, attacker, target):
         total += _roll_dmg(attacker["bless_die"], False)
         attacker["bless_die"] = None        # Bencao/Inspiracao valem pro proximo ataque
     hit = crit or (d != 1 and total >= target["ac"])
+    evaded = bool(target.get("evade_next"))           # Milésima Saída: o alvo some, este ataque erra
+    if evaded:
+        target["evade_next"] = False
+        hit = crit = False
     res = {"attacker": attacker["cid"], "attacker_name": attacker["name"],
            "target": target["cid"], "target_name": target["name"],
            "d20": d, "total": total, "crit": crit, "hit": hit, "dmg": 0, "adv": ad,
-           "atk_name": attacker.get("atk_name", "ataque"), "killed": False,
+           "atk_name": attacker.get("atk_name", "ataque"), "killed": False, "evaded": evaded,
            "target_hp": target["hp"], "target_hp_max": target["hp_max"]}
     if hit:
         dmg = _roll_dmg(attacker["dmg"], crit)
@@ -578,6 +582,14 @@ def use_ability(enc, actor, aid, target=None):
         actor["bless_die"] = {"n": 1, "d": 6}; res.update({"buff": True, "self": True})
     elif aid == "divine_smite":
         actor["smite_armed"] = True; res["armed"] = True
+    elif aid == "milesima_saida":
+        if actor.get("_milesima_used"):
+            res["fail"] = True; return res
+        actor["_milesima_used"] = True
+        actor["evade_next"] = True               # o proximo ataque inimigo erra
+        amt = _roll_dmg({"n": 2, "d": 6, "flat": 0}, False)
+        before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + amt)
+        res.update({"heal": actor["hp"] - before, "self": True, "target": actor["cid"], "evade": True})
     else:
         res["fail"] = True
     return res
