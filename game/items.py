@@ -180,12 +180,12 @@ def starting_inventory():
 # Itens largados no chao: (x, y, item_id, segundos_pra_reaparecer).
 # Espalhados perto do cruzamento central pra achar facil no teste.
 GROUND_SPAWNS = [
-    (19, 10, "coin_gold",    30),
-    (17, 12, "coin_bronze",  30),
-    (23, 12, "coin_silver",  30),
-    (16, 16, "coin_bronze",  30),
-    (24, 16, "coin_gold",    30),
-    (15,  9, "coin_silver",  30),
+    (49, 46, "coin_gold",    30),
+    (49, 48, "coin_bronze",  30),
+    (49, 54, "coin_silver",  30),
+    (45, 50, "coin_bronze",  30),
+    (47, 50, "coin_gold",    30),
+    (53, 50, "coin_silver",  30),
 ]
 # Nota: o Cajado do Portuz NAO fica mais no chao. Ele e unico do Portuz (1 so),
 # nao dropa e nao respawna. Isso mata o farm que enchia a mochila de copias.

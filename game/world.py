@@ -22,6 +22,7 @@ from . import rules
 from . import items
 from . import npcs
 from . import monsters as monsters_def
+from . import world_map
 from .world_map import MAP_ROWS, TILE_SIZE, SPAWN_POINTS, map_rows, map_dims, get_map
 
 # Paletas de customizacao (o cliente desenha a partir destes mesmos valores).
@@ -213,7 +214,10 @@ class World:
             if not spec.get("active", True):
                 continue   # NPC dormente (ex.: meninas guardadas pra economia)
             mp = spec.get("map", "ermo")
-            home = _walkable_near(spec["home"][0], spec["home"][1], mp)
+            hx, hy = spec["home"]
+            if mp == "ermo":                 # a vila vive no centro do 100x100
+                hx, hy = hx + world_map.OX, hy + world_map.OY
+            home = _walkable_near(hx, hy, mp)
             self.players[spec["id"]] = {
                 "id": spec["id"],
                 "player_id": None,

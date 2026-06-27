@@ -784,12 +784,75 @@ FADRAKOR_VULCAO_SPAWN  = [(50, 90), (49, 90), (50, 91), (49, 91)]  # corredor su
 
 
 # ---- registro dos mapas (fonte unica) ----
-# abre a passagem LESTE do Ermo (na altura da estrada, linha 15) -> Repouso da Dama
+# ===========================================================================
+#  A VILA (40x30) VAI PRO CENTRO DE UM MAPA 100x100 (espaco pra cidade crescer).
+#  Muralha de pedra em volta, 4 portoes (N/S/L/O) alinhados as estradas, campos
+#  abertos ao redor e estradas dos portoes ate as bordas. TUDO que referencia
+#  coordenada do Ermo desloca por (OX, OY): spawns, portas, passagens, NPCs.
+# ===========================================================================
+OX, OY = 30, 35                                 # canto sup-esq da vila no 100x100
+_VW, _VH = len(MAP_ROWS[0]), len(MAP_ROWS)      # 40 x 30
+ERMO_W = ERMO_H = 100
+
+# abre a passagem LESTE da vila (na altura da estrada, linha 15) antes de centralizar
 _er = [list(r) for r in MAP_ROWS]
 for _y in (14, 15, 16):
-    _er[_y][38] = "="      # estende a estrada ate a borda
-    _er[_y][39] = "+"      # faixa de passagem
+    _er[_y][38] = "="
+    _er[_y][39] = "+"
 MAP_ROWS = ["".join(r) for r in _er]
+
+
+def _embed_ermo():
+    g = _grid(ERMO_W, ERMO_H, ".")
+    rng = _rnd.Random(2026)
+    # campos: arvores e moitas esparsas nos arredores (sem invadir a vila)
+    for _ in range(420):
+        x, y = rng.randint(1, ERMO_W - 2), rng.randint(1, ERMO_H - 2)
+        if OX - 3 <= x <= OX + _VW + 2 and OY - 3 <= y <= OY + _VH + 2:
+            continue
+        if g[y][x] == ".":
+            g[y][x] = rng.choice(["T", "T", "^"])
+    # cola a vila no centro
+    for j in range(_VH):
+        for i in range(_VW):
+            g[OY + j][OX + i] = MAP_ROWS[j][i]
+    # converte o anel de arvores da vila em MURALHA de pedra ('H')
+    # (inclui o '+' antigo da borda; os portoes reais sao reabertos abaixo)
+    for i in range(_VW):
+        for jy in (0, _VH - 1):
+            if g[OY + jy][OX + i] in ("T", "+"):
+                g[OY + jy][OX + i] = "H"
+    for j in range(_VH):
+        for jx in (0, _VW - 1):
+            if g[OY + j][OX + jx] in ("T", "+"):
+                g[OY + j][OX + jx] = "H"
+    gx = OX + 19          # estrada vertical (N/S) -> col 49
+    gy = OY + 15          # estrada horizontal (L/O) -> row 50
+    # portoes (aberturas na muralha)
+    g[OY][gx] = "="                       # NORTE
+    g[OY + _VH - 1][gx] = "="             # SUL (era '+', vira estrada)
+    g[gy][OX] = "="                       # OESTE
+    for ry in (gy - 1, gy, gy + 1):       # LESTE (o punch ja abriu)
+        g[ry][OX + _VW - 1] = "="
+    # estradas dos portoes ate as bordas
+    for y in range(0, OY):
+        g[y][gx] = "="
+    for y in range(OY + _VH, ERMO_H):
+        g[y][gx] = "="
+    for x in range(0, OX):
+        g[gy][x] = "="
+    for x in range(OX + _VW, ERMO_W):
+        g[gy][x] = "="
+    # borda externa (linha de arvores) + passagens SUL e LESTE
+    _ring(g, "T")
+    g[ERMO_H - 1][gx] = "+"; g[ERMO_H - 2][gx] = "+"      # SUL -> Descampado
+    g[gy][ERMO_W - 1] = "+"; g[gy][ERMO_W - 2] = "+"      # LESTE -> Repouso
+    g[ERMO_H - 3][gx] = "="; g[gy][ERMO_W - 3] = "="      # estrada coladinha
+    return ["".join(r) for r in g]
+
+
+MAP_ROWS = _embed_ermo()
+SPAWN_POINTS = [(x + OX, y + OY) for (x, y) in SPAWN_POINTS]
 
 MAPS = {
     "ermo":             {"rows": MAP_ROWS,             "spawns": SPAWN_POINTS},
@@ -823,11 +886,12 @@ MAPS["loja_armas"] = {"rows": _loja_armas_int(), "spawns": INTERIOR_SPAWN}   # A
 INTERIOR_MAPS = set(CASA_MENINAS) | {"casa_comum", "loja_armas"}   # "estou dentro de uma casa?"
 
 # porta (x, y) no Ermo -> mapa de interior, ou "LOCKED" (comercios ainda fechados)
-DOOR_INTERIORS = {pos: name for name, pos in CASA_MENINAS.items()}
-DOOR_INTERIORS[(33, 20)] = "casa_comum"                              # casa do Bento
-DOOR_INTERIORS[(10, 20)] = "loja_armas"                             # Armas Peteco (liberada!)
+# (coords ja deslocadas pelo embed: a vila vive no centro do 100x100)
+DOOR_INTERIORS = {(pos[0] + OX, pos[1] + OY): name for name, pos in CASA_MENINAS.items()}
+DOOR_INTERIORS[(33 + OX, 20 + OY)] = "casa_comum"                    # casa do Bento
+DOOR_INTERIORS[(10 + OX, 20 + OY)] = "loja_armas"                    # Armas Peteco (liberada!)
 for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba: ainda trancadas
-    DOOR_INTERIORS[_d] = "LOCKED"
+    DOOR_INTERIORS[(_d[0] + OX, _d[1] + OY)] = "LOCKED"
 
 
 # ---- motor de passagem por borda: (mapa, borda) -> (mapa destino, x, y, facing) ----
@@ -835,8 +899,8 @@ for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba:
 EDGE_LINKS = {
     "ermo":             {"south": ("descampado",      50, 4,  "down"),
                          "east":  ("repouso_dama",     3, 50, "right")},
-    "descampado":       {"north": ("ermo",            20, 28, "up")},
-    "repouso_dama":     {"west":  ("ermo",            37, 15, "left")},
+    "descampado":       {"north": ("ermo",       OX + 19, ERMO_H - 3, "up")},
+    "repouso_dama":     {"west":  ("ermo",       ERMO_W - 3, OY + 15, "left")},
     "fadrakor_litoral": {"north": ("fadrakor_selva",   50, 95, "up")},
     "fadrakor_selva":   {"south": ("fadrakor_litoral", 50, 4,  "down"),
                          "north": ("fadrakor_vulcao",  50, 95, "up")},

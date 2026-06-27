@@ -568,6 +568,9 @@ const SAPO_SHOPS = [
   {x0:2,y0:25,x1:5,y1:26, dx:3,dy:26,  roof:'#6a4e8a', eave:'#42305a', awn:'#e8d28a', sign:'#e8d28a', icon:'rest'}, // O Garfo de Ouro
   {x0:8,y0:25,x1:11,y1:26,dx:10,dy:26, roof:'#cdd6da', eave:'#9aa4a8', awn:'#e8eef0', sign:'#d65a5a', icon:'upa'},  // UPA
 ];
+// a vila foi pro CENTRO de um mapa 100x100; desloca as lojas de Sapopemba junto.
+const ERMO_OX = 30, ERMO_OY = 35;
+SAPO_SHOPS.forEach(s=>{ s.x0+=ERMO_OX; s.x1+=ERMO_OX; s.dx+=ERMO_OX; s.y0+=ERMO_OY; s.y1+=ERMO_OY; s.dy+=ERMO_OY; });
 function _sapoShopAt(gx, gy){
   for(const s of SAPO_SHOPS){ if(gx>=s.x0 && gx<=s.x1 && gy>=s.y0 && gy<=s.y1) return s; }
   return null;
