@@ -319,11 +319,11 @@ MONSTERS = {
         "drops": [("moeda_avhur", 1.0, 1, 2), ("coin_gold", 0.3, 1, 1)], "bronze": (210, 330),
     },
     "farao_avhur": {
-        "name": "Avhur, o Maldito", "hp": 1400, "ac": 23, "atk": 14,
-        "dmg": {"n": 4, "d": 10, "flat": 13}, "reach": 2, "speed": 5,
-        "xp": 1800, "dex": 4, "glyph": "👑", "kind": "morto-vivo",
+        "name": "Avhur, o Maldito", "hp": 1900, "ac": 24, "atk": 16,
+        "dmg": {"n": 5, "d": 10, "flat": 15}, "reach": 2, "speed": 5,
+        "xp": 2400, "dex": 4, "glyph": "👑", "kind": "morto-vivo",
         "atk_name": "cetro real", "boss": True, "summon_type": "mumia_guerreira", "summons": 4,
-        "drops": [("mascara_faraonica", 1.0, 1, 1), ("moeda_avhur", 1.0, 6, 10), ("coin_gold", 1.0, 3, 6)],
+        "drops": [("fagulha_divindade", 1.0, 1, 1), ("mascara_faraonica", 1.0, 1, 1), ("moeda_avhur", 1.0, 6, 10), ("coin_gold", 1.0, 3, 6)],
         "bronze": (500, 800),
     },
 }

@@ -67,6 +67,7 @@ def make_player_combatant(sid, player, ficha):
     st["reach"] = int(eq.get("rng", 1)) or 1       # arco/cajado atacam o basico a distancia
     st["spell_pow"] = int(eq.get("spell_pow", 0))  # +poder magico (equip de caster)
     st["block"] = int(eq.get("block", 0))          # bloqueio do escudo (reduz dano por golpe)
+    st["offhand"] = eq.get("offhand")              # segunda arma (duas armas; so vale pra classe permitida)
     # TALENTOS de combate que valem agora (os demais sao passivos/situacionais):
     feats = list(ficha.get("feats", []))
     if "movel" in feats:                       # Móvel: +deslocamento
@@ -103,6 +104,7 @@ def make_player_combatant(sid, player, ficha):
         "hp": int(ficha.get("hp", 1)), "hp_max": int(ficha.get("hp_max", 1)),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
+        "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
         "x": player["x"], "y": player["y"], "alive": True,
         "atk_name": "ataque", "level": lvl, "class_id": cid,
         "init_bonus": init_bonus, "feats": feats, "luck": luck,
@@ -409,6 +411,10 @@ def attack(enc, attacker, target):
            "target_hp": target["hp"], "target_hp_max": target["hp_max"]}
     if hit:
         dmg = _roll_dmg(attacker["dmg"], crit)
+        if attacker.get("offhand"):                       # duas armas: golpe extra da mao secundaria
+            od = _roll_dmg(attacker["offhand"], crit)
+            dmg += od
+            res["offhand_dmg"] = od
         if attacker.get("raging"):
             dmg += attacker.get("rage_dmg", 0)
         dmg += _mark_bonus(enc, attacker, target, crit)

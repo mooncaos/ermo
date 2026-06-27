@@ -2165,14 +2165,25 @@ function drawEmbalmed(c, sx, sy, ts, p){
 
 function drawFarao(c, sx, sy, ts, p){
   const cx=sx+ts/2, t=performance.now();
-  const bob=Math.sin(t/700+cx)*1.4, cy=sy+ts*0.5+bob;
-  const GOLD='#e8c14e', GOLDD='#b8902f', LINEN='#e6dcc0', BLUE='#2f6fb0';
+  const bob=Math.sin(t/700+cx)*1.4, cy=sy+ts*0.5+bob-ts*0.03;   // paira um pouco (rei-deus)
+  const GOLD='#e8c14e', GOLDD='#b8902f', GOLDL='#f6df8e', LINEN='#e6dcc0', BLUE='#2f6fb0';
   c.save();
   c.fillStyle='rgba(0,0,0,.34)'; c.beginPath(); c.ellipse(cx,sy+ts*0.86,ts*0.3,ts*0.11,0,0,Math.PI*2); c.fill();
-  // aura sombria do rei amaldicoado
-  const aur=c.createRadialGradient(cx,cy,1,cx,cy,ts*0.5);
-  aur.addColorStop(0,'rgba(232,193,78,0.20)'); aur.addColorStop(1,'rgba(232,193,78,0)');
+  // aura divina: halo multicolorido (ele carrega a fagulha de divindade) + nucleo dourado
+  const aurOut=c.createRadialGradient(cx,cy,ts*0.2,cx,cy,ts*0.62);
+  aurOut.addColorStop(0,'rgba(232,193,78,0.12)');
+  aurOut.addColorStop(0.55,'rgba(176,107,255,0.10)');
+  aurOut.addColorStop(0.8,'rgba(94,194,122,0.07)');
+  aurOut.addColorStop(1,'rgba(232,193,78,0)');
+  c.fillStyle=aurOut; c.fillRect(sx-ts*0.4,sy-ts*0.4,ts*1.8,ts*1.8);
+  const aur=c.createRadialGradient(cx,cy,1,cx,cy,ts*0.4);
+  aur.addColorStop(0,'rgba(246,223,142,0.28)'); aur.addColorStop(1,'rgba(232,193,78,0)');
   c.fillStyle=aur; c.fillRect(sx-ts*0.2,sy-ts*0.2,ts*1.4,ts*1.4);
+  // raios divinos girando devagar
+  c.save(); c.translate(cx,cy-ts*0.04); c.rotate(t/900*0.4);
+  c.strokeStyle='rgba(246,223,142,0.15)'; c.lineWidth=ts*0.02;
+  for(let i=0;i<8;i++){ c.rotate(Math.PI/4); c.beginPath(); c.moveTo(0,ts*0.32); c.lineTo(0,ts*0.47); c.stroke(); }
+  c.restore();
   // pernas enfaixadas
   c.strokeStyle=LINEN; c.lineWidth=Math.max(2,ts*0.07); c.lineCap='round';
   c.beginPath(); c.moveTo(cx-ts*0.08,cy+ts*0.14); c.lineTo(cx-ts*0.09,cy+ts*0.36); c.moveTo(cx+ts*0.08,cy+ts*0.14); c.lineTo(cx+ts*0.1,cy+ts*0.36); c.stroke();
@@ -2181,35 +2192,48 @@ function drawFarao(c, sx, sy, ts, p){
   c.fillStyle=GOLDD; c.fillRect(cx-ts*0.15,cy+ts*0.04,ts*0.3,ts*0.05);            // cinto
   c.strokeStyle=shade(LINEN,-0.1); c.lineWidth=1.2;                              // faixas de linho
   for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(cx-ts*0.12,cy-ts*0.08+i*ts*0.06); c.lineTo(cx+ts*0.12,cy-ts*0.06+i*ts*0.06); c.stroke(); }
+  // colar usekh largo (peitoral dourado em camadas)
+  for(let r=0;r<3;r++){
+    c.strokeStyle=[GOLDL,GOLD,GOLDD][r]; c.lineWidth=ts*0.028;
+    c.beginPath(); c.arc(cx,cy-ts*0.18,ts*0.15-r*ts*0.028,Math.PI*0.12,Math.PI*0.88); c.stroke();
+  }
   // bracos cruzados
   c.strokeStyle=LINEN; c.lineWidth=Math.max(2,ts*0.055);
   c.beginPath(); c.moveTo(cx-ts*0.12,cy-ts*0.06); c.lineTo(cx-ts*0.02,cy+ts*0.04); c.stroke();
   c.beginPath(); c.moveTo(cx+ts*0.12,cy-ts*0.06); c.lineTo(cx+ts*0.02,cy+ts*0.04); c.stroke();
   // cetro (heka) e mangual (nekhakha) cruzados sobre o peito
-  c.strokeStyle=GOLD; c.lineWidth=ts*0.04;
-  c.beginPath(); c.moveTo(cx-ts*0.06,cy+ts*0.08); c.lineTo(cx-ts*0.12,cy-ts*0.22); c.stroke();
-  c.beginPath(); c.arc(cx-ts*0.12,cy-ts*0.24,ts*0.03,Math.PI*0.5,Math.PI*1.8); c.stroke();
-  c.beginPath(); c.moveTo(cx+ts*0.06,cy+ts*0.08); c.lineTo(cx+ts*0.12,cy-ts*0.22); c.stroke();
-  c.fillStyle=GOLD; for(let k=-1;k<=1;k++){ c.beginPath(); c.arc(cx+ts*0.12+k*ts*0.03,cy-ts*0.24,ts*0.015,0,Math.PI*2); c.fill(); }
-  // cabeca + toucado nemes
-  const hy=cy-ts*0.28;
+  c.strokeStyle=GOLD; c.lineWidth=ts*0.045;
+  c.beginPath(); c.moveTo(cx-ts*0.06,cy+ts*0.08); c.lineTo(cx-ts*0.13,cy-ts*0.24); c.stroke();
+  c.strokeStyle=GOLDL; c.lineWidth=ts*0.05; c.beginPath(); c.arc(cx-ts*0.13,cy-ts*0.26,ts*0.035,Math.PI*0.5,Math.PI*1.8); c.stroke();
+  c.strokeStyle=GOLD; c.lineWidth=ts*0.045; c.beginPath(); c.moveTo(cx+ts*0.06,cy+ts*0.08); c.lineTo(cx+ts*0.13,cy-ts*0.24); c.stroke();
+  c.fillStyle=GOLDL; for(let k=-1;k<=1;k++){ c.beginPath(); c.arc(cx+ts*0.13+k*ts*0.032,cy-ts*0.26,ts*0.016,0,Math.PI*2); c.fill(); }
+  // halo divino atras da cabeca
+  const hy=cy-ts*0.30;
+  const halo=c.createRadialGradient(cx,hy+ts*0.04,ts*0.04,cx,hy+ts*0.04,ts*0.2);
+  halo.addColorStop(0,'rgba(246,223,142,0.32)'); halo.addColorStop(1,'rgba(246,223,142,0)');
+  c.fillStyle=halo; c.beginPath(); c.arc(cx,hy+ts*0.04,ts*0.2,0,Math.PI*2); c.fill();
+  // cabeca + toucado nemes (mais alto)
   c.fillStyle=GOLD; c.beginPath();
-  c.moveTo(cx-ts*0.16,hy+ts*0.02); c.quadraticCurveTo(cx,hy-ts*0.16,cx+ts*0.16,hy+ts*0.02);
-  c.lineTo(cx+ts*0.14,hy+ts*0.14); c.lineTo(cx-ts*0.14,hy+ts*0.14); c.closePath(); c.fill();
-  c.strokeStyle=BLUE; c.lineWidth=1.4;
-  for(let i=-2;i<=2;i++){ c.beginPath(); c.moveTo(cx+i*ts*0.05,hy-ts*0.02); c.lineTo(cx+i*ts*0.055,hy+ts*0.13); c.stroke(); }
-  c.fillStyle=GOLD; c.fillRect(cx-ts*0.15,hy+ts*0.02,ts*0.04,ts*0.18); c.fillRect(cx+ts*0.11,hy+ts*0.02,ts*0.04,ts*0.18);
+  c.moveTo(cx-ts*0.17,hy+ts*0.03); c.quadraticCurveTo(cx,hy-ts*0.20,cx+ts*0.17,hy+ts*0.03);
+  c.lineTo(cx+ts*0.15,hy+ts*0.15); c.lineTo(cx-ts*0.15,hy+ts*0.15); c.closePath(); c.fill();
+  c.strokeStyle=BLUE; c.lineWidth=1.5;
+  for(let i=-3;i<=3;i++){ c.beginPath(); c.moveTo(cx+i*ts*0.042,hy-ts*0.04); c.lineTo(cx+i*ts*0.048,hy+ts*0.14); c.stroke(); }
+  c.fillStyle=GOLD; c.fillRect(cx-ts*0.16,hy+ts*0.03,ts*0.045,ts*0.2); c.fillRect(cx+ts*0.115,hy+ts*0.03,ts*0.045,ts*0.2);
+  c.fillStyle=GOLDD; c.fillRect(cx-ts*0.16,hy+ts*0.03,ts*0.045,ts*0.03); c.fillRect(cx+ts*0.115,hy+ts*0.03,ts*0.045,ts*0.03);
   // rosto (mascara dourada)
-  c.fillStyle=shade(GOLD,0.08); c.beginPath(); c.ellipse(cx,hy+ts*0.05,ts*0.085,ts*0.1,0,0,Math.PI*2); c.fill();
-  // uraeus (cobra na testa)
-  c.fillStyle=BLUE; c.beginPath(); c.arc(cx,hy-ts*0.03,ts*0.018,0,Math.PI*2); c.fill();
+  c.fillStyle=shade(GOLD,0.1); c.beginPath(); c.ellipse(cx,hy+ts*0.06,ts*0.088,ts*0.105,0,0,Math.PI*2); c.fill();
+  c.strokeStyle=GOLDD; c.lineWidth=1; c.stroke();
+  // uraeus (cobra dourada na testa)
+  c.fillStyle=GOLDL; c.beginPath(); c.arc(cx,hy-ts*0.03,ts*0.022,0,Math.PI*2); c.fill();
+  c.fillStyle=BLUE; c.beginPath(); c.arc(cx,hy-ts*0.035,ts*0.012,0,Math.PI*2); c.fill();
   // olhos brilhando (morte-viva)
-  c.fillStyle='#9be8ff'; c.shadowColor='#9be8ff'; c.shadowBlur=5;
-  c.beginPath(); c.arc(cx-ts*0.03,hy+ts*0.04,ts*0.016,0,Math.PI*2); c.arc(cx+ts*0.03,hy+ts*0.04,ts*0.016,0,Math.PI*2); c.fill(); c.shadowBlur=0;
-  // barba postica
-  c.fillStyle=GOLDD; c.fillRect(cx-ts*0.015,hy+ts*0.13,ts*0.03,ts*0.08);
+  c.fillStyle='#9be8ff'; c.shadowColor='#9be8ff'; c.shadowBlur=6;
+  c.beginPath(); c.arc(cx-ts*0.032,hy+ts*0.05,ts*0.017,0,Math.PI*2); c.arc(cx+ts*0.032,hy+ts*0.05,ts*0.017,0,Math.PI*2); c.fill(); c.shadowBlur=0;
+  // barba postica longa
+  c.fillStyle=GOLDD; c.fillRect(cx-ts*0.016,hy+ts*0.15,ts*0.032,ts*0.1);
+  c.fillStyle=GOLD; for(let i=0;i<3;i++){ c.fillRect(cx-ts*0.016,hy+ts*0.16+i*ts*0.03,ts*0.032,ts*0.012); }
   c.restore();
-  // tag FARAO
+  // tag AVHUR
   c.save(); c.font='800 8px Cinzel, serif'; c.textAlign='center'; c.textBaseline='bottom';
   const tw=c.measureText('AVHUR').width+10, tagY=sy-12;
   c.fillStyle='rgba(40,28,6,0.92)'; roundRect(c,cx-tw/2,tagY-11,tw,11,3); c.fill();
@@ -5196,7 +5220,29 @@ const DOLL_LAYOUT = {
 // visual fantasma de cada espaco vazio
 const SLOT_GHOST = { head:'helmet', neck:'amulet', shoulder:'pauldron', back:'cloak', chest:'shirt',
   hand_r:'sword', hand_l:'shield', ring1:'ring', ring2:'ring', legs:'pants', feet:'sandal' };
-const RARITY_COL = { comum:'#7c8290', incomum:'#5ec27a', raro:'#5a9bf4', epico:'#b06bff', lendario:'#f4b860' };
+const RARITY_COL = { comum:'#7c8290', incomum:'#5ec27a', raro:'#5a9bf4', epico:'#b06bff', lendario:'#f4b860', divino:'#f7d6ff' };
+const DIVINO_GRAD = 'linear-gradient(90deg,#ff6e6e,#f6c453,#5ec27a,#5a9bf4,#b06bff,#ff6e6e)';
+// borda multicolorida do tier DIVINO (anéis de cor via box-shadow, respeitam o canto arredondado)
+function applyRarityBorder(el, rarity){
+  const rc = RARITY_COL[rarity || 'comum'] || RARITY_COL.comum;
+  if(rarity === 'divino'){
+    el.style.borderColor = 'transparent';
+    el.style.boxShadow = '0 0 0 1px #ff6e6e, 0 0 0 2px #f6c453, 0 0 0 3px #5ec27a, 0 0 0 4px #5a9bf4, 0 0 9px 1px #b06bff';
+  } else {
+    el.style.borderColor = rc;
+  }
+  return rc;
+}
+// cor do nome conforme a raridade (divino = nome arco-íris)
+function applyRarityName(el, rarity, rc){
+  if(rarity === 'divino'){
+    el.style.background = DIVINO_GRAD;
+    el.style.webkitBackgroundClip = 'text'; el.style.backgroundClip = 'text';
+    el.style.color = 'transparent';
+  } else {
+    el.style.color = rc;
+  }
+}
 
 function equipItem(itemId){ if(socket) socket.emit('equip', { item: itemId }); }
 function unequipSlot(slot){ if(socket) socket.emit('unequip', { slot }); }
@@ -5437,6 +5483,7 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
 function refreshInventory(){
   refreshEquip();
   if(!invGrid) return;
+  invGrid.style.display = 'block';        // vira lista (sobrescreve o grid)
   invGrid.innerHTML = '';
   if(!inventory.length){
     const e = document.createElement('div');
@@ -5445,33 +5492,35 @@ function refreshInventory(){
     invGrid.appendChild(e);
     return;
   }
-  const n = Math.max(INV_SLOTS, inventory.length);
-  for(let i=0;i<n;i++){
-    const slot = document.createElement('div');
-    slot.className = 'slot';
-    const stack = inventory[i];
-    if(stack){
-      slot.classList.add('full');
-      const def = catalog[stack.item];
-      const eqp = def && def.equippable;
-      slot.title = (def ? def.name : stack.item) + (eqp ? ' — clique pra equipar' : '');
-      const c = document.createElement('canvas'); c.width = 44; c.height = 44;
-      drawItemIcon(c.getContext('2d'), 22, 22, 44, stack.item, false);
-      slot.appendChild(c);
-      if(stack.qty > 1){
-        const q = document.createElement('span'); q.className = 'qty';
-        q.textContent = stack.qty; slot.appendChild(q);
-      }
-      if(eqp){
-        const rc = RARITY_COL[def.rarity || 'comum'] || RARITY_COL.comum;
-        slot.style.borderColor = rc;
-        slot.style.boxShadow = 'inset 0 0 0 1px ' + rc + '55';
-        slot.style.cursor = 'pointer';
-        slot.addEventListener('click', ()=> equipItem(stack.item));
-      }
+  inventory.forEach(stack=>{
+    const def = catalog[stack.item] || {};
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;background:#1b1828;margin-bottom:6px;';
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+    const rc = RARITY_COL[def.rarity || 'comum'] || RARITY_COL.comum;
+    cv.style.cssText = 'flex:0 0 auto;border:1px solid ' + rc + ';border-radius:7px;background:#0f0e17;';
+    applyRarityBorder(cv, def.rarity);
+    drawItemIcon(cv.getContext('2d'), 20, 20, 40, stack.item, false);
+    row.appendChild(cv);
+    const mid = document.createElement('div'); mid.style.cssText = 'flex:1 1 auto;min-width:0;';
+    const nm = document.createElement('div');
+    nm.textContent = (def.name || stack.item) + (stack.qty > 1 ? ('  ×' + stack.qty) : '');
+    nm.style.cssText = 'font:600 13px Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    applyRarityName(nm, def.rarity, rc);
+    mid.appendChild(nm);
+    const stt = _shopStat(def);
+    if(stt){ const st = document.createElement('div'); st.textContent = stt; st.style.cssText = 'font-size:11px;color:#9b95b5;'; mid.appendChild(st); }
+    if(def.desc){ const ds = document.createElement('div'); ds.textContent = def.desc; ds.style.cssText = 'font-size:10px;color:#716c88;margin-top:1px;line-height:1.25;'; mid.appendChild(ds); }
+    row.appendChild(mid);
+    if(def.equippable){
+      const right = document.createElement('div'); right.style.cssText = 'flex:0 0 auto;';
+      const b = _btn('Equipar', true); b.style.cssText += ';padding:5px 11px;font-size:12px;white-space:nowrap;';
+      b.onclick = ()=> equipItem(stack.item);
+      right.appendChild(b);
+      row.appendChild(right);
     }
-    invGrid.appendChild(slot);
-  }
+    invGrid.appendChild(row);
+  });
 }
 function toggleInv(force){
   invOpen = (force === undefined) ? !invOpen : force;
@@ -5502,10 +5551,14 @@ function closeShop(){ if(_shopEl){ _shopEl.remove(); _shopEl = null; } shopData 
 
 function _shopStat(def){
   if(def.heal) return 'Cura ' + Math.round(def.heal*100) + '% da vida';
-  if(def.dmg) return 'Dano ' + def.dmg.n + 'd' + def.dmg.d + (def.atk ? ' · +' + def.atk + ' atq' : '') + (def.ac ? ' · +' + def.ac + ' CA' : '');
-  if(def.ac) return '+' + def.ac + ' CA';
-  if(def.atk) return '+' + def.atk + ' atq';
-  return '';
+  const b = [];
+  if(def.dmg) b.push('Dano ' + def.dmg.n + 'd' + def.dmg.d + (def.dmg.flat ? '+' + def.dmg.flat : ''));
+  if(def.rng) b.push(def.rng >= 50 ? 'à distância' : ('alcance ' + def.rng));
+  if(def.atk) b.push('+' + def.atk + ' atq');
+  if(def.spell_pow) b.push('+' + def.spell_pow + ' poder mág.');
+  if(def.ac) b.push('+' + def.ac + ' CA');
+  if(def.block) b.push('bloqueia ' + def.block);
+  return b.join(' · ');
 }
 function _shopRow(it, mode){
   const def = Object.assign({}, catalog[it.item] || {}, it);
@@ -5514,11 +5567,13 @@ function _shopRow(it, mode){
   const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
   const rc = RARITY_COL[def.rarity || 'comum'] || RARITY_COL.comum;
   cv.style.cssText = 'flex:0 0 auto;border:1px solid ' + rc + ';border-radius:7px;background:#0f0e17;';
+  applyRarityBorder(cv, def.rarity);
   drawItemIcon(cv.getContext('2d'), 20, 20, 40, it.item, false);
   row.appendChild(cv);
   const mid = document.createElement('div'); mid.style.cssText = 'flex:1 1 auto;min-width:0;';
   const nm = document.createElement('div'); nm.textContent = def.name || it.item;
-  nm.style.cssText = 'font:600 13px Inter,sans-serif;color:' + rc + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  nm.style.cssText = 'font:600 13px Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  applyRarityName(nm, def.rarity, rc);
   mid.appendChild(nm);
   const stt = _shopStat(def);
   if(stt){ const st = document.createElement('div'); st.textContent = stt; st.style.cssText = 'font-size:11px;color:#9b95b5;'; mid.appendChild(st); }

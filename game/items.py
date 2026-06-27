@@ -35,7 +35,8 @@ ITEMS = {
     "anel_lata":        {"name": "Anel de Lata",     "kind": "trinket", "stackable": False, "color": "#b9b2a0", "slot": "ring",     "visual": "ring",     "rarity": "comum", "atk": 0, "value": 4},
     "anel_varth":       {"name": "Anel do Lorde Varth", "kind": "trinket", "stackable": False, "color": "#7a4ad0", "slot": "ring", "visual": "ring", "rarity": "lendario", "ac": 4, "atk": 4, "value": 2000, "desc": "O selo de Lorde Varth, pulsando com energia necromântica. +4 de armadura e +4 para acertar."},
     "moeda_avhur":      {"name": "Moeda de Avhur", "kind": "trofeu", "stackable": True, "color": "#d8b24a", "value": 500, "sell_value": 500, "rarity": "raro", "desc": "Moeda antiga cunhada nas profundezas da Mina de Avhur. Os mercadores pagam 500 de bronze por ela. Dizem que ainda guarda outro proposito."},
-    "mascara_faraonica":{"name": "Máscara Faraônica", "kind": "tesouro", "stackable": False, "color": "#f4d06a", "slot": "head", "visual": "helmet", "rarity": "lendario", "ac": 5, "atk": 2, "value": 2500, "desc": "A máscara funerária de ouro do Faraó de Avhur, fria e pesada nas mãos. +5 de armadura e +2 para acertar. Os mortos ainda obedecem a quem a porta."},
+    "mascara_faraonica":{"name": "Máscara Faraônica", "kind": "tesouro", "stackable": False, "color": "#f4d06a", "slot": "head", "visual": "helmet", "rarity": "lendario", "ac": 7, "atk": 3, "value": 4000, "desc": "A máscara funerária de ouro do Faraó de Avhur, fria e pesada nas mãos. +7 de armadura e +3 para acertar, o melhor elmo que existe. Os mortos ainda obedecem a quem a porta."},
+    "fagulha_divindade":{"name": "Fagulha de Divindade", "kind": "tesouro", "stackable": True, "color": "#ffffff", "rarity": "divino", "value": 30000, "sell_value": 30000, "desc": "Um fragmento puro de poder divino arrancado de Avhur, o Maldito. Pulsa com todas as cores que existem e algumas que não deviam existir. Dizem que os deuses do Ermo trocariam quase tudo por uma destas. Por ora, vale 30.000 de bronze pra quem não tem coragem de guardá-la."},
     "pelo_chacal_avhur":{"name": "Pelo de Chacal de Avhur", "kind": "trofeu", "stackable": True, "color": "#2e2820", "value": 500, "animal": True, "couraria_only": True, "rarity": "raro", "desc": "A pelagem negra e densa de um chacal de Avhur, impregnada da poeira da tumba. So o coureiro Valdir sabe o que vale: 1000 de bronze por peca."},
     "cordao_fake":      {"name": "Cordão Banhado",   "kind": "trinket", "stackable": False, "color": "#d9c27a", "slot": "neck",     "visual": "amulet",   "rarity": "comum", "ac": 0, "value": 5},
 
@@ -159,11 +160,24 @@ def rarity_of(item_id):
 
 def equip_summary(equipment):
     """Soma os bonus de tudo que esta vestido: CA, acerto, dano da arma, poder
-    magico (caster), bloqueio (escudo) e o alcance da arma (ranged)."""
+    magico (caster), bloqueio (escudo) e o alcance da arma (ranged). A arma da MAO
+    DIREITA e a principal; se houver uma segunda arma na MAO ESQUERDA, ela vira a
+    'offhand' (duas armas), e quem a usa soma o dano dela no ataque."""
+    eq = equipment or {}
     ac = atk = spell_pow = block = 0
-    dmg = None
-    rng = 1
-    for _slot, iid in (equipment or {}).items():
+
+    def _wp(iid):
+        it = ITEMS.get(iid) or {}
+        return it if it.get("dmg") else None
+    main = _wp(eq.get("hand_r"))
+    off = _wp(eq.get("hand_l"))
+    if not main and off:          # so a mao esquerda tem arma -> ela e a principal
+        main, off = off, None
+    dmg = dict(main["dmg"]) if main else None
+    rng = int(main.get("rng", 1)) if main else 1
+    offhand = {"n": int(off["dmg"]["n"]), "d": int(off["dmg"]["d"])} if off else None     # 2a arma: so os dados (sem o bonus fixo)
+
+    for _slot, iid in eq.items():                   # CA/atk/poder/bloqueio de TUDO equipado
         it = ITEMS.get(iid)
         if not it:
             continue
@@ -171,10 +185,8 @@ def equip_summary(equipment):
         atk += int(it.get("atk", 0))
         spell_pow += int(it.get("spell_pow", 0))
         block += int(it.get("block", 0))
-        if it.get("dmg"):          # arma equipada numa das maos define o dano + alcance
-            dmg = dict(it["dmg"])
-            rng = int(it.get("rng", 1))
-    return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow, "block": block, "rng": rng}
+    return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow,
+            "block": block, "rng": rng, "offhand": offhand}
 
 
 # Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).
@@ -404,6 +416,12 @@ CASTER_CLASSES = {"mago", "feiticeiro", "bruxo", "clerigo", "druida", "bardo"}
 # Armas que atacam o ataque basico A DISTANCIA: classe -> alcance em tiles
 # (arco = livre/combate todo; cajado de conjurador = medio).
 RANGED_RANGE = {"patrulheiro": 99, "mago": 6, "feiticeiro": 6}
+# Classes que ganham +poder magico no equipamento (os casters + o paladino hibrido,
+# que bate forte na arma E reforca as magias/castigo).
+POW_CLASSES = CASTER_CLASSES | {"paladino"}
+# Classes que podem usar DUAS ARMAS (uma em cada mao): marciais ageis. Trocam o
+# escudo (defesa) por uma segunda arma (mais dano). Casters/paladino/clerigo nao.
+DUAL_WIELD_CLASSES = {"guerreiro", "barbaro", "ladino", "patrulheiro", "monge"}
 
 def _gen_class_sets():
     """Set BASE (Armas Peteco), raridade COMUM. Arma = dado da classe. Escudo pros
@@ -456,7 +474,7 @@ TIER_LABEL = {}   # prefixo -> rotulo da loja
 _TIERS = [
     ("t1", "do Ermo",   "incomum", 30000,   3,  2,  5,  1,    1,  3,  2,    4),
     ("t2", "das Dunas", "raro",    90000,   6,  5, 10,  2,    2,  6,  4,    6),
-    ("t3", "Sepulcral", "epico",   270000,  9, 10, 15,  3,    3, 12,  6,    9),
+    ("t3", "Sepulcral", "epico",   270000,  9, 15, 18,  4,    3, 16,  6,   12),
 ]
 def _gen_tier_sets():
     for (pfx, suf, rar, price, mdice, mflat, matk, acb,
@@ -475,8 +493,8 @@ def _gen_tier_sets():
                  "dmg": wdmg, "atk": watk + (catk if caster else matk), "value": price}
             if wac:
                 W["ac"] = wac + acb
-            if caster and cpow:
-                W["spell_pow"] = cpow          # o foco magico carrega o poder do set
+            if (cid in POW_CLASSES) and cpow:
+                W["spell_pow"] = cpow          # o foco magico carrega o poder do set (caster + paladino)
             if cid in RANGED_RANGE:
                 W["rng"] = RANGED_RANGE[cid]
             ITEMS[wid] = W
