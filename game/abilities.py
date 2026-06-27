@@ -21,6 +21,7 @@ ABILITIES = {
     # --- habilidades CONCEDIDAS pelos deuses (via Fagulha de Divindade) ---
     "milesima_saida": {"name": "Milésima Saída",   "slot": "bonus",   "god": "Nhare", "desc": "Dom de Nharé. 1x por combate: some pela milésima saída — cura 2d6 e o PRÓXIMO ataque inimigo contra você erra automaticamente."},
     "aurora_valiria": {"name": "Aurora de Valíria", "slot": "action",  "god": "Valiria", "desc": "Dom de Valíria. 1x por combate: a aurora desce sobre você. Por 6 turnos os inimigos só atacam você e nenhum golpe te tira mais de 1 de vida; em troca, por 9 turnos o seu próprio dano cai pela metade. Você brilha como a deusa."},
+    "forma_facalan":  {"name": "Forma de Facalan", "slot": "action",  "god": "Facalan", "desc": "Dom de Facalan. 1x por combate: vira uma pantera dourada por 10 turnos. Cura toda a vida, +15 de vida máxima, +2 dados de dano e +10 de armadura. Se sua vida zerar na forma, você não morre: volta ao normal com a vida cheia e fica 3 turnos sem poder cair abaixo de 1."},
 }
 
 CLASS_ABILITIES = {

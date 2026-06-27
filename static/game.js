@@ -3804,6 +3804,105 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
 }
 
 // O corvo: passarinho preto empoleirado, com um pulinho quando se move.
+function drawFacalanPanther(c, sx, sy, ts, p){
+  // a Forma de Facalan: pantera dourada divina, vista de lado
+  const t = Date.now()/1000;
+  const dir = (p.facing === 'left') ? -1 : 1;
+  const cx = sx + ts*0.5, cy = sy + ts*0.5;
+  const stride = p._moving ? Math.sin((p.walk/WALK_CYCLE)*Math.PI*2) : 0;
+  const bob = p._moving ? Math.abs(stride)*1.4 : Math.sin(t*1.5)*0.6;
+  const goldD = '#9c6b1e', goldM = '#d99a2b', goldL = '#f7c85a', goldH = '#ffe9a8';
+  c.save();
+  c.translate(cx, cy - bob);
+  if(dir < 0) c.scale(-1, 1);                                   // espelha pra esquerda
+  // --- aura divina dourada pulsante ---
+  const a = 0.2 + 0.1*Math.abs(Math.sin(t*2));
+  const gl = c.createRadialGradient(0, ts*0.08, ts*0.1, 0, ts*0.08, ts*0.92);
+  gl.addColorStop(0, 'rgba(255,224,140,'+a.toFixed(3)+')');
+  gl.addColorStop(1, 'rgba(255,200,90,0)');
+  c.fillStyle = gl; c.fillRect(-ts*0.85, -ts*0.75, ts*1.7, ts*1.6);
+  // --- sombra no chao ---
+  c.fillStyle = 'rgba(0,0,0,0.25)';
+  c.beginPath(); c.ellipse(0, ts*0.43, ts*0.42, ts*0.1, 0, 0, 7); c.fill();
+  // --- cauda (curva atras, balançando) ---
+  const tail = Math.sin(t*2.6)*ts*0.09;
+  c.strokeStyle = goldM; c.lineWidth = ts*0.085; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-ts*0.3, ts*0.06);
+  c.quadraticCurveTo(-ts*0.62, ts*0.02 + tail, -ts*0.5, -ts*0.34 + tail); c.stroke();
+  c.fillStyle = goldD;
+  c.beginPath(); c.arc(-ts*0.5, -ts*0.34 + tail, ts*0.055, 0, 7); c.fill();   // ponta escura
+  // --- patas traseiras ---
+  const sw = stride*ts*0.1;
+  c.fillStyle = goldD;
+  c.beginPath(); c.ellipse(-ts*0.18 - sw, ts*0.35, ts*0.065, ts*0.14, 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(-ts*0.06 + sw, ts*0.35, ts*0.065, ts*0.14, 0, 0, 7); c.fill();
+  // --- corpo: tronco + lombo arqueado em gradiente ---
+  const bg = c.createLinearGradient(0, -ts*0.18, 0, ts*0.3);
+  bg.addColorStop(0, goldL); bg.addColorStop(0.55, goldM); bg.addColorStop(1, goldD);
+  c.fillStyle = bg;
+  c.beginPath(); c.ellipse(-ts*0.02, ts*0.13, ts*0.33, ts*0.19, 0, 0, 7); c.fill();
+  c.beginPath();
+  c.moveTo(-ts*0.32, ts*0.13);
+  c.quadraticCurveTo(-ts*0.08, -ts*0.2, ts*0.28, -ts*0.04);
+  c.quadraticCurveTo(ts*0.35, ts*0.1, ts*0.27, ts*0.22);
+  c.lineTo(-ts*0.28, ts*0.26); c.closePath(); c.fill();
+  // brilho no lombo
+  c.fillStyle = 'rgba(255,233,168,0.5)';
+  c.beginPath(); c.ellipse(ts*0.02, -ts*0.04, ts*0.2, ts*0.05, -0.25, 0, 7); c.fill();
+  // --- patas dianteiras ---
+  c.fillStyle = goldM;
+  c.beginPath(); c.ellipse(ts*0.18 + sw, ts*0.35, ts*0.065, ts*0.15, 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(ts*0.28 - sw, ts*0.35, ts*0.065, ts*0.15, 0, 0, 7); c.fill();
+  // --- rosetas (padrao de pantera) ---
+  c.fillStyle = 'rgba(120,72,14,0.42)';
+  for(const m of [[-ts*0.14,ts*0.1,ts*0.035],[ts*0.0,ts*0.17,ts*0.03],[ts*0.13,ts*0.07,ts*0.032],[-ts*0.04,ts*0.0,ts*0.027],[ts*0.08,ts*0.18,ts*0.026]]){
+    c.beginPath(); c.arc(m[0], m[1], m[2], 0, 7); c.fill();
+  }
+  // --- pescoço + cabeça ---
+  c.fillStyle = bg;
+  c.beginPath(); c.ellipse(ts*0.3, ts*0.0, ts*0.12, ts*0.14, -0.3, 0, 7); c.fill();
+  const hg = c.createLinearGradient(ts*0.3, -ts*0.22, ts*0.52, ts*0.05);
+  hg.addColorStop(0, goldH); hg.addColorStop(1, goldM);
+  c.fillStyle = hg;
+  c.beginPath(); c.ellipse(ts*0.43, -ts*0.09, ts*0.15, ts*0.13, 0, 0, 7); c.fill();
+  // focinho
+  c.fillStyle = goldL;
+  c.beginPath(); c.ellipse(ts*0.55, -ts*0.02, ts*0.07, ts*0.055, 0, 0, 7); c.fill();
+  c.fillStyle = '#3a2410';                                       // nariz
+  c.beginPath(); c.moveTo(ts*0.59, -ts*0.045); c.lineTo(ts*0.62, -ts*0.02); c.lineTo(ts*0.59, ts*0.005); c.closePath(); c.fill();
+  // orelhas
+  c.fillStyle = goldD;
+  c.beginPath(); c.moveTo(ts*0.35, -ts*0.21); c.lineTo(ts*0.39, -ts*0.34); c.lineTo(ts*0.45, -ts*0.21); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(ts*0.46, -ts*0.2); c.lineTo(ts*0.52, -ts*0.31); c.lineTo(ts*0.54, -ts*0.18); c.closePath(); c.fill();
+  c.fillStyle = '#5a3a12';                                       // interior das orelhas
+  c.beginPath(); c.moveTo(ts*0.375, -ts*0.22); c.lineTo(ts*0.4, -ts*0.3); c.lineTo(ts*0.43, -ts*0.22); c.closePath(); c.fill();
+  // olho divino (branco, íris verde-dourada, pupila, brilho)
+  c.fillStyle = '#fff7d8';
+  c.beginPath(); c.ellipse(ts*0.47, -ts*0.11, ts*0.038, ts*0.03, 0, 0, 7); c.fill();
+  c.fillStyle = '#2f7a44';
+  c.beginPath(); c.arc(ts*0.485, -ts*0.11, ts*0.019, 0, 7); c.fill();
+  c.fillStyle = '#0a0a0a';
+  c.beginPath(); c.ellipse(ts*0.488, -ts*0.11, ts*0.007, ts*0.017, 0, 0, 7); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.95)';
+  c.beginPath(); c.arc(ts*0.478, -ts*0.118, ts*0.009, 0, 7); c.fill();
+  // bigodes
+  c.strokeStyle = 'rgba(255,242,205,0.7)'; c.lineWidth = 1;
+  for(let i=-1;i<=1;i++){ c.beginPath(); c.moveTo(ts*0.56, -ts*0.01+i*ts*0.018); c.lineTo(ts*0.72, -ts*0.03+i*ts*0.045); c.stroke(); }
+  // --- partículas douradas subindo ---
+  for(let i=0;i<5;i++){ const prog = ((t*0.5 + i*0.21) % 1); const px = (i-2)*ts*0.14 + Math.sin(t+i)*ts*0.03;
+    const py = ts*0.32 - prog*ts*0.85;
+    c.globalAlpha = 0.7*(1-prog); c.fillStyle = 'rgba(255,231,150,0.9)';
+    c.beginPath(); c.arc(px, py, ts*0.022, 0, 7); c.fill(); }
+  c.globalAlpha = 1;
+  c.restore();
+  // nome
+  if(p.name){
+    c.save(); c.font = '600 11px Inter, sans-serif'; c.textAlign = 'center';
+    c.fillStyle = 'rgba(0,0,0,.6)'; c.fillText(p.name, cx+0.7, sy-2.3);
+    c.fillStyle = (p.id===myId) ? '#ffe08a' : '#f0d8a0'; c.fillText(p.name, cx, sy-3);
+    c.restore();
+  }
+}
 function drawAuroraGlow(c, sx, sy, ts){
   // brilho de amanhecer da Valíria em volta do paladino (Aurora de Valíria)
   const t = Date.now()/500, a = 0.24 + 0.12*Math.abs(Math.sin(t));
@@ -4610,6 +4709,7 @@ function frame(now){
       else drawVarth(ctx, sx, sy, TS, p);
     }
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
+    else if(p._status && p._status.facalan) drawFacalanPanther(ctx, sx, sy, TS, p);
     else if(p.wild_form) drawWildForm(ctx, sx, sy, TS, p);
     else {
       if(p._status && (p._status.aurora || p._status.aurora_fraca)) drawAuroraGlow(ctx, sx, sy, TS);
@@ -6343,6 +6443,7 @@ const MARCAS = [
   {flag:'dom_nhare',   icon:'🐇', name:'Nharé sabe se esconder', desc:'Nharé, a Lebre de Mil Saídas, te ensinou a Milésima Saída e a virar uma lebre invisível. Quando não houver mais saída, sempre existe mais uma.'},
   {flag:'bola_pofnir', icon:'🧶', name:'Pofnir deixou você brincar', desc:'Você ofereceu uma Fagulha ao gato branco e ele te deu a Bola de Lã dele. Poucos no Ermo já ouviram o Pofnir ronronar.'},
   {flag:'dom_valiria', icon:'☀️', name:'Aurora de Valíria', desc:'Valíria, a Serena, fez a aurora descer sobre você e te deu o dom de mesmo nome. Quando os seus precisarem, você vira o escudo que nenhum golpe atravessa.'},
+  {flag:'dom_facalan', icon:'🐆', name:'A onça reconhece você', desc:'Facalan, a onça dourada, aceitou o seu sangue e te deu a Forma de Facalan. Quando a luta aperta, você vira a própria fera e a morte espera a sua vez.'},
 ];
 let fichaTab = 'geral';
 
@@ -6953,9 +7054,9 @@ function popDamage(cid, text, color){
   dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
-  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', aurora:'☀️', aurora_fraca:'🕯️' };
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
-  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', aurora:'aura de Valíria', aurora_fraca:'luz consumida' };
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan' };
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){

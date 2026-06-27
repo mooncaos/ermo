@@ -279,9 +279,20 @@ def _apply_damage(target, dmg):
         dmg = max(0, dmg - blk)
     if dmg > 1 and has_status(target, "aurora"):      # Aurora de Valíria: no máximo 1 de dano por golpe
         dmg = 1
+    if has_status(target, "facalan_folego"):          # 3 turnos pós-renascimento: nunca cai abaixo de 1
+        dmg = min(dmg, max(0, target["hp"] - 1))
     target["hp"] = max(0, target["hp"] - dmg)
     if target["hp"] <= 0:
-        target["alive"] = False
+        if has_status(target, "facalan"):             # Forma de Facalan: não morre, volta ao normal com vida cheia
+            (target.get("status") or {}).pop("facalan", None)
+            bonus = int(target.get("_facalan_hp", 0))
+            target["hp_max"] = max(1, target["hp_max"] - bonus)
+            target["_facalan_hp"] = 0
+            target["hp"] = target["hp_max"]
+            apply_status(target, "facalan_folego", 3)
+            target["_facalan_revived"] = True
+        else:
+            target["alive"] = False
     return dmg
 
 
@@ -367,6 +378,10 @@ def tick_statuses(enc, c):
         if eff["turns"] <= 0:
             del st[name]
             fx.append({"type": "expire", "status": name})
+            if name == "facalan" and c.get("_facalan_hp"):   # a forma acabou: remove o +15 de vida máxima
+                c["hp_max"] = max(1, c["hp_max"] - int(c["_facalan_hp"]))
+                c["hp"] = min(c["hp"], c["hp_max"])
+                c["_facalan_hp"] = 0
     killed = False
     if total > 0:
         c["hp"] = max(0, c["hp"] - total)      # DoT ignora a resistencia da Furia
@@ -406,7 +421,8 @@ def attack(enc, attacker, target):
     if attacker.get("bless_die"):
         total += _roll_dmg(attacker["bless_die"], False)
         attacker["bless_die"] = None        # Bencao/Inspiracao valem pro proximo ataque
-    hit = crit or (d != 1 and total >= target["ac"])
+    eff_ac = target["ac"] + (10 if has_status(target, "facalan") else 0)   # Forma de Facalan: +10 de armadura
+    hit = crit or (d != 1 and total >= eff_ac)
     evaded = bool(target.get("evade_next"))           # Milésima Saída: o alvo some, este ataque erra
     if evaded:
         target["evade_next"] = False
@@ -418,6 +434,8 @@ def attack(enc, attacker, target):
            "target_hp": target["hp"], "target_hp_max": target["hp_max"]}
     if hit:
         dmg = _roll_dmg(attacker["dmg"], crit)
+        if has_status(attacker, "facalan"):               # Forma de Facalan: +2 dados de dano
+            dmg += _roll_dmg({"n": 2, "d": attacker["dmg"].get("d", 6)}, crit)
         if attacker.get("offhand"):                       # duas armas: golpe extra da mao secundaria
             od = _roll_dmg(attacker["offhand"], crit)
             dmg += od
@@ -605,6 +623,15 @@ def use_ability(enc, actor, aid, target=None):
         apply_status(actor, "aurora", 6)             # 6 turnos: teto de 1 de dano + provoca os inimigos
         apply_status(actor, "aurora_fraca", 9)       # 9 turnos: o dano que ELE causa cai pela metade
         res.update({"aura": True, "self": True, "target": actor["cid"]})
+    elif aid == "forma_facalan":
+        if actor.get("_facalan_used"):
+            res["fail"] = True; return res
+        actor["_facalan_used"] = True
+        actor["_facalan_hp"] = 15
+        actor["hp_max"] += 15
+        actor["hp"] = actor["hp_max"]                # cura toda a vida (e os +15 novos)
+        apply_status(actor, "facalan", 10)           # 10 turnos: +10 AC, +2 dados de dano, pantera dourada
+        res.update({"facalan": True, "heal": True, "self": True, "target": actor["cid"]})
     else:
         res["fail"] = True
     return res

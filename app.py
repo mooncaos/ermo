@@ -1922,6 +1922,14 @@ GOD_FAGULHA = {
         "line_none": "Vens me falar de Fagulha sem trazer nenhuma? A aurora nao nasce de promessa.",
         "line_other": "*a luz hesita por um instante* Essa Fagulha nao foi talhada pra tua classe, mas eu a recebo com carinho. Leva esta pocao abencoada em troca, e segue em paz.",
     },
+    "god:facalan": {
+        "ability": "forma_facalan", "class": "druida", "flag": "dom_facalan",
+        "mark": "A onça reconhece você",
+        "line": "*a onca dourada te encara sem piscar e aceita a Fagulha com um rosnado fundo* ...entao tu es dos meus. Recebe a Forma de Facalan: quando a luta apertar, vira o que eu sou. Ouro, garra e furia. E enquanto fores pantera, a morte vai ter que esperar a tua vez.",
+        "line_repeat": "Ja corre o meu sangue em ti, druida. A pantera ja e tua. Guarda tua Fagulha pra outro deus.",
+        "line_none": "Chegas na minha selva falando de Fagulha de maos vazias? A onca nao perde tempo com quem vem sem nada.",
+        "line_other": "*a onca cheira a Fagulha e rosna* Nao es da minha matilha, esse dom nao e teu. Mas eu nao recuso uma Fagulha. *a engole* Toma essa pocao e some da minha selva.",
+    },
 }
 # falas genericas pros deuses que ainda nao tem dom coordenado
 GENERIC_FAGULHA = {
