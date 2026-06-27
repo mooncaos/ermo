@@ -511,6 +511,7 @@ SUCURI_MURMURS = [
     "barba fechada, mente aberta.",
     "ja fui mais magro. ja fui mais bobo, tambem.",
     "respeito aqui e de graca. so pegar.",
+    "sera que eu sou um meteoro?",
 ]
 SUCURI_GREETINGS = [
     "fala. eu sou o Sucuri Meteoro. nome grande pra homem grande.",
