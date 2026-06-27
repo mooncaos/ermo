@@ -1227,6 +1227,69 @@ def on_set_class(data):
     emit("ficha", {"ficha": result, "just_set": True})
 
 
+def _grimoire_view(ficha):
+    """Monta os dados do Grimorio pro cliente: pool selecionavel, limites, o que
+    esta escolhido (validado) e os espacos atuais."""
+    cid = ficha.get("class_id")
+    if cid not in spells_def.CLASS_LIST:
+        return {"caster": False}
+    if not ficha.get("res"):
+        leveling.compute_resources(ficha)   # fichas antigas: garante os espacos
+    level = int(ficha.get("level", 1))
+    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
+    cattr = spells_def.CASTING.get(cid)
+    cmod = ((int(final.get(cattr, 10)) - 10) // 2) if cattr else 0
+    pool = spells_def.pool_for(cid, level)
+
+    def detail(sid):
+        sp = spells_def.get(sid) or {}
+        return {"id": sid, "name": sp.get("name", sid), "level": sp.get("level", 0),
+                "kind": sp.get("kind"), "range": sp.get("range"), "desc": sp.get("desc", "")}
+
+    return {
+        "caster": True, "class_id": cid, "kind": spells_def.caster_kind(cid), "cast_attr": cattr,
+        "cantrip_limit": spells_def.cantrip_limit(cid, level),
+        "spell_limit": spells_def.spell_limit(cid, level, cmod),
+        "max_spell_level": min(spells_def.max_spell_level(cid, level), spells_def.MAX_LIB_LEVEL),
+        "pool": {"cantrips": [detail(i) for i in pool["cantrips"]],
+                 "by_level": {str(lv): [detail(i) for i in ids] for lv, ids in pool["by_level"].items()}},
+        "chosen": spells_def.loadout_for(ficha),
+        "slots": (ficha.get("res") or {}).get("slots", {}),
+    }
+
+
+@socketio.on("grimoire_get")
+def on_grimoire_get(_data=None):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    emit("grimoire", _grimoire_view(player.get("ficha") or {}))
+
+
+@socketio.on("set_grimoire")
+def on_set_grimoire(data):
+    """Salva as magias escolhidas/preparadas (validadas contra a lista e os limites)."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    ficha = player.get("ficha") or {}
+    cid = ficha.get("class_id")
+    if cid not in spells_def.CLASS_LIST:
+        emit("grimoire", _grimoire_view(ficha))
+        return
+    level = int(ficha.get("level", 1))
+    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
+    cattr = spells_def.CASTING.get(cid)
+    cmod = ((int(final.get(cattr, 10)) - 10) // 2) if cattr else 0
+    chosen = spells_def.validate_loadout(cid, level, cmod,
+                                         (data or {}).get("cantrips"), (data or {}).get("spells"))
+    ficha["grimoire"] = chosen
+    player["ficha"] = ficha
+    if player.get("player_id"):
+        db.save_ficha(player["player_id"], ficha)
+    emit("grimoire", _grimoire_view(ficha))
+
+
 def _gatekeeper_near(player):
     """True se o jogador esta a <=5 tiles do guia que abre os mundos secretos:
     o corvo no Ermo, o Jeans (deus) em Rasharan."""
