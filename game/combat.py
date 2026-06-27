@@ -85,6 +85,7 @@ def make_player_combatant(sid, player, ficha):
         st["ac"] += fb.get("ac", 0)
         st["speed"] += fb.get("speed", 0)
         st["atk"] += fb.get("atk", 0)
+        st["block"] = st.get("block", 0) + fb.get("block", 0)     # resistência da forma (Coruja: +10)
         if fb.get("dmg_flat"):
             st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + fb["dmg_flat"]
     luck = 3 if "sortudo" in feats else 0       # Sortudo: re-rolagens de ataque ruim
@@ -101,7 +102,7 @@ def make_player_combatant(sid, player, ficha):
     rage_dmg = 2 if lvl < 9 else (3 if lvl < 16 else 4)
     return {
         "cid": sid, "kind": "player", "name": player.get("name", "Você"),
-        "hp": int(ficha.get("hp", 1)), "hp_max": int(ficha.get("hp_max", 1)),
+        "hp": int(ficha.get("hp", 1)) + fb.get("hp", 0), "hp_max": int(ficha.get("hp_max", 1)) + fb.get("hp", 0),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
         "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
@@ -113,6 +114,7 @@ def make_player_combatant(sid, player, ficha):
         "spell_atk": prof + cast_mod + spell_bonus, "spell_dc": 8 + prof + cast_mod + spell_bonus,
         "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
         "abilities": abil.for_class(cid) + list(ficha.get("god_abilities", [])), "sneak": sneak, "rage_dmg": rage_dmg,
+        "form_id": ficha.get("form"), "no_spells": bool(ficha.get("form_no_spells")),
         "res": copy.deepcopy(ficha.get("res") or {}),
         "raging": False, "bless_die": None, "smite_armed": False,
         "saves": {
@@ -148,8 +150,13 @@ def apply_form(comb, bonus, regen):
     comb["ac"] = comb.get("ac", 0) - old.get("ac", 0) + bonus.get("ac", 0)
     comb["speed"] = comb.get("speed", 6) - old.get("speed", 0) + bonus.get("speed", 0)
     comb["atk"] = comb.get("atk", 0) - old.get("atk", 0) + bonus.get("atk", 0)
+    comb["block"] = comb.get("block", 0) - old.get("block", 0) + bonus.get("block", 0)   # resistência (reduz dano fixo)
     flat = comb.get("dmg", {}).get("flat", 0) - old.get("dmg_flat", 0) + bonus.get("dmg_flat", 0)
     comb["dmg"] = dict(comb.get("dmg") or {}); comb["dmg"]["flat"] = flat
+    hpd = bonus.get("hp", 0) - old.get("hp", 0)        # +vida máxima da forma (ajusta a vida atual junto)
+    if hpd:
+        comb["hp_max"] = max(1, comb.get("hp_max", 1) + hpd)
+        comb["hp"] = min(comb["hp_max"], comb.get("hp", 1) + max(0, hpd))
     comb["_form_bonus"] = dict(bonus)
     comb["regen"] = int(regen or 0)
 
@@ -632,6 +639,18 @@ def use_ability(enc, actor, aid, target=None):
         actor["hp"] = actor["hp_max"]                # cura toda a vida (e os +15 novos)
         apply_status(actor, "facalan", 10)           # 10 turnos: +10 AC, +2 dados de dano, pantera dourada
         res.update({"facalan": True, "heal": True, "self": True, "target": actor["cid"]})
+    elif aid == "golpe_morte_alada":
+        if actor.get("form_id") != "coruja" or not target:
+            res["fail"] = True; return res
+        # dano fixo equivalente a um paladino FOR 20 com a espada do Coveiro (9d8 + 20), nao escala
+        dmg = _roll_dmg({"n": 9, "d": 8, "flat": 20}, False)
+        dealt = _apply_damage(target, dmg)
+        heal = int(dealt * 0.30)                      # rouba 30% do dano causado em vida
+        before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + heal)
+        res.update({"strike": True, "dmg": dealt, "heal": actor["hp"] - before,
+                    "target": target["cid"], "target_name": target["name"],
+                    "killed": not target.get("alive", True),
+                    "target_hp": target["hp"], "target_hp_max": target["hp_max"]})
     else:
         res["fail"] = True
     return res
@@ -642,6 +661,8 @@ def _ability_view(me):
     out = []
     for aid in me.get("abilities", []):
         meta = abil.get(aid) or {}
+        if meta.get("form") and meta.get("form") != me.get("form_id"):   # ex: Golpe da Morte Alada só na Coruja
+            continue
         ready = True
         if aid == "rage":
             ready = (R.get("rage", {}).get("cur", 0) > 0)
@@ -661,6 +682,8 @@ def _ability_view(me):
 
 
 def _spell_view(me):
+    if me.get("no_spells"):       # forma de Coruja Demoníaca: trava as magias
+        return []
     out = []
     slots = (me.get("res") or {}).get("slots", {})
     def slot_for(lvl):                       # menor espaco >= lvl com carga

@@ -3921,6 +3921,93 @@ function drawAuroraGlow(c, sx, sy, ts){
     c.lineTo(cx+Math.cos(an)*ts*0.62, cy+Math.sin(an)*ts*0.62); c.stroke(); }
   c.restore();
 }
+function drawCorujaForm(c, sx, sy, ts, p){
+  // Coruja Demoníaca de Nherith, envolta na luz roxa do Faraó
+  const t = Date.now()/1000;
+  const cx = sx + ts*0.5, cy = sy + ts*0.5;
+  const dir = (p.facing === 'left') ? -1 : 1;
+  const bob = Math.sin(t*2)*ts*0.03 + (p._moving ? Math.abs(Math.sin((p.walk/WALK_CYCLE)*Math.PI*2))*ts*0.04 : 0);
+  const flutter = p._moving ? Math.sin((p.walk/WALK_CYCLE)*Math.PI*4)*0.32 : Math.sin(t*3)*0.12;
+  const dark='#2a2335', mid='#463a5c', lite='#6b5a87', plum='#7b4ad0', glow='#c9a0ff';
+  c.save();
+  // --- AURA ROXA DO FARAÓ (gradiente + raios girando) ---
+  const acy = cy - ts*0.1;
+  const aur = c.createRadialGradient(cx, acy, ts*0.2, cx, acy, ts*1.1);
+  aur.addColorStop(0, 'rgba(155,109,255,0.28)');
+  aur.addColorStop(0.55, 'rgba(123,74,208,0.14)');
+  aur.addColorStop(1, 'rgba(155,109,255,0)');
+  c.fillStyle = aur; c.fillRect(sx-ts*0.9, sy-ts*0.9, ts*2.8, ts*2.8);
+  c.save(); c.translate(cx, acy); c.rotate(t*0.4);
+  c.strokeStyle = 'rgba(201,160,255,0.18)'; c.lineWidth = ts*0.03;
+  for(let i=0;i<8;i++){ c.rotate(Math.PI/4); c.beginPath(); c.moveTo(0, ts*0.55); c.lineTo(0, ts*0.85); c.stroke(); }
+  c.restore();
+  // --- sombra ---
+  c.fillStyle = 'rgba(0,0,0,0.22)';
+  c.beginPath(); c.ellipse(cx, sy+ts*0.82, ts*0.3, ts*0.08, 0, 0, 7); c.fill();
+  c.translate(cx, cy - bob);
+  if(dir < 0) c.scale(-1, 1);
+  // --- asa (atrás, batendo) ---
+  c.save(); c.rotate(flutter);
+  const wg = c.createLinearGradient(0,-ts*0.2,0,ts*0.2);
+  wg.addColorStop(0, mid); wg.addColorStop(1, dark);
+  c.fillStyle = wg;
+  c.beginPath(); c.moveTo(-ts*0.05, -ts*0.12);
+  c.quadraticCurveTo(-ts*0.52, -ts*0.1, -ts*0.42, ts*0.24);
+  c.quadraticCurveTo(-ts*0.2, ts*0.1, -ts*0.05, ts*0.16); c.closePath(); c.fill();
+  c.strokeStyle = dark; c.lineWidth = 1;
+  for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(-ts*0.12-i*ts*0.1, -ts*0.04); c.lineTo(-ts*0.34-i*ts*0.05, ts*0.18); c.stroke(); }
+  c.restore();
+  // --- corpo (penas em gradiente) ---
+  const bg = c.createLinearGradient(0,-ts*0.25,0,ts*0.28);
+  bg.addColorStop(0, lite); bg.addColorStop(0.5, mid); bg.addColorStop(1, dark);
+  c.fillStyle = bg;
+  c.beginPath(); c.ellipse(0, ts*0.08, ts*0.25, ts*0.3, 0, 0, 7); c.fill();
+  c.fillStyle = 'rgba(150,130,180,0.38)';                       // peito mais claro
+  c.beginPath(); c.ellipse(0, ts*0.12, ts*0.16, ts*0.22, 0, 0, 7); c.fill();
+  c.strokeStyle = dark; c.lineWidth = 1;                        // padrão de penas (V)
+  for(let i=0;i<4;i++){ const yy=ts*(0.0+i*0.08); c.beginPath(); c.moveTo(-ts*0.09, yy); c.lineTo(0, yy+ts*0.03); c.lineTo(ts*0.09, yy); c.stroke(); }
+  // --- garras ---
+  c.strokeStyle = plum; c.lineWidth = ts*0.03; c.lineCap='round';
+  for(const gx of [-ts*0.1, ts*0.1]){
+    c.beginPath(); c.moveTo(gx, ts*0.34); c.lineTo(gx, ts*0.42); c.stroke();
+    c.fillStyle = glow;
+    for(const dx of [-0.04,0,0.04]){ c.beginPath(); c.moveTo(gx+dx*ts, ts*0.42); c.lineTo(gx+dx*ts*1.5, ts*0.47); c.lineTo(gx+dx*ts, ts*0.445); c.closePath(); c.fill(); }
+  }
+  // --- cabeça (larga, tufos demoníacos) ---
+  c.fillStyle = bg;
+  c.beginPath(); c.ellipse(0, -ts*0.18, ts*0.25, ts*0.21, 0, 0, 7); c.fill();
+  c.fillStyle = dark;                                           // tufos/chifres
+  c.beginPath(); c.moveTo(-ts*0.19, -ts*0.3); c.lineTo(-ts*0.3, -ts*0.47); c.lineTo(-ts*0.09, -ts*0.34); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(ts*0.19, -ts*0.3); c.lineTo(ts*0.3, -ts*0.47); c.lineTo(ts*0.09, -ts*0.34); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(40,32,55,0.55)';                          // disco facial
+  c.beginPath(); c.ellipse(-ts*0.1, -ts*0.16, ts*0.11, ts*0.13, 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(ts*0.1, -ts*0.16, ts*0.11, ts*0.13, 0, 0, 7); c.fill();
+  // --- olhos demoníacos (halo roxo + íris dourada do Faraó + pupila) ---
+  const eg = 0.7 + 0.3*Math.abs(Math.sin(t*3));
+  for(const ex of [-ts*0.1, ts*0.1]){
+    c.fillStyle = 'rgba(123,74,208,'+(0.5*eg).toFixed(2)+')';
+    c.beginPath(); c.arc(ex, -ts*0.16, ts*0.085, 0, 7); c.fill();
+    c.fillStyle = '#ffe9a8';
+    c.beginPath(); c.arc(ex, -ts*0.16, ts*0.058, 0, 7); c.fill();
+    c.fillStyle = '#7b4ad0';
+    c.beginPath(); c.arc(ex, -ts*0.16, ts*0.034, 0, 7); c.fill();
+    c.fillStyle = '#160c1e';
+    c.beginPath(); c.arc(ex, -ts*0.16, ts*0.017, 0, 7); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.9)';
+    c.beginPath(); c.arc(ex-ts*0.012, -ts*0.172, ts*0.01, 0, 7); c.fill();
+  }
+  // bico afiado
+  c.fillStyle = '#160c16';
+  c.beginPath(); c.moveTo(0, -ts*0.12); c.lineTo(ts*0.035, -ts*0.05); c.lineTo(-ts*0.035, -ts*0.05); c.closePath(); c.fill();
+  c.fillStyle = plum;
+  c.beginPath(); c.moveTo(0, -ts*0.05); c.lineTo(ts*0.014, -ts*0.02); c.lineTo(-ts*0.014, -ts*0.02); c.closePath(); c.fill();
+  // --- partículas roxas subindo ---
+  for(let i=0;i<5;i++){ const prog = ((t*0.5 + i*0.2) % 1); const px=(i-2)*ts*0.12; const py=ts*0.2 - prog*ts*0.8;
+    c.globalAlpha = 0.6*(1-prog); c.fillStyle = 'rgba(201,160,255,0.9)';
+    c.beginPath(); c.arc(px, py, ts*0.02, 0, 7); c.fill(); }
+  c.globalAlpha = 1;
+  c.restore();
+}
 function drawLebreForm(c, sx, sy, ts, p){
   // a forma de lebre de Nharé: translúcida (invisível) com brilho divino
   const t = Date.now()/300;
@@ -3962,6 +4049,8 @@ function drawWildForm(c, sx, sy, ts, p){
     drawCrow(c, sx, sy, ts, p.facing, p._moving, p.walk, p.look);
   } else if(form === 'lebre'){
     drawLebreForm(c, sx, sy, ts, p);
+  } else if(form === 'coruja'){
+    drawCorujaForm(c, sx, sy, ts, p);
   } else {
     drawBeast(c, sx, sy, ts, fake);                    // lobo, urso
   }
@@ -6101,6 +6190,7 @@ let _courariaEl = null, _courariaBodyEl = null;
 function closeCouraria(){ if(_courariaEl){ _courariaEl.remove(); _courariaEl = null; _courariaBodyEl = null; } }
 function openCouraria(d){
   d = d || {};
+  const accent = d.accent || '#d8a86a';
   if(typeof d.wallet === 'number') updateWallet(d.wallet);
   if(_courariaEl){ renderCourariaBody(_courariaBodyEl, d); return; }
   const ov = _overlay(); const box = _box(440);
@@ -6108,7 +6198,7 @@ function openCouraria(d){
   const hd = document.createElement('div');
   hd.style.cssText = 'display:flex;align-items:center;gap:10px;padding:16px 18px 10px;border-bottom:1px solid #2a2540;';
   const ti = document.createElement('div'); ti.textContent = d.title || 'Couraria do Valdir';
-  ti.style.cssText = 'font:700 19px Cinzel,serif;color:#d8a86a;flex:1 1 auto;';
+  ti.style.cssText = 'font:700 19px Cinzel,serif;color:'+accent+';flex:1 1 auto;';
   const wl = document.createElement('div'); wl.id = '_courwallet'; wl.style.cssText = 'font:600 13px Inter;color:#f4b860;';
   wl.textContent = (d.wallet||0).toLocaleString('pt-BR') + ' \ud83d\udfe4';
   const x = _btn('\u2715', false); x.style.cssText += ';padding:4px 10px;'; x.onclick = closeCouraria;
@@ -6122,15 +6212,19 @@ function openCouraria(d){
 }
 function renderCourariaBody(body, d){
   if(!body) return;
+  const accent = d.accent || '#d8a86a';
+  const sellEvent = d.sellEvent || 'couraria_sell';
+  const header = d.header || 'Couro de bicho · paga 5x';
+  const empty = d.empty || 'Você não tem couro de bicho na mochila. O Valdir compra pele e presa de <b style="color:#d8a86a">lobo, javali, hiena, abutre</b> e afins por 5x o preço normal.';
   const wl = document.getElementById('_courwallet'); if(wl && typeof d.wallet === 'number') wl.textContent = d.wallet.toLocaleString('pt-BR') + ' \ud83d\udfe4';
   let h = '';
   if(d.greet) h += '<div style="font-size:13px;color:#c9c4dc;font-style:italic;line-height:1.4;margin-bottom:12px">"'+esc(d.greet)+'"</div>';
   const list = d.items || [];
   if(!list.length){
-    body.innerHTML = h + '<div style="color:#9b95b4;font-size:12.5px;line-height:1.5;padding:8px 0">Você não tem couro de bicho na mochila. O Valdir compra pele e presa de <b style="color:#d8a86a">lobo, javali, hiena, abutre</b> e afins por 5x o preço normal.</div>';
+    body.innerHTML = h + '<div style="color:#9b95b4;font-size:12.5px;line-height:1.5;padding:8px 0">'+empty+'</div>';
     return;
   }
-  h += '<div style="font:600 11px Inter;color:#8a86a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Couro de bicho · paga 5x</div>';
+  h += '<div style="font:600 11px Inter;color:#8a86a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">'+esc(header)+'</div>';
   body.innerHTML = h;
   list.forEach(it=>{
     const row = document.createElement('div');
@@ -6141,15 +6235,15 @@ function renderCourariaBody(body, d){
     row.appendChild(cv);
     const mid = document.createElement('div'); mid.style.cssText = 'flex:1 1 auto;min-width:0;';
     mid.innerHTML = '<div style="font:600 13px Inter;color:#e8e2f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(it.name)+'</div>'+
-      '<div style="font-size:11px;color:#d8a86a">'+it.unit+' \ud83d\udfe4 cada · você tem '+it.qty+'</div>';
+      '<div style="font-size:11px;color:'+accent+'">'+it.unit+' \ud83d\udfe4 cada · você tem '+it.qty+'</div>';
     row.appendChild(mid);
     const btns = document.createElement('div'); btns.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex:0 0 auto';
     const b1 = _btn('Vender', true); b1.style.cssText += ';padding:4px 10px;font-size:11px;';
-    b1.onclick = ()=> socket.emit('couraria_sell', {item: it.item});
+    b1.onclick = ()=> socket.emit(sellEvent, {item: it.item});
     btns.appendChild(b1);
     if(it.qty > 1){
       const ba = _btn('Tudo ('+it.qty+')', true); ba.style.cssText += ';padding:4px 10px;font-size:11px;';
-      ba.onclick = ()=> socket.emit('couraria_sell', {item: it.item, all: true});
+      ba.onclick = ()=> socket.emit(sellEvent, {item: it.item, all: true});
       btns.appendChild(ba);
     }
     row.appendChild(btns);
@@ -6444,6 +6538,7 @@ const MARCAS = [
   {flag:'bola_pofnir', icon:'🧶', name:'Pofnir deixou você brincar', desc:'Você ofereceu uma Fagulha ao gato branco e ele te deu a Bola de Lã dele. Poucos no Ermo já ouviram o Pofnir ronronar.'},
   {flag:'dom_valiria', icon:'☀️', name:'Aurora de Valíria', desc:'Valíria, a Serena, fez a aurora descer sobre você e te deu o dom de mesmo nome. Quando os seus precisarem, você vira o escudo que nenhum golpe atravessa.'},
   {flag:'dom_facalan', icon:'🐆', name:'A onça reconhece você', desc:'Facalan, a onça dourada, aceitou o seu sangue e te deu a Forma de Facalan. Quando a luta aperta, você vira a própria fera e a morte espera a sua vez.'},
+  {flag:'dom_nherith', icon:'🦉', name:'O pacto da coruja', desc:'Nherith, a coruja que tudo vê, selou um pacto com você e te deu a forma da Coruja Demoníaca: garras necróticas no lugar das magias, e a luz roxa do Faraó nos olhos.'},
 ];
 let fichaTab = 'geral';
 

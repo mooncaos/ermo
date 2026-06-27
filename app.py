@@ -828,6 +828,9 @@ def on_combat_cast(data):
         emit("combat_msg", {"text": "Você já agiu neste turno."})
         return
     me = combat.current(enc)
+    if me.get("no_spells"):
+        emit("combat_msg", {"text": "Na forma de Coruja Demoníaca você não consegue conjurar magias."})
+        return
     spell_id = (data or {}).get("spell")
     sp = spells_def.get(spell_id)
     if not sp or (spell_id not in (me.get("cantrips") or []) and
@@ -1005,6 +1008,7 @@ def on_set_form(data=None):
     f["form"] = (fid if form else None)
     f["form_bonus"] = (dict(form["bonus"]) if form else None)
     f["form_regen"] = (int(form.get("regen", 0)) if form else 0)
+    f["form_no_spells"] = bool(form and form.get("no_spells"))
     player["ficha"] = f
     player["wild_form"] = (fid if form else None)        # transmitido: muda o boneco na tela
     player["invisible"] = bool(form and form.get("invisible"))   # lebre de Nharé: some pra todos
@@ -1044,9 +1048,12 @@ def on_combat_transform(data=None):
         return
     pc = enc["combs"].get(sid) or combat.current(enc)
     combat.apply_form(pc, form["bonus"] if form else None, form.get("regen", 0) if form else 0)
+    pc["no_spells"] = bool(form and form.get("no_spells"))   # Coruja: trava magia ao vivo
+    pc["form_id"] = (fid if form else None)
     f["form"] = (fid if form else None)
     f["form_bonus"] = (dict(form["bonus"]) if form else None)
     f["form_regen"] = (int(form.get("regen", 0)) if form else 0)
+    f["form_no_spells"] = bool(form and form.get("no_spells"))
     player["ficha"] = f
     player["wild_form"] = (fid if form else None)
     player["invisible"] = bool(form and form.get("invisible"))
@@ -1412,6 +1419,12 @@ def on_interact(_data=None):
         emit("couraria_open", _couraria_payload(player, greet))
         return
 
+    # Marion, a Bruxa (valdarkram, do lado do Coveiro): compra Moeda de Avhur por 2500 cada
+    if npc.get("_spec", {}).get("buys_avhur"):
+        greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
+        emit("couraria_open", _marion_payload(player, greet))
+        return
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 
@@ -1477,6 +1490,48 @@ def on_couraria_sell(data=None):
     _persist_loadout_wallet(player)
     emit("loadout", {"bag": player["inventory"], "equipment": player.get("equipment", {})})
     emit("couraria_open", _couraria_payload(player, "Bom couro. Tá pago: %d bronze." % gain))
+
+
+MARION_PRICE = 2500   # Marion paga 2500 de bronze por cada Moeda de Avhur (mercador normal: 500)
+
+def _marion_payload(player, greet=None):
+    """O que a tela da Marion mostra: as Moedas de Avhur que o jogador tem + preço 2500."""
+    bag = player.get("inventory", [])
+    qty = items.count_in_bag(bag, "moeda_avhur")
+    cat = items.get("moeda_avhur") or {}
+    rows = []
+    if qty > 0:
+        rows.append({"item": "moeda_avhur", "name": cat.get("name", "Moeda de Avhur"),
+                     "qty": qty, "unit": MARION_PRICE})
+    return {"title": "Marion, a Bruxa", "greet": greet, "accent": "#c9a0ff",
+            "header": "Moeda de Avhur · paga 2500 cada", "sellEvent": "marion_sell",
+            "empty": 'Você não tem nenhuma <b style="color:#c9a0ff">Moeda de Avhur</b> na mochila. '
+                     'A Marion paga <b style="color:#c9a0ff">2500 de bronze</b> por cada uma '
+                     '(cinco vezes o que um mercador paga). As moedas caem na Mina de Avhur.',
+            "wallet": int(player.get("wallet", 0)), "items": rows}
+
+
+@socketio.on("marion_sell")
+def on_marion_sell(data=None):
+    """Vende Moeda de Avhur pra Marion a 2500 cada. Aceita item e all (vender tudo)."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    item_id = (data or {}).get("item")
+    if item_id != "moeda_avhur":
+        emit("toast", {"text": "A Marion só compra Moeda de Avhur."})
+        return
+    bag = player.setdefault("inventory", [])
+    have = items.count_in_bag(bag, "moeda_avhur")
+    qty = have if (data or {}).get("all") else 1
+    if qty < 1 or not items.remove_from_bag(bag, "moeda_avhur", qty):
+        emit("toast", {"text": "Você não tem Moeda de Avhur na mochila."})
+        return
+    gain = MARION_PRICE * qty
+    player["wallet"] = int(player.get("wallet", 0)) + gain
+    _persist_loadout_wallet(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player.get("equipment", {})})
+    emit("couraria_open", _marion_payload(player, "Negócio fechado. Tá pago: %d de bronze." % gain))
 
 
 def _xama_payload(player, greet=None):
@@ -1929,6 +1984,14 @@ GOD_FAGULHA = {
         "line_repeat": "Ja corre o meu sangue em ti, druida. A pantera ja e tua. Guarda tua Fagulha pra outro deus.",
         "line_none": "Chegas na minha selva falando de Fagulha de maos vazias? A onca nao perde tempo com quem vem sem nada.",
         "line_other": "*a onca cheira a Fagulha e rosna* Nao es da minha matilha, esse dom nao e teu. Mas eu nao recuso uma Fagulha. *a engole* Toma essa pocao e some da minha selva.",
+    },
+    "god:nherith": {
+        "ability": "golpe_morte_alada", "class": "bruxo", "flag": "dom_nherith",
+        "mark": "O pacto da coruja",
+        "line": "*a coruja gigante gira a cabeca e te encara com olhos que nao piscam* Uma Fagulha... entao o pacto esta selado. Recebe a forma da Coruja Demoniaca e o Golpe da Morte Alada. Mas saiba: enquanto vestires minhas asas, tuas magias dormem. Garra ou feitico, escolhe bem, bruxo.",
+        "line_repeat": "O pacto ja foi selado entre nos, e a coruja ja e tua. Guarda tua Fagulha pra outro deus.",
+        "line_none": "Tu sussurras 'fagulha' mas tuas maos estao vazias. A coruja nao sela pacto com promessa.",
+        "line_other": "*a coruja inclina a cabeca lentamente* Esse pacto nao foi feito pra ti, nao es bruxo. Mas a Fagulha eu aceito. *a engole* Leva esta pocao e some da minha arvore.",
     },
 }
 # falas genericas pros deuses que ainda nao tem dom coordenado

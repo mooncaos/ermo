@@ -130,6 +130,12 @@ TRANSFORMS = {
          "requires": "dom_nhare", "invisible": True,
          "bonus": {"speed": 3}},
     ],
+    "bruxo": [
+        {"id": "coruja", "name": "Coruja Demoníaca", "icon": "🦉",
+         "desc": "O dom de Nherith: vira uma coruja demoníaca envolta na luz roxa do Faraó. +10 de resistência (cada golpe te tira 10 a menos), +10 de vida máxima e libera o Golpe da Morte Alada. Mas você NÃO pode lançar magias nesta forma.",
+         "requires": "dom_nherith", "no_spells": True,
+         "bonus": {"block": 10, "hp": 10}},
+    ],
 }
 
 

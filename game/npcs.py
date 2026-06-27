@@ -1097,6 +1097,13 @@ COVEIRO_GREETINGS = [
     "os mortos não precisam mais disso, forasteiro. você precisa. paga e leva.",
     "três vezes o aço do nômade, dez vezes o medo. é o que a morte deixou.",
 ]
+MARION_GREETINGS = [
+    "Moeda de Avhur... eu sinto o cheiro delas na tua mochila. Traz pra Marion, eu pago bem.",
+    "os mercadores te dão 500 por uma moeda dessas. a velha Marion te dá 2500. eu sei o que elas valem de verdade.",
+    "não pergunta pra que eu quero as moedas. pergunta só quanto eu pago: 2500 de bronze, cada uma.",
+    "*mexe num caldeirão fumegante* Avhur não cunhou aquilo só com metal, forasteiro. me vende as tuas moedas.",
+    "cinco vezes o preço de um mercador, por cada Moeda de Avhur. pega ou deixa.",
+]
 CIGANA_GREETINGS = [
     "psiu... a cigana lê teu futuro e vende teu remédio. Poção de Vida, 10 pratas, te enche a vida toda.",
     "bebe a poção no meio da briga e ela cura tudo. mas cuidado, meu bem: virar o copo leva DOIS turnos, e nesses dois o bicho te bate à vontade. as cartas avisaram.",
@@ -1166,6 +1173,14 @@ ROSTER.extend([
         "map": "valdarkram", "home": (50, 49), "radius": 3, "wanders": True,
         "step_every": 1.4, "solid": True, "kind": "person",
         "greetings": COVEIRO_GREETINGS, "smiter": False, "shop_tier": "t3",
+    },
+    {
+        "id": "npc:marion", "name": "Marion, a Bruxa",
+        "look": {"skin": "#b89a7a", "cloak": "#5a2a7a", "hood": "down",
+                 "hat": "wizard", "hair": "#1a1020", "staff": True},
+        "map": "valdarkram", "home": (47, 49), "radius": 2, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "greetings": MARION_GREETINGS, "smiter": False, "buys_avhur": True,
     },
     {
         "id": "npc:cigana", "name": "Cigana Vidente",
