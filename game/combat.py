@@ -75,6 +75,7 @@ def make_player_combatant(sid, player, ficha):
         st["ac"] += 2
     init_bonus = 5 if "alerta" in feats else 0  # Alerta: +5 de iniciativa
     fb = ficha.get("form_bonus") or {}           # bonus da forma assumida (transformacao)
+    form_regen = int(ficha.get("form_regen", 0))
     if fb:
         st["ac"] += fb.get("ac", 0)
         st["speed"] += fb.get("speed", 0)
@@ -101,6 +102,7 @@ def make_player_combatant(sid, player, ficha):
         "x": player["x"], "y": player["y"], "alive": True,
         "atk_name": "ataque", "level": lvl, "class_id": cid,
         "init_bonus": init_bonus, "feats": feats, "luck": luck,
+        "regen": form_regen, "_form_bonus": dict(fb),
         "cast_attr": cast_attr, "cast_mod": cast_mod,
         "spell_atk": prof + cast_mod + spell_bonus, "spell_dc": 8 + prof + cast_mod + spell_bonus,
         "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
@@ -130,6 +132,20 @@ def make_monster_combatant(m):
         "summons_left": int(m.get("summons") or 0), "enraged": False,
         "abilities": monsters_lib.abilities_for(m.get("type")),
     }
+
+
+def apply_form(comb, bonus, regen):
+    """Troca a forma de um combatente AO VIVO: reverte o bonus anterior e poe o novo.
+    Usado quando o jogador se transforma durante o combate."""
+    bonus = bonus or {}
+    old = comb.get("_form_bonus") or {}
+    comb["ac"] = comb.get("ac", 0) - old.get("ac", 0) + bonus.get("ac", 0)
+    comb["speed"] = comb.get("speed", 6) - old.get("speed", 0) + bonus.get("speed", 0)
+    comb["atk"] = comb.get("atk", 0) - old.get("atk", 0) + bonus.get("atk", 0)
+    flat = comb.get("dmg", {}).get("flat", 0) - old.get("dmg_flat", 0) + bonus.get("dmg_flat", 0)
+    comb["dmg"] = dict(comb.get("dmg") or {}); comb["dmg"]["flat"] = flat
+    comb["_form_bonus"] = dict(bonus)
+    comb["regen"] = int(regen or 0)
 
 
 def make_summon_combatant(spec, mid, x, y):
@@ -178,6 +194,13 @@ def current(enc):
 def _begin_turn(enc):
     c = current(enc)
     enc["_turn_fx"] = tick_statuses(enc, c)            # DoT + decremento no inicio
+    reg = c.get("regen", 0)                            # regeneracao da forma (ex: Maine Coon)
+    enc["_regen_heal"] = 0
+    if reg and c.get("alive"):
+        heal = min(reg, c.get("hp_max", c["hp"]) - c["hp"])
+        if heal > 0:
+            c["hp"] += heal
+            enc["_regen_heal"] = heal
     enc["move_left"] = 0 if is_restrained(c) else c.get("speed", 6)
     enc["action_used"] = False
     enc["bonus_used"] = False

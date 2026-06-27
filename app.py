@@ -936,31 +936,74 @@ def on_combat_use_potion(data=None):
 
 @socketio.on("set_form")
 def on_set_form(data=None):
-    """Assume/desfaz uma forma (Forma Selvagem etc.). Guarda na ficha o bonus, que
-    o combate aplica em make_player_combatant. Mandar form=None volta ao normal."""
+    """Assume/desfaz uma forma (Forma Selvagem etc.). Guarda na ficha o bonus e o
+    regen (que o combate aplica), marca o boneco pra transmitir e avisa a sala.
+    Mandar form=None volta ao normal. Valida requisitos (ex: benção do Pof)."""
     player = world.players.get(request.sid)
     if not player:
         return
     f = player.get("ficha") or {}
-    cid = f.get("class_id")
     fid = (data or {}).get("form")
-    form = classes.get_form(cid, fid) if fid else None
-    if fid and not form:
-        emit("toast", {"text": "Essa forma não está disponível."})
+    form = classes.get_form(f.get("class_id"), fid) if fid else None
+    if fid and (not form or not classes.can_use_form(f, fid)):
+        emit("toast", {"text": "Essa forma não está disponível pra você."})
         return
     f["form"] = (fid if form else None)
     f["form_bonus"] = (dict(form["bonus"]) if form else None)
+    f["form_regen"] = (int(form.get("regen", 0)) if form else 0)
     player["ficha"] = f
+    player["wild_form"] = (fid if form else None)        # transmitido: muda o boneco na tela
     try:
         db.save_ficha(player["player_id"], f)
     except Exception:
         pass
     emit("form_set", {"form": f.get("form"), "name": (form["name"] if form else None),
                       "icon": (form.get("icon") if form else None)})
+    socketio.emit("player_form", {"id": request.sid, "form": (fid if form else None)},
+                  room=player.get("map", "ermo"))
     if form:
         emit("toast", {"text": "Você assumiu a forma: %s %s" % (form.get("icon", ""), form["name"])})
     else:
         emit("toast", {"text": "Você voltou à forma normal."})
+
+
+@socketio.on("combat_transform")
+def on_combat_transform(data=None):
+    """Transformar DURANTE o combate (ação livre): troca a forma do combatente ao vivo,
+    persiste na ficha e atualiza o snapshot. Só no próprio turno."""
+    sid = request.sid
+    enc = COMBAT.get(sid)
+    if not enc:
+        return
+    if combat.current(enc).get("kind") != "player":
+        emit("combat_msg", {"text": "Só dá pra se transformar no seu turno."})
+        return
+    player = world.players.get(sid)
+    if not player:
+        return
+    f = player.get("ficha") or {}
+    fid = (data or {}).get("form")
+    form = classes.get_form(f.get("class_id"), fid) if fid else None
+    if fid and (not form or not classes.can_use_form(f, fid)):
+        emit("toast", {"text": "Essa forma não está disponível pra você."})
+        return
+    pc = enc["combs"].get(sid) or combat.current(enc)
+    combat.apply_form(pc, form["bonus"] if form else None, form.get("regen", 0) if form else 0)
+    f["form"] = (fid if form else None)
+    f["form_bonus"] = (dict(form["bonus"]) if form else None)
+    f["form_regen"] = (int(form.get("regen", 0)) if form else 0)
+    player["ficha"] = f
+    player["wild_form"] = (fid if form else None)
+    try:
+        db.save_ficha(player["player_id"], f)
+    except Exception:
+        pass
+    socketio.emit("player_form", {"id": sid, "form": (fid if form else None)},
+                  room=player.get("map", "ermo"))
+    nm = ("%s %s" % (form.get("icon", ""), form["name"])) if form else "forma normal"
+    emit("combat_state", {"player_action": {"transform": nm},
+                          "snapshot": combat.snapshot(enc, sid),
+                          "your_turn": True, "outcome": None})
 
 
 @socketio.on("move")

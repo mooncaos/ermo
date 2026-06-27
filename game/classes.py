@@ -111,25 +111,53 @@ def apply_class(ficha, class_id, plus2):
 TRANSFORMS = {
     "druida": [
         {"id": "lobo",  "name": "Lobo",  "icon": "🐺",
-         "desc": "Forma Selvagem do Lobo: veloz e feroz. +2 de dano e +2 de deslocamento.",
-         "bonus": {"dmg_flat": 2, "speed": 2}},
+         "desc": "Forma Selvagem do Lobo: veloz e feroz. +4 de dano, +2 deslocamento e +1 para acertar.",
+         "bonus": {"dmg_flat": 4, "speed": 2, "atk": 1}},
         {"id": "urso",  "name": "Urso",  "icon": "🐻",
-         "desc": "Forma Selvagem do Urso: muralha de músculo. +3 de armadura e +1 de dano.",
-         "bonus": {"ac": 3, "dmg_flat": 1}},
+         "desc": "Forma Selvagem do Urso: muralha de músculo. +4 de armadura e +2 de dano.",
+         "bonus": {"ac": 4, "dmg_flat": 2}},
         {"id": "aguia", "name": "Águia", "icon": "🦅",
-         "desc": "Forma Selvagem da Águia: ágil e certeira. +2 de deslocamento e +2 para acertar.",
-         "bonus": {"speed": 2, "atk": 2}},
+         "desc": "Forma Selvagem da Águia: ágil e certeira. +3 deslocamento, +3 para acertar e +1 de dano.",
+         "bonus": {"speed": 3, "atk": 3, "dmg_flat": 1}},
+        {"id": "mainecoon", "name": "Maine Coon", "icon": "🐈",
+         "desc": "A forma abençoada por Pofnir: o grande gato Maine Coon. +4 em tudo e regenera 3 de vida a cada turno.",
+         "requires": "blessing_pofnir",
+         "bonus": {"ac": 4, "atk": 4, "dmg_flat": 4, "speed": 4}, "regen": 3},
     ],
 }
 
 
 def forms_for(class_id):
-    """Lista de formas que a classe pode assumir (vazia se nao se transforma)."""
+    """Todas as formas que a classe pode assumir (sem filtrar requisitos)."""
     return TRANSFORMS.get(class_id, [])
 
 
+def available_forms(ficha):
+    """So as formas que ESTE jogador pode usar (filtra requisitos, ex: a benção do Pof)."""
+    ficha = ficha or {}
+    out = []
+    for fm in forms_for(ficha.get("class_id")):
+        req = fm.get("requires")
+        if req and not ficha.get(req):
+            continue
+        out.append(fm)
+    return out
+
+
 def get_form(class_id, form_id):
-    for f in forms_for(class_id):
-        if f["id"] == form_id:
-            return f
+    for fm in forms_for(class_id):
+        if fm["id"] == form_id:
+            return fm
     return None
+
+
+def can_use_form(ficha, form_id):
+    """True se o jogador tem direito a essa forma (classe certa + requisito atendido)."""
+    ficha = ficha or {}
+    fm = get_form(ficha.get("class_id"), form_id)
+    if not fm:
+        return False
+    req = fm.get("requires")
+    if req and not ficha.get(req):
+        return False
+    return True

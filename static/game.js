@@ -2080,6 +2080,8 @@ const BEAST = {
   lobo_negro:   {body:'#26242e', belly:'#3a3744', size:0.92, ear:'point', tail:'bush', snout:'#15131b', tusk:false, bristle:true},
   javali:       {body:'#5a4632', belly:'#6e573e', size:0.84, ear:'point', tail:'tuft', snout:'#3a2c1e', tusk:true,  bristle:true},
   hiena_ermo:   {body:'#9a8458', belly:'#b5a070', size:0.82, ear:'point', tail:'tuft', snout:'#5a4a30', tusk:false, bristle:true},
+  urso:         {body:'#6b4a32', belly:'#856448', size:1.34, ear:'round', tail:'tuft', snout:'#3a2a1c', tusk:false, bristle:false},
+  mainecoon:    {body:'#e8e0cf', belly:'#f6f0e2', size:1.04, ear:'point', tail:'bush', snout:'#caa86a', tusk:false, bristle:false},
 };
 function _dirVec(f){ return f==='up'?[0,-1] : f==='down'?[0,1] : f==='left'?[-1,0] : [1,0]; }
 
@@ -2938,6 +2940,28 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
 }
 
 // O corvo: passarinho preto empoleirado, com um pulinho quando se move.
+function drawWildForm(c, sx, sy, ts, p){
+  const form = p.wild_form;
+  const fake = { mtype: form, facing: p.facing, _moving: p._moving, walk: p.walk };
+  if(form === 'mainecoon'){
+    const t = Date.now()/600;                          // brilho dourado do Pofnir
+    const a = 0.16 + 0.09*Math.abs(Math.sin(t));
+    const gl = c.createRadialGradient(sx+ts/2, sy+ts*0.55, ts*0.12, sx+ts/2, sy+ts*0.55, ts*0.85);
+    gl.addColorStop(0, 'rgba(255,226,150,'+a+')'); gl.addColorStop(1, 'rgba(255,226,150,0)');
+    c.save(); c.fillStyle = gl; c.fillRect(sx-ts*0.6, sy-ts*0.6, ts*2.2, ts*2.2); c.restore();
+    drawBeast(c, sx, sy, ts, fake);
+  } else if(form === 'aguia'){
+    drawCrow(c, sx, sy, ts, p.facing, p._moving, p.walk, p.look);
+  } else {
+    drawBeast(c, sx, sy, ts, fake);                    // lobo, urso
+  }
+  if(p.name){                                          // etiqueta com o nome
+    c.save(); c.font = '600 11px Inter, sans-serif'; c.textAlign = 'center';
+    c.fillStyle = 'rgba(0,0,0,.6)'; c.fillText(p.name, sx+ts/2+0.7, sy-2.3);
+    c.fillStyle = (p.id===myId) ? '#c9a0ff' : '#e8e4f0'; c.fillText(p.name, sx+ts/2, sy-3);
+    c.restore();
+  }
+}
 function drawCrow(c, px, py, ts, facing, moving, walk, look){
   const body = (look && look.feather) || '#15151b';
   const cx = px + ts*0.5;
@@ -3668,6 +3692,7 @@ function frame(now){
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
+    else if(p.wild_form) drawWildForm(ctx, sx, sy, TS, p);
     else drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
   }
 
@@ -4226,6 +4251,11 @@ function connectWithToken(token){
     if(myFicha){ myFicha.form = d.form || null; }
     if(typeof fichaPanelOpen === 'undefined' || fichaPanelOpen) renderFicha();
   });
+  socket.on('player_form', d=>{
+    const p = players.get(d.id);
+    if(p) p.wild_form = d.form || null;
+    if(d.id === myId && myFicha){ myFicha.form = d.form || null; }
+  });
   socket.on('xp', d=>{
     if(!d) return;
     if(myFicha){
@@ -4254,7 +4284,10 @@ function connectWithToken(token){
   socket.on('combat_start', d=>{ combat = {yourTurn:false}; showCombatUi(); applyCombatSnapshot(d && d.snapshot); });
   socket.on('combat_state', d=>{
     if(!d) return;
-    if(d.player_action) showAttackResult(d.player_action);
+    if(d.player_action){
+      if(d.player_action.transform) toastMsg('🐾 Você assumiu: '+d.player_action.transform, true);
+      else showAttackResult(d.player_action);
+    }
     if(d.spell_result) showSpellResult(d.spell_result);
     if(d.ability_result) showAbilityResult(d.ability_result);
     if(d.enemy_actions){
@@ -5321,8 +5354,13 @@ function _fichaPassivas(f){
 }
 
 function _fichaTransform(f){
-  const forms = (f.class_id && transformsData[f.class_id]) ? transformsData[f.class_id] : [];
-  if(!forms.length) return '';                 // classe nao se transforma
+  let forms = (f.class_id && transformsData[f.class_id]) ? transformsData[f.class_id] : [];
+  forms = forms.filter(fm=> !fm.requires || f[fm.requires]);   // respeita requisitos (ex: benção do Pof)
+  if(!f.class_id) return '';                    // sem classe ainda
+  if(!forms.length){                            // classe sem forma: mostra aviso (pra ser achavel)
+    return '<div style="font:600 11px Inter;color:#8a86a0;margin:16px 0 6px;letter-spacing:.5px;text-transform:uppercase">Transformação</div>'+
+      '<div style="font-size:11.5px;color:#7c7790;line-height:1.4;padding:3px 0">Sua classe não assume outras formas. Por enquanto só o <b style="color:#9b95b4">Druida</b> tem a Forma Selvagem (🐺 Lobo, 🐻 Urso, 🦅 Águia).</div>';
+  }
   const active = f.form || null;
   let h = '<div style="font:600 11px Inter;color:#8a86a0;margin:16px 0 6px;letter-spacing:.5px;text-transform:uppercase">Transformação</div>';
   if(active){
@@ -5655,6 +5693,10 @@ function renderCombatHud(){
     if((your.spells||[]).length) btns += cbBtn('spells','✦ Magias', {disabled: your.action_used});
     const _pot = (inventory.find(s=> s.item === 'pocao_vida') || {}).qty || 0;
     if(_pot > 0) btns += cbBtn('potion','🧪 Poção ('+_pot+')', {disabled: your.action_used});
+    if(myFicha && transformsData[myFicha.class_id]){
+      const cf = (transformsData[myFicha.class_id]||[]).find(x=> x.id === (myFicha.form||''));
+      btns += cbBtn('transform', cf ? (cf.icon+' '+cf.name) : '🐾 Transformar', {});
+    }
     btns += cbBtn('pass','Passar (espaço)', {});
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+btns+'</div>';
     if(combat.pending){
@@ -5711,6 +5753,7 @@ function cbAction(id){
   if(id === 'potion'){ combat.pending = null; socket.emit('combat_use_potion', {}); return; }
   if(id === 'attack'){ combat.pending = {type:'attack', range:'melee', label:'Atacar'}; renderCombatHud(); return; }
   if(id === 'spells'){ openSpellMenu(); return; }
+  if(id === 'transform'){ openFormMenu(); return; }
   if(id.indexOf('ab:') === 0){
     const aid = id.slice(3);
     const ab = (your.abilities||[]).find(a=> a.id === aid);
@@ -5718,6 +5761,34 @@ function cbAction(id){
     if(ab.target){ combat.pending = {type:'ability', id:aid, range:'melee', label:ab.name}; renderCombatHud(); }
     else { socket.emit('combat_ability', {ability: aid}); }
   }
+}
+let formMenuEl = null;
+function closeFormMenu(){ if(formMenuEl){ formMenuEl.remove(); formMenuEl = null; } }
+function openFormMenu(){
+  closeFormMenu();
+  const f = myFicha || {};
+  let forms = (f.class_id && transformsData[f.class_id]) ? transformsData[f.class_id] : [];
+  forms = forms.filter(fm=> !fm.requires || f[fm.requires]);
+  const active = f.form || null;
+  formMenuEl = document.createElement('div');
+  formMenuEl.style.cssText = 'position:fixed;left:50%;bottom:128px;transform:translateX(-50%);width:min(420px,92vw);z-index:8600;'+
+    'background:rgba(20,17,30,.97);border:1px solid #6d4ea0;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.6);padding:10px 12px;font-family:Inter;max-height:62vh;overflow:auto';
+  let html = '<div style="font:800 12px Cinzel,serif;color:#f4d8a0;margin-bottom:6px">Transformação</div>';
+  forms.forEach(fm=>{
+    const on = fm.id===active;
+    html += '<button data-form="'+esc(fm.id)+'"'+(on?' disabled':'')+' style="display:flex;width:100%;align-items:center;gap:9px;margin:0 0 6px;padding:8px 10px;border-radius:9px;border:1px solid '+(on?'#6d4ea0':'#473e6e')+';background:'+(on?'#241d38':'#2a2442')+';color:#e8e4f0;font:600 12px Inter;cursor:'+(on?'default':'pointer')+';text-align:left">'+
+      '<span style="font-size:18px;line-height:1">'+fm.icon+'</span>'+
+      '<span style="flex:1;min-width:0"><div>'+esc(fm.name)+(on?' · <span style="color:#c9a0ff">ATIVA</span>':'')+'</div>'+
+      '<div style="font-size:10px;color:#9b95b4;line-height:1.25">'+esc(fm.desc||'')+'</div></span></button>';
+  });
+  if(active){
+    html += '<button data-form="" style="width:100%;padding:8px;border-radius:9px;border:1px solid #4a4360;background:#221d36;color:#d8d2e8;font:600 12px Inter;cursor:pointer">↺ Voltar à forma normal</button>';
+  }
+  html += '<button data-formclose="1" style="width:100%;margin-top:6px;padding:6px;border-radius:9px;border:none;background:none;color:#8a86a0;font:600 11px Inter;cursor:pointer">fechar</button>';
+  formMenuEl.innerHTML = html;
+  document.body.appendChild(formMenuEl);
+  formMenuEl.querySelectorAll('[data-form]').forEach(b=> b.onclick = ()=>{ const fid=b.getAttribute('data-form'); socket.emit('combat_transform', {form: fid || null}); closeFormMenu(); });
+  const xc = formMenuEl.querySelector('[data-formclose]'); if(xc) xc.onclick = closeFormMenu;
 }
 let spellMenuEl = null;
 function closeSpellMenu(){ if(spellMenuEl){ spellMenuEl.remove(); spellMenuEl = null; } }
