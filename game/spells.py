@@ -206,3 +206,110 @@ def for_class(class_id, level=1):
     for lv in range(1, top + 1):
         spells.extend(cl.get(lv, []))
     return {"cantrips": cantrips, "spells": spells}
+
+
+# ===========================================================================
+#  CONHECER x PREPARAR (Leva 2)
+#  - preparadores (mago/clerigo/druida/paladino): conhecem a lista inteira da
+#    classe e PREPARAM um numero = mod + nivel (paladino: mod + nivel//2).
+#  - conhecedores (feiticeiro/bardo/bruxo/patrulheiro): CONHECEM um numero fixo
+#    que cresce com o nivel (tabela). Truques sempre sao "conhecidos".
+# ===========================================================================
+def _amod(score):
+    return (int(score) - 10) // 2
+
+
+def caster_kind(class_id):
+    if class_id in PREPARERS:
+        return "prepare"
+    if class_id in KNOWERS:
+        return "know"
+    return None
+
+
+_CANTRIP_BASE = {"feiticeiro": 4, "mago": 3, "clerigo": 3, "bardo": 2, "druida": 2, "bruxo": 2}
+
+
+def cantrip_limit(class_id, level):
+    base = _CANTRIP_BASE.get(class_id, 0)
+    if base == 0:
+        return 0
+    n = base + (1 if level >= 4 else 0) + (1 if level >= 10 else 0)
+    have = len(CLASS_LIST.get(class_id, {}).get(0, []))
+    return min(n, have) if have else n
+
+
+_KNOWN_TABLE = {  # magias conhecidas por nivel (1..20) dos conjuradores "know"
+    "feiticeiro":  [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
+    "bardo":       [4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 18, 19, 19, 20, 22, 22, 22],
+    "bruxo":       [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+    "patrulheiro": [0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11],
+}
+
+
+def spell_limit(class_id, level, cast_mod=0):
+    """Quantas magias de nivel ficam prontas (conhecidas ou preparadas)."""
+    level = max(1, min(20, int(level)))
+    if class_id in KNOWERS:
+        tbl = _KNOWN_TABLE.get(class_id)
+        return tbl[level - 1] if tbl else 0
+    if class_id in PREPARERS:
+        if class_id == "paladino":
+            return max(0, cast_mod + level // 2)
+        return max(1, cast_mod + level)
+    return 0
+
+
+def _pool_spell_ids(class_id, level):
+    cl = CLASS_LIST.get(class_id, {})
+    top = min(max_spell_level(class_id, level), MAX_LIB_LEVEL)
+    ids = []
+    for lv in range(1, top + 1):
+        ids.extend(cl.get(lv, []))
+    return ids
+
+
+def pool_for(class_id, level):
+    """Pool selecionavel no Grimorio: truques + magias por nivel (ate o teto)."""
+    cl = CLASS_LIST.get(class_id, {})
+    top = min(max_spell_level(class_id, level), MAX_LIB_LEVEL)
+    return {"cantrips": list(cl.get(0, [])),
+            "by_level": {lv: list(cl.get(lv, [])) for lv in range(1, top + 1) if cl.get(lv)}}
+
+
+def default_loadout(class_id, level, cast_mod=0):
+    cants = list(CLASS_LIST.get(class_id, {}).get(0, []))[:cantrip_limit(class_id, level)]
+    sp = _pool_spell_ids(class_id, level)[:spell_limit(class_id, level, cast_mod)]
+    return {"cantrips": cants, "spells": sp}
+
+
+def validate_loadout(class_id, level, cast_mod, cantrips, spells):
+    pool_c = set(CLASS_LIST.get(class_id, {}).get(0, []))
+    pool_s = set(_pool_spell_ids(class_id, level))
+
+    def keep(seq, allowed, cap):
+        out = []
+        for x in (seq or []):
+            if x in allowed and x not in out:
+                out.append(x)
+                if len(out) >= cap:
+                    break
+        return out
+
+    return {"cantrips": keep(cantrips, pool_c, cantrip_limit(class_id, level)),
+            "spells": keep(spells, pool_s, spell_limit(class_id, level, cast_mod))}
+
+
+def loadout_for(ficha):
+    """Repertorio efetivo pro combate: o escolhido (grimoire) validado, ou o default."""
+    cid = ficha.get("class_id")
+    if cid not in CLASS_LIST:
+        return {"cantrips": [], "spells": []}
+    level = int(ficha.get("level", 1))
+    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
+    cattr = CASTING.get(cid)
+    cmod = _amod(final.get(cattr, 10)) if cattr else 0
+    g = ficha.get("grimoire")
+    if g and (g.get("cantrips") or g.get("spells")):
+        return validate_loadout(cid, level, cmod, g.get("cantrips"), g.get("spells"))
+    return default_loadout(cid, level, cmod)

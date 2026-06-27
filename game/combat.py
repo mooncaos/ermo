@@ -16,7 +16,7 @@ idx (de quem e a vez), round, move_left (passos restantes do atual), action_used
 import random
 import copy
 
-from . import rules, races, spells, abilities as abil
+from . import rules, races, spells, abilities as abil, items
 
 
 def _d20():
@@ -57,13 +57,19 @@ def player_stats(ficha):
 
 def make_player_combatant(sid, player, ficha):
     st = player_stats(ficha)
+    # equipamento: armadura soma CA, anel/amuleto somam acerto, arma define o dano
+    eq = items.equip_summary(player.get("equipment") or {})
+    st["ac"] += eq["ac"]
+    st["atk"] += eq["atk"]
+    if eq["dmg"]:
+        st["dmg"] = {"n": eq["dmg"]["n"], "d": eq["dmg"]["d"], "flat": st["dmg"]["flat"]}
     cid = ficha.get("class_id")
     final = ficha.get("attrs_final") or ficha.get("attrs") or {}
     lvl = int(ficha.get("level", 1))
     prof = int(ficha.get("prof", 2))
     cast_attr = spells.CASTING.get(cid)
     cast_mod = races.attr_mod(int(final.get(cast_attr, 10))) if cast_attr else 0
-    cs = spells.for_class(cid, lvl)
+    cs = spells.loadout_for(ficha)
     sneak = ((lvl + 1) // 2) if cid == "ladino" else 0
     rage_dmg = 2 if lvl < 9 else (3 if lvl < 16 else 4)
     return {

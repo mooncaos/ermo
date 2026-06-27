@@ -565,9 +565,12 @@ class World:
     # ----------------------------------------------------------- equipamento
 
     def _sync_look(self, player):
-        """A aparencia segue o equipamento (por ora: cajado na mao)."""
-        hand = player["equipment"].get("hand")
-        player["look"]["staff"] = items.shows_staff(hand)
+        """A aparencia segue o equipamento (por ora: cajado em qualquer das maos)."""
+        look = player.get("look")
+        if look is None:
+            return
+        look["staff"] = any(items.shows_staff(player["equipment"].get(h))
+                            for h in ("hand_r", "hand_l"))
 
     def equip(self, player, item_id):
         """Tira o item da mochila e veste no espaco dele. Se o espaco ja tinha
@@ -576,7 +579,7 @@ class World:
             return False
         if not items.remove_from_bag(player["inventory"], item_id, 1):
             return False  # nao esta na mochila
-        slot = items.slot_of(item_id)
+        slot = items.resolve_slot(item_id, player["equipment"])
         prev = player["equipment"].get(slot)
         if prev:
             items.add_to_bag(player["inventory"], prev, 1)

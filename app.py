@@ -1152,6 +1152,22 @@ def on_interact(_data=None):
             "text": random.choice(falas) if falas else "..."}, room=mp)
         return
 
+    # Robetina, a assistente social: na PRIMEIRA conversa entrega o kit inicial.
+    if npc["id"] == "npc:robetina":
+        ficha = player.get("ficha") or {}
+        if not ficha.get("got_starter"):
+            items.grant_starter_set(player["inventory"])
+            ficha["got_starter"] = True
+            player["ficha"] = ficha
+            if player.get("player_id"):
+                db.save_ficha(player["player_id"], ficha)
+                db.save_loadout(player["player_id"], player["inventory"],
+                                player["equipment"], player.get("look"))
+            socketio.emit("speech", {"id": npc["id"], "text": npcs.ROBETINA_FIRST}, room=mp)
+            emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+            return
+        # ja recebeu: cai na fala padrao abaixo
+
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
 

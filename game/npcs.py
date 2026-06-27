@@ -439,6 +439,36 @@ def _menina_spec(m):
 ROSTER.extend(_menina_spec(m) for m in ITATINGA_MENINAS)
 
 
+# --- Robetina: a assistente social de Itatinga (entrega o kit inicial) ---
+ROBETINA_GREETINGS = [
+    "oi, querido. ja te dei o kit, viu? cuida das suas coisas que aqui ninguem repoe.",
+    "tudo certo com voce? qualquer coisa a assistencia ta aqui. dentro do possivel.",
+    "se cuida nesses Ermo. o mundo ja e duro, nao precisa facilitar pra ele.",
+    "ja anotei seu nome na ficha. se sumir, pelo menos sei pra quem rezar.",
+]
+ROBETINA_MURMURS = [
+    "tanta gente chegando sem nada... e o orcamento e o que e.",
+    "ja preenchi formulario ate pra deus reclamar. nada muda.",
+    "um cobertor, um prato de comida. as vezes e so isso que separa a pessoa do fundo.",
+    "nao sou obrigada, mas alguem tem que ser.",
+]
+# Fala da PRIMEIRA vez (quando entrega o kit). Usada pelo servidor no on_interact.
+ROBETINA_FIRST = ("olha so, mais um chegando pelado nesses Ermo. pega esse kit aqui: uma "
+                  "roupa, um calcado, uma faca pra se virar. nao e luxo, mas cobre o corpo. "
+                  "agora vai, e se cuida la fora.")
+
+ROSTER.append({
+    "id": "npc:robetina", "name": "Robetina",
+    "look": {"skin": "#e8b58c", "cloak": "#5a8a6a", "hood": "down",
+             "hat": "none", "hair": "#cfc7bf", "staff": False},
+    "map": "ermo",
+    "home": (12, 10), "radius": 0, "wanders": False, "step_every": 2.0,
+    "solid": True, "kind": "person",
+    "murmurs": ROBETINA_MURMURS, "murmur_min": 16, "murmur_max": 26,
+    "greetings": ROBETINA_GREETINGS, "smiter": False,
+})
+
+
 # ============================================================================
 #  SAPOPEMBA DO CAIQUE — regiao sudoeste (cidade satirica de quebrada)
 # ============================================================================

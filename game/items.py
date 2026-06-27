@@ -17,7 +17,19 @@ ITEMS = {
     "coin_silver":  {"name": "Moeda de Prata",  "kind": "currency", "stackable": True,  "color": "#cbd2d9", "value": 100},
     "coin_gold":    {"name": "Moeda de Ouro",   "kind": "currency", "stackable": True,  "color": "#f4b860", "value": 10000},
     "staff_portuz": {"name": "Cajado do Portuz", "kind": "weapon",   "stackable": False, "color": "#9b6dff",
-                     "slot": "hand", "visual": "staff"},
+                     "slot": "hand", "visual": "staff", "rarity": "raro", "dmg": {"n": 1, "d": 6}, "atk": 1},
+
+    # --- equipamento inicial (o kit simples da Robetina, assistente social) ---
+    "touca_la":         {"name": "Touca de Lã",      "kind": "armor",   "stackable": False, "color": "#8a7d63", "slot": "head",     "visual": "helmet",   "rarity": "comum", "ac": 0, "value": 4},
+    "camiseta_surrada": {"name": "Camiseta Surrada", "kind": "armor",   "stackable": False, "color": "#b6532f", "slot": "chest",    "visual": "shirt",    "rarity": "comum", "ac": 1, "value": 6},
+    "ombreira_couro":   {"name": "Ombreira de Couro","kind": "armor",   "stackable": False, "color": "#6e573e", "slot": "shoulder", "visual": "pauldron", "rarity": "comum", "ac": 0, "value": 5},
+    "capa_puida":       {"name": "Capa Puída",       "kind": "armor",   "stackable": False, "color": "#5a5a6a", "slot": "back",     "visual": "cloak",    "rarity": "comum", "ac": 0, "value": 5},
+    "calca_jeans":      {"name": "Calça Jeans",      "kind": "armor",   "stackable": False, "color": "#3a5a86", "slot": "legs",     "visual": "pants",    "rarity": "comum", "ac": 1, "value": 6},
+    "chinelo":          {"name": "Chinelo de Dedo",  "kind": "armor",   "stackable": False, "color": "#3a8a6a", "slot": "feet",     "visual": "sandal",   "rarity": "comum", "ac": 0, "value": 3},
+    "faca_cozinha":     {"name": "Faca de Cozinha",  "kind": "weapon",  "stackable": False, "color": "#cbd2d9", "slot": "hand_r",   "visual": "knife",    "rarity": "comum", "dmg": {"n": 1, "d": 4}, "value": 6},
+    "tampa_panela":     {"name": "Tampa de Panela",  "kind": "armor",   "stackable": False, "color": "#9aa0aa", "slot": "hand_l",   "visual": "lid",      "rarity": "comum", "ac": 1, "value": 5},
+    "anel_lata":        {"name": "Anel de Lata",     "kind": "trinket", "stackable": False, "color": "#b9b2a0", "slot": "ring",     "visual": "ring",     "rarity": "comum", "atk": 0, "value": 4},
+    "cordao_fake":      {"name": "Cordão Banhado",   "kind": "trinket", "stackable": False, "color": "#d9c27a", "slot": "neck",     "visual": "amulet",   "rarity": "comum", "ac": 0, "value": 5},
 
     # --- trofeus de caca (bichos do Descampado) ---
     "rabo_rato":     {"name": "Rabo de Rato",     "kind": "trofeu", "stackable": True, "color": "#8a857d", "value": 2},
@@ -29,7 +41,8 @@ ITEMS = {
     "bornal_cria":   {"name": "Bornal da Cria",   "kind": "trofeu", "stackable": True, "color": "#6b5a3a", "value": 5},
     "marreta_velha": {"name": "Marreta Enferrujada", "kind": "trofeu", "stackable": True, "color": "#6b6256", "value": 14},
     # --- drops unicos de chefe ---
-    "correntao_ouro":  {"name": "Correntão de Ouro",    "kind": "tesouro", "stackable": False, "color": "#f4d06a", "value": 250},
+    "correntao_ouro":  {"name": "Correntão de Ouro",    "kind": "tesouro", "stackable": False, "color": "#f4d06a", "value": 250,
+                        "slot": "neck", "visual": "chain", "rarity": "raro", "ac": 1, "atk": 1},
     "microfone_patrao":{"name": "Microfone do Patrão",  "kind": "tesouro", "stackable": False, "color": "#c9c2cc", "value": 120},
     "presa_velho_bob": {"name": "Presa Quebrada do Velho Bob", "kind": "tesouro", "stackable": False, "color": "#d9cba0", "value": 180},
     "couro_velho_bob": {"name": "Couro do Velho Bob",   "kind": "tesouro", "stackable": True,  "color": "#5a5048", "value": 20},
@@ -62,8 +75,13 @@ def is_stackable(item_id):
     return bool(it and it["stackable"])
 
 
-# Espacos de equipamento (ordem usada na interface). Por ora, so a mao.
-EQUIP_SLOTS = ["hand"]
+# Espacos de equipamento (11 no total). Ordem usada como referencia; o cliente
+# desenha o boneco com seu proprio arranjo.
+EQUIP_SLOTS = ["head", "neck", "shoulder", "back", "chest",
+               "hand_r", "hand_l", "ring1", "ring2", "legs", "feet"]
+
+# Familias: um item pode declarar um espaco "generico" que cai no primeiro livre.
+_FAMILY = {"hand": ["hand_r", "hand_l"], "ring": ["ring1", "ring2"]}
 
 
 def slot_of(item_id):
@@ -71,8 +89,54 @@ def slot_of(item_id):
     return it.get("slot") if it else None
 
 
+def resolve_slot(item_id, equipment):
+    """Espaco real onde o item vai. Familias (hand/ring) caem no primeiro livre;
+    se ambos cheios, troca o primeiro. Espacos especificos vao direto."""
+    s = slot_of(item_id)
+    if s in _FAMILY:
+        opts = _FAMILY[s]
+        for o in opts:
+            if not (equipment or {}).get(o):
+                return o
+        return opts[0]
+    return s
+
+
 def is_equippable(item_id):
     return slot_of(item_id) is not None
+
+
+def rarity_of(item_id):
+    it = ITEMS.get(item_id)
+    return (it.get("rarity") if it else None) or "comum"
+
+
+def equip_summary(equipment):
+    """Soma os bonus de tudo que esta vestido: CA, acerto e o dano da arma."""
+    ac = atk = 0
+    dmg = None
+    for _slot, iid in (equipment or {}).items():
+        it = ITEMS.get(iid)
+        if not it:
+            continue
+        ac += int(it.get("ac", 0))
+        atk += int(it.get("atk", 0))
+        if it.get("dmg"):          # arma equipada numa das maos define o dano
+            dmg = dict(it["dmg"])
+    return {"ac": ac, "atk": atk, "dmg": dmg}
+
+
+# Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).
+STARTER_SET = ["touca_la", "cordao_fake", "ombreira_couro", "capa_puida",
+               "camiseta_surrada", "faca_cozinha", "tampa_panela", "anel_lata",
+               "calca_jeans", "chinelo"]
+
+
+def grant_starter_set(bag):
+    """Poe o kit inicial na mochila (lista de pilhas). Devolve a propria bag."""
+    for iid in STARTER_SET:
+        add_to_bag(bag, iid, 1)
+    return bag
 
 
 def shows_staff(item_id):
@@ -82,11 +146,13 @@ def shows_staff(item_id):
 
 
 def catalog():
-    """O que o cliente precisa pra nomear, desenhar e equipar cada item."""
+    """O que o cliente precisa pra nomear, desenhar, equipar e mostrar cada item."""
     return {
         k: {"name": v["name"], "kind": v["kind"],
             "stackable": v["stackable"], "color": v["color"],
-            "equippable": "slot" in v, "slot": v.get("slot")}
+            "equippable": "slot" in v, "slot": v.get("slot"),
+            "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
+            "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg")}
         for k, v in ITEMS.items()
     }
 

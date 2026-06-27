@@ -132,6 +132,9 @@ let equipment = {};           // equipamento local: slot -> item_id
 const catalog = {};           // definicoes de itens vindas do servidor
 const ground = new Map();     // "x,y" -> item_id (itens no chao agora)
 let myFicha = {};             // ficha do personagem (raca, classe, atributos, vida)
+let grimoireData = null;      // dados do Grimorio vindos do servidor (pool, limites, escolhido)
+let grimoireSel = null;       // selecao local em edicao {cantrips:Set, spells:Set}
+const SPELL_CLASSES = new Set(['mago','feiticeiro','bruxo','clerigo','druida','bardo','paladino','patrulheiro']);
 let classFeaturesData = {};   // features por classe (do servidor): id -> [[nivel,nome,desc],...]
 let featsCatalog = [];        // talentos do feat-or-ASI
 let combat = null;            // estado da luta por turnos (null = fora de combate)
@@ -2806,6 +2809,8 @@ function drawItemIcon(c, cx, cy, size, itemId, glow){
     c.beginPath(); c.arc(cx, cy, r*0.6, 0, Math.PI*2); c.stroke();      // anel interno
     c.fillStyle = shade(col,0.28);
     c.beginPath(); c.arc(cx - r*0.3, cy - r*0.32, r*0.34, 0, Math.PI*2); c.fill(); // brilho
+  } else if(def.visual && drawEquipVisual(c, cx, cy, size, def.visual, col)){
+    // equipamento: icone proprio (capacete, arma, anel...) ja desenhado
   } else {
     const h = size*0.6, w = Math.max(2, size*0.08);
     c.fillStyle = '#5a3f28';
@@ -3622,6 +3627,11 @@ function connectWithToken(token){
       if(d.asi_applied){ toastMsg('Melhoria aplicada!'); setTimeout(maybeOpenAsi, 300); }
     }
   });
+  socket.on('grimoire', d=>{
+    grimoireData = d || null;
+    grimoireSel = null;                       // recarrega a selecao a partir do que veio
+    if(fichaTab === 'grimorio' && fichaPanelOpen) renderFicha();
+  });
   socket.on('toast', d=>{ if(d && d.text) toastMsg(d.text); });
   socket.on('xp', d=>{
     if(!d) return;
@@ -3976,8 +3986,22 @@ if(pctx) requestAnimationFrame(previewLoop);
 //  MOCHILA (inventário)
 // ===========================================================================
 const INV_SLOTS = 20;
-const EQUIP_SLOTS = ['hand'];
-const SLOT_LABELS = { hand: 'Mão' };
+const EQUIP_SLOTS = ['head','neck','shoulder','back','chest','hand_r','hand_l','ring1','ring2','legs','feet'];
+const SLOT_LABELS = { head:'Cabeça', neck:'Colar', shoulder:'Ombro', back:'Costa', chest:'Peito',
+  hand_r:'Mão dir.', hand_l:'Mão esq.', ring1:'Anel', ring2:'Anel', legs:'Calça', feet:'Pé' };
+// arranjo do boneco (grid 3 colunas x 6 linhas; silhueta no centro)
+const DOLL_LAYOUT = {
+  head:{col:2,row:1},
+  neck:{col:1,row:2}, shoulder:{col:3,row:2},
+  chest:{col:1,row:3}, back:{col:3,row:3},
+  hand_r:{col:1,row:4}, hand_l:{col:3,row:4},
+  ring1:{col:1,row:5}, ring2:{col:3,row:5},
+  legs:{col:1,row:6}, feet:{col:3,row:6},
+};
+// visual fantasma de cada espaco vazio
+const SLOT_GHOST = { head:'helmet', neck:'amulet', shoulder:'pauldron', back:'cloak', chest:'shirt',
+  hand_r:'sword', hand_l:'shield', ring1:'ring', ring2:'ring', legs:'pants', feet:'sandal' };
+const RARITY_COL = { comum:'#7c8290', incomum:'#5ec27a', raro:'#5a9bf4', epico:'#b06bff', lendario:'#f4b860' };
 
 function equipItem(itemId){ if(socket) socket.emit('equip', { item: itemId }); }
 function unequipSlot(slot){ if(socket) socket.emit('unequip', { slot }); }
@@ -3985,28 +4009,177 @@ function unequipSlot(slot){ if(socket) socket.emit('unequip', { slot }); }
 function refreshEquip(){
   if(!equipRow) return;
   equipRow.innerHTML = '';
+  equipRow.style.display = 'grid';
+  equipRow.style.gridTemplateColumns = '60px 1fr 60px';
+  equipRow.style.gap = '7px 8px';
+  equipRow.style.alignItems = 'center';
+  equipRow.style.justifyItems = 'center';
+
+  // silhueta central: o proprio personagem, grande
+  const sil = document.createElement('div');
+  sil.style.gridColumn = '2'; sil.style.gridRow = '2 / span 5';
+  sil.style.alignSelf = 'stretch';
+  sil.style.display = 'flex'; sil.style.alignItems = 'center'; sil.style.justifyContent = 'center';
+  sil.style.position = 'relative';
+  const sc = document.createElement('canvas'); sc.width = 104; sc.height = 158;
+  sc.style.width = '104px'; sc.style.height = '158px';
+  const stx = sc.getContext('2d');
+  // pedestal/halo sutil atras
+  const grd = stx.createRadialGradient(52, 96, 8, 52, 96, 70);
+  grd.addColorStop(0, 'rgba(155,109,255,.14)'); grd.addColorStop(1, 'rgba(155,109,255,0)');
+  stx.fillStyle = grd; stx.fillRect(0, 0, 104, 158);
+  const me = players.get(myId);
+  if(me && me.look){ try{ drawCharacter(stx, 12, 30, 80, me.look, 'down', '', false, false, 0); }catch(e){} }
+  sil.appendChild(sc);
+  equipRow.appendChild(sil);
+
   for(const slot of EQUIP_SLOTS){
+    const pos = DOLL_LAYOUT[slot] || {col:1,row:1};
     const cell = document.createElement('div'); cell.className = 'eq-slot';
+    cell.style.gridColumn = String(pos.col); cell.style.gridRow = String(pos.row);
     const box = document.createElement('div'); box.className = 'slot';
     const itemId = equipment[slot];
     if(itemId){
       box.classList.add('full');
       const def = catalog[itemId];
+      const rc = RARITY_COL[(def && def.rarity) || 'comum'] || RARITY_COL.comum;
+      box.style.borderColor = rc;
+      box.style.boxShadow = '0 0 9px ' + rc + '4d, inset 0 0 0 1px ' + rc + '66';
       box.title = (def ? def.name : itemId) + ' — clique pra tirar';
-      const c = document.createElement('canvas'); c.width = 48; c.height = 48;
-      drawItemIcon(c.getContext('2d'), 24, 24, 48, itemId, false);
+      const c = document.createElement('canvas'); c.width = 44; c.height = 44;
+      c.style.width = '44px'; c.style.height = '44px';
+      drawItemIcon(c.getContext('2d'), 22, 22, 44, itemId, false);
       box.appendChild(c);
       box.style.cursor = 'pointer';
       box.addEventListener('click', ()=> unequipSlot(slot));
     } else {
       box.classList.add('eq-empty');
-      box.title = 'Vazio';
+      box.title = SLOT_LABELS[slot] || slot;
+      const c = document.createElement('canvas'); c.width = 44; c.height = 44;
+      c.style.width = '44px'; c.style.height = '44px';
+      const gc = c.getContext('2d'); gc.globalAlpha = 0.16;
+      drawEquipVisual(gc, 22, 22, 40, SLOT_GHOST[slot] || 'ring', '#b8b2cf');
     }
     const label = document.createElement('span'); label.className = 'eq-label';
     label.textContent = SLOT_LABELS[slot] || slot;
     cell.appendChild(box); cell.appendChild(label);
     equipRow.appendChild(cell);
   }
+}
+
+// desenha o icone de cada tipo de equipamento (usado nos espacos e na mochila)
+function drawEquipVisual(c, cx, cy, s, visual, col){
+  const d1 = shade(col, -0.28), hi = shade(col, 0.3);
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  switch(visual){
+    case 'helmet': {
+      c.fillStyle = col;
+      c.beginPath(); c.arc(cx, cy, s*0.32, Math.PI, 0); c.lineTo(cx+s*0.32, cy+s*0.1);
+      c.lineTo(cx-s*0.32, cy+s*0.1); c.closePath(); c.fill();
+      c.fillStyle = d1; c.fillRect(cx-s*0.36, cy+s*0.08, s*0.72, s*0.1);          // aba
+      c.fillRect(cx-s*0.06, cy-s*0.26, s*0.12, s*0.34);                            // protetor nasal
+      c.fillStyle = hi; c.beginPath(); c.arc(cx-s*0.12, cy-s*0.1, s*0.08, 0, 7); c.fill();
+      return true; }
+    case 'shirt': case 'armor': {
+      c.fillStyle = col;
+      c.beginPath();
+      c.moveTo(cx-s*0.16, cy-s*0.3); c.lineTo(cx-s*0.34, cy-s*0.16); c.lineTo(cx-s*0.24, cy+s*0.02);
+      c.lineTo(cx-s*0.2, cy+s*0.34); c.lineTo(cx+s*0.2, cy+s*0.34); c.lineTo(cx+s*0.24, cy+s*0.02);
+      c.lineTo(cx+s*0.34, cy-s*0.16); c.lineTo(cx+s*0.16, cy-s*0.3); c.closePath(); c.fill();
+      c.fillStyle = d1; c.beginPath();                                            // gola
+      c.moveTo(cx-s*0.16, cy-s*0.3); c.lineTo(cx, cy-s*0.14); c.lineTo(cx+s*0.16, cy-s*0.3);
+      c.lineTo(cx, cy-s*0.22); c.closePath(); c.fill();
+      return true; }
+    case 'pauldron': {
+      c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy-s*0.02, s*0.34, s*0.26, 0, Math.PI, 0); c.fill();
+      c.fillStyle = d1; c.fillRect(cx-s*0.34, cy-s*0.02, s*0.68, s*0.14);
+      c.fillStyle = hi; c.beginPath(); c.ellipse(cx, cy-s*0.04, s*0.2, s*0.14, 0, Math.PI, 0); c.fill();
+      c.strokeStyle = d1; c.lineWidth = 1.5; c.beginPath(); c.moveTo(cx, cy-s*0.28); c.lineTo(cx, cy+s*0.1); c.stroke();
+      return true; }
+    case 'cloak': {
+      c.fillStyle = col; c.beginPath();
+      c.moveTo(cx-s*0.06, cy-s*0.32); c.lineTo(cx+s*0.06, cy-s*0.32);
+      c.lineTo(cx+s*0.3, cy+s*0.34); c.lineTo(cx-s*0.3, cy+s*0.34); c.closePath(); c.fill();
+      c.strokeStyle = d1; c.lineWidth = 1.4;
+      c.beginPath(); c.moveTo(cx-s*0.1, cy-s*0.1); c.lineTo(cx-s*0.16, cy+s*0.3);
+      c.moveTo(cx+s*0.1, cy-s*0.1); c.lineTo(cx+s*0.16, cy+s*0.3);
+      c.moveTo(cx, cy-s*0.2); c.lineTo(cx, cy+s*0.32); c.stroke();
+      c.fillStyle = d1; c.fillRect(cx-s*0.12, cy-s*0.34, s*0.24, s*0.07);          // colarinho
+      return true; }
+    case 'pants': {
+      c.fillStyle = col;
+      c.fillRect(cx-s*0.22, cy-s*0.3, s*0.44, s*0.16);                            // cintura
+      c.beginPath(); c.moveTo(cx-s*0.22, cy-s*0.16); c.lineTo(cx-s*0.04, cy-s*0.16);
+      c.lineTo(cx-s*0.06, cy+s*0.34); c.lineTo(cx-s*0.2, cy+s*0.34); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(cx+s*0.22, cy-s*0.16); c.lineTo(cx+s*0.04, cy-s*0.16);
+      c.lineTo(cx+s*0.06, cy+s*0.34); c.lineTo(cx+s*0.2, cy+s*0.34); c.closePath(); c.fill();
+      c.fillStyle = d1; c.fillRect(cx-s*0.02, cy-s*0.16, s*0.04, s*0.5);
+      return true; }
+    case 'sandal': {
+      c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy+s*0.16, s*0.3, s*0.13, 0, 0, 7); c.fill();
+      c.strokeStyle = d1; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(cx-s*0.18, cy+s*0.08); c.lineTo(cx, cy-s*0.06); c.lineTo(cx+s*0.18, cy+s*0.08); c.stroke();
+      c.beginPath(); c.moveTo(cx, cy-s*0.06); c.lineTo(cx, cy+s*0.1); c.stroke();
+      return true; }
+    case 'knife': {
+      c.save(); c.translate(cx, cy); c.rotate(-Math.PI/4);
+      c.fillStyle = col; c.beginPath();
+      c.moveTo(-s*0.04, -s*0.3); c.lineTo(s*0.06, -s*0.26); c.lineTo(s*0.04, s*0.06); c.lineTo(-s*0.04, s*0.06); c.closePath(); c.fill();
+      c.fillStyle = hi; c.fillRect(-s*0.04, -s*0.3, s*0.02, s*0.36);              // fio
+      c.fillStyle = '#5a3f28'; c.fillRect(-s*0.05, s*0.06, s*0.1, s*0.2);         // cabo
+      c.restore(); return true; }
+    case 'sword': case 'staff': {
+      if(visual === 'staff'){
+        const h = s*0.6, w = Math.max(2, s*0.08);
+        c.fillStyle = '#5a3f28'; c.fillRect(cx-w/2, cy-h*0.3, w, h*0.85);
+        const oy = cy-h*0.4, orb = s*0.17;
+        c.save(); c.globalAlpha = 0.5; c.fillStyle = col; c.beginPath(); c.arc(cx, oy, orb*1.5, 0, 7); c.fill(); c.restore();
+        c.fillStyle = shade(col, 0.12); c.beginPath(); c.arc(cx, oy, orb, 0, 7); c.fill();
+        c.fillStyle = '#fff'; c.beginPath(); c.arc(cx-orb*0.28, oy-orb*0.28, orb*0.34, 0, 7); c.fill();
+        return true;
+      }
+      c.save(); c.translate(cx, cy); c.rotate(-Math.PI/4);
+      c.fillStyle = col; c.beginPath();
+      c.moveTo(0, -s*0.34); c.lineTo(s*0.05, -s*0.28); c.lineTo(s*0.05, s*0.1); c.lineTo(-s*0.05, s*0.1); c.lineTo(-s*0.05, -s*0.28); c.closePath(); c.fill();
+      c.fillStyle = hi; c.fillRect(-s*0.012, -s*0.32, s*0.024, s*0.4);
+      c.fillStyle = d1; c.fillRect(-s*0.16, s*0.1, s*0.32, s*0.05);               // guarda
+      c.fillStyle = '#5a3f28'; c.fillRect(-s*0.04, s*0.15, s*0.08, s*0.16);       // punho
+      c.restore(); return true; }
+    case 'shield': case 'lid': {
+      if(visual === 'lid'){
+        c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, s*0.34, s*0.3, 0, 0, 7); c.fill();
+        c.strokeStyle = d1; c.lineWidth = 1.5; c.beginPath(); c.ellipse(cx, cy, s*0.34, s*0.3, 0, 0, 7); c.stroke();
+        c.fillStyle = d1; c.beginPath(); c.arc(cx, cy-s*0.02, s*0.07, 0, 7); c.fill();   // pegador
+        c.fillStyle = hi; c.beginPath(); c.ellipse(cx-s*0.1, cy-s*0.1, s*0.1, s*0.06, -0.5, 0, 7); c.fill();
+        return true;
+      }
+      c.fillStyle = col; c.beginPath();
+      c.moveTo(cx, cy-s*0.32); c.lineTo(cx+s*0.28, cy-s*0.22); c.lineTo(cx+s*0.22, cy+s*0.16);
+      c.lineTo(cx, cy+s*0.34); c.lineTo(cx-s*0.22, cy+s*0.16); c.lineTo(cx-s*0.28, cy-s*0.22); c.closePath(); c.fill();
+      c.strokeStyle = hi; c.lineWidth = 1.4;
+      c.beginPath(); c.moveTo(cx, cy-s*0.28); c.lineTo(cx, cy+s*0.28); c.moveTo(cx-s*0.24, cy-s*0.06); c.lineTo(cx+s*0.24, cy-s*0.06); c.stroke();
+      return true; }
+    case 'ring': {
+      c.strokeStyle = col; c.lineWidth = s*0.1;
+      c.beginPath(); c.arc(cx, cy+s*0.06, s*0.2, 0, 7); c.stroke();
+      c.fillStyle = hi; c.beginPath();                                           // gema
+      c.moveTo(cx, cy-s*0.3); c.lineTo(cx+s*0.1, cy-s*0.18); c.lineTo(cx, cy-s*0.06); c.lineTo(cx-s*0.1, cy-s*0.18); c.closePath(); c.fill();
+      return true; }
+    case 'amulet': case 'chain': {
+      c.strokeStyle = (visual === 'chain') ? col : shade(col, 0.1); c.lineWidth = 2;
+      c.beginPath(); c.arc(cx, cy-s*0.12, s*0.26, Math.PI*0.15, Math.PI*0.85); c.stroke();
+      if(visual === 'chain'){
+        c.fillStyle = col;
+        for(let i=-2;i<=2;i++){ const a = Math.PI*0.5 + i*0.32; const rx = cx+Math.cos(a)*s*0.26, ry = cy-s*0.12+Math.sin(a)*s*0.26;
+          c.beginPath(); c.arc(rx, ry, s*0.05, 0, 7); c.fill(); }
+      } else {
+        c.fillStyle = col; c.beginPath();                                        // pingente
+        c.moveTo(cx, cy+s*0.04); c.lineTo(cx+s*0.12, cy+s*0.16); c.lineTo(cx, cy+s*0.3); c.lineTo(cx-s*0.12, cy+s*0.16); c.closePath(); c.fill();
+        c.fillStyle = hi; c.beginPath(); c.arc(cx, cy+s*0.16, s*0.04, 0, 7); c.fill();
+      }
+      return true; }
+  }
+  return false;
 }
 
 function refreshInventory(){
@@ -4038,6 +4211,9 @@ function refreshInventory(){
         q.textContent = stack.qty; slot.appendChild(q);
       }
       if(eqp){
+        const rc = RARITY_COL[def.rarity || 'comum'] || RARITY_COL.comum;
+        slot.style.borderColor = rc;
+        slot.style.boxShadow = 'inset 0 0 0 1px ' + rc + '55';
         slot.style.cursor = 'pointer';
         slot.addEventListener('click', ()=> equipItem(stack.item));
       }
@@ -4375,16 +4551,107 @@ function renderFicha(){
   let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
     '<div style="font:700 16px Cinzel,serif;color:#f4d8a0">Ficha</div>'+
     '<button id="ficha-x" style="background:none;border:none;color:#9b95b4;font-size:18px;cursor:pointer">×</button></div>';
+  const caster = f.class_id && SPELL_CLASSES.has(f.class_id);
+  if(fichaTab==='grimorio' && !caster) fichaTab='geral';   // trocou de classe? volta
   h += '<div style="display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid #2a2742">'+
-    tabBtn('geral','Geral')+tabBtn('passivas','Passivas')+tabBtn('marcas','Marcas')+'</div>';
+    tabBtn('geral','Geral')+tabBtn('passivas','Passivas')+
+    (caster ? tabBtn('grimorio','Grimório') : '')+tabBtn('marcas','Marcas')+'</div>';
   if(fichaTab==='geral') h += _fichaGeral(f);
   else if(fichaTab==='passivas') h += _fichaPassivas(f);
+  else if(fichaTab==='grimorio') h += _fichaGrimorio();
   else h += _fichaMarcas(f);
   fichaPanel.innerHTML = h;
   const x = document.getElementById('ficha-x'); if(x) x.onclick = ()=> toggleFicha(false);
   const ab = document.getElementById('ficha-asi'); if(ab) ab.onclick = ()=> maybeOpenAsi();
   fichaPanel.querySelectorAll('[data-tab]').forEach(b=>
-    b.onclick = ()=>{ fichaTab = b.getAttribute('data-tab'); renderFicha(); });
+    b.onclick = ()=>{ const t=b.getAttribute('data-tab'); if(t==='grimorio') grimoireData=null; fichaTab=t; renderFicha(); });
+  fichaPanel.querySelectorAll('[data-gtog]').forEach(b=>
+    b.onclick = ()=> toggleGrimoire(b.getAttribute('data-gtog')));
+  const gsv = document.getElementById('grim-save'); if(gsv) gsv.onclick = saveGrimoire;
+  if(fichaTab==='grimorio' && grimoireData===null) socket.emit('grimoire_get');
+}
+
+function _fichaGrimorio(){
+  const g = grimoireData;
+  if(!g) return '<div style="padding:14px;text-align:center;color:#9b95b4;font-size:12px">Abrindo o grimório…</div>';
+  if(!g.caster) return '<div style="padding:14px;color:#9b95b4;font-size:12px">Sua classe não conjura magias.</div>';
+  if(!grimoireSel){ grimoireSel = { cantrips:new Set(g.chosen.cantrips||[]), spells:new Set(g.chosen.spells||[]) }; }
+  const sel = grimoireSel, slots = g.slots || {};
+  const slotFor = (lvl)=>{ for(let L=lvl; L<=9; L++){ const s=slots[String(L)]; if(s && s.cur>0) return true; } return false; };
+  const kindTxt = g.kind==='prepare' ? 'Você <b style="color:#c9a0ff">prepara</b> magias da lista da classe.'
+                : 'Você <b style="color:#c9a0ff">conhece</b> estas magias.';
+  const spLabel = g.kind==='prepare' ? 'preparadas' : 'conhecidas';
+  let h = '<div style="font:600 11.5px Inter;color:#9b95b4;margin:2px 0 8px;line-height:1.4">'+kindTxt+'</div>';
+  const ctOk = sel.cantrips.size<=g.cantrip_limit, spOk = sel.spells.size<=g.spell_limit;
+  h += '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+    '<div style="flex:1;text-align:center;background:#1b1830;border:1px solid #2e2a47;border-radius:9px;padding:6px">'+
+      '<div style="font:700 10px Inter;color:#9b6dff">TRUQUES</div>'+
+      '<div style="font:700 14px Cinzel,serif;color:'+(ctOk?'#e8e4f0':'#ff7a7a')+'">'+sel.cantrips.size+'/'+g.cantrip_limit+'</div></div>'+
+    '<div style="flex:1;text-align:center;background:#1b1830;border:1px solid #2e2a47;border-radius:9px;padding:6px">'+
+      '<div style="font:700 10px Inter;color:#9b6dff">'+spLabel.toUpperCase()+'</div>'+
+      '<div style="font:700 14px Cinzel,serif;color:'+(spOk?'#e8e4f0':'#ff7a7a')+'">'+sel.spells.size+'/'+g.spell_limit+'</div></div></div>';
+  const slvls = Object.keys(slots).map(Number).sort((a,b)=> a-b);
+  if(slvls.length){
+    h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+slvls.map(L=>{
+      const s=slots[String(L)];
+      return '<span style="font:600 10.5px Inter;color:#c9a0ff;background:#241d44;border:1px solid #473e6e;border-radius:7px;padding:3px 7px">N'+L+' '+s.cur+'/'+s.max+'</span>';
+    }).join('')+'</div>';
+  }
+  const colHead = (left)=> '<div style="display:flex;align-items:center;justify-content:space-between;margin:11px 2px 3px;'+
+    'font:700 10px Inter;color:#6c688a;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #2a2742;padding-bottom:3px">'+
+    '<span>'+left+'</span><span>Usável</span></div>';
+  const row = (sp, isCantrip)=>{
+    const on = (isCantrip?sel.cantrips:sel.spells).has(sp.id);
+    const usable = isCantrip ? true : (on && slotFor(sp.level));
+    const tag = sp.range==='self'?'você':(sp.range==='ranged'?'distância':'corpo a corpo');
+    const tagCol = sp.range==='self'?'#5ec27a':(sp.range==='ranged'?'#c9a0ff':'#f4b860');
+    const ubadge = isCantrip
+       ? '<span style="font:700 9.5px Inter;color:#5ec27a">à vontade</span>'
+       : (on ? (usable? '<span style="font:700 9.5px Inter;color:#5ec27a">✓ sim</span>'
+                      : '<span style="font:700 9.5px Inter;color:#6c688a">sem espaço</span>')
+             : '<span style="font:700 9.5px Inter;color:#403c5a">—</span>');
+    return '<div style="display:flex;align-items:center;gap:8px;margin:4px 0">'+
+      '<button data-gtog="'+(isCantrip?'c':'s')+':'+sp.id+'" style="flex:1;text-align:left;padding:7px 9px;border-radius:9px;cursor:pointer;'+
+        'border:1px solid '+(on?'#9b6dff':'#2e2a47')+';background:'+(on?'#241d44':'#15131f')+';color:'+(on?'#e8e4f0':'#b8b2cf')+'">'+
+        '<div style="display:flex;align-items:center;gap:6px"><span style="font:700 12px Inter">'+(on?'◉ ':'○ ')+esc(sp.name)+'</span>'+
+        '<span style="font:600 9.5px Inter;color:'+tagCol+'">'+tag+'</span></div>'+
+        '<div style="font:500 10px Inter;color:#9b95b4;margin-top:2px">'+esc(sp.desc)+'</div></button>'+
+      '<div style="width:62px;text-align:right">'+ubadge+'</div></div>';
+  };
+  if((g.pool.cantrips||[]).length){
+    h += colHead('Truques');
+    h += g.pool.cantrips.map(sp=> row(sp, true)).join('');
+  }
+  const byLvl = g.pool.by_level || {};
+  Object.keys(byLvl).map(Number).sort((a,b)=> a-b).forEach(L=>{
+    const s = slots[String(L)];
+    h += colHead((g.kind==='prepare'?'Preparar':'Conhecer')+' · Nível '+L+(s?(' · '+s.cur+'/'+s.max):''));
+    h += byLvl[String(L)].map(sp=> row(sp, false)).join('');
+  });
+  h += '<button id="grim-save" style="width:100%;margin-top:12px;padding:11px;border-radius:10px;border:none;cursor:pointer;'+
+    'background:linear-gradient(180deg,#7d4fe0,#5e3bb0);color:#fff;font:700 14px Inter">Salvar Grimório</button>';
+  h += '<div style="text-align:center;font-size:10px;color:#6c688a;margin-top:6px">'+
+    (g.kind==='prepare'?'prepare suas magias antes de entrar em combate':'escolha quais magias você conhece')+'</div>';
+  return h;
+}
+
+function toggleGrimoire(key){
+  if(!grimoireData || !grimoireSel) return;
+  const i = key.indexOf(':'); const typ = key.slice(0,i), id = key.slice(i+1);
+  const set = typ==='c' ? grimoireSel.cantrips : grimoireSel.spells;
+  const lim = typ==='c' ? grimoireData.cantrip_limit : grimoireData.spell_limit;
+  if(set.has(id)){ set.delete(id); }
+  else {
+    if(set.size >= lim){ toastMsg('Limite atingido ('+lim+'). Remova uma antes.', true); return; }
+    set.add(id);
+  }
+  renderFicha();
+}
+
+function saveGrimoire(){
+  if(!grimoireSel) return;
+  socket.emit('set_grimoire', { cantrips:[...grimoireSel.cantrips], spells:[...grimoireSel.spells] });
+  toastMsg('Grimório salvo.');
 }
 
 // ---- escolha de melhoria de nível: +2/+1 em atributos OU um talento (BG3) ----
