@@ -357,6 +357,15 @@ def apply_status(c, name, turns, dmg=None):
 def has_status(c, name):
     return ((c.get("status") or {}).get(name, {}) or {}).get("turns", 0) > 0
 
+def _enemy_inflict(mon, tgt, name, turns, dot=None):
+    """Inimigo tenta aplicar um debuff num alvo. Sob a Canção do Cabaré (José) o
+    debuff é bloqueado e VOLTA pro próprio inimigo (a trapaça do gato preto)."""
+    if has_status(tgt, "cancao"):
+        apply_status(mon, name, turns, dot)
+        return True       # refletido no inimigo
+    apply_status(tgt, name, turns, dot)
+    return False
+
 def is_incapacitated(c):
     return any(has_status(c, k) for k in INCAP_STATUS)
 
@@ -651,6 +660,14 @@ def use_ability(enc, actor, aid, target=None):
                     "target": target["cid"], "target_name": target["name"],
                     "killed": not target.get("alive", True),
                     "target_hp": target["hp"], "target_hp_max": target["hp_max"]})
+    elif aid == "cancao_cabare":
+        if actor.get("_cancao_used"):
+            res["fail"] = True; return res
+        actor["_cancao_used"] = True
+        apply_status(actor, "cancao", 10)        # 10 turnos: imune a AoE + debuff (que refletem no inimigo)
+        actor["skip_next"] = max(int(actor.get("skip_next", 0)), 3)   # canta 3 turnos sem poder agir
+        actor["_skip_reason"] = "🎵 cantando"
+        res.update({"cancao": True, "self": True, "target": actor["cid"]})
     else:
         res["fail"] = True
     return res
@@ -736,9 +753,16 @@ def monster_ability(enc, mon, tgt, ab):
     if ab.get("aoe"):
         save = ab.get("save")
         dc = int(ab.get("dc", 14))
-        splash = []
+        splash = []; reflected = 0
         for pl in alive_of(enc, "player"):
             dd = _roll_dmg(ab.get("dmg_bonus", {"n": 6, "d": 6}), False)
+            if has_status(pl, "cancao"):      # Canção do Cabaré: imune ao AoE e tudo volta pro inimigo
+                reflected += dd
+                if ab.get("status"):
+                    apply_status(mon, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
+                splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": 0, "blocked": True,
+                               "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": False})
+                continue
             saved = False
             if save and (_d20() + _save_mod(pl, save)) >= dc:
                 saved = True; dd = dd // 2
@@ -747,8 +771,11 @@ def monster_ability(enc, mon, tgt, ab):
                 apply_status(pl, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
             splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": dd,
                            "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": not pl.get("alive")})
+        if reflected:                         # o inimigo toma todo o dano que tentou espalhar
+            _apply_damage(mon, reflected)
         res.update({"aoe": True, "splash": splash, "save": save, "dc": dc,
-                    "applied": ab.get("status"),
+                    "applied": ab.get("status"), "reflected": reflected,
+                    "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"], "mon_killed": not mon.get("alive"),
                     "dmg": (splash[0]["dmg"] if splash else 0),
                     "target_hp": tgt["hp"], "killed": not tgt.get("alive")})
         return res
@@ -774,7 +801,8 @@ def monster_ability(enc, mon, tgt, ab):
         success = roll >= dc
         res.update({"save": save, "save_roll": roll, "dc": dc, "success": success, "gaze": True})
         if not success:
-            apply_status(tgt, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
+            if _enemy_inflict(mon, tgt, ab["status"], int(ab.get("turns", 1)), ab.get("dot")):
+                res["reflected_status"] = True
             res["applied"] = ab["status"]
         return res
     # inflict / heavy / drain: rola um ATAQUE e, no acerto, aplica o efeito
@@ -792,7 +820,8 @@ def monster_ability(enc, mon, tgt, ab):
             before = mon["hp"]; mon["hp"] = min(mon["hp_max"], mon["hp"] + dealt)
             res.update({"self_heal": mon["hp"] - before, "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"]})
         if ab.get("status") and tgt.get("alive"):
-            apply_status(tgt, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
+            if _enemy_inflict(mon, tgt, ab["status"], int(ab.get("turns", 1)), ab.get("dot")):
+                res["reflected_status"] = True
             res["applied"] = ab["status"]
         res["target_hp"] = tgt["hp"]
         res["killed"] = not tgt.get("alive")

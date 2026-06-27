@@ -547,7 +547,9 @@ def _resume(sid):
                 if sk:
                     cur["skip_next"] -= 1
                     actions.append({"cid": cur["cid"], "name": cur["name"],
-                                    "steps": [], "attack": None, "skipped": "poção"})
+                                    "steps": [], "attack": None, "skipped": cur.get("_skip_reason", "poção")})
+                    if cur.get("skip_next", 0) <= 0:
+                        cur.pop("_skip_reason", None)
                 else:
                     actions.append({"cid": cur["cid"], "name": cur["name"],
                                     "steps": [], "attack": None, "skipped": "atordoado"})
@@ -1135,7 +1137,8 @@ def on_move(data):
             if dest == "LOCKED":
                 emit("toast", {"text": "A porta esta trancada."})
             elif dest:
-                sx, sy = INTERIOR_SPAWN[0]
+                _sp = (wm.MAPS.get(dest, {}).get("spawns") or INTERIOR_SPAWN)
+                sx, sy = _sp[0]
                 _go_to(request.sid, dest, sx, sy, "up")
             return
         if mp in INTERIOR_MAPS:
@@ -1992,6 +1995,14 @@ GOD_FAGULHA = {
         "line_repeat": "O pacto ja foi selado entre nos, e a coruja ja e tua. Guarda tua Fagulha pra outro deus.",
         "line_none": "Tu sussurras 'fagulha' mas tuas maos estao vazias. A coruja nao sela pacto com promessa.",
         "line_other": "*a coruja inclina a cabeca lentamente* Esse pacto nao foi feito pra ti, nao es bruxo. Mas a Fagulha eu aceito. *a engole* Leva esta pocao e some da minha arvore.",
+    },
+    "god:jose": {
+        "ability": "cancao_cabare", "class": "bardo", "flag": "dom_jose",
+        "mark": "José trapaceia a seu favor",
+        "line": "*o gato preto abre um olho dourado no escuro do cabare* Ahh... uma Fagulha. Ha quanto tempo ninguem me trazia uma dessas. *se espreguica todo* Senta ai, bardo. Vou te ensinar a Cancao do Cabare: enquanto tu cantares, nenhum inimigo te toca com fogo, veneno ou maldicao. E quem tentar... aprende na carne que aqui quem trapaceia sou eu.",
+        "line_repeat": "*o gato boceja* A cancao eu ja te ensinei, bardo. Ninguem aprende a mesma musica duas vezes. Leva tua Fagulha pra outro deus.",
+        "line_none": "*o gato fecha o olho de novo* Vens cantar 'fagulha' de maos vazias? Some, bardo. O Jose nao da nota fiada.",
+        "line_other": "*o gato preto te mede de cima a baixo* Tu nao tens voz de bardo, forasteiro, essa cancao nao e pra ti. *estica a pata pra Fagulha* Mas isso aqui... isso eu fico. Toma tua pocao e cai fora do meu cabare.",
     },
 }
 # falas genericas pros deuses que ainda nao tem dom coordenado

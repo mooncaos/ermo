@@ -1067,7 +1067,7 @@ function drawForestTile(c, ch, px, py, ts, gx, gy){
 }
 
 function drawTile(c, ch, px, py, ts, gx, gy){
-  if(mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0)){ drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
+  if(mapName === 'taverna' || (mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0))){ drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
   if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
@@ -1163,6 +1163,22 @@ function drawTile(c, ch, px, py, ts, gx, gy){
       c.fillStyle = COL.door; c.fillRect(px+ts*0.25, py+ts*0.18, ts*0.5, ts*0.82);
       c.fillStyle = COL.doorKnob; c.fillRect(px+ts*0.62, py+ts*0.55, 2, 2);
       break;
+    case '{': {   // telhado da taverna enxaimel (telha escura em fileiras)
+      c.fillStyle = '#7a3b2a'; c.fillRect(px,py,ts,ts);
+      c.fillStyle = '#5e2c1f'; for(let i=0;i<ts;i+=5) c.fillRect(px, py+i, ts, 2);   // fileiras de telha
+      c.fillStyle = '#9a5038'; c.fillRect(px,py,ts,2);                                // crista clara no topo
+      break;
+    }
+    case '}': {   // parede enxaimel (Fachwerk): reboco claro + vigas escuras em X
+      c.fillStyle = '#e6ddc8'; c.fillRect(px,py,ts,ts);                               // reboco claro
+      c.fillStyle = '#5a3d28';
+      c.fillRect(px, py, ts, 3); c.fillRect(px, py+ts-3, ts, 3);                      // travessas horizontais
+      c.fillRect(px, py, 3, ts); c.fillRect(px+ts-3, py, 3, ts);                      // montantes verticais
+      c.strokeStyle = '#5a3d28'; c.lineWidth = 2.5;                                   // cruz de Santo André
+      c.beginPath(); c.moveTo(px+3, py+3); c.lineTo(px+ts-3, py+ts-3);
+      c.moveTo(px+ts-3, py+3); c.lineTo(px+3, py+ts-3); c.stroke();
+      break;
+    }
     case 'w':
       grassBase(c,px,py,ts,gx,gy);
       for(let i=0;i<4;i++){
@@ -3921,6 +3937,32 @@ function drawAuroraGlow(c, sx, sy, ts){
     c.lineTo(cx+Math.cos(an)*ts*0.62, cy+Math.sin(an)*ts*0.62); c.stroke(); }
   c.restore();
 }
+function drawCancaoGlow(c, sx, sy, ts){
+  // brilho de cabaré do José + notas musicais subindo (Canção do Cabaré)
+  const t = Date.now()/1000;
+  const cx = sx + ts/2, cy = sy + ts*0.5;
+  const a = 0.16 + 0.08*Math.abs(Math.sin(t*1.6));
+  c.save();
+  const gl = c.createRadialGradient(cx, cy, ts*0.1, cx, cy, ts*0.95);   // glow quente de palco
+  gl.addColorStop(0, 'rgba(255,210,140,'+a+')');
+  gl.addColorStop(0.55, 'rgba(214,120,170,'+(a*0.4).toFixed(3)+')');     // toque de rosa-cabaré
+  gl.addColorStop(1, 'rgba(214,120,170,0)');
+  c.fillStyle = gl; c.fillRect(sx-ts*0.7, sy-ts*0.7, ts*2.4, ts*2.4);
+  const notes = ['\u266a','\u266b','\u266c'];   // ♪ ♫ ♬ subindo em volta
+  c.textAlign = 'center';
+  for(let i=0;i<4;i++){
+    const prog = ((t*0.45 + i*0.27) % 1);
+    const ang = i*Math.PI/2 + t*0.5;
+    const nx = cx + Math.cos(ang)*ts*0.38;
+    const ny = cy - prog*ts*0.85 + ts*0.2;
+    c.globalAlpha = (0.85*(1-prog)) * (0.6+0.4*Math.sin(t*2+i));
+    c.fillStyle = (i%2) ? '#ffd27a' : '#e89ac0';
+    c.font = ((ts*0.26)|0)+'px serif';
+    c.fillText(notes[i%3], nx, ny);
+  }
+  c.globalAlpha = 1;
+  c.restore();
+}
 function drawCorujaForm(c, sx, sy, ts, p){
   // Coruja Demoníaca de Nherith, envolta na luz roxa do Faraó
   const t = Date.now()/1000;
@@ -4802,6 +4844,7 @@ function frame(now){
     else if(p.wild_form) drawWildForm(ctx, sx, sy, TS, p);
     else {
       if(p._status && (p._status.aurora || p._status.aurora_fraca)) drawAuroraGlow(ctx, sx, sy, TS);
+      if(p._status && p._status.cancao) drawCancaoGlow(ctx, sx, sy, TS);
       drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
     }
   }
@@ -6539,6 +6582,7 @@ const MARCAS = [
   {flag:'dom_valiria', icon:'☀️', name:'Aurora de Valíria', desc:'Valíria, a Serena, fez a aurora descer sobre você e te deu o dom de mesmo nome. Quando os seus precisarem, você vira o escudo que nenhum golpe atravessa.'},
   {flag:'dom_facalan', icon:'🐆', name:'A onça reconhece você', desc:'Facalan, a onça dourada, aceitou o seu sangue e te deu a Forma de Facalan. Quando a luta aperta, você vira a própria fera e a morte espera a sua vez.'},
   {flag:'dom_nherith', icon:'🦉', name:'O pacto da coruja', desc:'Nherith, a coruja que tudo vê, selou um pacto com você e te deu a forma da Coruja Demoníaca: garras necróticas no lugar das magias, e a luz roxa do Faraó nos olhos.'},
+  {flag:'dom_jose', icon:'🎵', name:'José trapaceia a seu favor', desc:'José, o gato preto selado do cabaré da Dona Beth, te ensinou a Canção do Cabaré. Enquanto você canta, o dano em área e as maldições do inimigo se voltam contra ele mesmo.'},
 ];
 let fichaTab = 'geral';
 
@@ -7149,9 +7193,9 @@ function popDamage(cid, text, color){
   dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
-  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛' };
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
-  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan' };
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){
@@ -7316,7 +7360,7 @@ window.addEventListener('keydown', e=>{
 //  - acha o menor caminho ate o tile clicado, desviando de obstaculos (BFS)
 //  - emite os passos no mesmo ritmo do teclado; o servidor valida cada um
 // ===========================================================================
-const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H', 'M', 'm', 'L', 'W', 'V', '/', ';', '_']);  // iguais ao servidor
+const SOLID_TILES = new Set(['~', 'T', '#', '^', 'H', 'M', 'm', 'L', 'W', 'V', '/', ';', '_', '{', '}', 'F', 'k', 'h', 'q']);  // iguais ao servidor
 const STEPV = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 function walkableTile(x, y){
   return y >= 0 && y < mapH && x >= 0 && x < mapW && !SOLID_TILES.has(mapRows[y][x]);

@@ -23,6 +23,7 @@ ABILITIES = {
     "aurora_valiria": {"name": "Aurora de Valíria", "slot": "action",  "god": "Valiria", "desc": "Dom de Valíria. 1x por combate: a aurora desce sobre você. Por 6 turnos os inimigos só atacam você e nenhum golpe te tira mais de 1 de vida; em troca, por 9 turnos o seu próprio dano cai pela metade. Você brilha como a deusa."},
     "forma_facalan":  {"name": "Forma de Facalan", "slot": "action",  "god": "Facalan", "desc": "Dom de Facalan. 1x por combate: vira uma pantera dourada por 10 turnos. Cura toda a vida, +15 de vida máxima, +2 dados de dano e +10 de armadura. Se sua vida zerar na forma, você não morre: volta ao normal com a vida cheia e fica 3 turnos sem poder cair abaixo de 1."},
     "golpe_morte_alada": {"name": "Golpe da Morte Alada", "slot": "action", "god": "Nherith", "target": True, "form": "coruja", "desc": "Dom de Nherith (só na forma de Coruja Demoníaca). Garras necróticas que causam dano altíssimo (igual a um paladino de Força 20 com a espada do Coveiro) e curam 30% do dano causado em vida."},
+    "cancao_cabare":  {"name": "Canção do Cabaré", "slot": "action", "god": "José", "desc": "Dom de José (só Bardo). 1x por combate: o bardo canta e fica 3 turnos sem poder agir. Em troca, por 10 turnos nenhum inimigo consegue te causar dano em área nem te aplicar qualquer debuff. Pelo contrário: quem tentar leva o próprio dano e a própria maldição de volta. (No futuro, protege o grupo inteiro.)"},
 }
 
 CLASS_ABILITIES = {

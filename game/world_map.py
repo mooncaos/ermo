@@ -58,6 +58,7 @@ MAP_ROWS = [
 # s=humanoide h=lebre j=jabuti f=felino g=dragao b=coruja k=livro; Pofnir e uma
 # estatua 2x2 com os quadrantes P Q R U.)
 SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
+               "{", "}",
                "/", ";", "_",
                "s", "h", "j", "f", "g", "b", "k", "P", "Q", "R", "U",
                "A", "l", "q", "N", "I", "v", "y",
@@ -1142,6 +1143,28 @@ def _loja_armas_int():
     return _S(r)
 
 
+def _taverna_int():
+    """Interior GRANDE da taverna enxaimel: salão com balcão de bar, lareira,
+    barris e várias mesinhas. A Mesa de Confraternizações (NPC) vai no centro."""
+    W, H = 21, 15
+    rows = _grid(W, H, "1")
+    _border(rows, 0, 0, W - 1, H - 1, "F")
+    rows[H - 1][10] = "D"                       # porta no centro da frente
+    for x in range(3, 12):                      # balcão do bar no fundo
+        rows[1][x] = "#"
+    rows[1][14] = "h"; rows[1][15] = "h"        # lareira
+    rows[1][17] = "q"; rows[1][18] = "q"        # barris atrás do bar
+    rows[7][2] = "q"; rows[11][18] = "q"        # barris pelos cantos
+    for (mx, my) in [(4, 4), (8, 4), (15, 4),   # mesinhas espalhadas pelo salão
+                     (4, 8), (16, 8),
+                     (4, 11), (7, 11), (14, 11), (17, 11)]:
+        rows[my][mx] = "k"
+    for (rx, ry) in [(9, 7), (10, 7), (11, 7),  # tapete central (onde vai a Mesa de Confraternizações)
+                     (9, 8), (10, 8), (11, 8)]:
+        rows[ry][rx] = "2"
+    return _S(rows)
+
+
 # quais portas usam qual modelo (variedade entre as casas das meninas)
 _QUARTO_VARIANTS = {
     "casa_melissa": _quarto_a(), "casa_yasmin": _quarto_b(), "casa_valentina": _quarto_c(),
@@ -1230,6 +1253,16 @@ def _embed_ermo():
 MAP_ROWS = _embed_ermo()
 SPAWN_POINTS = [(x + OX, y + OY) for (x, y) in SPAWN_POINTS]
 
+# ---- TAVERNA enxaimel, a LESTE da vila (perto do Neichon), de frente pra estrada (y=50) ----
+# 7 de largura x 5 de altura: 1a linha telhado '{', resto parede enxaimel '}', porta 'D' no centro.
+_tav = [list(r) for r in MAP_ROWS]
+_TVX, _TVY = 80, 45
+for _yy in range(5):
+    for _xx in range(7):
+        _tav[_TVY + _yy][_TVX + _xx] = "{" if _yy <= 1 else "}"
+_tav[_TVY + 4][_TVX + 3] = "D"                  # porta -> (83, 49)
+MAP_ROWS = ["".join(r) for r in _tav]
+
 MAPS = {
     "ermo":             {"rows": MAP_ROWS,             "spawns": SPAWN_POINTS},
     "salao":            {"rows": SALAO_ROWS,           "spawns": SALAO_SPAWN},
@@ -1267,14 +1300,16 @@ for _cm in CASA_MENINAS:                          # cada menina ganha um quarto 
     MAPS[_cm] = {"rows": _QUARTO_VARIANTS.get(_cm, INTERIOR_CASA_ROWS), "spawns": INTERIOR_SPAWN}
 MAPS["casa_comum"] = {"rows": _casa_comum_int(), "spawns": INTERIOR_SPAWN}   # casa do Bento
 MAPS["loja_armas"] = {"rows": _loja_armas_int(), "spawns": INTERIOR_SPAWN}   # Armas Peteco
+MAPS["taverna"]    = {"rows": _taverna_int(), "spawns": [(10, 13)]}          # taverna enxaimel (leste)
 
-INTERIOR_MAPS = set(CASA_MENINAS) | {"casa_comum", "loja_armas"}   # "estou dentro de uma casa?"
+INTERIOR_MAPS = set(CASA_MENINAS) | {"casa_comum", "loja_armas", "taverna"}   # "estou dentro de uma casa?"
 
 # porta (x, y) no Ermo -> mapa de interior, ou "LOCKED" (comercios ainda fechados)
 # (coords ja deslocadas pelo embed: a vila vive no centro do 100x100)
 DOOR_INTERIORS = {(pos[0] + OX, pos[1] + OY): name for name, pos in CASA_MENINAS.items()}
 DOOR_INTERIORS[(33 + OX, 20 + OY)] = "casa_comum"                    # casa do Bento
 DOOR_INTERIORS[(10 + OX, 20 + OY)] = "loja_armas"                    # Armas Peteco (liberada!)
+DOOR_INTERIORS[(83, 49)] = "taverna"                                 # Taverna enxaimel (leste, fora da vila)
 for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba: ainda trancadas
     DOOR_INTERIORS[(_d[0] + OX, _d[1] + OY)] = "LOCKED"
 
