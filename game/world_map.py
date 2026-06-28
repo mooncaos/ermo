@@ -1373,12 +1373,91 @@ def _build_floresta_ermo():
                     g[yy][xx] = ","
                 elif r < 0.16:
                     g[yy][xx] = "d"
-            elif g[yy][xx] == "T" and rng.random() < 0.10:
-                g[yy][xx] = rng.choice(["^", "Y"])
+            elif g[yy][xx] == "T" and rng.random() < 0.24:
+                g[yy][xx] = rng.choice(["Y", "Y", "4", "T"])   # pinheiros + mata escura (mata o bug do '^')
     for yy in (2, 3, 4):                                      # corredor de entrada limpo (sul)
         g[H - 1 - yy][75] = "."
     g[H - 2][75] = "."; g[H - 2][76] = "."
     g[H - 1][75] = "+"; g[H - 1][76] = "+"                    # SUL -> Planaltos
+    for yy in range(1, cy - 7):                               # corredor NORTE reto -> saida pra Atalech
+        g[yy][cx - 1] = g[yy][cx] = g[yy][cx + 1] = "."
+    g[0][cx] = "+"; g[0][cx + 1] = "+"                        # NORTE -> Bosque de Atalech
+    return ["".join(r) for r in g]
+
+
+def _build_bosque_atalech():
+    """O Profundo Bosque de Atalech 200x200: floresta de coniferas escura ao estilo
+    das matas do leste da Alemanha (Floresta Negra). Pinheiros densos, mata fechada,
+    um LAGO central alimentado por uma CACHOEIRA, e uma rede de trilhas que deixa o
+    bosque inteiro andavel. Entrada sul (col 100). Sem vida (so arte)."""
+    W = H = 200
+    g = _grid(W, H, ".")
+    rng = _rnd.Random(8200)
+    _ring(g, "4")
+    for _ in range(120):                                      # bosques densos (pinheiro + mata escura)
+        cx, cy = rng.randint(6, W - 6), rng.randint(6, H - 6); rad = rng.randint(4, 12)
+        for y in range(cy - rad, cy + rad + 1):
+            for x in range(cx - rad, cx + rad + 1):
+                if 1 <= x < W - 1 and 1 <= y < H - 1 and (x - cx) ** 2 + (y - cy) ** 2 < rad * rad and g[y][x] == ".":
+                    g[y][x] = rng.choice(["4", "4", "Y", "Y", "Y"])
+    lx, ly, lr = 100, 120, 25                                 # LAGO central
+    for y in range(ly - lr, ly + lr + 1):
+        for x in range(lx - lr, lx + lr + 1):
+            if 1 <= x < W - 1 and 1 <= y < H - 1 and ((x - lx) ** 2 + ((y - ly) * 1.05) ** 2) < lr * lr:
+                g[y][x] = "~"
+    for x in range(lx - 12, lx + 13):                         # PENHASCO no norte do lago
+        if 1 <= x < W - 1:
+            g[ly - lr][x] = "4"; g[ly - lr - 1][x] = "4"
+    for fy in range(ly - lr - 1, ly - lr + 9):                # CACHOEIRA caindo no lago
+        for fx in (lx - 1, lx, lx + 1):
+            if 1 <= fx < W - 1 and 1 <= fy < H - 1:
+                g[fy][fx] = "F"
+    for x in range(lx - 3, lx + 4):                           # espuma na base da queda
+        if 0 <= ly - lr + 9 < H:
+            g[ly - lr + 9][x] = "~"
+    for y in range(1, H - 1):                                 # detalhe: pinheiros soltos, terra, piso seco
+        for x in range(1, W - 1):
+            if g[y][x] == ".":
+                r = rng.random()
+                if r < 0.06:
+                    g[y][x] = "Y"
+                elif r < 0.10:
+                    g[y][x] = ","
+                elif r < 0.14:
+                    g[y][x] = "d"
+
+    def carve(x, y, r=1):
+        for dy in range(-r, r + 1):
+            for dx in range(-r, r + 1):
+                xx, yy = x + dx, y + dy
+                if 1 <= xx < W - 1 and 1 <= yy < H - 1 and g[yy][xx] not in ("~", "F"):
+                    g[yy][xx] = "."
+
+    x = 100                                                   # trilha oeste (contorna o lago pela esquerda)
+    for y in range(H - 2, -1, -1):
+        if ly - lr - 4 < y < ly + lr + 4:
+            x = lx - lr - 6
+        else:
+            x += rng.choice([-1, 0, 0, 1])
+        x = max(6, min(W - 7, x)); carve(x, y, 1)
+    x = lx + lr + 6                                           # trilha leste (contorna pela direita)
+    for y in range(ly + lr + 3, 6, -1):
+        x += rng.choice([-1, 0, 0, 1]); x = max(6, min(W - 7, x)); carve(x, y, 1)
+    for _ in range(24):                                       # ramos serpenteantes (espalha andabilidade)
+        px, py = rng.randint(8, W - 8), rng.randint(8, H - 8)
+        dirx, diry = rng.choice([-1, 1]), rng.choice([-1, 1])
+        for _ in range(rng.randint(15, 45)):
+            if rng.random() < 0.5:
+                px += dirx
+            else:
+                py += diry
+            if not (2 <= px < W - 2 and 2 <= py < H - 2):
+                break
+            carve(px, py, 1)
+    for yy in range(2, 8):                                    # corredor de entrada limpo (sul)
+        carve(100, H - 1 - yy, 1)
+    g[H - 2][100] = "."; g[H - 2][101] = "."
+    g[H - 1][100] = "+"; g[H - 1][101] = "+"                  # SUL -> Floresta do Ermo
     return ["".join(r) for r in g]
 
 
@@ -1386,6 +1465,8 @@ PLANALTOS_ROWS = _build_planaltos_ermais()
 FLORESTA_ROWS = _build_floresta_ermo()
 PLANALTOS_SPAWN = [(60, 117), (59, 117), (61, 117), (60, 116)]   # logo dentro da entrada sul
 FLORESTA_SPAWN = [(75, 147), (74, 147), (76, 147), (75, 146)]    # logo dentro da entrada sul
+BOSQUE_ATALECH_ROWS = _build_bosque_atalech()
+BOSQUE_ATALECH_SPAWN = [(100, 197), (99, 197), (101, 197), (100, 196)]   # logo dentro da entrada sul
 
 
 MAPS = {
@@ -1411,6 +1492,7 @@ MAPS = {
     "camara_varth":     {"rows": CAMARA_VARTH_ROWS,     "spawns": CAMARA_VARTH_SPAWN},
     "planaltos_ermais": {"rows": PLANALTOS_ROWS,        "spawns": PLANALTOS_SPAWN},
     "floresta_ermo":    {"rows": FLORESTA_ROWS,         "spawns": FLORESTA_SPAWN},
+    "bosque_atalech":   {"rows": BOSQUE_ATALECH_ROWS,   "spawns": BOSQUE_ATALECH_SPAWN},
 }
 
 
@@ -1449,7 +1531,9 @@ EDGE_LINKS = {
                          "east":  ("repouso_dama",     3, 50, "right")},
     "planaltos_ermais": {"south": ("ermo",            49,  3, "down"),
                          "north": ("floresta_ermo",   75, 147, "up")},
-    "floresta_ermo":    {"south": ("planaltos_ermais", 60,  2, "down")},
+    "floresta_ermo":    {"south": ("planaltos_ermais", 60,  2, "down"),
+                         "north": ("bosque_atalech",   100, 197, "up")},
+    "bosque_atalech":   {"south": ("floresta_ermo",    75,  2, "down")},
     "descampado":       {"north": ("ermo",       OX + 19, ERMO_H - 3, "up"),
                          "south": ("avasham",          49,  4, "down")},
     "repouso_dama":     {"west":  ("ermo",       ERMO_W - 3, OY + 15, "left"),

@@ -185,6 +185,7 @@ const MAP_AMBIENT = {
   repouso_dama:     {r:22,  g:44,  b:42,  a:0.10, part:'#a9f0c0'},  // mata fria esverdeada
   planaltos_ermais: {r:150, g:170, b:190, a:0.10, part:'#dfeaf2'},  // planalto frio, neblina clara
   floresta_ermo:    {r:16,  g:36,  b:28,  a:0.14, part:'#9fe0b0'},  // mata fechada, breu esverdeado (Ilex)
+  bosque_atalech:   {r:12,  g:28,  b:30,  a:0.16, part:'#a7d8e0'},  // floresta negra alema: frio, sombrio, neblina azulada
 };
 // mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
 const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth']);
@@ -1066,6 +1067,18 @@ function drawForestTile(c, ch, px, py, ts, gx, gy){
       c.fillRect(px+ts*rng(gx,gy,3), py+ts*(0.36+rng(gx,gy,4)*0.28), 2, 1.5);
       return true;
     case '+': forestFloor(c,px,py,ts,gx,gy,false); return true;
+    case 'F': {   // CACHOEIRA (agua caindo, animada)
+      c.fillStyle = '#345f7a'; c.fillRect(px,py,ts,ts);                     // lamina d'agua escura ao fundo
+      const t = Date.now()/110;
+      for(let i=0;i<4;i++){
+        const xx = px + ts*(0.16 + i*0.22);
+        c.fillStyle = (i%2) ? 'rgba(225,242,255,0.9)' : 'rgba(195,224,248,0.72)';
+        const off = ((t + i*7) % ts);
+        for(let s=-ts; s<ts; s+=11){ c.fillRect(xx, py + ((s+off+ts)%ts), 2, 6); }   // listras caindo
+      }
+      c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(px+ts*0.28, py, ts*0.44, 2);  // crista no topo
+      return true;
+    }
     case '%': {   // SANTUARIO da floresta (pedra musgosa, estilo Ilex)
       forestFloor(c,px,py,ts,gx,gy,false);
       c.fillStyle='rgba(0,0,0,0.24)'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.85,ts*0.34,ts*0.12,0,0,Math.PI*2); c.fill();
@@ -1169,6 +1182,7 @@ function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'floresta_ermo' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'bosque_atalech' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'planaltos_ermais' && drawPlateauTile(c, ch, px, py, ts, gx, gy)) return;
   if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
