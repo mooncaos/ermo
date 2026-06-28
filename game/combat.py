@@ -906,7 +906,8 @@ def monster_ability(enc, mon, tgt, ab):
     (pro cliente animar), com extras: applied(status), self_heal, save/gaze."""
     kind = ab.get("type", "inflict")
     res = {"attacker": mon["cid"], "attacker_name": mon["name"], "target": tgt["cid"],
-           "target_name": tgt["name"], "ability": ab.get("name", "habilidade"),
+           "target_name": tgt["name"], "ability": ab.get("name", "habilidade"), "atype": kind,
+           "vfx": ab.get("vfx"),
            "mon_ability": True, "dmg": 0, "killed": False, "atk_name": ab.get("name", ""),
            "target_hp": tgt["hp"], "target_hp_max": tgt["hp_max"]}
     # AoE explosivo: a magia estoura e acerta TODOS os jogadores vivos (teste pra metade do dano)

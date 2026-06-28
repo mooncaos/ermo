@@ -2543,9 +2543,68 @@ function drawProfanador(c, sx, sy, ts, p){        // profanador de almas (cranio
   drawMonsterBarName(c, sx, sy, ts, p);
 }
 
+// aura SOMBRIA compartilhada dos monstros da Torre do Varth (halo pulsante + brasas necróticas)
+const TOWER_AURA = {tumular_torre:'#7a9a4a', carniceiro_torre:'#8a3a3a', cavaleiro_torre:'#7a4ab0',
+                    algoz_torre:'#9a3a5a', necromante_torre:'#9a40d0', profanador_torre:'#7a50c0', lorde_varth:'#9a30c0'};
+function _towerAura(c, cx, cy, ts, color){
+  const t=performance.now();
+  c.save(); c.globalCompositeOperation='lighter';
+  const pulse=0.5+0.5*Math.sin(t/600+cx), r=ts*(0.52+pulse*0.12);
+  const g=c.createRadialGradient(cx,cy,ts*0.08,cx,cy,r);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.45,color); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.globalAlpha=0.24+pulse*0.12; c.fillStyle=g; c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.fill();
+  c.globalAlpha=0.55; c.fillStyle=color;
+  for(let i=0;i<5;i++){ const ph=((t/12)+i*200)%(ts*1.5);
+    const px=cx+Math.sin(i*2.1+t/700)*ts*0.32, py=cy+ts*0.4 - ph;
+    c.beginPath(); c.arc(px,py,1.7,0,Math.PI*2); c.fill(); }
+  c.restore();
+}
+function drawLordeVarth(c, sx, sy, ts, p){       // Lorde Varth: senhor necromante da torre
+  const cx=sx+ts/2, t=performance.now(), bob=Math.sin(t/800+cx)*1.4, cy=sy+ts*0.5+bob;
+  const ROBE='#1f1430', ROBE2='#2e1f48', TRIM='#7a40c0', BONE='#e8e0d0', GLOW='#b070ff', SOUL='#c8b0ff';
+  c.save();
+  c.fillStyle='rgba(0,0,0,.38)'; c.beginPath(); c.ellipse(cx,sy+ts*0.9,ts*0.34,ts*0.12,0,0,Math.PI*2); c.fill();
+  // caveiras de alma orbitando
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.5; c.fillStyle=SOUL;
+  for(let i=0;i<3;i++){ const a=t/700+i*Math.PI*2/3, ox=cx+Math.cos(a)*ts*0.42, oy=cy-ts*0.1+Math.sin(a)*ts*0.16;
+    c.beginPath(); c.arc(ox,oy,ts*0.07,0,Math.PI*2); c.fill(); }
+  c.restore();
+  // manto longo
+  const g=c.createLinearGradient(cx,cy-ts*0.3,cx,cy+ts*0.42);
+  g.addColorStop(0,ROBE2); g.addColorStop(1,ROBE);
+  c.fillStyle=g; c.beginPath();
+  c.moveTo(cx-ts*0.1,cy-ts*0.26); c.lineTo(cx+ts*0.1,cy-ts*0.26);
+  c.lineTo(cx+ts*0.3,cy+ts*0.42); c.lineTo(cx-ts*0.3,cy+ts*0.42); c.closePath(); c.fill();
+  c.strokeStyle=TRIM; c.lineWidth=Math.max(1.5,ts*0.03);
+  c.beginPath(); c.moveTo(cx-ts*0.05,cy-ts*0.2); c.lineTo(cx-ts*0.12,cy+ts*0.4);
+  c.moveTo(cx+ts*0.05,cy-ts*0.2); c.lineTo(cx+ts*0.12,cy+ts*0.4); c.stroke();
+  // capuz
+  const hy=cy-ts*0.32;
+  c.fillStyle=ROBE; c.beginPath(); c.moveTo(cx-ts*0.13,hy+ts*0.1); c.quadraticCurveTo(cx,hy-ts*0.18,cx+ts*0.13,hy+ts*0.1);
+  c.lineTo(cx+ts*0.1,hy+ts*0.14); c.quadraticCurveTo(cx,hy-ts*0.02,cx-ts*0.1,hy+ts*0.14); c.closePath(); c.fill();
+  c.fillStyle='#0a0410'; c.beginPath(); c.ellipse(cx,hy+ts*0.04,ts*0.08,ts*0.1,0,0,Math.PI*2); c.fill();
+  // olhos brilhantes
+  c.save(); c.globalCompositeOperation='lighter'; c.fillStyle=GLOW; c.shadowColor=GLOW; c.shadowBlur=6;
+  c.beginPath(); c.arc(cx-ts*0.04,hy+ts*0.04,ts*0.018,0,Math.PI*2); c.arc(cx+ts*0.04,hy+ts*0.04,ts*0.018,0,Math.PI*2); c.fill();
+  c.restore();
+  // coroa de ossos
+  c.strokeStyle=BONE; c.lineWidth=Math.max(1.5,ts*0.025); c.lineCap='round';
+  for(let k=-2;k<=2;k++){ const bx=cx+k*ts*0.05; c.beginPath(); c.moveTo(bx,hy-ts*0.08); c.lineTo(bx,hy-ts*0.16-(k===0?ts*0.04:0)); c.stroke(); }
+  // cajado com orbe necrótico
+  c.strokeStyle='#3a2a1a'; c.lineWidth=Math.max(2,ts*0.04); c.lineCap='round';
+  const stx=cx+ts*0.26; c.beginPath(); c.moveTo(stx,cy-ts*0.3); c.lineTo(stx,cy+ts*0.34); c.stroke();
+  c.save(); c.globalCompositeOperation='lighter';
+  const orb=c.createRadialGradient(stx,cy-ts*0.34,0,stx,cy-ts*0.34,ts*0.12);
+  orb.addColorStop(0,'#ffffff'); orb.addColorStop(0.4,GLOW); orb.addColorStop(1,'rgba(0,0,0,0)');
+  c.globalAlpha=0.85+0.15*Math.sin(t/300); c.fillStyle=orb; c.beginPath(); c.arc(stx,cy-ts*0.34,ts*0.12,0,Math.PI*2); c.fill();
+  c.restore();
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
 function drawMonster(c, sx, sy, ts, p){
   // cada tipo tem sua arte; o resto cai no emoji.
   const t = p.mtype;
+  if(TOWER_AURA[t]) _towerAura(c, sx+ts/2, sy+ts*0.46, ts, TOWER_AURA[t]);   // aura sombria da torre
   if(t === 'maurao'){ drawBoss(c, sx, sy, ts, p); return; }
   if(t === 'dama_noite'){ drawBanshee(c, sx, sy, ts, p); return; }
   if(t === 'capanga' || t === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
@@ -2579,6 +2638,7 @@ function drawMonster(c, sx, sy, ts, p){
   if(t === 'algoz_torre'){ drawAlgoz(c, sx, sy, ts, p); return; }
   if(t === 'necromante_torre'){ drawNecromanteProfano(c, sx, sy, ts, p); return; }
   if(t === 'profanador_torre'){ drawProfanador(c, sx, sy, ts, p); return; }
+  if(t === 'lorde_varth'){ drawLordeVarth(c, sx, sy, ts, p); return; }
   const cx = sx + ts/2, cy = sy + ts/2;
   c.save();
   c.fillStyle = 'rgba(0,0,0,0.28)';
@@ -4828,9 +4888,29 @@ function spawnRay(fromId, toId, color){            // feixe contínuo (raio/luz)
   const x0 = a ? a.x : b.x, y0 = a ? a.y : b.y;
   vfx.push({kind:'ray', x0, y0, x1:b.x, y1:b.y, color:color||'#cde6ff', t0:performance.now(), life:460});
 }
+function spawnDrain(fromId, toId, color){          // dreno de vida: feixe do alvo -> monstro
+  const a=players.get(fromId), b=players.get(toId); if(!a||!b) return;
+  vfx.push({kind:'drain', x0:a.x, y0:a.y, x1:b.x, y1:b.y, color:color||'#c84a7a', t0:performance.now(), life:540});
+}
+function spawnDarkBlast(atId, radius, color, delay){   // EXPLOSÃO sombria (magias da torre)
+  const e=players.get(atId); if(!e) return;
+  vfx.push({kind:'shadowblast', x1:e.x, y1:e.y, color:color||'#a050ff', radius:Math.max(1,radius||2),
+            t0:performance.now()+(delay||0), life:840});
+}
+function spawnSoulDrain(fromId, toId, color){      // dreno de ALMA: wisps do alvo -> monstro
+  const a=players.get(fromId), b=players.get(toId); if(!a||!b) return;
+  vfx.push({kind:'souldrain', x0:a.x, y0:a.y, x1:b.x, y1:b.y, color:color||'#b070ff', t0:performance.now(), life:640});
+}
+function spawnDarkBolt(fromId, toId, color){       // RAIO necrótico (monstro -> alvo) + estouro sombrio
+  const a=players.get(fromId), b=players.get(toId); if(!b) return;
+  const x0 = a ? a.x : b.x, y0 = a ? a.y : b.y; const t=performance.now();
+  vfx.push({kind:'darkbolt', x0, y0, x1:b.x, y1:b.y, color:color||'#a050ff', t0:t, life:380});
+  vfx.push({kind:'shadowblast', x1:b.x, y1:b.y, color:color||'#a050ff', radius:1, t0:t+330, life:520});
+}
 function spawnAt(atId, kind, color){
   const e=players.get(atId); if(!e) return;
-  const LIFE={slash:300, heal:760, buff:640, mark:540, rage:740, venom:700, vanish:660, armed:700, surge:620, impact:420};
+  const LIFE={slash:300, heal:760, buff:640, mark:540, rage:740, venom:700, vanish:660, armed:700, surge:620, impact:420,
+              slam:560, fear:780, gaze:660, summon:840, cursesigil:760};
   vfx.push({kind, x1:e.x, y1:e.y, color, t0:performance.now(), life:(LIFE[kind]||500)});
 }
 function updateVfx(now){ vfx = vfx.filter(v=> now < v.t0 + v.life); }
@@ -5006,6 +5086,139 @@ function drawVfx(c, now){
       c.beginPath(); c.arc(cx,cy,r*0.6,0,Math.PI*2); c.stroke();
       for(let i=0;i<4;i++){ const a=i*Math.PI/2+now/700;
         c.beginPath(); c.moveTo(cx+Math.cos(a)*r*0.5,cy+Math.sin(a)*r*0.5); c.lineTo(cx+Math.cos(a)*r*1.35,cy+Math.sin(a)*r*1.35); c.stroke(); }
+      c.restore();
+
+    } else if(v.kind==='slam'){
+      // GOLPE PESADO: clarão de impacto + anel de choque no chão + rachaduras
+      const r=TS*(0.3+k*0.7);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.9;
+      const g=c.createRadialGradient(cx,cy,0,cx,cy,r);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(0.3,v.color); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.fill();
+      c.globalAlpha=(1-k)*0.8; c.strokeStyle=v.color; c.lineWidth=Math.max(2,TS*0.12);
+      c.beginPath(); c.ellipse(cx,cy+TS*0.3,r*1.1,r*0.45,0,0,Math.PI*2); c.stroke();
+      c.lineWidth=2.4; c.lineCap='round'; c.globalAlpha=(1-k)*0.7;
+      for(let i=0;i<6;i++){ const a=i*Math.PI/3+0.3, d=r*1.2;
+        c.beginPath(); c.moveTo(cx,cy+TS*0.3); c.lineTo(cx+Math.cos(a)*d,cy+TS*0.3+Math.sin(a)*d*0.45); c.stroke(); }
+      c.restore();
+
+    } else if(v.kind==='fear'){
+      // MEDO: brilho sombrio + tentáculos subindo + caveira flutuante
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.5;
+      const gr=c.createRadialGradient(cx,cy,0,cx,cy,TS*0.7);
+      gr.addColorStop(0,v.color); gr.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=gr; c.beginPath(); c.arc(cx,cy,TS*0.7,0,Math.PI*2); c.fill();
+      c.globalCompositeOperation='source-over'; c.globalAlpha=(1-k)*0.6; c.fillStyle=v.color;
+      for(let i=0;i<7;i++){ const a=-Math.PI/2+(i-3)*0.4, d=TS*(0.3+k*0.5);
+        const px=cx+Math.cos(a)*TS*0.3, py=cy+Math.sin(a)*d - k*TS*0.5;
+        c.beginPath(); c.ellipse(px,py,3*(1-k*0.4),9*(1-k*0.3),a,0,Math.PI*2); c.fill(); }
+      c.globalAlpha=(1-k)*0.85; c.fillStyle='#e8def5'; const sy=cy - k*TS*0.7, sr=TS*0.16;
+      c.beginPath(); c.arc(cx,sy,sr,0,Math.PI*2); c.fill();
+      c.fillStyle='#3a2a4a'; c.beginPath(); c.arc(cx-sr*0.4,sy-sr*0.1,sr*0.28,0,Math.PI*2);
+      c.arc(cx+sr*0.4,sy-sr*0.1,sr*0.28,0,Math.PI*2); c.fill();
+      c.restore();
+
+    } else if(v.kind==='gaze'){
+      // OLHAR: anéis hipnóticos concêntricos + clarão central
+      c.save(); c.globalCompositeOperation='lighter'; c.strokeStyle=v.color; c.lineCap='round';
+      for(let i=0;i<3;i++){ const rr=TS*0.25*(i+1)*(0.7+k*0.6); c.globalAlpha=(1-k)*0.8/(i*0.4+1); c.lineWidth=2.4;
+        c.beginPath(); c.arc(cx,cy,rr,0,Math.PI*2); c.stroke(); }
+      c.globalAlpha=(1-k)*0.7; const g=c.createRadialGradient(cx,cy,0,cx,cy,TS*0.35);
+      g.addColorStop(0,'#ffffff'); g.addColorStop(0.5,v.color); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(cx,cy,TS*0.35,0,Math.PI*2); c.fill();
+      c.restore();
+
+    } else if(v.kind==='summon'){
+      // INVOCAÇÃO: portal sombrio girando + sombras subindo
+      const rr=TS*(0.4+k*0.4);
+      c.save();
+      c.globalAlpha=(1-k)*0.6; c.fillStyle='#1a0f24';
+      c.beginPath(); c.ellipse(cx,cy+TS*0.3,rr,rr*0.4,0,0,Math.PI*2); c.fill();
+      c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.8; c.strokeStyle=v.color; c.lineWidth=2.6;
+      for(let i=0;i<2;i++){ c.beginPath(); c.ellipse(cx,cy+TS*0.3,rr*(1-i*0.3),rr*0.4*(1-i*0.3),now/500+i,0,Math.PI*2); c.stroke(); }
+      c.globalAlpha=(1-k)*0.7; c.fillStyle=v.color;
+      for(let i=0;i<5;i++){ const a=-Math.PI/2+(i-2)*0.5, px=cx+Math.cos(a)*rr*0.6;
+        c.beginPath(); c.ellipse(px,cy+TS*0.3 - k*TS*0.9,3,8*(1-k*0.3),0,0,Math.PI*2); c.fill(); }
+      c.restore();
+
+    } else if(v.kind==='drain'){
+      // DRENO: feixe do alvo -> monstro + partículas fluindo
+      const x0=v.x0*TS-camX+TS/2, y0=v.y0*TS-camY+TS/2;
+      c.save(); c.globalCompositeOperation='lighter';
+      const a=(k<0.2)?k/0.2:(1-k)/0.8;
+      c.globalAlpha=0.7*a; c.strokeStyle=v.color; c.lineWidth=Math.max(2,TS*0.12); c.lineCap='round';
+      c.beginPath(); c.moveTo(x0,y0); c.lineTo(cx,cy); c.stroke();
+      c.fillStyle=v.color; c.globalAlpha=a;
+      for(let i=0;i<5;i++){ const t=(k*1.6+i*0.2)%1, px=x0+(cx-x0)*t, py=y0+(cy-y0)*t;
+        c.beginPath(); c.arc(px,py,2.4,0,Math.PI*2); c.fill(); }
+      c.restore();
+
+    } else if(v.kind==='shadowblast'){
+      // EXPLOSÃO SOMBRIA: vácuo negro + ondas roxas/verdes + almas subindo
+      const R=TS*(0.6+v.radius*0.95);
+      const ease=1-Math.pow(1-k,2.2), rr=R*ease, seed=v.x1*7+v.y1*13;
+      c.save();
+      c.globalAlpha=(1-k)*0.85; const vg=c.createRadialGradient(cx,cy,0,cx,cy,Math.max(1,rr*0.6));
+      vg.addColorStop(0,'#0a0410'); vg.addColorStop(0.6,'rgba(30,10,45,0.6)'); vg.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=vg; c.beginPath(); c.arc(cx,cy,Math.max(1,rr*0.6),0,Math.PI*2); c.fill();
+      c.globalCompositeOperation='lighter';
+      const core=R*0.4*(0.7+ease*0.6), cg=c.createRadialGradient(cx,cy,0,cx,cy,Math.max(1,core));
+      cg.addColorStop(0,'rgba(190,255,180,'+(0.8*(1-k))+')'); cg.addColorStop(0.4,v.color); cg.addColorStop(1,'rgba(0,0,0,0)');
+      c.globalAlpha=1; c.fillStyle=cg; c.beginPath(); c.arc(cx,cy,Math.max(1,core),0,Math.PI*2); c.fill();
+      c.globalAlpha=(1-k)*0.9; c.strokeStyle=v.color; c.lineWidth=Math.max(3,TS*0.18*(1-k)+2);
+      c.beginPath(); c.arc(cx,cy,rr,0,Math.PI*2); c.stroke();
+      c.globalAlpha=(1-k)*0.55; c.strokeStyle='#8aff9a'; c.lineWidth=Math.max(1.5,TS*0.05);
+      c.beginPath(); c.arc(cx,cy,rr*0.78,0,Math.PI*2); c.stroke();
+      c.fillStyle='#cfe8ff'; c.globalAlpha=(1-k)*0.7;
+      for(let i=0;i<7;i++){ const a=seed+i*0.9, d=rr*(0.3+((i*53)%10)/18);
+        c.beginPath(); c.arc(cx+Math.cos(a)*d, cy+Math.sin(a)*d - k*TS*1.4, 2.2*(1-k*0.4), 0, Math.PI*2); c.fill(); }
+      c.restore();
+
+    } else if(v.kind==='souldrain'){
+      // DRENO DE ALMA: wisps fantasmas fluindo do alvo -> monstro
+      const x0=v.x0*TS-camX+TS/2, y0=v.y0*TS-camY+TS/2;
+      c.save(); c.globalCompositeOperation='lighter';
+      const a=(k<0.2)?k/0.2:(1-k)/0.8;
+      c.globalAlpha=0.5*a; c.strokeStyle=v.color; c.lineWidth=Math.max(2,TS*0.1); c.lineCap='round';
+      c.beginPath(); c.moveTo(x0,y0); c.lineTo(cx,cy); c.stroke();
+      c.fillStyle='#cfe8ff'; c.globalAlpha=a*0.9;
+      for(let i=0;i<6;i++){ const tt=(k*1.4+i*0.18)%1, bx=x0+(cx-x0)*tt, by=y0+(cy-y0)*tt;
+        const off=Math.sin(tt*Math.PI*3+i)*TS*0.12;
+        c.beginPath(); c.arc(bx+off, by-off*0.5, 2.6*(1-tt*0.4), 0, Math.PI*2); c.fill(); }
+      c.restore();
+
+    } else if(v.kind==='cursesigil'){
+      // SIGILO AMALDIÇOADO: círculo + pentagrama girando + chamas roxas
+      c.save(); c.globalCompositeOperation='lighter'; c.strokeStyle=v.color; c.lineCap='round';
+      const rr=TS*0.42, rot=now/700, by=cy+TS*0.2;
+      c.globalAlpha=(1-k)*0.85; c.lineWidth=2.2;
+      c.beginPath(); c.arc(cx,by,rr,0,Math.PI*2); c.stroke();
+      c.beginPath();
+      for(let i=0;i<=5;i++){ const a=rot+i*Math.PI*4/5, px=cx+Math.cos(a)*rr, py=by+Math.sin(a)*rr;
+        if(i===0) c.moveTo(px,py); else c.lineTo(px,py); }
+      c.stroke();
+      c.globalAlpha=(1-k)*0.7; c.fillStyle=v.color;
+      for(let i=0;i<5;i++){ const a=rot+i*1.25, px=cx+Math.cos(a)*rr*0.7;
+        c.beginPath(); c.ellipse(px, by - k*TS*0.6, 2.5, 6*(1-k*0.3), 0, 0, Math.PI*2); c.fill(); }
+      c.restore();
+
+    } else if(v.kind==='darkbolt'){
+      // RAIO NECRÓTICO: orbe negro com rastro roxo + halo
+      const x0=v.x0*TS-camX+TS/2, y0=v.y0*TS-camY+TS/2;
+      const kk=Math.min(1,k*1.12), hx=x0+(cx-x0)*kk, hy=y0+(cy-y0)*kk;
+      const ang=Math.atan2(cy-y0,cx-x0), tl=TS*0.95, tx=hx-Math.cos(ang)*tl, ty=hy-Math.sin(ang)*tl;
+      c.save();
+      c.globalCompositeOperation='lighter';
+      const tg=c.createLinearGradient(tx,ty,hx,hy);
+      tg.addColorStop(0,'rgba(0,0,0,0)'); tg.addColorStop(1,v.color);
+      c.strokeStyle=tg; c.globalAlpha=0.8*(1-k*0.3); c.lineWidth=Math.max(2,TS*0.16); c.lineCap='round';
+      c.beginPath(); c.moveTo(tx,ty); c.lineTo(hx,hy); c.stroke();
+      c.globalCompositeOperation='source-over'; c.globalAlpha=0.92; c.fillStyle='#0a0410';
+      c.beginPath(); c.arc(hx,hy,TS*0.2,0,Math.PI*2); c.fill();
+      c.globalCompositeOperation='lighter'; c.globalAlpha=0.9;
+      const g=c.createRadialGradient(hx,hy,TS*0.1,hx,hy,TS*0.4);
+      g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.5,v.color); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(hx,hy,TS*0.4,0,Math.PI*2); c.fill();
       c.restore();
     }
   }
@@ -7599,6 +7812,8 @@ const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:
   frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
   frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
+const TOWER_MOBS = new Set(['tumular_torre','carniceiro_torre','cavaleiro_torre','algoz_torre','necromante_torre','profanador_torre','lorde_varth']);
+function _isDark(res){ return !!res.vfx || TOWER_MOBS.has((players.get(res.attacker)||{}).mtype); }
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){
@@ -7609,27 +7824,48 @@ function showStatusFx(fx){
 }
 function showAttackResult(res){
   if(!res) return;
+  const dark = (res.mon_ability && _isDark(res));   // monstros da torre + magias sombrias
   if(res.summon){
-    toastMsg('💀 '+(res.ability||'Invocação')+': reforços chegaram!', true);
+    spawnAt(res.attacker, 'summon', '#a86bd6');
+    toastMsg('💀 '+(res.ability||'Invocação')+': '+((res.summon_count||0)>0?(res.summon_count+' '):'')+'reforço(s) chegaram!', true);
     return;
   }
-  // AoE explosivo: estoura em todos os alvos atingidos
+  // AoE: explosão (SOMBRIA na torre) + dano em todos os alvos
   if(res.aoe && Array.isArray(res.splash)){
-    for(const s of res.splash){
-      spawnAt(s.cid, 'slash', '#ff8a3a');
-      popDamage(s.cid, '-'+s.dmg, '#ff9a4a');
-    }
+    if(dark) spawnDarkBlast(res.target, 2, '#a050ff'); else spawnBlast(res.target, 2, '#ff7a30');
+    setTimeout(()=>{ for(const s of res.splash){
+      if(s.blocked) popDamage(s.cid, 'refletiu', '#9be36a');
+      else popDamage(s.cid, '-'+s.dmg, dark?'#c79bff':'#ff9a4a');
+    } if(res.reflected) popDamage(res.attacker, '-'+res.reflected, '#9be36a'); }, 220);
     toastMsg('💥 '+(res.ability||'Explosão')+'!'+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):''), true);
     return;
   }
-  // habilidade de monstro por resistencia (sem rolagem de ataque)
+  // monstro se cura (type heal)
+  if(res.self && res.self_heal != null){
+    spawnAt(res.attacker, 'heal', dark?'#b070ff':'#b06bff');
+    setTimeout(()=> popHeal(res.attacker, '+'+res.self_heal), 60);
+    toastMsg('🩸 '+(res.ability||'')+' · +'+res.self_heal+' vida', true);
+    return;
+  }
+  // habilidade por resistência (medo/olhar/maldição, sem rolagem de ataque)
   if(res.mon_ability && res.gaze){
-    spawnAt(res.target, 'mark', '#c9a0ff');
-    if(res.applied) toastMsg('✦ '+(res.ability||'habilidade')+': '+(STATUS_PT[res.applied]||res.applied)+'!', true);
+    const eff = res.vfx==='cursesigil' ? 'cursesigil' : (res.atype==='fear' ? 'fear' : 'gaze');
+    spawnAt(res.target, eff, res.atype==='fear' ? '#7a3aa0' : '#b06bff');
+    if(res.applied) toastMsg((res.atype==='fear'?'😱 ':'🟣 ')+(res.ability||'habilidade')+': '+(STATUS_PT[res.applied]||res.applied)+'!', true);
     else toastMsg('✦ '+(res.ability||'habilidade')+': resistiu');
     return;
   }
-  spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
+  // impacto conforme o tipo: dreno/raio/pesado (SOMBRIOS na torre) ou golpe padrão
+  if(res.mon_ability && res.atype === 'drain'){
+    if(dark) spawnSoulDrain(res.target, res.attacker, '#b070ff'); else spawnDrain(res.target, res.attacker, '#c84a7a');
+  } else if(res.mon_ability && res.vfx === 'darkbolt'){
+    spawnDarkBolt(res.attacker, res.target, '#a050ff');
+  } else if(res.mon_ability && res.atype === 'heavy'){
+    spawnAt(res.target, 'slam', dark ? '#8a4adf' : (res.crit ? '#ffd86b' : '#d0834a'));
+  } else if(dark){
+    spawnAt(res.target, 'slash', '#b06bff');
+    if(res.vfx === 'cursesigil') spawnAt(res.target, 'cursesigil', '#b06bff');
+  } else spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
   if(res.hit){
     const _rad = res.radiant_dmg || 0;
     const _basic = Math.max(0, (res.dmg||0) - _rad);

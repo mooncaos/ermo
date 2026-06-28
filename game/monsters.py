@@ -662,6 +662,38 @@ def catalog():
 #  cada habilidade: chance (prob. de usar quando pronta) e cd (recarga em rodadas).
 # ===========================================================================
 MONSTER_ABILITIES = {
+    # --- comuns que ganharam habilidade (melhoria geral) ---
+    "rato_gigante":  [{"id": "mordida_infecta", "name": "Mordida Infecta", "type": "inflict",
+                       "status": "poison", "turns": 2, "dot": {"n": 1, "d": 4}, "chance": 0.35, "cd": 2}],
+    "lobo":          [{"id": "dilacerar", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 6}, "status": "bleeding", "turns": 2, "dot": {"n": 1, "d": 4}, "chance": 0.4, "cd": 2}],
+    "javali":        [{"id": "investida", "name": "Investida Selvagem", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 6}, "chance": 0.4, "cd": 2}],
+    "capanga":       [{"id": "facada_suja", "name": "Facada Suja", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 6}, "status": "bleeding", "turns": 2, "dot": {"n": 1, "d": 4}, "chance": 0.4, "cd": 2}],
+    "capanga_brutamontes": [{"id": "coronhada", "name": "Coronhada", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "intimidacao", "name": "Intimidação", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "vulto":         [{"id": "toque_gelido", "name": "Toque Gélido", "type": "drain",
+                       "dmg_bonus": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "escaravelho_praga": [{"id": "praga_rastejante", "name": "Praga Rastejante", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 1, "d": 6}, "chance": 0.4, "cd": 2}],
+    "servo_envolto": [{"id": "atadura_sufocante", "name": "Atadura Sufocante", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 1, "d": 6}, "chance": 0.4, "cd": 2}],
+    "escravo_amaldicoado": [{"id": "lamento", "name": "Lamento Amaldiçoado", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
+                      {"id": "garras_quebradas", "name": "Garras Quebradas", "type": "heavy",
+                       "dmg_bonus": {"n": 1, "d": 8}, "chance": 0.4, "cd": 2}],
+    "chacal_anubita": [{"id": "dilacerar_chacal", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 8}, "status": "bleeding", "turns": 2, "dot": {"n": 1, "d": 6}, "chance": 0.4, "cd": 2},
+                      {"id": "uivo_anubis", "name": "Uivo de Anúbis", "type": "fear",
+                       "save": "SAB", "dc": 13, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "carregador_canopo": [{"id": "esmagar_canopo", "name": "Esmagamento Canópico", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "praga_dos_vasos", "name": "Praga dos Vasos", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.4, "cd": 2}],
+
     # --- floresta (Repouso da Dama) ---
     "harpia":        [{"id": "canto", "name": "Canto Hipnótico", "type": "fear",
                        "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3}],
@@ -820,6 +852,50 @@ MONSTER_ABILITIES = {
                       {"id": "banquete_dos_mortos", "name": "Banquete dos Mortos", "type": "heal",
                        "heal": {"n": 6, "d": 8}, "chance": 0.3, "cd": 4}],
 }
+
+
+# --- arsenal SOMBRIO extra da Torre do Varth: habilidades e magias novas, todas sombrias.
+# o campo "vfx" escolhe o efeito visual sombrio no cliente (shadowblast/souldrain/cursesigil/darkbolt/shadow/soul).
+_TOWER_EXTRA = {
+    "tumular_torre": [
+        {"id": "vomito_necrotico", "name": "Vômito Necrótico", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 3, "d": 8}, "save": "CON", "dc": 15, "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.35, "cd": 3},
+        {"id": "agarrar_tumular", "name": "Agarrão Pútrido", "type": "inflict", "vfx": "shadow",
+         "dmg_bonus": {"n": 2, "d": 8}, "status": "restrained", "turns": 2, "chance": 0.35, "cd": 3}],
+    "carniceiro_torre": [
+        {"id": "decepar", "name": "Decepar", "type": "heavy", "vfx": "shadow",
+         "dmg_bonus": {"n": 3, "d": 10}, "chance": 0.45, "cd": 2},
+        {"id": "banquete_macabro", "name": "Banquete Macabro", "type": "heal", "vfx": "soul",
+         "heal": {"n": 4, "d": 10}, "chance": 0.3, "cd": 4}],
+    "cavaleiro_torre": [
+        {"id": "lamina_da_alma", "name": "Lâmina da Alma", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 3, "d": 10}, "chance": 0.4, "cd": 2},
+        {"id": "aura_profana", "name": "Aura Profana", "type": "inflict", "vfx": "cursesigil",
+         "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3}],
+    "algoz_torre": [
+        {"id": "marca_do_carrasco", "name": "Marca do Carrasco", "type": "gaze", "vfx": "cursesigil",
+         "save": "SAB", "dc": 16, "status": "maldicao", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.35, "cd": 3},
+        {"id": "lamina_sangrenta", "name": "Lâmina Sangrenta", "type": "inflict", "vfx": "shadow",
+         "dmg_bonus": {"n": 3, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "necromante_torre": [
+        {"id": "raio_necrotico", "name": "Raio Necrótico", "type": "heavy", "vfx": "darkbolt",
+         "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2},
+        {"id": "nuvem_de_almas", "name": "Nuvem de Almas", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 5, "d": 8}, "save": "CON", "dc": 17, "status": "blinded", "turns": 2, "chance": 0.35, "cd": 3}],
+    "profanador_torre": [
+        {"id": "colher_almas", "name": "Colher Almas", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2},
+        {"id": "tempestade_profana", "name": "Tempestade Profana", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 6, "d": 8}, "save": "DES", "dc": 18, "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.4, "cd": 3}],
+    "lorde_varth": [
+        {"id": "chuva_de_caveiras", "name": "Chuva de Caveiras", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 8, "d": 8}, "save": "DES", "dc": 18, "status": "maldicao", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.4, "cd": 3},
+        {"id": "ceifar_alma", "name": "Ceifar a Alma", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 6, "d": 10}, "chance": 0.45, "cd": 2}],
+}
+for _mid, _extra in _TOWER_EXTRA.items():
+    MONSTER_ABILITIES.setdefault(_mid, [])
+    MONSTER_ABILITIES[_mid].extend(_extra)
 
 
 def abilities_for(type_id):
