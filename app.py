@@ -1196,12 +1196,11 @@ def on_move(data):
         return
 
     mp = player.get("map", "ermo")
-    emit("player_moved", {
-        "id": player["id"],
-        "x": player["x"],
-        "y": player["y"],
-        "facing": player["facing"],
-    }, room=mp)
+    _mv = {"id": player["id"], "x": player["x"], "y": player["y"], "facing": player["facing"]}
+    if player.get("invisible"):                          # lebre de Nharé: ninguém mais vê o movimento
+        emit("player_moved", _mv, to=request.sid)
+    else:
+        emit("player_moved", _mv, room=mp)
 
     _encounter_gods(player)   # XP ao chegar perto de um deus (1a vez)
 

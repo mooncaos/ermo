@@ -18,6 +18,8 @@ ABILITIES = {
     "divine_smite": {"name": "Castigo Divino",     "slot": "special", "desc": "Arma: o próximo acerto corpo a corpo gasta um espaço e causa +2d6 radiante."},
     "bardic":       {"name": "Inspiração",         "slot": "bonus",   "desc": "+1d6 na sua próxima jogada de ataque."},
     "sneak_attack": {"name": "Ataque Furtivo",     "slot": "passive", "desc": "+Xd6 no primeiro acerto do seu turno."},
+    "lamina_venenosa": {"name": "Lâmina Venenosa", "slot": "bonus",   "desc": "Unta a lâmina com veneno: por 10 turnos, TODO acerto seu envenena o alvo (dano contínuo que escala com o nível). 1x por combate."},
+    "some_sombras": {"name": "Some nas Sombras", "slot": "bonus",     "desc": "Some nas sombras: o próximo ataque inimigo contra você ERRA, e o seu próximo golpe vem da furtividade (acerto e crítico garantidos). 1x por combate."},
     # --- habilidades CONCEDIDAS pelos deuses (via Fagulha de Divindade) ---
     "milesima_saida": {"name": "Milésima Saída",   "slot": "bonus",   "god": "Nhare", "desc": "Dom de Nharé. 1x por combate: some pela milésima saída — cura 2d6 e o PRÓXIMO ataque inimigo contra você erra automaticamente."},
     "aurora_valiria": {"name": "Aurora de Valíria", "slot": "action",  "god": "Valiria", "desc": "Dom de Valíria. 1x por combate: a aurora desce sobre você. Por 6 turnos os inimigos só atacam você e nenhum golpe te tira mais de 1 de vida; em troca, por 9 turnos o seu próprio dano cai pela metade. Você brilha como a deusa."},
@@ -31,7 +33,7 @@ CLASS_ABILITIES = {
     "barbaro":   ["rage"],
     "guerreiro": ["second_wind", "action_surge"],
     "monge":     ["martial_arts", "flurry"],
-    "ladino":    ["sneak_attack"],
+    "ladino":    ["sneak_attack", "lamina_venenosa", "some_sombras"],
     "paladino":  ["lay_on_hands", "divine_smite"],
     "bardo":     ["bardic"],
 }

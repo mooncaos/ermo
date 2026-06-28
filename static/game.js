@@ -7508,6 +7508,12 @@ function showAttackResult(res){
       setTimeout(()=> popDamage(res.target, '⚔ -'+res.strike2_dmg, '#ffb060'), 320);
     }
   } else popDamage(res.target, 'errou', '#9b95b4');
+  if(res.lucky){                                   // Sortudo: re-rolou a errada
+    spawnAt(res.attacker, 'buff', '#9be36a');
+    setTimeout(()=> popDamage(res.attacker, '🍀', '#9be36a'), 60);
+  }
+  if(res.poisoned){ spawnAt(res.target, 'buff', '#8bd450'); }   // Lâmina Venenosa: envenenou
+  if(res.assassinate){ spawnAt(res.target, 'slash', '#c060ff'); toastMsg('🗡️ ASSASSINATO! Golpe das sombras.', true); }
   if(res.mon_ability && res.ability){
     toastMsg('✦ '+res.ability+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):'')+(res.self_heal?(' · curou '+res.self_heal):''), true);
   }
@@ -7541,6 +7547,8 @@ function showAbilityResult(r){
   if(r.rage){ spawnAt(r.actor, 'buff', '#ff8a3a'); toastMsg('🔥 Fúria!'); return; }
   if(r.surge){ spawnAt(r.actor, 'buff', '#ffe066'); toastMsg('⚡ Surto de Ação!'); return; }
   if(r.armed){ spawnAt(r.actor, 'buff', '#ffd86b'); toastMsg('⚔️ Castigo armado · próximo acerto'); return; }
+  if(r.venom){ spawnAt(r.actor, 'buff', '#8bd450'); toastMsg('🗡️ Lâmina Venenosa! Seus golpes envenenam.'); return; }
+  if(r.vanish){ spawnAt(r.actor, 'buff', '#9a6ad0'); toastMsg('👻 Some nas Sombras! Seu próximo golpe é um assassinato.'); return; }
   if(r.buff){ spawnAt(r.actor, 'buff', '#c9a0ff'); toastMsg('✦ '+(r.name||'Inspiração')+'!'); return; }
   if(r.name) toastMsg('✦ '+r.name);
 }

@@ -80,6 +80,9 @@ def make_player_combatant(sid, player, ficha):
         st["speed"] += 2
     if ("atacante_pesado" in feats) or ("atirador_elite" in feats):   # +dano de arma
         st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + 3
+    if "mestre_armas" in feats:                 # Mestre em Armas: maestria com a arma (+acerto e +dano)
+        st["atk"] += 2
+        st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + 2
     if "duas_armas" in feats:                   # Duas Armas: dano da mao secundaria
         st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + 3
     if "sentinela" in feats:                    # Sentinela: guarda a posicao (+CA)
@@ -123,6 +126,7 @@ def make_player_combatant(sid, player, ficha):
         "spell_atk": prof + cast_mod + spell_bonus, "spell_dc": 8 + prof + cast_mod + spell_bonus,
         "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
         "abilities": abil.for_class(cid) + list(ficha.get("god_abilities", [])), "sneak": sneak, "rage_dmg": rage_dmg,
+        "hidden": (cid == "ladino" and ficha.get("form") == "lebre"),   # Assassinato: começa oculto na Lebre
         "form_id": ficha.get("form"), "no_spells": bool(ficha.get("form_no_spells")),
         "res": copy.deepcopy(ficha.get("res") or {}),
         "raging": False, "bless_die": None, "smite_armed": False,
@@ -315,6 +319,8 @@ def _apply_damage(target, dmg, enc=None):
         dmg -= (dmg * 3) // 4
     if has_status(target, "mao_aura"):                # aura da Mão de Valíria: -20% no grupo
         dmg -= dmg // 5
+    if target.get("class_id") == "ladino" and dmg > 0:   # Esquiva Ladina: o ladino rola com o golpe (-25%)
+        dmg -= dmg // 4
     blk = int(target.get("block", 0))
     if blk and dmg > 0:
         dmg = max(0, dmg - blk)
@@ -463,11 +469,6 @@ def attack(enc, attacker, target):
     Furtivo/Castigo no dano, e resistencia no alvo."""
     ad = _adv_dis(attacker, target)
     d = max(_d20(), _d20()) if ad > 0 else (min(_d20(), _d20()) if ad < 0 else _d20())
-    if attacker.get("luck", 0) > 0 and d <= 7:        # Sortudo: re-rola um ataque ruim
-        nd = _d20()
-        if nd > d:
-            d = nd
-        attacker["luck"] -= 1
     crit = (d == 20)
     total = d + attacker.get("atk", 0)
     if attacker.get("bless_die"):
@@ -481,9 +482,18 @@ def attack(enc, attacker, target):
         hit = crit = False
     if attacker.get("posture") == "combatente":       # Combatente Valiriano: todo ataque acerta
         hit = True
+    assassin = False
+    if attacker.get("hidden"):                        # Assassinato: surge da furtividade -> acerto + crítico garantido
+        hit = True; crit = True; assassin = True
+        attacker["hidden"] = False
+    lucky = False
+    if (not hit) and (not evaded) and attacker.get("luck", 0) > 0:   # Sortudo: gasta 1 sorte e re-rola a errada
+        attacker["luck"] -= 1; lucky = True
+        d = _d20(); crit = (d == 20); total = d + attacker.get("atk", 0)
+        hit = crit or (d != 1 and total >= eff_ac)
     res = {"attacker": attacker["cid"], "attacker_name": attacker["name"],
            "target": target["cid"], "target_name": target["name"],
-           "d20": d, "total": total, "crit": crit, "hit": hit, "dmg": 0, "adv": ad,
+           "d20": d, "total": total, "crit": crit, "hit": hit, "dmg": 0, "adv": ad, "lucky": lucky, "assassinate": assassin,
            "atk_name": attacker.get("atk_name", "ataque"), "killed": False, "evaded": evaded,
            "target_hp": target["hp"], "target_hp_max": target["hp_max"]}
     if hit:
@@ -545,6 +555,9 @@ def attack(enc, attacker, target):
         dealt = _apply_damage(target, dmg, enc)
         res["dmg"] = dealt
         res["radiant_dmg"] = radiant                       # parte radiante (castigo) -> amarelo no cliente
+        if has_status(attacker, "poison_blade") and target.get("alive"):   # Lâmina Venenosa: envenena no acerto
+            apply_status(target, "poison", 3, {"n": 1, "d": 6, "flat": max(1, int(attacker.get("level", 1)) // 2)})
+            res["poisoned"] = True
         # Forma de Facalan (Fagulha de Facalan): a pantera dourada GOLPEIA DUAS VEZES
         if has_status(attacker, "facalan") and target.get("alive"):
             d2 = _roll_dmg(attacker["dmg"], crit) + _roll_dmg({"n": 2, "d": attacker["dmg"].get("d", 6)}, crit)
@@ -715,6 +728,19 @@ def use_ability(enc, actor, aid, target=None):
         actor["bless_die"] = {"n": 1, "d": 6}; res.update({"buff": True, "self": True})
     elif aid == "divine_smite":
         actor["smite_armed"] = True; res["armed"] = True
+    elif aid == "lamina_venenosa":
+        if actor.get("_venom_used"):
+            res["fail"] = True; return res
+        actor["_venom_used"] = True
+        apply_status(actor, "poison_blade", 10)      # 10 turnos: cada acerto envenena o alvo
+        res.update({"venom": True, "self": True, "target": actor["cid"]})
+    elif aid == "some_sombras":
+        if actor.get("_vanish_used"):
+            res["fail"] = True; return res
+        actor["_vanish_used"] = True
+        actor["hidden"] = True                       # próximo golpe = assassinato (acerto + crítico)
+        actor["evade_next"] = True                   # próximo ataque inimigo erra
+        res.update({"vanish": True, "self": True, "target": actor["cid"]})
     elif aid == "milesima_saida":
         if actor.get("_milesima_used"):
             res["fail"] = True; return res
@@ -884,7 +910,8 @@ def monster_ability(enc, mon, tgt, ab):
                 continue
             saved = False
             if save and (_d20() + _save_mod(pl, save)) >= dc:
-                saved = True; dd = dd // 2
+                saved = True
+                dd = 0 if pl.get("class_id") == "ladino" else dd // 2   # Esquiva Total do Ladino: passou = não toma NADA
             _apply_damage(pl, dd, enc)
             if ab.get("status") and pl.get("alive") and not saved:
                 apply_status(pl, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
