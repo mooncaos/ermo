@@ -39,6 +39,7 @@ ITEMS = {
     "fagulha_divindade":{"name": "Fagulha de Divindade", "kind": "tesouro", "stackable": True, "color": "#ffffff", "rarity": "divino", "value": 30000, "sell_value": 30000, "desc": "Um fragmento puro de poder divino arrancado de Avhur, o Maldito. Pulsa com todas as cores que existem e algumas que não deviam existir. Dizem que os deuses do Ermo trocariam quase tudo por uma destas. Por ora, vale 30.000 de bronze pra quem não tem coragem de guardá-la."},
     "bola_la_pofnir":   {"name": "Bola de Lã do Pofnir", "kind": "tesouro", "stackable": False, "color": "#f7d6ff", "slot": "neck", "visual": "divine_orb", "rarity": "divino", "ac": 0, "value": 30000, "sell_value": 0, "desc": "Uma bola de lã que o próprio Pofnir amassou com as patas, encharcada do mesmo brilho multicolorido da Fagulha de Divindade. Pulsa com todas as cores e ronrona baixinho quando ninguém está olhando. Não faz nada (ainda), mas é a prova de que o gato branco te aceitou. Não tem preço, e por isso não se vende."},
     "pocao_divina":     {"name": "Poção Divina", "kind": "consumivel", "stackable": True, "color": "#f7d6ff", "visual": "potion", "rarity": "divino", "heal": 100, "double_next": True, "value": 0, "sell_value": 0, "desc": "Um néctar multicolorido que um deus destilou da própria Fagulha que você ofereceu. Restaura 100 de vida na hora e faz o seu PRÓXIMO golpe valer pelo dobro. Brilha com cores que não deviam existir. Vale mais que ouro, e por isso nenhum mercador ousa comprá-la."},
+    "botas_vargo":      {"name": "Botas de Vargo", "kind": "armor", "stackable": False, "color": "#f7d6ff", "slot": "feet", "visual": "divine_boot", "rarity": "divino", "ac": 7, "speed": 2, "attr": {"FOR": 3, "DES": 3, "CON": 3, "INT": 3, "SAB": 3, "CAR": 3}, "immune": ["poison", "bleeding", "veneno_varth"], "smoke": True, "value": 0, "sell_value": 0, "desc": "As botas que Vargo, o primeiro lich, calçou ao renunciar à própria carne. Tecidas com a mesma luz multicolorida da Fagulha de Divindade e encharcadas de necromancia, exalam uma fumaça preta que nunca se dissipa. Dão +3 em TODOS os seis atributos, deixam quem as veste imune a veneno e a sangramento, e leves como uma sombra. Nenhum mercador ousa tocá-las."},
     "simbolo_varth":{"name": "Símbolo de Varth", "kind": "tesouro", "stackable": True, "color": "#7a4ad0", "rarity": "epico", "value": 2500, "sell_value": 2500, "desc": "Um sigilo de osso e obsidiana gravado com a marca de Lorde Varth, ainda quente de necromancia. Os comerciantes pagam 2.500 de bronze por um troféu desses arrancado da Torre do Lorde Necrótico."},
     "correntes_colosso":{"name": "Correntes do Colosso", "kind": "tesouro", "stackable": False, "color": "#9a8a6a", "slot": "neck", "visual": "amulet", "rarity": "lendario", "ac": 7, "atk": 3, "value": 4000, "desc": "As correntes de pedra e bronze que prendiam o Colosso de Avasham, pesadas como a própria montanha. +7 de armadura e +3 para acertar, o melhor colar que existe."},
     "pelo_chacal_avhur":{"name": "Pelo de Chacal de Avhur", "kind": "trofeu", "stackable": True, "color": "#2e2820", "value": 500, "animal": True, "couraria_only": True, "rarity": "raro", "desc": "A pelagem negra e densa de um chacal de Avhur, impregnada da poeira da tumba. So o coureiro Valdir sabe o que vale: 1000 de bronze por peca."},
@@ -169,6 +170,11 @@ def equip_summary(equipment):
     'offhand' (duas armas), e quem a usa soma o dano dela no ataque."""
     eq = equipment or {}
     ac = atk = spell_pow = block = 0
+    armor = ward = 0
+    dodge = mres = 0.0
+    speed = 0
+    immune = []
+    smoke = False
     attrs = {}
     shield_ac = 0
 
@@ -191,12 +197,24 @@ def equip_summary(equipment):
         atk += int(it.get("atk", 0))
         spell_pow += int(it.get("spell_pow", 0))
         block += int(it.get("block", 0))
+        armor += int(it.get("armor", 0))                     # mitigação (reduz dano por golpe)
+        dodge += float(it.get("dodge", 0))                   # esquiva (anula o golpe)
+        ward += int(it.get("ward", 0))                       # barreira arcana (absorve dano)
+        mres += float(it.get("mres", 0))                     # resistência mágica (% no dano de magia)
+        speed += int(it.get("speed", 0))                     # +deslocamento (Botas de Vargo)
+        for _im in (it.get("immune") or []):                 # imunidade a status (Botas de Vargo)
+            if _im not in immune:
+                immune.append(_im)
+        if it.get("smoke"):
+            smoke = True                                     # aura de fumaça preta (Botas de Vargo)
         if it.get("visual") == "shield":                     # CA do escudo (pro Combatente largar)
             shield_ac += int(it.get("ac", 0))
         for _ak, _av in (it.get("attr") or {}).items():      # +atributo (set Necrótico)
             attrs[_ak] = attrs.get(_ak, 0) + int(_av)
     return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow,
-            "block": block, "rng": rng, "offhand": offhand, "attrs": attrs, "shield_ac": shield_ac}
+            "block": block, "rng": rng, "offhand": offhand, "attrs": attrs, "shield_ac": shield_ac,
+            "armor": armor, "dodge": round(dodge, 4), "ward": ward, "mres": round(mres, 4),
+            "speed": speed, "immune": immune, "smoke": smoke}
 
 
 # Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).
@@ -238,8 +256,12 @@ def describe(item_id):
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
     elif k == "armor":
         head = "Escudo." if it.get("slot") == "hand" else "Peça de armadura."
-        if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+        if it.get("armor"): bits.append("mitiga até %d de dano por golpe" % it["armor"])
+        if it.get("dodge"): bits.append("%d%% de esquiva" % round(it["dodge"] * 100))
+        if it.get("ward"): bits.append("barreira absorve %d" % it["ward"])
+        if it.get("mres"): bits.append("%d%% de resistência mágica" % round(it["mres"] * 100))
         if it.get("block"): bits.append("bloqueia %d de dano por golpe" % it["block"])
+        if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
     elif k == "consumivel":
         head = "Consumível."
         if it.get("heal"): bits.append("cura %d%% da vida" % int(it["heal"] * 100))
@@ -261,6 +283,8 @@ def catalog():
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
             "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
             "spell_pow": v.get("spell_pow", 0), "block": v.get("block", 0), "rng": v.get("rng"),
+            "armor": v.get("armor", 0), "dodge": v.get("dodge", 0),       # mitigação / esquiva (defesa Tibia)
+            "ward": v.get("ward", 0), "mres": v.get("mres", 0),           # barreira arcana / resistência mágica
             "heal": v.get("heal"), "desc": describe(k), "protect": v.get("protect"),
             "animal": v.get("animal"), "value": v.get("value", 1),
             "sell_value": v.get("sell_value"), "couraria_only": v.get("couraria_only")}
@@ -420,6 +444,59 @@ SHOP_SETS = []          # [{"class_id":..., "items":[ids na ordem arma->botas]}]
 SHOP_ITEMS = set()      # todos os ids que a loja vende (pra validar compra)
 _SHIELD_AC = {"pesada": 3, "media": 2}   # escudo: arquetipos marciais (robe nao usa)
 
+# === SISTEMA DE DEFESA estilo Tibia (mitigação / esquiva / ward) =============
+# Em vez de empilhar CA, cada arquétipo defende do seu jeito:
+#   pesada -> ARMADURA alta (cada golpe leva uma mitigação aleatória metade-total) + bloqueio do escudo
+#   media  -> ARMADURA baixa + ESQUIVA (chance de ANULAR o golpe)
+#   robe   -> WARD (barreira que absorve dano) + RESISTÊNCIA MÁGICA (% no dano de magia)
+# Os totais abaixo são do SET COMPLETO (calibrados pra equivaler ao poder de hoje:
+# paladino full goblin toma ~4/turno do Varth como antes); distribuídos por peça.
+_DEF = {   # tier -> {pa:armadura pesada, ma:armadura media, md:esquiva media,
+           #          ra:armadura robe, rw:ward robe, rm:resist. mágica robe}
+    "set":   {"pa": 2,  "ma": 1,  "md": 0.05, "ra": 1,  "rw": 2,  "rm": 0.05},
+    "t1":    {"pa": 5,  "ma": 3,  "md": 0.12, "ra": 2,  "rw": 6,  "rm": 0.15},
+    "t2":    {"pa": 12, "ma": 6,  "md": 0.20, "ra": 5,  "rw": 12, "rm": 0.25},
+    "t3":    {"pa": 26, "ma": 13, "md": 0.28, "ra": 9,  "rw": 22, "rm": 0.38},
+    "necro": {"pa": 58, "ma": 26, "md": 0.38, "ra": 14, "rw": 34, "rm": 0.50},
+}
+def _split_int(total, arch):
+    """Distribui um total inteiro pelas 6 peças conforme o peso do arquétipo (peitoral pega o resto)."""
+    w = _ARQ[arch]; slots = ("head", "shoulder", "back", "chest", "legs", "feet")
+    sw = sum(w[s] for s in slots) or 1
+    out = {s: 0 for s in slots}
+    if total <= 0:
+        return out
+    acc = 0
+    for s in slots:
+        if s == "chest":
+            continue
+        out[s] = int(round(total * w[s] / sw)); acc += out[s]
+    out["chest"] = max(0, total - acc)
+    return out
+def _piece_defense(arch, slot, tierkey):
+    """Defesa (armadura/esquiva/ward/resist) de UMA peça conforme arquétipo + tier."""
+    D = _DEF.get(tierkey, _DEF["set"])
+    w = _ARQ[arch]; slots = ("head", "shoulder", "back", "chest", "legs", "feet")
+    sw = sum(w[s] for s in slots) or 1
+    frac = w[slot] / sw
+    out = {}
+    if arch == "pesada":
+        a = _split_int(D["pa"], arch).get(slot, 0)
+        if a: out["armor"] = a
+    elif arch == "media":
+        a = _split_int(D["ma"], arch).get(slot, 0)
+        if a: out["armor"] = a
+        dg = D["md"] * frac
+        if dg > 0: out["dodge"] = round(dg, 4)
+    elif arch == "robe":
+        a = _split_int(D["ra"], arch).get(slot, 0)
+        if a: out["armor"] = a
+        wd = _split_int(D["rw"], arch).get(slot, 0)
+        if wd: out["ward"] = wd
+        mr = D["rm"] * frac
+        if mr > 0: out["mres"] = round(mr, 4)
+    return out
+
 # Classes que FOCAM EM MAGIA: a arma vira modesta, mas o equipamento da +poder
 # magico (somado no dano de TODA magia). As marciais batem forte na arma.
 CASTER_CLASSES = {"mago", "feiticeiro", "bruxo", "clerigo", "druida", "bardo"}
@@ -443,8 +520,6 @@ def _gen_class_sets():
         ITEMS[wid] = {"name": wn, "kind": "weapon", "stackable": False, "color": cor,
                       "slot": "hand", "visual": wvis, "rarity": "comum",
                       "dmg": {"n": dn, "d": dd}, "atk": watk, "value": SHOP_PRICE}
-        if wac:
-            ITEMS[wid]["ac"] = wac
         if cid in RANGED_RANGE:
             ITEMS[wid]["rng"] = RANGED_RANGE[cid]
         ids.append(wid)
@@ -452,15 +527,17 @@ def _gen_class_sets():
         for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
             vis, slabel = _SLOT_VIS[slot]
             iid = "set_%s_%s" % (cid, slot)
-            ITEMS[iid] = {"name": "%s %s" % (slabel, tema), "kind": "armor", "stackable": False,
-                          "color": cor, "slot": slot, "visual": vis, "rarity": "comum",
-                          "ac": a[slot], "value": SHOP_PRICE}
+            piece = {"name": "%s %s" % (slabel, tema), "kind": "armor", "stackable": False,
+                     "color": cor, "slot": slot, "visual": vis, "rarity": "comum",
+                     "value": SHOP_PRICE}
+            piece.update(_piece_defense(arq, slot, "set"))
+            ITEMS[iid] = piece
             ids.append(iid)
         if arq in _SHIELD_AC:
             sidh = "set_%s_escudo" % cid
             ITEMS[sidh] = {"name": "Escudo %s" % tema, "kind": "armor", "stackable": False,
                            "color": cor, "slot": "hand", "visual": "shield", "rarity": "comum",
-                           "ac": _SHIELD_AC[arq], "block": 2, "value": SHOP_PRICE}
+                           "block": 2, "value": SHOP_PRICE}
             ids.append(sidh)
         SHOP_SETS.append({"class_id": cid, "items": ids})
         SHOP_ITEMS.update(ids)
@@ -501,8 +578,6 @@ def _gen_tier_sets():
             W = {"name": "%s %s" % (wn, suf), "kind": "weapon", "stackable": False,
                  "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
                  "dmg": wdmg, "atk": watk + (catk if caster else matk), "value": price}
-            if wac:
-                W["ac"] = wac + acb
             if (cid in POW_CLASSES) and cpow:
                 W["spell_pow"] = cpow          # o foco magico carrega o poder do set (caster + paladino)
             if cid in RANGED_RANGE:
@@ -513,15 +588,17 @@ def _gen_tier_sets():
             for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
                 vis, slabel = _SLOT_VIS[slot]
                 iid = "%s_%s_%s" % (pfx, cid, slot)
-                ITEMS[iid] = {"name": "%s %s %s" % (slabel, tema, suf), "kind": "armor",
-                              "stackable": False, "color": cor, "slot": slot, "visual": vis,
-                              "rarity": rar, "ac": a[slot] + acb, "value": price}
+                piece = {"name": "%s %s %s" % (slabel, tema, suf), "kind": "armor",
+                         "stackable": False, "color": cor, "slot": slot, "visual": vis,
+                         "rarity": rar, "value": price}
+                piece.update(_piece_defense(arq, slot, pfx))
+                ITEMS[iid] = piece
                 ids.append(iid)
             if arq in _SHIELD_AC:
                 sidh = "%s_%s_escudo" % (pfx, cid)
                 ITEMS[sidh] = {"name": "Escudo %s %s" % (tema, suf), "kind": "armor",
                                "stackable": False, "color": cor, "slot": "hand", "visual": "shield",
-                               "rarity": rar, "ac": _SHIELD_AC[arq] + acb, "block": sblock, "value": price}
+                               "rarity": rar, "block": sblock, "value": price}
                 ids.append(sidh)
             sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
         TIER_SETS[pfx] = sets; TIER_ITEMS[pfx] = ids_all; TIER_PRICE[pfx] = price
@@ -530,7 +607,7 @@ TIER_LABEL = {"t1": "Mascate Errante", "t2": "Nômade Raiz", "t3": "Coveiro Mór
 
 # atributo principal de cada classe (pro bonus do set Necrótico)
 _CLASS_ATTR = {
-    "barbaro": "FOR", "guerreiro": "FOR", "paladino": "FOR",
+    "barbaro": "FOR", "guerreiro": "FOR", "paladino": "CON",
     "ladino": "DES", "monge": "DES", "patrulheiro": "DES",
     "mago": "INT", "feiticeiro": "CAR", "bruxo": "CAR", "bardo": "CAR",
     "clerigo": "SAB", "druida": "SAB",
@@ -546,7 +623,7 @@ def _gen_necrotico_set():
     w_mdice, w_mflat, w_matk = 15, 35, 34      # marcial: dados, dano fixo, +acerto
     w_cdice, w_cpow, w_catk = 5, 40, 14        # caster: dados, +poder mágico, +acerto
     acb, sblock = 6, 16                         # armadura/escudo (1 tier acima)
-    attr_bonus = 2                             # cada peça: +2 no atributo principal
+    attr_bonus = 2                             # +2 no atributo da classe na ARMA e no PEITORAL (+4 total, não em cada peça)
     sets = []; ids_all = set()
     for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
         wn, wvis, dn, dd, watk, wac = weap
@@ -561,8 +638,6 @@ def _gen_necrotico_set():
              "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
              "dmg": wdmg, "atk": watk + (w_catk if caster else w_matk), "value": price,
              "attr": {attr: attr_bonus}}
-        if wac:
-            W["ac"] = wac + acb
         if (cid in POW_CLASSES) and w_cpow:
             W["spell_pow"] = w_cpow
         if cid in RANGED_RANGE:
@@ -572,17 +647,20 @@ def _gen_necrotico_set():
         for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
             vis, slabel = _SLOT_VIS[slot]
             iid = "necro_%s_%s" % (cid, slot)
-            ITEMS[iid] = {"name": "%s %s %s" % (suf, slabel, tema), "kind": "armor",
-                          "stackable": False, "color": cor, "slot": slot, "visual": vis,
-                          "rarity": rar, "ac": a[slot] + acb, "value": price,
-                          "attr": {attr: attr_bonus}}
+            it = {"name": "%s %s %s" % (suf, slabel, tema), "kind": "armor",
+                  "stackable": False, "color": cor, "slot": slot, "visual": vis,
+                  "rarity": rar, "value": price}
+            it.update(_piece_defense(arq, slot, "necro"))
+            if slot == "chest":                       # so o peitoral concede atributo (+ a arma) = +4 no total
+                it["attr"] = {attr: attr_bonus}
+            ITEMS[iid] = it
             ids.append(iid)
         if arq in _SHIELD_AC:
             sidh = "necro_%s_escudo" % cid
             ITEMS[sidh] = {"name": "%s Escudo %s" % (suf, tema), "kind": "armor",
                            "stackable": False, "color": cor, "slot": "hand", "visual": "shield",
-                           "rarity": rar, "ac": _SHIELD_AC[arq] + acb, "block": sblock,
-                           "value": price, "attr": {attr: attr_bonus}}
+                           "rarity": rar, "block": sblock,
+                           "value": price}
             ids.append(sidh)
         sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
     TIER_SETS["necro"] = sets; TIER_ITEMS["necro"] = ids_all; TIER_PRICE["necro"] = price

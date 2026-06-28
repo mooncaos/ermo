@@ -2991,6 +2991,116 @@ function drawBeast(c, sx, sy, ts, p){
   }
   drawMonsterBarName(c, sx, sy, ts, p);
 }
+function _smokeAura(c, sx, sy, ts){
+  // Botas de Vargo: fumaça preta subindo aos pés do jogador
+  const t=performance.now(), cx=sx+ts/2, base=sy+ts*0.78;
+  c.save();
+  for(let i=0;i<5;i++){ const ph=((t/16+i*60)%80)/80;
+    const px=cx+Math.sin(t/360+i*1.7)*ts*0.18*(0.4+ph), py=base-ph*ts*0.85, r=ts*0.13*(0.5+ph*0.8);
+    c.globalAlpha=(1-ph)*0.42; c.fillStyle='#0c0a14';
+    c.beginPath(); c.arc(px,py,r,0,Math.PI*2); c.fill(); }
+  c.restore();
+}
+function drawLordeVarthBoss(c, sx, sy, ts, p){
+  // LORDE VARTH (lich): senhor necrótico do topo da Torre. Esquelético, alto e MAGRO.
+  const N = p.size || 5;
+  const span = N*ts;
+  const cx = sx + ts*0.5, cy = sy + ts*0.5;
+  const S = span*0.42;                              // "raio" da figura
+  const t = performance.now();
+  const moving = !!p._moving;
+  const bob = moving ? Math.sin(((p.walk||0)/WALK_CYCLE)*Math.PI*2)*3 : Math.sin(t/780)*2.0;
+  const ROBE='#190f28', ROBE2='#241636', TRIM='#7a40c0', BONE='#e6ddc8', GLOW='#b070ff', SOUL='#c8b0ff', EYE='#c060ff';
+
+  // sombra no chão
+  c.save(); c.fillStyle='rgba(0,0,0,.42)';
+  c.beginPath(); c.ellipse(cx, cy+S*0.96, S*0.5, S*0.15, 0, 0, Math.PI*2); c.fill(); c.restore();
+  // aura necrótica pulsante + brasas subindo
+  c.save(); c.globalCompositeOperation='lighter';
+  const pulse=0.5+0.5*Math.sin(t/520);
+  const ag=c.createRadialGradient(cx, cy+S*0.5, 0, cx, cy+S*0.5, S*0.95);
+  ag.addColorStop(0,'rgba(150,60,200,'+(0.16+0.12*pulse)+')'); ag.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=ag; c.beginPath(); c.ellipse(cx, cy+S*0.5, S*0.95, S*0.5, 0, 0, Math.PI*2); c.fill();
+  for(let i=0;i<7;i++){ const ph=((t/22+i*70)%100)/100; c.globalAlpha=(1-ph)*0.5;
+    c.fillStyle=i%2?SOUL:GLOW; const ex=cx+Math.sin(t/300+i)*S*0.5;
+    c.beginPath(); c.arc(ex, cy+S*0.7-ph*S*1.3, 2.2*(1-ph*0.5), 0, Math.PI*2); c.fill(); }
+  c.restore();
+
+  c.save(); c.translate(cx, cy+bob);
+  // caveiras de alma orbitando (só as de trás)
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.55; c.fillStyle=SOUL;
+  for(let i=0;i<4;i++){ const a=t/640+i*Math.PI/2;
+    if(Math.sin(a)<0){ c.beginPath(); c.arc(Math.cos(a)*S*0.62, -S*0.1+Math.sin(a)*S*0.2, S*0.06, 0, Math.PI*2); c.fill(); } }
+  c.restore();
+  // CAJADO atrás com orbe necrótico
+  c.strokeStyle='#2a1c10'; c.lineWidth=Math.max(2,S*0.04); c.lineCap='round';
+  const stx=-S*0.5; c.beginPath(); c.moveTo(stx,-S*0.5); c.lineTo(stx,S*0.85); c.stroke();
+  c.save(); c.globalCompositeOperation='lighter';
+  const orb=c.createRadialGradient(stx,-S*0.56,0,stx,-S*0.56,S*0.18);
+  orb.addColorStop(0,'#ffffff'); orb.addColorStop(0.4,GLOW); orb.addColorStop(1,'rgba(0,0,0,0)');
+  c.globalAlpha=0.85+0.15*Math.sin(t/300); c.fillStyle=orb;
+  c.beginPath(); c.arc(stx,-S*0.56,S*0.18,0,Math.PI*2); c.fill(); c.restore();
+
+  // MANTO longo e ESTREITO (silhueta magra) com barra rasgada
+  const g=c.createLinearGradient(0,-S*0.45,0,S*0.95);
+  g.addColorStop(0,ROBE2); g.addColorStop(1,ROBE);
+  c.fillStyle=g; c.beginPath();
+  c.moveTo(-S*0.16,-S*0.42); c.lineTo(S*0.16,-S*0.42);
+  c.quadraticCurveTo(S*0.30,S*0.2,S*0.26,S*0.9);
+  c.lineTo(S*0.16,S*0.78); c.lineTo(S*0.08,S*0.92); c.lineTo(0,S*0.78);
+  c.lineTo(-S*0.08,S*0.92); c.lineTo(-S*0.16,S*0.78); c.lineTo(-S*0.26,S*0.9);
+  c.quadraticCurveTo(-S*0.30,S*0.2,-S*0.16,-S*0.42); c.closePath(); c.fill();
+  c.strokeStyle=TRIM; c.lineWidth=Math.max(1.2,S*0.02);
+  c.beginPath(); c.moveTo(-S*0.06,-S*0.36); c.lineTo(-S*0.14,S*0.7);
+  c.moveTo(S*0.06,-S*0.36); c.lineTo(S*0.14,S*0.7); c.moveTo(0,-S*0.34); c.lineTo(0,S*0.75); c.stroke();
+  // MÃOS ESQUELÉTICAS saindo das mangas
+  for(const sgn of [-1,1]){ const hx=sgn*S*0.2, hyh=S*0.34;
+    c.fillStyle=BONE; c.beginPath(); c.ellipse(hx,hyh,S*0.05,S*0.07,0,0,Math.PI*2); c.fill();
+    c.strokeStyle=BONE; c.lineWidth=Math.max(1.2,S*0.022); c.lineCap='round';
+    for(let f=-1;f<=2;f++){ c.beginPath(); c.moveTo(hx+f*S*0.018,hyh+S*0.02); c.lineTo(hx+f*S*0.03,hyh+S*0.12); c.stroke(); } }
+  // gola alta pontiaguda
+  c.fillStyle=ROBE; c.beginPath();
+  c.moveTo(-S*0.16,-S*0.34); c.lineTo(-S*0.26,-S*0.02); c.lineTo(-S*0.05,-S*0.2);
+  c.lineTo(0,-S*0.36); c.lineTo(S*0.05,-S*0.2); c.lineTo(S*0.26,-S*0.02); c.lineTo(S*0.16,-S*0.34); c.closePath(); c.fill();
+
+  // CABEÇA: CRÂNIO descarnado
+  const hy=-S*0.5, hr=S*0.2;
+  c.fillStyle=ROBE; c.beginPath(); c.ellipse(0,hy,hr*1.25,hr*1.4,0,0,Math.PI*2); c.fill();   // sombra do capuz atrás
+  c.fillStyle=BONE; c.beginPath();
+  c.moveTo(-hr,hy);
+  c.quadraticCurveTo(-hr,hy-hr*1.05, 0,hy-hr*1.05);
+  c.quadraticCurveTo(hr,hy-hr*1.05, hr,hy);
+  c.quadraticCurveTo(hr,hy+hr*0.5, hr*0.45,hy+hr*0.62);
+  c.quadraticCurveTo(0,hy+hr*0.74, -hr*0.45,hy+hr*0.62);
+  c.quadraticCurveTo(-hr,hy+hr*0.5, -hr,hy); c.closePath(); c.fill();
+  c.fillStyle='#d2c6ab'; c.beginPath();                                                       // maçãs do rosto
+  c.ellipse(-hr*0.5,hy+hr*0.2,hr*0.16,hr*0.24,0.3,0,Math.PI*2);
+  c.ellipse(hr*0.5,hy+hr*0.2,hr*0.16,hr*0.24,-0.3,0,Math.PI*2); c.fill();
+  c.fillStyle='#150a20'; c.beginPath();                                                       // órbitas fundas
+  c.ellipse(-hr*0.44,hy-hr*0.04,hr*0.27,hr*0.32,0.18,0,Math.PI*2);
+  c.ellipse(hr*0.44,hy-hr*0.04,hr*0.27,hr*0.32,-0.18,0,Math.PI*2); c.fill();
+  c.save(); c.globalCompositeOperation='lighter';                                             // olhos brilhantes
+  for(const sgn of [-1,1]){ const ex=sgn*hr*0.44, ey=hy-hr*0.04;
+    const eg=c.createRadialGradient(ex,ey,0,ex,ey,hr*0.22);
+    eg.addColorStop(0,'#ffffff'); eg.addColorStop(0.4,EYE); eg.addColorStop(1,'rgba(0,0,0,0)');
+    c.globalAlpha=0.6+0.3*Math.sin(t/260); c.fillStyle=eg;
+    c.beginPath(); c.arc(ex,ey,hr*0.22,0,Math.PI*2); c.fill();
+    c.globalAlpha=1; c.fillStyle=EYE; c.beginPath(); c.arc(ex,ey,hr*0.08,0,Math.PI*2); c.fill(); }
+  c.restore();
+  c.fillStyle='#150a20'; c.beginPath();                                                       // cavidade nasal
+  c.moveTo(0,hy+hr*0.16); c.lineTo(-hr*0.1,hy+hr*0.4); c.lineTo(hr*0.1,hy+hr*0.4); c.closePath(); c.fill();
+  c.fillStyle=BONE; c.fillRect(-hr*0.3,hy+hr*0.5,hr*0.6,hr*0.14);                              // dentes
+  c.strokeStyle='#9a8f76'; c.lineWidth=Math.max(0.8,S*0.012);
+  for(let i=-2;i<=2;i++){ c.beginPath(); c.moveTo(i*hr*0.12,hy+hr*0.5); c.lineTo(i*hr*0.12,hy+hr*0.64); c.stroke(); }
+  // COROA de espinhos de osso
+  c.strokeStyle=BONE; c.lineWidth=Math.max(1.4,S*0.022); c.lineCap='round';
+  for(let kk=-3;kk<=3;kk++){ const bx=kk*hr*0.26, bh=(kk%2===0?hr*0.52:hr*0.32);
+    c.beginPath(); c.moveTo(bx,hy-hr*0.95); c.lineTo(bx,hy-hr*0.95-bh); c.stroke(); }
+  c.strokeStyle=TRIM; c.lineWidth=Math.max(1.4,S*0.03);
+  c.beginPath(); c.arc(0,hy-hr*0.3,hr*0.92,Math.PI*1.15,Math.PI*1.85); c.stroke();
+  c.restore();
+  drawMonsterBarName(c, cx - ts/2, cy - S - 6, ts, p);
+}
 function drawVarth(c, sx, sy, ts, p){
   const N = p.size || 4;
   const span = N*ts;
@@ -4907,6 +5017,16 @@ function spawnDarkBolt(fromId, toId, color){       // RAIO necrótico (monstro -
   vfx.push({kind:'darkbolt', x0, y0, x1:b.x, y1:b.y, color:color||'#a050ff', t0:t, life:380});
   vfx.push({kind:'shadowblast', x1:b.x, y1:b.y, color:color||'#a050ff', radius:1, t0:t+330, life:520});
 }
+function spawnCataclysm(atId){                      // CATACLISMA DE VARGO: nova necrótica suprema 10x10 (o efeito mais elaborado do jogo)
+  const e=players.get(atId); if(!e) return;
+  const t=performance.now();
+  vfx.push({kind:'cataclysm', x1:e.x, y1:e.y, color:'#b060ff', t0:t, life:1700});
+  for(let i=0;i<14;i++){                            // chuva de caveiras ao redor
+    const ang=Math.random()*Math.PI*2, dist=Math.random()*4.6;
+    vfx.push({kind:'skullfall', x1:e.x+Math.cos(ang)*dist, y1:e.y+Math.sin(ang)*dist,
+              color:'#b060ff', t0:t+240+Math.random()*520, life:780});
+  }
+}
 function spawnAt(atId, kind, color){
   const e=players.get(atId); if(!e) return;
   const LIFE={slash:300, heal:760, buff:640, mark:540, rage:740, venom:700, vanish:660, armed:700, surge:620, impact:420,
@@ -5220,6 +5340,65 @@ function drawVfx(c, now){
       g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.5,v.color); g.addColorStop(1,'rgba(0,0,0,0)');
       c.fillStyle=g; c.beginPath(); c.arc(hx,hy,TS*0.4,0,Math.PI*2); c.fill();
       c.restore();
+
+    } else if(v.kind==='cataclysm'){
+      // ☠ CATACLISMA DE VARGO: nova necrótica suprema (10x10) — o efeito mais elaborado do jogo
+      const R=TS*5;                                  // raio ~5 tiles (cobre 10x10)
+      const P=v.color||'#b060ff', P2='#7a30c0', G='#7affb0';
+      c.save();
+      // (1) CAMPO DE ESCURIDÃO: o vazio engole a área inteira
+      const dark=Math.min(1, k<0.7 ? (k/0.16) : (1-k)/0.3);
+      c.globalAlpha=0.6*dark;
+      const vg=c.createRadialGradient(cx,cy,0,cx,cy,R);
+      vg.addColorStop(0,'rgba(8,3,16,0.97)'); vg.addColorStop(0.55,'rgba(20,8,36,0.78)');
+      vg.addColorStop(0.85,'rgba(42,16,76,0.32)'); vg.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=vg; c.beginPath(); c.arc(cx,cy,R,0,Math.PI*2); c.fill();
+      c.globalCompositeOperation='lighter';
+      // (2) GATILHO: energia convergindo pra dentro (k<0.18)
+      if(k<0.18){ const g=k/0.18; c.globalAlpha=0.7*(1-g); c.strokeStyle=P; c.lineWidth=3;
+        for(let i=0;i<4;i++){ const rr=R*(1-g)*(0.4+i*0.2); c.beginPath(); c.arc(cx,cy,rr,0,Math.PI*2); c.stroke(); } }
+      // (3) CLARÃO de erupção (0.12<k<0.42)
+      if(k>0.12 && k<0.42){ const g=(k-0.12)/0.3, fa=Math.sin(g*Math.PI);
+        c.globalAlpha=0.92*fa; const fg=c.createRadialGradient(cx,cy,0,cx,cy,R*0.72*g);
+        fg.addColorStop(0,'#ffffff'); fg.addColorStop(0.3,P); fg.addColorStop(0.7,P2); fg.addColorStop(1,'rgba(0,0,0,0)');
+        c.fillStyle=fg; c.beginPath(); c.arc(cx,cy,R*0.72*g,0,Math.PI*2); c.fill(); }
+      // (4) ANÉIS DE CHOQUE expandindo (3, escalonados; o do meio em verde-alma)
+      for(let i=0;i<3;i++){ const stt=0.16+i*0.16, g=(k-stt)/0.5;
+        if(g>0 && g<1){ c.globalAlpha=(1-g)*0.85; c.strokeStyle=i===1?G:P;
+          c.lineWidth=Math.max(2,TS*0.22*(1-g)); c.beginPath(); c.arc(cx,cy,R*g,0,Math.PI*2); c.stroke(); } }
+      // (5) RELÂMPAGOS necróticos irradiando (0.2<k<0.78)
+      if(k>0.2 && k<0.78){ const fa=Math.sin(((k-0.2)/0.58)*Math.PI), seed=Math.floor(now/90);
+        c.globalAlpha=0.85*fa; c.strokeStyle=P; c.lineWidth=2.2; c.lineCap='round';
+        for(let i=0;i<10;i++){ const a=i*Math.PI/5+seed*0.3; c.beginPath(); c.moveTo(cx,cy);
+          for(let s=1;s<=4;s++){ const rr=R*0.92*s/4, jit=Math.sin(seed+i*3+s)*0.4;
+            c.lineTo(cx+Math.cos(a+jit)*rr, cy+Math.sin(a+jit)*rr); } c.stroke(); } }
+      // (6) COLUNA central de energia subindo (0.18<k<0.7)
+      if(k>0.18 && k<0.7){ const fa=Math.sin(((k-0.18)/0.52)*Math.PI), cw=TS*0.7*fa;
+        c.globalAlpha=0.68*fa; const cg=c.createLinearGradient(cx,cy+TS*0.5,cx,cy-R*1.1);
+        cg.addColorStop(0,P); cg.addColorStop(0.5,P2); cg.addColorStop(1,'rgba(0,0,0,0)');
+        c.fillStyle=cg; c.beginPath(); c.moveTo(cx-cw,cy+TS*0.3); c.lineTo(cx+cw,cy+TS*0.3);
+        c.lineTo(cx+cw*0.3,cy-R*1.05); c.lineTo(cx-cw*0.3,cy-R*1.05); c.closePath(); c.fill(); }
+      // (7) ALMAS/wisps subindo
+      c.globalAlpha=0.8*Math.min(1,(1-k)*1.6);
+      for(let i=0;i<16;i++){ const a=i*0.4+now/600, rr=R*((i%5)+1)/6*(0.5+0.5*Math.sin(now/400+i));
+        const px=cx+Math.cos(a)*rr, py=cy+Math.sin(a)*rr-((now/8+i*60)%R);
+        c.fillStyle=i%3===0?G:P; c.beginPath(); c.arc(px,py,2.4,0,Math.PI*2); c.fill(); }
+      c.restore();
+
+    } else if(v.kind==='skullfall'){
+      // caveira despencando do céu + impacto (acompanha o cataclisma)
+      const fall=Math.min(1,k*1.4), sr=TS*0.22, dy=-(1-fall)*TS*2.2;
+      c.save(); c.globalAlpha=(1-k)*0.95;
+      c.fillStyle='#e8def5'; c.beginPath(); c.arc(cx,cy+dy,sr,0,Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(cx,cy+dy+sr*0.7,sr*0.6,sr*0.5,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#2a1840'; c.beginPath(); c.arc(cx-sr*0.4,cy+dy-sr*0.05,sr*0.26,0,Math.PI*2);
+      c.arc(cx+sr*0.4,cy+dy-sr*0.05,sr*0.26,0,Math.PI*2); c.fill();
+      c.globalCompositeOperation='lighter'; c.globalAlpha=(1-k)*0.8; c.fillStyle=v.color||'#b060ff';
+      c.beginPath(); c.arc(cx-sr*0.4,cy+dy-sr*0.05,sr*0.12,0,Math.PI*2);
+      c.arc(cx+sr*0.4,cy+dy-sr*0.05,sr*0.12,0,Math.PI*2); c.fill();
+      if(fall>=1){ c.globalAlpha=(1-k)*0.6; c.strokeStyle=v.color||'#b060ff'; c.lineWidth=2;
+        c.beginPath(); c.ellipse(cx,cy+sr*0.8,sr*1.6*k,sr*0.6*k,0,0,Math.PI*2); c.stroke(); }
+      c.restore();
     }
   }
 }
@@ -5315,6 +5494,7 @@ function frame(now){
     else if(p.kind === 'mesa') drawMesaParty(ctx, sx, sy, TS, p);
     else if(p.kind === 'monster' && (p.size||0) >= 4){
       if(p.mtype === 'colosso_avasham') drawColosso(ctx, sx, sy, TS, p);
+      else if(p.mtype === 'lorde_varth') drawLordeVarthBoss(ctx, sx, sy, TS, p);
       else drawVarth(ctx, sx, sy, TS, p);
     }
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
@@ -5323,6 +5503,7 @@ function frame(now){
     else {
       if(p._status && (p._status.aurora || p._status.aurora_fraca)) drawAuroraGlow(ctx, sx, sy, TS);
       if(p._status && p._status.cancao) drawCancaoGlow(ctx, sx, sy, TS);
+      if(p.smoke) _smokeAura(ctx, sx, sy, TS);                 // Botas de Vargo: fumaça preta
       drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
     }
   }
@@ -6548,6 +6729,35 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
       c.strokeStyle = 'hsl('+((hue+200)%360)+',70%,78%)'; c.lineWidth = 1;        // fiapos de la
       for(let i=0;i<3;i++){ const a=t/600+i*2.1; c.beginPath(); c.moveTo(cx+Math.cos(a)*orad, oy+Math.sin(a)*orad); c.lineTo(cx+Math.cos(a)*orad*1.5, oy+Math.sin(a)*orad*1.5); c.stroke(); }
       return true; }
+    case 'divine_boot': {                         // Botas de Vargo: bota divina multicolorida + fumaça preta + faíscas
+      const t = performance.now(), hue = (t/18) % 360;
+      // fumaça preta subindo
+      c.save(); c.globalAlpha = 0.34; c.fillStyle = '#0a0a12';
+      for(let i=0;i<3;i++){ const ph=((t/14+i*40)%50)/50, px=cx+Math.sin(t/500+i*2.1)*s*0.14, py=cy-s*0.08-ph*s*0.4;
+        c.beginPath(); c.arc(px, py, s*0.09*(1-ph), 0, 7); c.fill(); }
+      c.restore();
+      // raios divinos multicoloridos
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.5;
+      for(let i=0;i<8;i++){ const a=i*Math.PI/4+t/900; c.strokeStyle='hsl('+((hue+i*45)%360)+',90%,70%)'; c.lineWidth=1.4;
+        c.beginPath(); c.moveTo(cx+Math.cos(a)*s*0.18, cy+s*0.06+Math.sin(a)*s*0.1); c.lineTo(cx+Math.cos(a)*s*0.34, cy+s*0.06+Math.sin(a)*s*0.18); c.stroke(); }
+      c.restore();
+      // silhueta da bota com gradiente arco-íris
+      const bg = c.createLinearGradient(cx-s*0.25, cy, cx+s*0.25, cy+s*0.2);
+      bg.addColorStop(0,'hsl('+hue+',90%,72%)'); bg.addColorStop(0.5,'hsl('+((hue+120)%360)+',85%,60%)'); bg.addColorStop(1,'hsl('+((hue+240)%360)+',80%,52%)');
+      c.fillStyle=bg; c.beginPath();
+      c.moveTo(cx-s*0.12, cy-s*0.22); c.lineTo(cx+s*0.06, cy-s*0.22);
+      c.lineTo(cx+s*0.08, cy+s*0.06); c.lineTo(cx+s*0.26, cy+s*0.08);
+      c.lineTo(cx+s*0.26, cy+s*0.2); c.lineTo(cx-s*0.14, cy+s*0.2);
+      c.closePath(); c.fill();
+      c.strokeStyle='hsl('+((hue+60)%360)+',95%,85%)'; c.lineWidth=1.4; c.stroke();
+      c.save(); c.globalAlpha=0.6; c.fillStyle='hsl('+((hue+60)%360)+',95%,88%)';
+      c.beginPath(); c.ellipse(cx-s*0.02, cy-s*0.08, s*0.05, s*0.1, 0, 0, 7); c.fill(); c.restore();
+      // faíscas coloridas flutuando
+      c.save(); c.globalCompositeOperation='lighter';
+      for(let i=0;i<4;i++){ const a=t/400+i*1.6; c.fillStyle='hsl('+((hue+i*90)%360)+',95%,80%)';
+        c.beginPath(); c.arc(cx+Math.cos(a)*s*0.28, cy+s*0.02+Math.sin(a)*s*0.2, 1.6, 0, 7); c.fill(); }
+      c.restore();
+      return true; }
   }
   return false;
 }
@@ -6629,6 +6839,10 @@ function _shopStat(def){
   if(def.atk) b.push('+' + def.atk + ' atq');
   if(def.spell_pow) b.push('+' + def.spell_pow + ' poder mág.');
   if(def.ac) b.push('+' + def.ac + ' CA');
+  if(def.armor) b.push('mitiga ' + def.armor);
+  if(def.dodge) b.push(Math.round(def.dodge*100) + '% esquiva');
+  if(def.ward) b.push('barreira ' + def.ward);
+  if(def.mres) b.push(Math.round(def.mres*100) + '% res. mág.');
   if(def.block) b.push('bloqueia ' + def.block);
   return b.join(' · ');
 }
@@ -7556,6 +7770,7 @@ function applyCombatSnapshot(snap){
     if(e){
       e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive;
       e.boss = !!c.boss; e._enraged = !!c.enraged; if(c.mtype) e.mtype = c.mtype; if(c.size) e.size = c.size;
+      e.smoke = !!c.smoke;
       e._status = c.status || null;
     }
     if(c.you && myFicha){ myFicha.hp = c.hp; myFicha.hp_max = c.hp_max; }
@@ -7587,7 +7802,8 @@ function renderCombatHud(){
   }).join('');
   const your = s.your || {};
   let html = '<div style="font:700 10px Inter;letter-spacing:1px;color:#9b6dff;text-transform:uppercase">Combate · Rodada '+s.round+'</div>'+
-    '<div style="margin-top:4px;line-height:1.8">'+chips+'</div>';
+    '<div style="margin-top:4px;line-height:1.8">'+chips+'</div>'+
+    _defenseLine(your);
 
   if(combat.yourTurn){
     const badges = [];
@@ -7640,6 +7856,17 @@ function renderCombatHud(){
 }
 
 // ---- helpers da barra de combate ----
+function _defenseLine(your){
+  if(!your) return '';
+  const p = [];
+  if(your.armor) p.push('🛡 armadura ' + your.armor);                    // mitigação por golpe
+  if(your.dodge) p.push('💨 esquiva ' + Math.round(your.dodge*100) + '%'); // chance de anular
+  if(your.block) p.push('⛨ bloqueio ' + your.block);                     // escudo
+  if(your.ward) p.push('🔮 barreira ' + your.ward);                      // absorve dano (caster)
+  if(your.mres) p.push('✦ res. mágica ' + Math.round(your.mres*100) + '%'); // resistência a magia
+  if(!p.length) return '';
+  return '<div style="margin-top:5px;font:600 10px Inter;color:#8fb3c8;line-height:1.5">' + p.join('  ·  ') + '</div>';
+}
 const _RES_LABEL = {rage:'Fúria', ki:'Ki', second_wind:'Fôlego', action_surge:'Surto',
                     lay_on_hands:'Cura', sorcery:'Feit.', bardic:'Insp.'};
 function _dots(cur, max){
@@ -7809,16 +8036,16 @@ function popDamage(cid, text, color){
   dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
-  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', veneno_varth:'☠️', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
-  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', veneno_varth:'Veneno de Varth', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
 const TOWER_MOBS = new Set(['tumular_torre','carniceiro_torre','cavaleiro_torre','algoz_torre','necromante_torre','profanador_torre','lorde_varth']);
 function _isDark(res){ return !!res.vfx || TOWER_MOBS.has((players.get(res.attacker)||{}).mtype); }
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){
     if(f.type === 'expire' || !f.dmg) continue;
-    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':(f.type==='maldicao'?'#b06bff':'#ff7a7a'));
+    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':(f.type==='maldicao'?'#b06bff':(f.type==='veneno_varth'?'#a060e0':'#ff7a7a')));
     popDamage(fx.cid, (STATUS_ICON[f.type]||'✦')+'-'+f.dmg, col);
   }
 }
@@ -7830,14 +8057,18 @@ function showAttackResult(res){
     toastMsg('💀 '+(res.ability||'Invocação')+': '+((res.summon_count||0)>0?(res.summon_count+' '):'')+'reforço(s) chegaram!', true);
     return;
   }
-  // AoE: explosão (SOMBRIA na torre) + dano em todos os alvos
+  // AoE: explosão (SOMBRIA na torre, CATACLISMA do Varth) + dano em todos os alvos
   if(res.aoe && Array.isArray(res.splash)){
-    if(dark) spawnDarkBlast(res.target, 2, '#a050ff'); else spawnBlast(res.target, 2, '#ff7a30');
+    const cata = (res.vfx === 'cataclysm');
+    if(cata) spawnCataclysm(res.target);
+    else if(dark) spawnDarkBlast(res.target, 2, '#a050ff');
+    else spawnBlast(res.target, 2, '#ff7a30');
     setTimeout(()=>{ for(const s of res.splash){
       if(s.blocked) popDamage(s.cid, 'refletiu', '#9be36a');
-      else popDamage(s.cid, '-'+s.dmg, dark?'#c79bff':'#ff9a4a');
-    } if(res.reflected) popDamage(res.attacker, '-'+res.reflected, '#9be36a'); }, 220);
-    toastMsg('💥 '+(res.ability||'Explosão')+'!'+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):''), true);
+      else popDamage(s.cid, (cata?'☠ -':'-')+s.dmg, cata?'#d49bff':(dark?'#c79bff':'#ff9a4a'));
+    } if(res.reflected) popDamage(res.attacker, '-'+res.reflected, '#9be36a'); }, cata?640:220);
+    if(cata) toastMsg('☠️ '+(res.ability||'CATACLISMA DE VARGO')+'! O vazio engole o campo — '+(STATUS_PT[res.applied]||'Veneno de Varth')+'!', true);
+    else toastMsg('💥 '+(res.ability||'Explosão')+'!'+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):''), true);
     return;
   }
   // monstro se cura (type heal)
@@ -7866,7 +8097,9 @@ function showAttackResult(res){
     spawnAt(res.target, 'slash', '#b06bff');
     if(res.vfx === 'cursesigil') spawnAt(res.target, 'cursesigil', '#b06bff');
   } else spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
-  if(res.hit){
+  if(res.dodged){                                  // ESQUIVA: o golpe passou da CA mas foi desviado (anula o dano)
+    popDamage(res.target, '✦ Esquivou!', '#6bd4ff');
+  } else if(res.hit){
     const _rad = res.radiant_dmg || 0;
     const _basic = Math.max(0, (res.dmg||0) - _rad);
     popDamage(res.target, '-'+_basic+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');

@@ -135,11 +135,11 @@ MONSTERS = {
         "drops": [("correntes_colosso", 1.0, 1, 1), ("coin_gold", 1.0, 3, 5)], "bronze": (400, 650),
     },
     "lorde_varth": {
-        "name": "Lorde Varth", "hp": 2400, "ac": 23, "atk": 18,
+        "name": "Lorde Varth", "hp": 4800, "ac": 23, "atk": 18,
         "dmg": {"n": 7, "d": 10, "flat": 16}, "reach": 3, "speed": 5,
-        "xp": 4200, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 4,
+        "xp": 4200, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 5,
         "atk_name": "raio necromântico", "boss": True, "summon_type": "esqueleto_guerreiro", "summons": 4,
-        "drops": [("simbolo_varth", 1.0, 1, 2), ("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 4, 6)], "bronze": (1500, 2500),
+        "drops": [("botas_vargo", 1.0, 1, 1), ("simbolo_varth", 1.0, 1, 2), ("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 4, 6)], "bronze": (1500, 2500),
     },
 
     # ===================== TORRE DO LORDE NECROTICO =====================
@@ -446,6 +446,31 @@ BOSS_BARKS = {
         "win": [
             "volta pro berço, bambi. o mato é meu.",
             "FUNF FUNF. mais um que aprendeu na marra.",
+        ],
+    },
+    # Lorde Varth: o lich, senhor necrótico do topo da Torre. Frio, antigo, cruel.
+    "lorde_varth": {
+        "intro": [
+            "Mais carne para a minha torre. Sejam bem-vindos ao fim de vocês.",
+            "Sentem o frio? É a morte, e ela já sabe os seus nomes.",
+        ],
+        "taunt": [
+            "Seus deuses não te ouvem aqui. Só eu te escuto... e eu não tenho piedade.",
+            "Cada osso desta torre já foi um herói teimoso como você.",
+            "A morte não dói. O que vem depois, comigo, dói para sempre.",
+            "Lute. Eu adoro quando a alma se debate antes de eu arrancá-la.",
+        ],
+        "summon": [
+            "Levantem-se, meus mortos. Vamos receber as visitas.",
+        ],
+        "enrage": [
+            "VOCÊ OUSA?! Então vai conhecer o verdadeiro vazio!",
+        ],
+        "hurt": [
+            "Dor? Esqueci o que é isso há mil invernos. Você vai me lembrar... no seu lugar.",
+        ],
+        "win": [
+            "Mais uma alma para a coleção. Descanse... no que sobrou de você.",
         ],
     },
 }
@@ -891,7 +916,18 @@ _TOWER_EXTRA = {
         {"id": "chuva_de_caveiras", "name": "Chuva de Caveiras", "type": "blast", "aoe": True, "vfx": "shadowblast",
          "dmg_bonus": {"n": 8, "d": 8}, "save": "DES", "dc": 18, "status": "maldicao", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.4, "cd": 3},
         {"id": "ceifar_alma", "name": "Ceifar a Alma", "type": "drain", "vfx": "souldrain",
-         "dmg_bonus": {"n": 6, "d": 10}, "chance": 0.45, "cd": 2}],
+         "dmg_bonus": {"n": 6, "d": 10}, "chance": 0.45, "cd": 2},
+        # --- 3 habilidades ÚNICAS do Lorde Varth (lich) ---
+        {"id": "raio_do_abismo", "name": "Raio do Abismo", "type": "heavy", "vfx": "darkbolt",
+         "dmg_bonus": {"n": 8, "d": 12}, "chance": 0.45, "cd": 2},
+        {"id": "coro_dos_condenados", "name": "Coro dos Condenados", "type": "fear", "vfx": "cursesigil",
+         "save": "SAB", "dc": 19, "status": "frightened", "turns": 3, "chance": 0.4, "cd": 3},
+        {"id": "banquete_de_almas", "name": "Banquete de Almas", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 8, "d": 10}, "chance": 0.45, "cd": 2},
+        # --- HABILIDADE SUPREMA: cataclisma necrótico 10x10 (50 fixo + Veneno de Varth) ---
+        {"id": "cataclisma_de_vargo", "name": "Cataclisma de Vargo", "type": "blast", "aoe": True, "vfx": "cataclysm",
+         "fixed": 50, "status": "veneno_varth", "turns": 10, "dot": {"n": 0, "d": 1, "flat": 5},
+         "chance": 0.45, "cd": 4}],
 }
 for _mid, _extra in _TOWER_EXTRA.items():
     MONSTER_ABILITIES.setdefault(_mid, [])

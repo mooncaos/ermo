@@ -58,12 +58,19 @@ def player_stats(ficha):
 def make_player_combatant(sid, player, ficha):
     # equipamento: armadura soma CA, anel/amuleto somam acerto, arma define o dano
     eq = items.equip_summary(player.get("equipment") or {})
-    if eq.get("attrs"):                                  # set Necrótico: +atributo principal
+    if eq.get("attrs"):                                  # set Necrótico / Botas de Vargo: +atributo
         ficha = dict(ficha)                              # copia (não altera a ficha salva)
-        _boost = dict(ficha.get("attrs_final") or ficha.get("attrs") or {})
+        _base = ficha.get("attrs_final") or ficha.get("attrs") or {}
+        _boost = dict(_base)
         for _ak, _av in eq["attrs"].items():
             _boost[_ak] = int(_boost.get(_ak, 10)) + int(_av)
         ficha["attrs_final"] = _boost
+        # CON vinda de equipamento vira VIDA extra (mod de CON ganho * nível), pra Constituição valer de fato
+        _con_d = races.attr_mod(int(_boost.get("CON", 10))) - races.attr_mod(int(_base.get("CON", 10)))
+        if _con_d:
+            _hp_add = _con_d * int(ficha.get("level", 1))
+            ficha["hp"] = max(1, int(ficha.get("hp", 1)) + _hp_add)
+            ficha["hp_max"] = max(1, int(ficha.get("hp_max", 1)) + _hp_add)
     st = player_stats(ficha)
     st["ac"] += eq["ac"]
     st["atk"] += eq["atk"]
@@ -73,7 +80,14 @@ def make_player_combatant(sid, player, ficha):
     st["reach"] = int(eq.get("rng", 1)) or 1       # arco/cajado atacam o basico a distancia
     st["spell_pow"] = int(eq.get("spell_pow", 0))  # +poder magico (equip de caster)
     st["block"] = int(eq.get("block", 0))          # bloqueio do escudo (reduz dano por golpe)
+    st["armor"] = int(eq.get("armor", 0))          # mitigação Tibia: cada golpe físico leva metade-total da armadura
+    st["dodge"] = float(eq.get("dodge", 0))        # esquiva: chance de ANULAR o golpe físico (média/ágil)
+    st["ward"]  = int(eq.get("ward", 0))           # barreira arcana: absorve X de dano por golpe (casters)
+    st["mres"]  = float(eq.get("mres", 0))         # resistência mágica: % a menos no dano de MAGIA (casters)
+    if ficha.get("class_id") == "monge":           # Monge: esquivo extra (a CA de Sabedoria virou esquiva real)
+        st["dodge"] = min(0.6, st["dodge"] + 0.12)
     st["offhand"] = eq.get("offhand")              # segunda arma (duas armas; so vale pra classe permitida)
+    st["speed"] += int(eq.get("speed", 0))         # +deslocamento (Botas de Vargo)
     # TALENTOS de combate que valem agora (os demais sao passivos/situacionais):
     feats = list(ficha.get("feats", []))
     if "movel" in feats:                       # Móvel: +deslocamento
@@ -95,6 +109,8 @@ def make_player_combatant(sid, player, ficha):
         st["speed"] += fb.get("speed", 0)
         st["atk"] += fb.get("atk", 0)
         st["block"] = st.get("block", 0) + fb.get("block", 0)     # resistência da forma (Coruja: +10)
+        st["armor"] = max(0, st.get("armor", 0) + fb.get("armor", 0))   # mitigação da forma (Urso +28, Maine Coon +10, Lobo -14)
+        st["dodge"] = min(0.6, max(0.0, st.get("dodge", 0) + fb.get("dodge", 0)))
         if fb.get("dmg_dice"):                                  # forma que soma DADOS de dano (Lobo/Maine Coon)
             st["dmg"] = dict(st["dmg"]); st["dmg"]["n"] = st["dmg"].get("n", 1) + fb["dmg_dice"]
         if fb.get("dmg_flat"):
@@ -116,6 +132,8 @@ def make_player_combatant(sid, player, ficha):
         "hp": int(ficha.get("hp", 1)) + fb.get("hp", 0), "hp_max": int(ficha.get("hp_max", 1)) + fb.get("hp", 0),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
+        "armor": st.get("armor", 0), "dodge": st.get("dodge", 0.0), "ward": st.get("ward", 0), "mres": st.get("mres", 0.0),
+        "immune": list(eq.get("immune", [])), "smoke": bool(eq.get("smoke")),   # Botas de Vargo: imunidade a status + aura de fumaça
         "_ac0": st["ac"], "_block0": st["block"], "_shield_ac": int(eq.get("shield_ac", 0)),     # CA/bloqueio base + CA do escudo (Mártir zera; Combatente larga o escudo)
         "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
         "x": player["x"], "y": player["y"], "alive": True,
@@ -164,6 +182,8 @@ def apply_form(comb, bonus, regen):
     comb["speed"] = comb.get("speed", 6) - old.get("speed", 0) + bonus.get("speed", 0)
     comb["atk"] = comb.get("atk", 0) - old.get("atk", 0) + bonus.get("atk", 0)
     comb["block"] = comb.get("block", 0) - old.get("block", 0) + bonus.get("block", 0)   # resistência (reduz dano fixo)
+    comb["armor"] = max(0, comb.get("armor", 0) - old.get("armor", 0) + bonus.get("armor", 0))   # mitigação da forma (Urso/Maine Coon/Lobo)
+    comb["dodge"] = min(0.6, max(0.0, comb.get("dodge", 0) - old.get("dodge", 0) + bonus.get("dodge", 0)))
     flat = comb.get("dmg", {}).get("flat", 0) - old.get("dmg_flat", 0) + bonus.get("dmg_flat", 0)
     comb["dmg"] = dict(comb.get("dmg") or {}); comb["dmg"]["flat"] = flat
     hpd = bonus.get("hp", 0) - old.get("hp", 0)        # +vida máxima da forma (ajusta a vida atual junto)
@@ -301,11 +321,14 @@ def _posture_dmg(c, dmg):
     return dmg
 
 
-def _apply_damage(target, dmg, enc=None):
-    """Aplica dano ao alvo: a Furia corta pela metade o dano fisico, e o BLOQUEIO do
-    escudo reduz um valor fixo de cada golpe (so quem tem escudo equipado tem block).
-    Posturas de Valíria: o Mártir absorve o dano que iria pros aliados; o Soldado
-    recebe 75% a menos; a aura da Mão reduz 20% de quem está sob ela."""
+def _apply_damage(target, dmg, enc=None, magic=False):
+    """Sistema de defesa em CAMADAS (estilo Tibia):
+      1) ESQUIVA: chance de ANULAR o golpe físico (média/ágil; não vale contra magia/sopro);
+      2) MITIGAÇÃO: golpe físico perde a ARMADURA (valor aleatório entre metade e o total dela)
+         + o BLOQUEIO do escudo; magia perde % pela RESISTÊNCIA MÁGICA;
+      3) WARD: a barreira arcana dos casters absorve um naco de qualquer dano.
+    Mantém tudo que já funcionava: Mártir/Soldado/Mão/Aurora de Valíria, Fúria do Bárbaro e
+    Esquiva Ladina (-25%). `magic=True` quando o dano vem de magia ou do sopro em área de chefe."""
     # Mártir de Valíria: TODO dano que iria pra um aliado vai pro paladino mártir
     if enc and target.get("kind") == "player" and target.get("posture") != "martir":
         martyr = next((c for c in enc["combs"].values()
@@ -319,11 +342,30 @@ def _apply_damage(target, dmg, enc=None):
         dmg -= (dmg * 3) // 4
     if has_status(target, "mao_aura"):                # aura da Mão de Valíria: -20% no grupo
         dmg -= dmg // 5
+    # ESQUIVA: só contra golpe FÍSICO (não dá pra esquivar de sopro/magia em área); anula o golpe
+    if (not magic) and dmg > 0:
+        dg = float(target.get("dodge", 0))
+        if dg > 0 and random.random() < dg:
+            target["_dodged"] = True                  # marca pro cliente mostrar "Esquivou!"
+            return 0
     if target.get("class_id") == "ladino" and dmg > 0:   # Esquiva Ladina: o ladino rola com o golpe (-25%)
         dmg -= dmg // 4
-    blk = int(target.get("block", 0))
-    if blk and dmg > 0:
-        dmg = max(0, dmg - blk)
+    # MITIGAÇÃO: magia perde % pela resistência mágica; físico perde a ARMADURA (metade-total) + escudo
+    if magic:
+        mr = float(target.get("mres", 0))
+        if mr > 0 and dmg > 0:
+            dmg -= int(dmg * mr)
+    else:
+        ar = int(target.get("armor", 0))
+        if ar > 0 and dmg > 0:
+            dmg = max(0, dmg - random.randint(ar // 2, ar))   # mitigação aleatória estilo Tibia
+        blk = int(target.get("block", 0))
+        if blk and dmg > 0:
+            dmg = max(0, dmg - blk)
+    # WARD (barreira arcana dos casters): absorve um naco de qualquer dano
+    wd = int(target.get("ward", 0))
+    if wd > 0 and dmg > 0:
+        dmg = max(0, dmg - wd)
     if dmg > 1 and has_status(target, "aurora"):      # Aurora de Valíria: no máximo 1 de dano por golpe
         dmg = 1
     if has_status(target, "facalan_folego"):          # 3 turnos pós-renascimento: nunca cai abaixo de 1
@@ -379,11 +421,13 @@ def _spend_slot(res, min_level=1):
 #    DoT: poison/burning/bleeding (dano por turno; poison tambem desvantagem).
 # ===========================================================================
 INCAP_STATUS = ("stunned",)
-DOT_STATUS = ("poison", "burning", "bleeding", "maldicao")
+DOT_STATUS = ("poison", "burning", "bleeding", "maldicao", "veneno_varth")
 
 def apply_status(c, name, turns, dmg=None):
     """Aplica/renova um status no combatente (fica a maior duracao)."""
     if not c or not c.get("alive"):
+        return
+    if name in (c.get("immune") or ()):              # imunidade por equipamento (Botas de Vargo)
         return
     st = c.setdefault("status", {})
     prev = st.get(name) or {}
@@ -554,6 +598,8 @@ def attack(enc, attacker, target):
             res["doubled"] = True
         dealt = _apply_damage(target, dmg, enc)
         res["dmg"] = dealt
+        if target.pop("_dodged", False):              # esquiva física: o cliente mostra "Esquivou!"
+            res["dodged"] = True
         res["radiant_dmg"] = radiant                       # parte radiante (castigo) -> amarelo no cliente
         if has_status(attacker, "poison_blade") and target.get("alive"):   # Lâmina Venenosa: envenena no acerto
             apply_status(target, "poison", 3, {"n": 1, "d": 6, "flat": max(1, int(attacker.get("level", 1)) // 2)})
@@ -915,8 +961,9 @@ def monster_ability(enc, mon, tgt, ab):
         save = ab.get("save")
         dc = int(ab.get("dc", 14))
         splash = []; reflected = 0
+        _fixed = ab.get("fixed")
         for pl in alive_of(enc, "player"):
-            dd = _roll_dmg(ab.get("dmg_bonus", {"n": 6, "d": 6}), False)
+            dd = int(_fixed) if _fixed is not None else _roll_dmg(ab.get("dmg_bonus", {"n": 6, "d": 6}), False)
             if has_status(pl, "cancao"):      # Canção do Cabaré: imune ao AoE e tudo volta pro inimigo
                 reflected += dd
                 if ab.get("status"):
@@ -928,7 +975,7 @@ def monster_ability(enc, mon, tgt, ab):
             if save and (_d20() + _save_mod(pl, save)) >= dc:
                 saved = True
                 dd = 0 if pl.get("class_id") == "ladino" else dd // 2   # Esquiva Total do Ladino: passou = não toma NADA
-            _apply_damage(pl, dd, enc)
+            _apply_damage(pl, dd, enc, magic=True)            # sopro/magia em área: resistência mágica vale, esquiva não
             if ab.get("status") and pl.get("alive") and not saved:
                 apply_status(pl, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
             splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": dd,
@@ -1103,7 +1150,7 @@ def snapshot(enc, my_cid):
             "x": c["x"], "y": c["y"], "hp": c["hp"], "hp_max": c["hp_max"],
             "alive": c.get("alive", True), "glyph": c.get("glyph"),
             "mtype": c.get("mtype"), "boss": bool(c.get("boss")), "enraged": bool(c.get("enraged")),
-            "size": c.get("size"),
+            "size": c.get("size"), "smoke": bool(c.get("smoke")),
             "you": (cid == my_cid), "current": (cid == cur_cid), "ac": c["ac"],
             "status": status_view(c),
         })
@@ -1125,6 +1172,10 @@ def snapshot(enc, my_cid):
             "incapacitated": is_incapacitated(me),
             "reach": int(me.get("reach", 1)),
             "block": int(me.get("block", 0)),
+            "armor": int(me.get("armor", 0)),
+            "dodge": round(float(me.get("dodge", 0)), 4),
+            "ward": int(me.get("ward", 0)),
+            "mres": round(float(me.get("mres", 0)), 4),
             "status": status_view(me),
         }
     return {

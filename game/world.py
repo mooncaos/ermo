@@ -98,6 +98,8 @@ def public(p):
     }
     if p.get("wild_form"):
         out["wild_form"] = p["wild_form"]              # forma selvagem (lobo/urso/aguia/mainecoon)
+    if (p.get("equipment") or {}).get("feet") == "botas_vargo":
+        out["smoke"] = True                            # Botas de Vargo: aura de fumaça preta
     if p.get("is_npc"):
         out["npc"] = True
         out["kind"] = p.get("kind", "person")    # "person" ou "bird"
