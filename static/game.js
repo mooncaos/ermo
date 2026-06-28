@@ -4109,16 +4109,109 @@ function drawMesaParty(c, sx, sy, ts, p){
   c.textAlign = 'left'; c.textBaseline = 'alphabetic';
 }
 
+function drawMaineCoon(c, sx, sy, ts, p){
+  // A forma abençoada por Pofnir: um Maine Coon majestoso (tabby marrom, juba
+  // creme, cauda emplumada, orelhas com tufo de lince, olhos dourados) e a aura.
+  const cx = sx + ts*0.5, cy = sy + ts*0.5, S = ts*0.95;
+  const dir = (p.facing === 'left') ? -1 : 1;
+  const hop = (p._moving) ? Math.abs(Math.sin((p.walk/WALK_CYCLE)*Math.PI*2))*ts*0.05 : 0;
+  const t = Date.now()/1000;
+  const fur = '#8a6a44', furDk = '#5d4528', cream = '#ece0c4', pink = '#e0a0a8';
+  c.save();
+  c.translate(cx, cy - hop);
+  // --- aura dourada do Pofnir (pulsante) + halo ---
+  const aa = 0.18 + 0.10*Math.abs(Math.sin(t*1.6));
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const gl = c.createRadialGradient(0, -S*0.1, S*0.1, 0, -S*0.1, S*0.95);
+  gl.addColorStop(0, 'rgba(255,222,140,'+aa+')'); gl.addColorStop(1, 'rgba(255,222,140,0)');
+  c.fillStyle = gl; c.beginPath(); c.arc(0, -S*0.1, S*0.95, 0, Math.PI*2); c.fill();
+  c.strokeStyle = 'rgba(255,228,150,0.75)'; c.lineWidth = Math.max(1.5, S*0.035);
+  c.shadowColor = '#ffe09a'; c.shadowBlur = 10;
+  c.beginPath(); c.ellipse(0, -S*0.78, S*0.4, S*0.12, 0, 0, Math.PI*2); c.stroke();
+  c.restore();
+  // --- sombra ---
+  c.save(); c.globalAlpha = 0.26; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(0, S*0.62, S*0.5, S*0.13, 0, 0, Math.PI*2); c.fill(); c.restore();
+  // --- cauda emplumada (atrás, curvando pra cima) com ponta creme ---
+  c.save(); c.lineCap = 'round';
+  c.strokeStyle = fur; c.lineWidth = S*0.28;
+  c.beginPath(); c.moveTo(-dir*S*0.3, S*0.44);
+  c.quadraticCurveTo(-dir*S*0.76, S*0.14, -dir*S*0.62, -S*0.36); c.stroke();
+  c.strokeStyle = furDk; c.lineWidth = S*0.06; c.globalAlpha = 0.45;
+  for(let i=0;i<3;i++){ const yy=(0.2-i*0.18)*S; c.beginPath(); c.moveTo(-dir*S*(0.5+i*0.04), yy); c.lineTo(-dir*S*(0.66+i*0.04), yy+S*0.04); c.stroke(); }
+  c.globalAlpha = 1;
+  c.strokeStyle = cream; c.lineWidth = S*0.24;
+  c.beginPath(); c.moveTo(-dir*S*0.66, -S*0.16); c.lineTo(-dir*S*0.61, -S*0.36); c.stroke();
+  c.restore();
+  // --- corpo fofo (tabby) ---
+  c.fillStyle = fur;
+  c.beginPath(); c.ellipse(0, S*0.28, S*0.5, S*0.54, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = furDk; c.lineWidth = Math.max(1, S*0.045); c.globalAlpha = 0.5;   // listras no flanco
+  for(let i=0;i<4;i++){ const yy=S*(0.02+i*0.16);
+    c.beginPath(); c.moveTo(-S*0.46,yy); c.quadraticCurveTo(-S*0.3,yy+S*0.05,-S*0.16,yy); c.stroke();
+    c.beginPath(); c.moveTo(S*0.46,yy);  c.quadraticCurveTo(S*0.3,yy+S*0.05,S*0.16,yy);  c.stroke(); }
+  c.globalAlpha = 1;
+  // --- juba/peito creme (a marca do Maine Coon) ---
+  c.fillStyle = cream;
+  c.beginPath(); c.moveTo(-S*0.3,-S*0.05);
+  c.quadraticCurveTo(-S*0.42,S*0.5,0,S*0.62);
+  c.quadraticCurveTo(S*0.42,S*0.5,S*0.3,-S*0.05);
+  c.quadraticCurveTo(0,S*0.12,-S*0.3,-S*0.05); c.closePath(); c.fill();
+  c.fillStyle = '#f4ead0';
+  for(let i=-2;i<=2;i++){ c.beginPath(); c.moveTo(i*S*0.13,S*0.02);
+    c.lineTo(i*S*0.13-S*0.05,S*0.5); c.lineTo(i*S*0.13+S*0.05,S*0.5); c.closePath(); c.fill(); }
+  // --- cabeça + bochechas tufadas ---
+  c.fillStyle = fur;
+  c.beginPath(); c.ellipse(0,-S*0.28,S*0.4,S*0.36,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.moveTo(-S*0.36,-S*0.28); c.lineTo(-S*0.56,-S*0.12); c.lineTo(-S*0.33,-S*0.02); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.36,-S*0.28);  c.lineTo(S*0.56,-S*0.12);  c.lineTo(S*0.33,-S*0.02);  c.closePath(); c.fill();
+  c.strokeStyle = furDk; c.lineWidth = Math.max(1, S*0.035); c.globalAlpha = 0.7;   // "M" tabby na testa
+  for(let i=-1;i<=1;i++){ c.beginPath(); c.moveTo(i*S*0.1,-S*0.58); c.lineTo(i*S*0.1,-S*0.42); c.stroke(); }
+  c.globalAlpha = 1;
+  c.fillStyle = cream;
+  c.beginPath(); c.ellipse(0,-S*0.14,S*0.18,S*0.14,0,0,Math.PI*2); c.fill();
+  // --- orelhas grandes com tufo de lince ---
+  function ear(dx){
+    c.fillStyle = fur;
+    c.beginPath(); c.moveTo(dx-S*0.06,-S*0.5); c.lineTo(dx+S*0.05,-S*0.92); c.lineTo(dx+S*0.2,-S*0.48); c.closePath(); c.fill();
+    c.fillStyle = pink;
+    c.beginPath(); c.moveTo(dx+S*0.01,-S*0.54); c.lineTo(dx+S*0.06,-S*0.8); c.lineTo(dx+S*0.13,-S*0.52); c.closePath(); c.fill();
+    c.strokeStyle = cream; c.lineWidth = Math.max(1, S*0.025); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(dx+S*0.05,-S*0.92); c.lineTo(dx+S*0.08,-S*1.04); c.stroke();
+    c.beginPath(); c.moveTo(dx+S*0.05,-S*0.92); c.lineTo(dx+S*0.0,-S*1.0); c.stroke();
+  }
+  ear(-S*0.28); ear(S*0.08);
+  // --- olhos dourados/esverdeados brilhantes (pupila vertical) ---
+  function eye(dx){
+    c.fillStyle = '#1a1408';
+    c.beginPath(); c.ellipse(dx,-S*0.28,S*0.12,S*0.14,0,0,Math.PI*2); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(dx,-S*0.28,1,dx,-S*0.28,S*0.15);
+    g.addColorStop(0,'#fff0b0'); g.addColorStop(0.5,'#bfe86a'); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.ellipse(dx,-S*0.28,S*0.11,S*0.13,0,0,Math.PI*2); c.fill();
+    c.restore();
+    c.fillStyle = '#0a1206'; c.beginPath(); c.ellipse(dx,-S*0.28,S*0.03,S*0.11,0,0,Math.PI*2); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(dx-S*0.04,-S*0.33,S*0.025,0,Math.PI*2); c.fill();
+  }
+  eye(-S*0.16); eye(S*0.16);
+  // --- nariz + boca + bigodes ---
+  c.fillStyle = '#c87a86';
+  c.beginPath(); c.moveTo(-S*0.04,-S*0.16); c.lineTo(S*0.04,-S*0.16); c.lineTo(0,-S*0.11); c.closePath(); c.fill();
+  c.strokeStyle = furDk; c.lineWidth = Math.max(1, S*0.02);
+  c.beginPath(); c.moveTo(0,-S*0.11); c.lineTo(0,-S*0.06);
+  c.moveTo(0,-S*0.06); c.quadraticCurveTo(-S*0.05,-S*0.03,-S*0.08,-S*0.06);
+  c.moveTo(0,-S*0.06); c.quadraticCurveTo(S*0.05,-S*0.03,S*0.08,-S*0.06); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = Math.max(1, S*0.012);
+  for(let i=0;i<3;i++){ const wy=-S*0.13+i*S*0.05;
+    c.beginPath(); c.moveTo(-S*0.1,-S*0.1+i*S*0.03); c.lineTo(-S*0.42,wy); c.stroke();
+    c.beginPath(); c.moveTo(S*0.1,-S*0.1+i*S*0.03);  c.lineTo(S*0.42,wy);  c.stroke(); }
+  c.restore();
+}
 function drawWildForm(c, sx, sy, ts, p){
   const form = p.wild_form;
   const fake = { mtype: form, facing: p.facing, _moving: p._moving, walk: p.walk };
   if(form === 'mainecoon'){
-    const t = Date.now()/600;                          // brilho dourado do Pofnir
-    const a = 0.16 + 0.09*Math.abs(Math.sin(t));
-    const gl = c.createRadialGradient(sx+ts/2, sy+ts*0.55, ts*0.12, sx+ts/2, sy+ts*0.55, ts*0.85);
-    gl.addColorStop(0, 'rgba(255,226,150,'+a+')'); gl.addColorStop(1, 'rgba(255,226,150,0)');
-    c.save(); c.fillStyle = gl; c.fillRect(sx-ts*0.6, sy-ts*0.6, ts*2.2, ts*2.2); c.restore();
-    drawBeast(c, sx, sy, ts, fake);
+    drawMaineCoon(c, sx, sy, ts, p);
   } else if(form === 'aguia'){
     drawCrow(c, sx, sy, ts, p.facing, p._moving, p.walk, p.look);
   } else if(form === 'lebre'){
@@ -5554,7 +5647,7 @@ function addPlayer(p){
     id:p.id, x:p.x, y:p.y, rx:p.x*TS, ry:p.y*TS,
     facing:p.facing, name:p.name, look:p.look, walk:0, _moving:false,
     npc: !!p.npc, kind: p.kind || 'person', solid: (p.solid === false ? false : true),
-    form: p.form, size: p.size, accent: p.accent, eyes: p.eyes,
+    form: p.form, wild_form: p.wild_form || null, size: p.size, accent: p.accent, eyes: p.eyes,
     monster: !!p.monster, glyph: p.glyph, hp: p.hp, hp_max: p.hp_max, mtype: p.mtype,
   });
   updateOnline();
@@ -7409,6 +7502,10 @@ function showAttackResult(res){
     if(res.self_heal){                              // Combatente Valiriano: cura por golpe
       spawnAt(res.attacker, 'buff', '#7be3a0');
       setTimeout(()=> popDamage(res.attacker, '+'+res.self_heal, '#7be3a0'), 120);
+    }
+    if(res.strike2_dmg){                            // Forma de Facalan: 2º golpe do ataque duplo
+      spawnAt(res.target, 'slash', '#ffd86b');
+      setTimeout(()=> popDamage(res.target, '⚔ -'+res.strike2_dmg, '#ffb060'), 320);
     }
   } else popDamage(res.target, 'errou', '#9b95b4');
   if(res.mon_ability && res.ability){

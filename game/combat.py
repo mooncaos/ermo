@@ -92,6 +92,8 @@ def make_player_combatant(sid, player, ficha):
         st["speed"] += fb.get("speed", 0)
         st["atk"] += fb.get("atk", 0)
         st["block"] = st.get("block", 0) + fb.get("block", 0)     # resistência da forma (Coruja: +10)
+        if fb.get("dmg_dice"):                                  # forma que soma DADOS de dano (Lobo/Maine Coon)
+            st["dmg"] = dict(st["dmg"]); st["dmg"]["n"] = st["dmg"].get("n", 1) + fb["dmg_dice"]
         if fb.get("dmg_flat"):
             st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + fb["dmg_flat"]
     luck = 3 if "sortudo" in feats else 0       # Sortudo: re-rolagens de ataque ruim
@@ -543,6 +545,11 @@ def attack(enc, attacker, target):
         dealt = _apply_damage(target, dmg, enc)
         res["dmg"] = dealt
         res["radiant_dmg"] = radiant                       # parte radiante (castigo) -> amarelo no cliente
+        # Forma de Facalan (Fagulha de Facalan): a pantera dourada GOLPEIA DUAS VEZES
+        if has_status(attacker, "facalan") and target.get("alive"):
+            d2 = _roll_dmg(attacker["dmg"], crit) + _roll_dmg({"n": 2, "d": attacker["dmg"].get("d", 6)}, crit)
+            res["strike2_dmg"] = _apply_damage(target, d2, enc)
+            res["strike2"] = True
         res["target_hp"] = target["hp"]
         if not target.get("alive"):
             res["killed"] = True
