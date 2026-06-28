@@ -173,3 +173,31 @@ def can_use_form(ficha, form_id):
     if req and not ficha.get(req):
         return False
     return True
+
+
+# ===========================================================================
+#  POSTURAS — só do Paladino (devoção a Valíria). É um menu parecido com o de
+#  transformação, mas serve pra OUTRA coisa: posturas de combate que mudam o
+#  papel do paladino (tanque / suporte / mártir). Trocadas durante a luta.
+# ===========================================================================
+POSTURES = {
+    "paladino": [
+        {"id": "soldado", "name": "Soldado de Valíria", "icon": "🛡️",
+         "desc": "A fortaleza de Valíria: recebe E causa 75% menos dano, e os debuffs também minguam 75%. Você vira um muro."},
+        {"id": "mao", "name": "A Mão de Valíria", "icon": "✋",
+         "desc": "Você para de causar dano, mas a Imposição das Mãos passa a curar o GRUPO inteiro, e todos no grupo recebem 20% menos dano."},
+        {"id": "martir", "name": "Mártir de Valíria", "icon": "✨",
+         "desc": "Sua CA zera e você não defende mais golpes: absorve TODO o dano que iria pro grupo. Ganha a Luz da Criação, um raio radiante que soma todo o seu dano e cura o grupo a cada acerto."},
+    ],
+}
+
+
+def postures_for(class_id):
+    return POSTURES.get(class_id, [])
+
+
+def get_posture(class_id, posture_id):
+    for p in POSTURES.get(class_id, []):
+        if p["id"] == posture_id:
+            return p
+    return None

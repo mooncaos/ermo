@@ -231,6 +231,7 @@ def _enter_world(player_id, row):
         "feats": feats.catalog(),
         "class_features": class_features.FEATURES,
         "transforms": classes.TRANSFORMS,
+        "postures": classes.POSTURES,
         "day_length": DAY_LENGTH,
         "server_now": time.time(),
     })
@@ -952,7 +953,7 @@ def on_combat_ability(data):
         target = enc["combs"].get((data or {}).get("target"))
         if not target or not target.get("alive") or target["kind"] != "monster":
             return
-        if not combat.in_reach(me, target):
+        if not meta.get("ranged") and not combat.in_reach(me, target):
             emit("combat_msg", {"text": "Fora de alcance."})
             return
     res = combat.use_ability(enc, me, aid, target)
@@ -1130,6 +1131,53 @@ def on_combat_transform(data=None):
                   room=player.get("map", "ermo"))
     nm = ("%s %s" % (form.get("icon", ""), form["name"])) if form else "forma normal"
     _combat_push(enc, {"player_action": {"transform": nm}})
+
+
+@socketio.on("combat_posture")
+def on_combat_posture(data=None):
+    """POSTURAS do Paladino (devoção a Valíria): troca a postura de combate ao vivo,
+    só no próprio turno. As posturas existem só dentro da luta (não persistem)."""
+    sid = request.sid
+    enc = COMBAT.get(sid)
+    if not enc:
+        return
+    if combat.current(enc).get("kind") != "player" or combat.current(enc).get("cid") != sid:
+        emit("combat_msg", {"text": "Só dá pra mudar de postura no seu turno."})
+        return
+    player = world.players.get(sid)
+    if not player:
+        return
+    cid = (player.get("ficha") or {}).get("class_id")
+    pid = (data or {}).get("posture")
+    post = classes.get_posture(cid, pid) if pid else None
+    if pid and not post:
+        emit("toast", {"text": "Essa postura não está disponível pra você."})
+        return
+    pc = enc["combs"].get(sid) or combat.current(enc)
+    old = pc.get("posture")
+    pc["posture"] = (pid if post else None)
+    # CA/bloqueio: o Mártir zera (não defende mais golpes); o resto volta ao base
+    if pc["posture"] == "martir":
+        pc["ac"] = 0
+        pc["block"] = 0
+        if "luz_criacao" not in pc.get("abilities", []):
+            pc.setdefault("abilities", []).append("luz_criacao")
+    else:
+        pc["ac"] = int(pc.get("_ac0", pc.get("ac", 10)))
+        pc["block"] = int(pc.get("_block0", 0))
+        if "luz_criacao" in pc.get("abilities", []):
+            pc["abilities"].remove("luz_criacao")
+    # aura da Mão de Valíria: -20% de dano pra TODO o grupo (entra ao assumir, sai ao trocar)
+    allies = [c for c in enc["combs"].values() if c.get("kind") == "player"]
+    if pc["posture"] == "mao":
+        for c in allies:
+            combat.apply_status(c, "mao_aura", 999)
+    elif old == "mao":
+        for c in allies:
+            (c.get("status") or {}).pop("mao_aura", None)
+    nm = (("%s %s" % (post.get("icon", ""), post["name"])) if post else "postura normal")
+    emit("combat_msg", {"text": "Postura: %s" % nm})
+    _combat_push(enc, {"player_action": {"posture": nm}})
 
 
 @socketio.on("move")

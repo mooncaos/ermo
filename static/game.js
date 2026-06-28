@@ -137,6 +137,7 @@ let grimoireSel = null;       // selecao local em edicao {cantrips:Set, spells:S
 const SPELL_CLASSES = new Set(['mago','feiticeiro','bruxo','clerigo','druida','bardo','paladino','patrulheiro']);
 let classFeaturesData = {};   // features por classe (do servidor): id -> [[nivel,nome,desc],...]
 let transformsData = {};      // formas por classe (transformacoes): id -> [{id,name,icon,desc,bonus}]
+let posturesData = {};        // POSTURAS por classe (só Paladino): id -> [{id,name,icon,desc}]
 let featsCatalog = [];        // talentos do feat-or-ASI
 let combat = null;            // estado da luta por turnos (null = fora de combate)
 let dmgPops = [];             // numeros de dano flutuantes na tela
@@ -5320,6 +5321,7 @@ function connectWithToken(token){
     Object.assign(catalog, data.items || {});
     classFeaturesData = data.class_features || {};
     transformsData = data.transforms || {};
+    posturesData = data.postures || {};
     featsCatalog = data.feats || [];
     ground.clear();
     for(const it of (data.ground||[])) ground.set(it.x+','+it.y, it.item);
@@ -7098,7 +7100,7 @@ function applyCombatSnapshot(snap){
   combat.snapshot = snap;
   combat.yourTurn = !!snap.your_turn;
   if(snap.your){ combat.your = snap.your; if(myFicha) myFicha.res = snap.your.res; }
-  if(!combat.yourTurn){ combat.pending = null; closeSpellMenu(); }
+  if(!combat.yourTurn){ combat.pending = null; closeSpellMenu(); closePostureMenu(); }
   for(const c of snap.combatants){
     let e = players.get(c.cid);
     if(!e && c.kind === 'monster'){      // reforço invocado pelo chefe: cria a entidade
@@ -7170,6 +7172,10 @@ function renderCombatHud(){
       const cf = (transformsData[myFicha.class_id]||[]).find(x=> x.id === (myFicha.form||''));
       btns += cbBtn('transform', cf ? (cf.icon+' '+cf.name) : '🐾 Transformar', {});
     }
+    if(myFicha && posturesData[myFicha.class_id]){
+      const ap = (posturesData[myFicha.class_id]||[]).find(x=> x.id === (your.posture||''));
+      btns += cbBtn('posture', ap ? (ap.icon+' '+ap.name) : '🛡 Postura', {});
+    }
     btns += cbBtn('pass','Passar (espaço)', {});
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+btns+'</div>';
     if(combat.pending){
@@ -7228,11 +7234,12 @@ function cbAction(id){
   if(id === 'attack'){ combat.pending = {type:'attack', range:'melee', label:'Atacar'}; renderCombatHud(); return; }
   if(id === 'spells'){ openSpellMenu(); return; }
   if(id === 'transform'){ openFormMenu(); return; }
+  if(id === 'posture'){ openPostureMenu(); return; }
   if(id.indexOf('ab:') === 0){
     const aid = id.slice(3);
     const ab = (your.abilities||[]).find(a=> a.id === aid);
     if(!ab) return;
-    if(ab.target){ combat.pending = {type:'ability', id:aid, range:'melee', label:ab.name}; renderCombatHud(); }
+    if(ab.target){ combat.pending = {type:'ability', id:aid, range:(ab.ranged?'ranged':'melee'), label:ab.name}; renderCombatHud(); }
     else { socket.emit('combat_ability', {ability: aid}); }
   }
 }
@@ -7263,6 +7270,34 @@ function openFormMenu(){
   document.body.appendChild(formMenuEl);
   formMenuEl.querySelectorAll('[data-form]').forEach(b=> b.onclick = ()=>{ const fid=b.getAttribute('data-form'); socket.emit('combat_transform', {form: fid || null}); closeFormMenu(); });
   const xc = formMenuEl.querySelector('[data-formclose]'); if(xc) xc.onclick = closeFormMenu;
+}
+let postureMenuEl = null;
+function closePostureMenu(){ if(postureMenuEl){ postureMenuEl.remove(); postureMenuEl = null; } }
+function openPostureMenu(){
+  closePostureMenu();
+  const f = myFicha || {};
+  const list = (f.class_id && posturesData[f.class_id]) ? posturesData[f.class_id] : [];
+  const active = (combat && combat.your && combat.your.posture) || null;
+  postureMenuEl = document.createElement('div');
+  postureMenuEl.style.cssText = 'position:fixed;left:50%;bottom:128px;transform:translateX(-50%);width:min(440px,92vw);z-index:8600;'+
+    'background:rgba(20,17,30,.97);border:1px solid #c79b4a;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.6);padding:10px 12px;font-family:Inter;max-height:62vh;overflow:auto';
+  let html = '<div style="font:800 12px Cinzel,serif;color:#f4d8a0;margin-bottom:2px">Postura · Devoção a Valíria</div>'+
+             '<div style="font-size:10px;color:#9b95b4;margin-bottom:7px">Muda seu papel na luta. Vale só dentro do combate.</div>';
+  list.forEach(ps=>{
+    const on = ps.id===active;
+    html += '<button data-posture="'+esc(ps.id)+'"'+(on?' disabled':'')+' style="display:flex;width:100%;align-items:center;gap:9px;margin:0 0 6px;padding:8px 10px;border-radius:9px;border:1px solid '+(on?'#c79b4a':'#5a4e2e')+';background:'+(on?'#2e2818':'#2a2620')+';color:#e8e4f0;font:600 12px Inter;cursor:'+(on?'default':'pointer')+';text-align:left">'+
+      '<span style="font-size:18px;line-height:1">'+ps.icon+'</span>'+
+      '<span style="flex:1;min-width:0"><div>'+esc(ps.name)+(on?' · <span style="color:#f4d88a">ATIVA</span>':'')+'</div>'+
+      '<div style="font-size:10px;color:#9b95b4;line-height:1.25">'+esc(ps.desc||'')+'</div></span></button>';
+  });
+  if(active){
+    html += '<button data-posture="" style="width:100%;padding:8px;border-radius:9px;border:1px solid #4a4360;background:#221d36;color:#d8d2e8;font:600 12px Inter;cursor:pointer">↺ Voltar à postura normal</button>';
+  }
+  html += '<button data-postclose="1" style="width:100%;margin-top:6px;padding:6px;border-radius:9px;border:none;background:none;color:#8a86a0;font:600 11px Inter;cursor:pointer">fechar</button>';
+  postureMenuEl.innerHTML = html;
+  document.body.appendChild(postureMenuEl);
+  postureMenuEl.querySelectorAll('[data-posture]').forEach(b=> b.onclick = ()=>{ const pid=b.getAttribute('data-posture'); socket.emit('combat_posture', {posture: pid || null}); closePostureMenu(); });
+  const xc = postureMenuEl.querySelector('[data-postclose]'); if(xc) xc.onclick = closePostureMenu;
 }
 let spellMenuEl = null;
 function closeSpellMenu(){ if(spellMenuEl){ spellMenuEl.remove(); spellMenuEl = null; } }

@@ -111,6 +111,7 @@ def make_player_combatant(sid, player, ficha):
         "hp": int(ficha.get("hp", 1)) + fb.get("hp", 0), "hp_max": int(ficha.get("hp_max", 1)) + fb.get("hp", 0),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
+        "_ac0": st["ac"], "_block0": st["block"],     # CA/bloqueio base (pra postura Mártir zerar e voltar)
         "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
         "x": player["x"], "y": player["y"], "alive": True,
         "atk_name": "ataque", "level": lvl, "class_id": cid,
@@ -284,11 +285,34 @@ def in_reach(a, b):
     return max(abs(a["x"] - b["x"]), abs(a["y"] - b["y"])) <= a.get("reach", 1)
 
 
-def _apply_damage(target, dmg):
+def _posture_dmg(c, dmg):
+    """Redução do dano CAUSADO pelas posturas do Paladino (Soldado -75%, Mão/Mártir 0)."""
+    post = c.get("posture")
+    if post == "soldado":
+        return dmg - (dmg * 3) // 4
+    if post in ("mao", "martir"):
+        return 0
+    return dmg
+
+
+def _apply_damage(target, dmg, enc=None):
     """Aplica dano ao alvo: a Furia corta pela metade o dano fisico, e o BLOQUEIO do
-    escudo reduz um valor fixo de cada golpe (so quem tem escudo equipado tem block)."""
+    escudo reduz um valor fixo de cada golpe (so quem tem escudo equipado tem block).
+    Posturas de Valíria: o Mártir absorve o dano que iria pros aliados; o Soldado
+    recebe 75% a menos; a aura da Mão reduz 20% de quem está sob ela."""
+    # Mártir de Valíria: TODO dano que iria pra um aliado vai pro paladino mártir
+    if enc and target.get("kind") == "player" and target.get("posture") != "martir":
+        martyr = next((c for c in enc["combs"].values()
+                       if c.get("posture") == "martir" and c.get("alive")
+                       and c["cid"] != target["cid"]), None)
+        if martyr:
+            target = martyr
     if target.get("raging"):
         dmg = dmg // 2
+    if target.get("posture") == "soldado":            # Soldado de Valíria: recebe 75% a menos
+        dmg -= (dmg * 3) // 4
+    if has_status(target, "mao_aura"):                # aura da Mão de Valíria: -20% no grupo
+        dmg -= dmg // 5
     blk = int(target.get("block", 0))
     if blk and dmg > 0:
         dmg = max(0, dmg - blk)
@@ -371,6 +395,8 @@ def _enemy_inflict(mon, tgt, name, turns, dot=None):
     if has_status(tgt, "cancao"):
         apply_status(mon, name, turns, dot)
         return True       # refletido no inimigo
+    if tgt.get("posture") == "soldado":          # Soldado de Valíria: o debuff também mingua 75%
+        turns = max(1, int(turns) - (int(turns) * 3) // 4)
     apply_status(tgt, name, turns, dot)
     return False
 
@@ -479,13 +505,26 @@ def attack(enc, attacker, target):
                 res["smite"] = True
                 res["smite_dmg"] = sd                          # dano divino separado (pro somatorio)
             attacker["smite_armed"] = False
+        # Castigo Divino Aprimorado (Paladino nível 11+): todo acerto corpo a corpo
+        # já causa +1d8 radiante de graça (sem armar nem gastar espaço de magia).
+        if (attacker.get("class_id") == "paladino" and int(attacker.get("level", 1)) >= 11
+                and int(attacker.get("reach", 1)) <= 1):
+            isd = _roll_dmg({"n": 1, "d": 8}, crit)
+            dmg += isd
+            res["imp_smite"] = True
+            res["imp_smite_dmg"] = isd
         if has_status(attacker, "aurora_fraca"):          # Aurora de Valíria: ele causa metade do dano
             dmg = dmg // 2
+        _post = attacker.get("posture")                   # POSTURAS do Paladino (Valíria)
+        if _post == "soldado":                            # Soldado: causa 75% a menos
+            dmg -= (dmg * 3) // 4
+        elif _post in ("mao", "martir"):                  # Mão/Mártir: ataque não causa dano
+            dmg = 0
         if attacker.get("double_next"):                   # Poção Divina: este golpe vale o dobro
             dmg *= 2
             attacker["double_next"] = False
             res["doubled"] = True
-        dealt = _apply_damage(target, dmg)
+        dealt = _apply_damage(target, dmg, enc)
         res["dmg"] = dealt
         res["target_hp"] = target["hp"]
         if not target.get("alive"):
@@ -537,7 +576,7 @@ def cast_spell(enc, caster, spell_id, target):
                     "total": total, "hit": hit, "crit": crit, "dmg": 0})
         if hit:
             dmg = _roll_dmg(_scaled_dmg(sp, caster), crit) + _mark_bonus(enc, caster, target, crit) + _spow(caster)
-            res["dmg"] = _apply_damage(target, dmg)
+            res["dmg"] = _apply_damage(target, _posture_dmg(caster, dmg))
             res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "save":
         roll = _d20() + _save_mod(target, sp["save"])
@@ -547,13 +586,13 @@ def cast_spell(enc, caster, spell_id, target):
             dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
         res.update({"target": target["cid"], "target_name": target["name"], "save": sp["save"],
                     "save_roll": roll, "dc": caster.get("spell_dc"), "success": success,
-                    "dmg": (_apply_damage(target, dmg) if dmg > 0 else 0)})
+                    "dmg": (_apply_damage(target, _posture_dmg(caster, dmg)) if dmg > 0 else 0)})
         res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "auto":
         darts = int(sp.get("darts", 1))
         dmg = sum(_roll_dmg(sp["dmg"], False) for _ in range(darts)) + _spow(caster)
         res.update({"target": target["cid"], "target_name": target["name"], "auto": True,
-                    "darts": darts, "dmg": _apply_damage(target, dmg)})
+                    "darts": darts, "dmg": _apply_damage(target, _posture_dmg(caster, dmg))})
         res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "heal":
         amt = _roll_dmg(sp["heal"], False) + (_castmod(caster) if sp["heal"].get("mod") else 0)
@@ -583,7 +622,7 @@ def cast_spell(enc, caster, spell_id, target):
         res.update({"target": target["cid"], "target_name": target["name"], "save": sp["save"],
                     "save_roll": roll, "dc": caster.get("spell_dc"), "success": success,
                     "control": applied, "status": sp.get("status"), "turns": int(sp.get("turns", 1)),
-                    "dmg": (_apply_damage(target, dmg) if dmg > 0 else 0)})
+                    "dmg": (_apply_damage(target, _posture_dmg(caster, dmg)) if dmg > 0 else 0)})
         res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     return res
 
@@ -611,13 +650,33 @@ def use_ability(enc, actor, aid, target=None):
         enc["action_used"] = False; res["surge"] = True
     elif aid == "lay_on_hands":
         pool = R.get("lay_on_hands")
-        need = actor["hp_max"] - actor["hp"]
-        if not pool or pool.get("cur", 0) <= 0 or need <= 0:
+        if not pool or pool.get("cur", 0) <= 0:
             res["fail"] = True; return res
-        amt = min(pool["cur"], need)
-        pool["cur"] -= amt
-        before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + amt)
-        res.update({"heal": actor["hp"] - before, "self": True, "target": actor["cid"]})
+        post = actor.get("posture")
+        if post in ("mao", "martir"):
+            # na Mão/Mártir de Valíria, a Imposição das Mãos cobre o GRUPO inteiro
+            allies = [c for c in enc["combs"].values() if c.get("kind") == "player" and c.get("alive")]
+            healed = []
+            for c in allies:
+                cneed = c["hp_max"] - c["hp"]
+                if cneed <= 0 or pool["cur"] <= 0:
+                    continue
+                amt = min(pool["cur"], cneed)
+                pool["cur"] -= amt
+                c["hp"] = min(c["hp_max"], c["hp"] + amt)
+                healed.append({"cid": c["cid"], "name": c["name"], "amt": amt,
+                               "hp": c["hp"], "hp_max": c["hp_max"]})
+            if not healed:
+                res["fail"] = True; return res
+            res.update({"party_heal": healed, "self": True, "target": actor["cid"]})
+        else:
+            need = actor["hp_max"] - actor["hp"]
+            if need <= 0:
+                res["fail"] = True; return res
+            amt = min(pool["cur"], need)
+            pool["cur"] -= amt
+            before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + amt)
+            res.update({"heal": actor["hp"] - before, "self": True, "target": actor["cid"]})
     elif aid == "flurry":
         if not target or not _spend(R, "ki"):
             res["fail"] = True; return res
@@ -672,10 +731,37 @@ def use_ability(enc, actor, aid, target=None):
         if actor.get("_cancao_used"):
             res["fail"] = True; return res
         actor["_cancao_used"] = True
-        apply_status(actor, "cancao", 10)        # 10 turnos: imune a AoE + debuff (que refletem no inimigo)
+        # protege o GRUPO INTEIRO: cada jogador vivo fica imune a AoE/debuff (que refletem no inimigo)
+        for c in enc["combs"].values():
+            if c.get("kind") == "player" and c.get("alive"):
+                apply_status(c, "cancao", 10)
         actor["skip_next"] = max(int(actor.get("skip_next", 0)), 3)   # canta 3 turnos sem poder agir
         actor["_skip_reason"] = "🎵 cantando"
-        res.update({"cancao": True, "self": True, "target": actor["cid"]})
+        res.update({"cancao": True, "self": True, "target": actor["cid"], "party": True})
+    elif aid == "luz_criacao":
+        # Mártir de Valíria: raio radiante à distância que SOMA todo o potencial de
+        # dano do paladino (dados da arma + acerto + poder mágico + nível). Sempre
+        # que acerta, cura o GRUPO inteiro.
+        if actor.get("posture") != "martir" or not target:
+            res["fail"] = True; return res
+        wd = actor.get("dmg") or {"n": 1, "d": 8, "flat": 0}
+        base = _roll_dmg({"n": int(wd.get("n", 1)), "d": int(wd.get("d", 8)),
+                          "flat": int(wd.get("flat", 0))}, False)
+        bonus = int(actor.get("atk", 0)) + int(actor.get("spell_pow", 0)) + int(actor.get("level", 1)) * 2
+        dmg = base + bonus
+        dealt = _apply_damage(target, dmg, enc)
+        heal_amt = max(1, int(dealt * 0.5))
+        healed = []
+        for c in enc["combs"].values():
+            if c.get("kind") == "player" and c.get("alive"):
+                before = c["hp"]; c["hp"] = min(c["hp_max"], c["hp"] + heal_amt)
+                if c["hp"] > before:
+                    healed.append({"cid": c["cid"], "name": c["name"], "amt": c["hp"] - before,
+                                   "hp": c["hp"], "hp_max": c["hp_max"]})
+        res.update({"strike": True, "ray": True, "dmg": dealt, "party_heal": healed,
+                    "target": target["cid"], "target_name": target["name"],
+                    "killed": not target.get("alive", True),
+                    "target_hp": target["hp"], "target_hp_max": target["hp_max"]})
     else:
         res["fail"] = True
     return res
@@ -702,7 +788,8 @@ def _ability_view(me):
         elif aid == "bardic":
             ready = (R.get("bardic", {}).get("cur", 0) > 0)
         out.append({"id": aid, "name": meta.get("name", aid), "slot": meta.get("slot", "action"),
-                    "target": bool(meta.get("target")), "desc": meta.get("desc", ""), "ready": ready})
+                    "target": bool(meta.get("target")), "ranged": bool(meta.get("ranged")),
+                    "desc": meta.get("desc", ""), "ready": ready})
     return out
 
 
@@ -774,7 +861,7 @@ def monster_ability(enc, mon, tgt, ab):
             saved = False
             if save and (_d20() + _save_mod(pl, save)) >= dc:
                 saved = True; dd = dd // 2
-            _apply_damage(pl, dd)
+            _apply_damage(pl, dd, enc)
             if ab.get("status") and pl.get("alive") and not saved:
                 apply_status(pl, ab["status"], int(ab.get("turns", 1)), ab.get("dot"))
             splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": dd,
@@ -821,7 +908,7 @@ def monster_ability(enc, mon, tgt, ab):
         extra = 0
         if ab.get("dmg_bonus"):
             extra = _roll_dmg(ab["dmg_bonus"], base["crit"])
-            _apply_damage(tgt, extra)
+            _apply_damage(tgt, extra, enc)
         dealt = base["dmg"] + extra
         res["dmg"] = dealt
         if kind == "drain" and dealt > 0:
@@ -961,6 +1048,7 @@ def snapshot(enc, my_cid):
             "res": me.get("res") or {},
             "raging": me.get("raging", False),
             "smite_armed": me.get("smite_armed", False),
+            "posture": me.get("posture"),
             "cast_attr": me.get("cast_attr"),
             "abilities": _ability_view(me),
             "spells": _spell_view(me),
