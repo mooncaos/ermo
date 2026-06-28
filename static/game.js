@@ -7399,8 +7399,17 @@ function showAttackResult(res){
   }
   spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
   if(res.hit){
-    popDamage(res.target, '-'+res.dmg+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
-    if(res.smite_dmg){ spawnAt(res.target, 'buff', '#ffe08a'); toastMsg('⚔️ Castigo Divino: +'+res.smite_dmg+' radiante (já no total)', true); }
+    const _rad = res.radiant_dmg || 0;
+    const _basic = Math.max(0, (res.dmg||0) - _rad);
+    popDamage(res.target, '-'+_basic+(res.crit?'!':''), res.crit?'#ffd86b':'#ff7a7a');
+    if(_rad > 0){                                   // Castigo Divino: dano radiante em AMARELO, separado do básico
+      spawnAt(res.target, 'buff', '#ffe08a');
+      setTimeout(()=> popDamage(res.target, '✦ -'+_rad, '#ffdf3a'), 220);
+    }
+    if(res.self_heal){                              // Combatente Valiriano: cura por golpe
+      spawnAt(res.attacker, 'buff', '#7be3a0');
+      setTimeout(()=> popDamage(res.attacker, '+'+res.self_heal, '#7be3a0'), 120);
+    }
   } else popDamage(res.target, 'errou', '#9b95b4');
   if(res.mon_ability && res.ability){
     toastMsg('✦ '+res.ability+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):'')+(res.self_heal?(' · curou '+res.self_heal):''), true);

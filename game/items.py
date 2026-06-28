@@ -170,6 +170,7 @@ def equip_summary(equipment):
     eq = equipment or {}
     ac = atk = spell_pow = block = 0
     attrs = {}
+    shield_ac = 0
 
     def _wp(iid):
         it = ITEMS.get(iid) or {}
@@ -190,10 +191,12 @@ def equip_summary(equipment):
         atk += int(it.get("atk", 0))
         spell_pow += int(it.get("spell_pow", 0))
         block += int(it.get("block", 0))
+        if it.get("visual") == "shield":                     # CA do escudo (pro Combatente largar)
+            shield_ac += int(it.get("ac", 0))
         for _ak, _av in (it.get("attr") or {}).items():      # +atributo (set Necrótico)
             attrs[_ak] = attrs.get(_ak, 0) + int(_av)
     return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow,
-            "block": block, "rng": rng, "offhand": offhand, "attrs": attrs}
+            "block": block, "rng": rng, "offhand": offhand, "attrs": attrs, "shield_ac": shield_ac}
 
 
 # Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).

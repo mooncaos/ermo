@@ -1162,6 +1162,11 @@ def on_combat_posture(data=None):
         pc["block"] = 0
         if "luz_criacao" not in pc.get("abilities", []):
             pc.setdefault("abilities", []).append("luz_criacao")
+    elif pc["posture"] == "combatente":              # Combatente Valiriano: larga o escudo (CA + bloqueio)
+        pc["ac"] = int(pc.get("_ac0", pc.get("ac", 10))) - int(pc.get("_shield_ac", 0))
+        pc["block"] = 0
+        if "luz_criacao" in pc.get("abilities", []):
+            pc["abilities"].remove("luz_criacao")
     else:
         pc["ac"] = int(pc.get("_ac0", pc.get("ac", 10)))
         pc["block"] = int(pc.get("_block0", 0))

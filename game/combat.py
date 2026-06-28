@@ -111,7 +111,7 @@ def make_player_combatant(sid, player, ficha):
         "hp": int(ficha.get("hp", 1)) + fb.get("hp", 0), "hp_max": int(ficha.get("hp_max", 1)) + fb.get("hp", 0),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
-        "_ac0": st["ac"], "_block0": st["block"],     # CA/bloqueio base (pra postura Mártir zerar e voltar)
+        "_ac0": st["ac"], "_block0": st["block"], "_shield_ac": int(eq.get("shield_ac", 0)),     # CA/bloqueio base + CA do escudo (Mártir zera; Combatente larga o escudo)
         "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
         "x": player["x"], "y": player["y"], "alive": True,
         "atk_name": "ataque", "level": lvl, "class_id": cid,
@@ -477,12 +477,15 @@ def attack(enc, attacker, target):
     if evaded:
         target["evade_next"] = False
         hit = crit = False
+    if attacker.get("posture") == "combatente":       # Combatente Valiriano: todo ataque acerta
+        hit = True
     res = {"attacker": attacker["cid"], "attacker_name": attacker["name"],
            "target": target["cid"], "target_name": target["name"],
            "d20": d, "total": total, "crit": crit, "hit": hit, "dmg": 0, "adv": ad,
            "atk_name": attacker.get("atk_name", "ataque"), "killed": False, "evaded": evaded,
            "target_hp": target["hp"], "target_hp_max": target["hp_max"]}
     if hit:
+        radiant = 0
         dmg = _roll_dmg(attacker["dmg"], crit)
         if has_status(attacker, "facalan"):               # Forma de Facalan: +2 dados de dano
             dmg += _roll_dmg({"n": 2, "d": attacker["dmg"].get("d", 6)}, crit)
@@ -502,6 +505,7 @@ def attack(enc, attacker, target):
             if lv:
                 sd = _roll_dmg({"n": lv + 1, "d": 6}, crit)   # 2d6 no nivel 1, +1d6/nivel acima
                 dmg += sd
+                radiant += sd
                 res["smite"] = True
                 res["smite_dmg"] = sd                          # dano divino separado (pro somatorio)
             attacker["smite_armed"] = False
@@ -511,21 +515,34 @@ def attack(enc, attacker, target):
                 and int(attacker.get("reach", 1)) <= 1):
             isd = _roll_dmg({"n": 1, "d": 8}, crit)
             dmg += isd
+            radiant += isd
             res["imp_smite"] = True
             res["imp_smite_dmg"] = isd
+        if attacker.get("posture") == "combatente":       # Combatente Valiriano: 2 castigos divinos + cura
+            cs = _roll_dmg({"n": 3, "d": 8}, crit) + _roll_dmg({"n": 3, "d": 8}, crit)   # 2 golpes de 3d8
+            dmg += cs; radiant += cs
+            res["combatente"] = True
+            _pool = (attacker.get("res") or {}).get("lay_on_hands")
+            if _pool and _pool.get("cur", 0) > 0:          # cura uma imposição de mão a cada acerto
+                _heal = min(_pool["cur"], 3 * int(attacker.get("level", 1)))
+                if _heal > 0:
+                    _pool["cur"] -= _heal
+                    _b = attacker["hp"]; attacker["hp"] = min(attacker["hp_max"], attacker["hp"] + _heal)
+                    res["self_heal"] = attacker["hp"] - _b
         if has_status(attacker, "aurora_fraca"):          # Aurora de Valíria: ele causa metade do dano
-            dmg = dmg // 2
+            dmg = dmg // 2; radiant = radiant // 2
         _post = attacker.get("posture")                   # POSTURAS do Paladino (Valíria)
         if _post == "soldado":                            # Soldado: causa 75% a menos
-            dmg -= (dmg * 3) // 4
+            dmg -= (dmg * 3) // 4; radiant -= (radiant * 3) // 4
         elif _post in ("mao", "martir"):                  # Mão/Mártir: ataque não causa dano
-            dmg = 0
+            dmg = 0; radiant = 0
         if attacker.get("double_next"):                   # Poção Divina: este golpe vale o dobro
-            dmg *= 2
+            dmg *= 2; radiant *= 2
             attacker["double_next"] = False
             res["doubled"] = True
         dealt = _apply_damage(target, dmg, enc)
         res["dmg"] = dealt
+        res["radiant_dmg"] = radiant                       # parte radiante (castigo) -> amarelo no cliente
         res["target_hp"] = target["hp"]
         if not target.get("alive"):
             res["killed"] = True

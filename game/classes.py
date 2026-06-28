@@ -188,6 +188,8 @@ POSTURES = {
          "desc": "Você para de causar dano, mas a Imposição das Mãos passa a curar o GRUPO inteiro, e todos no grupo recebem 20% menos dano."},
         {"id": "martir", "name": "Mártir de Valíria", "icon": "✨",
          "desc": "Sua CA zera e você não defende mais golpes: absorve TODO o dano que iria pro grupo. Ganha a Luz da Criação, um raio radiante que soma todo o seu dano e cura o grupo a cada acerto."},
+        {"id": "combatente", "name": "Combatente Valiriano", "icon": "⚔️",
+         "desc": "Fúria sagrada ofensiva: todo ataque básico ACERTA e crava 2 Castigos Divinos, e cada golpe ainda cura uma Imposição das Mãos. Em troca, abre mão do escudo: perde o bloqueio E a armadura do escudo."},
     ],
 }
 
