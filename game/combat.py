@@ -616,15 +616,30 @@ def cast_spell(enc, caster, spell_id, target):
             res["dmg"] = _apply_damage(target, _posture_dmg(caster, dmg))
             res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "save":
-        roll = _d20() + _save_mod(target, sp["save"])
-        success = roll >= caster.get("spell_dc", 10)
-        dmg = _roll_dmg(_scaled_dmg(sp, caster), False) + _spow(caster)
-        if success:
-            dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
+        # alvos: o alvo principal + (se for AoE) todos os inimigos vivos dentro do raio
+        targets = [target]
+        if sp.get("aoe"):
+            rad = int(sp["aoe"])
+            for cc in enc["combs"].values():
+                if (cc.get("kind") == "monster" and cc.get("alive") and cc["cid"] != target["cid"]
+                        and max(abs(cc.get("x", 0) - target.get("x", 0)),
+                                abs(cc.get("y", 0) - target.get("y", 0))) <= rad):
+                    targets.append(cc)
+        base = _roll_dmg(_scaled_dmg(sp, caster), False) + _spow(caster)   # rola UMA vez (explosao unica)
+        hits = []
+        for tg in targets:
+            roll = _d20() + _save_mod(tg, sp["save"])
+            success = roll >= caster.get("spell_dc", 10)
+            dmg = (base // 2 if sp.get("save_effect") == "half" else 0) if success else base
+            dealt = _apply_damage(tg, _posture_dmg(caster, dmg)) if dmg > 0 else 0
+            hits.append({"cid": tg["cid"], "name": tg["name"], "save_roll": roll, "success": success,
+                         "dmg": dealt, "hp": tg["hp"], "hp_max": tg["hp_max"], "killed": not tg.get("alive")})
+        h0 = hits[0]   # compatibilidade: alvo principal continua nos campos antigos
         res.update({"target": target["cid"], "target_name": target["name"], "save": sp["save"],
-                    "save_roll": roll, "dc": caster.get("spell_dc"), "success": success,
-                    "dmg": (_apply_damage(target, _posture_dmg(caster, dmg)) if dmg > 0 else 0)})
-        res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
+                    "save_roll": h0["save_roll"], "dc": caster.get("spell_dc"), "success": h0["success"],
+                    "dmg": h0["dmg"], "target_hp": target["hp"], "killed": h0["killed"]})
+        if sp.get("aoe"):
+            res["aoe"] = int(sp["aoe"]); res["hits"] = hits   # pro cliente animar a explosao + dano em todos
     elif k == "auto":
         darts = int(sp.get("darts", 1))
         dmg = sum(_roll_dmg(sp["dmg"], False) for _ in range(darts)) + _spow(caster)

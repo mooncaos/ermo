@@ -140,6 +140,20 @@ SPELLS = {
                           "desc": "O alvo testa Sabedoria ou é aprisionado, perdendo 4 turnos."},
 }
 
+# --- magias de ÁREA: estouram no ponto-alvo e atingem TODOS os inimigos no raio (em tiles).
+# cada inimigo faz a propria salvaguarda; o dano e rolado uma vez e dividido pra quem passa.
+_AOE_SPELLS = {
+    "maos_flamejantes": 2, "investida_trovejante": 2,
+    "estilhacar": 2, "raio_lunar": 1, "esfera_flamejante": 1, "nuvem_adagas": 1,
+    "bola_de_fogo": 3, "relampago": 3, "chamado_relampago": 2, "tempestade_gelo": 2,
+    "esfera_vitriolica": 2, "invocar_relampagos": 2,
+    "cone_de_frio": 3, "circulo_da_morte": 3, "corrente_relampagos": 3,
+    "explosao_tardia": 3, "chuva_meteoros": 4,
+}
+for _sid, _r in _AOE_SPELLS.items():
+    if _sid in SPELLS:
+        SPELLS[_sid]["aoe"] = _r
+
 # atributo de conjuracao por classe
 CASTING = {
     "mago": "INT", "clerigo": "SAB", "druida": "SAB", "patrulheiro": "SAB",
