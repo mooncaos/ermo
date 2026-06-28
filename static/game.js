@@ -6528,6 +6528,8 @@ function racePassivesText(r){
   if(tl.indexOf('sortudo')>=0) out.push('Sortudo (rerrola o 1)');
   if(tl.indexOf('implac')>=0) out.push('Implacável (cai em 1 PV)');
   if(tl.indexOf('armadura natural')>=0) out.push('armadura natural +3');
+  if(tl.indexOf('mordida')>=0 || tl.indexOf('garra')>=0 || tl.indexOf('talão')>=0 || tl.indexOf('talões')>=0 || tl.indexOf('talao')>=0 || tl.indexOf('chifre')>=0 || tl.indexOf('presas')>=0) out.push('ataque natural (+2 dano)');
+  if(tl.indexOf('sopro')>=0) out.push('Sopro Dracônico (área, 1x/combate)');
   if(sp.indexOf('10,5')===0 || sp.indexOf('12')===0) out.push('mais veloz');
   else if(sp.indexOf('7,5')===0) out.push('mais lento');
   return out.join(' · ');
@@ -8402,6 +8404,12 @@ function showSpellResult(r){
 function showAbilityResult(r){
   if(!r) return;
   if(r.attacks){ for(const a of r.attacks) showAttackResult(a); return; }
+  if(r.breath && Array.isArray(r.splash)){           // Sopro Dracônico: fogo em área em todos os inimigos
+    spawnAt(r.actor, 'rage', '#ff7a30');
+    setTimeout(()=>{ for(const s of r.splash){ popDamage(s.cid, '🔥-'+s.dmg, '#ff9a4a'); } }, 160);
+    toastMsg('🐉 '+(r.name||'Sopro Dracônico')+' · fogo em área!', true);
+    return;
+  }
   if(r.heal != null){ spawnAt(r.actor, 'heal', '#5ec27a'); popHeal(r.actor, '+'+r.heal); if(r.name) toastMsg('✦ '+r.name); return; }
   if(r.rage){ spawnAt(r.actor, 'rage', '#ff5a2a'); toastMsg('🔥 Fúria!'); return; }
   if(r.surge){ spawnAt(r.actor, 'surge', '#ffe066'); toastMsg('⚡ Surto de Ação!'); return; }

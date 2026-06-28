@@ -2483,7 +2483,8 @@ _PASSIVE_CACHE = {}
 
 def _empty_passives():
     return {"hp_lvl": 0, "resist": [], "ward": [], "immune": [],
-            "lucky": False, "relentless": False, "armor": 0, "speed": 0}
+            "lucky": False, "relentless": False, "armor": 0, "speed": 0,
+            "nat_weapon": 0, "breath": False}
 
 
 def _parse_passives(r):
@@ -2513,6 +2514,11 @@ def _parse_passives(r):
         p["armor"] = 3
     if "imune a veneno" in tl or "imunidade a veneno" in tl:
         immune.add("poison")
+    # ATIVOS que viram mecânica:
+    if any(w in tl for w in ("mordida", "garra", "talão", "talões", "talao", "chifre", "presas")):
+        p["nat_weapon"] = 2                                  # ataque natural: +dano fixo no golpe (bite/garras/chifre)
+    if "sopro" in tl:                                        # Sopro Dracônico (Draconato) -> habilidade ativa
+        p["breath"] = True
 
     p["resist"] = sorted(resist); p["ward"] = sorted(ward); p["immune"] = sorted(immune)
     sp = (r.get("speed") or "").strip()                      # deslocamento (campo estruturado)
@@ -2554,6 +2560,10 @@ def passive_summary(rid):
         bits.append("Implacável (cai em 1 PV, não morre)")
     if p["armor"]:
         bits.append("armadura natural +%d" % p["armor"])
+    if p["nat_weapon"]:
+        bits.append("ataque natural (+%d dano)" % p["nat_weapon"])
+    if p["breath"]:
+        bits.append("Sopro Dracônico (área, 1x/combate)")
     if p["speed"] > 0:
         bits.append("mais veloz")
     elif p["speed"] < 0:

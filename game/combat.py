@@ -136,11 +136,14 @@ def make_player_combatant(sid, player, ficha):
     rp = races.race_passives_for(ficha.get("race_id"))      # PASSIVAS RACIAIS mecânicas
     st["armor"] = max(0, st.get("armor", 0) + rp["armor"])  # armadura natural (Povo Lagarto/Tartaruga)
     st["speed"] = st.get("speed", 0) + rp["speed"]          # deslocamento racial (mais rápido/lento)
+    if rp["nat_weapon"]:                                     # ataque natural (mordida/garras/chifre): +dano no golpe
+        st["dmg"] = dict(st["dmg"]); st["dmg"]["flat"] = st["dmg"].get("flat", 0) + rp["nat_weapon"]
     return {
         "cid": sid, "kind": "player", "name": player.get("name", "Você"),
         "hp": int(ficha.get("hp", 1)) + fb.get("hp", 0), "hp_max": int(ficha.get("hp_max", 1)) + fb.get("hp", 0),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
+        "con_mod": races.attr_mod(int(final.get("CON", 10))),   # pro CD do Sopro Dracônico
         "armor": st.get("armor", 0), "dodge": st.get("dodge", 0.0), "ward": st.get("ward", 0), "mres": st.get("mres", 0.0),
         "immune": list(eq.get("immune", [])) + list(rp["immune"]),   # imunidade a status (equip + raça: veneno/sono)
         "resist": list(rp["resist"]),                                 # resistência racial a DOT (veneno/fogo: dano pela metade)
@@ -158,7 +161,7 @@ def make_player_combatant(sid, player, ficha):
         "cast_attr": cast_attr, "cast_mod": cast_mod,
         "spell_atk": prof + cast_mod + spell_bonus, "spell_dc": 8 + prof + cast_mod + spell_bonus,
         "cantrips": list(cs.get("cantrips", [])), "spells_known": list(cs.get("spells", [])),
-        "abilities": abil.for_class(cid) + list(ficha.get("god_abilities", [])), "sneak": sneak, "rage_dmg": rage_dmg,
+        "abilities": abil.for_class(cid) + abil.for_race(ficha.get("race_id")) + list(ficha.get("god_abilities", [])), "sneak": sneak, "rage_dmg": rage_dmg,
         "hidden": (cid == "ladino" and ficha.get("form") == "lebre"),   # Assassinato: começa oculto na Lebre
         "form_id": ficha.get("form"), "no_spells": bool(ficha.get("form_no_spells")),
         "res": copy.deepcopy(ficha.get("res") or {}),
@@ -834,6 +837,27 @@ def use_ability(enc, actor, aid, target=None):
         actor["bless_die"] = {"n": 1, "d": 6}; res.update({"buff": True, "self": True})
     elif aid == "divine_smite":
         actor["smite_armed"] = True; res["armed"] = True
+    elif aid == "sopro_draconico":
+        foes = alive_of(enc, "monster")
+        if actor.get("_breath_used") or not foes:
+            res["fail"] = True; return res
+        actor["_breath_used"] = True
+        lvl = int(actor.get("level", 1))
+        ndice = 2 + lvl // 5                                   # 2d6 no nv1 -> ~6d6 no nv20
+        dc = 8 + int(actor.get("prof", 2)) + int(actor.get("con_mod", 0))
+        splash = []
+        for fo in foes:
+            dd = _roll_dmg({"n": ndice, "d": 6}, False)
+            saved = (_d20() + _save_mod(fo, "DES")) >= dc      # inimigos resistem com Destreza pra metade
+            if saved:
+                dd //= 2
+            _apply_damage(fo, dd, enc, magic=True)             # sopro: passa pela resistência mágica, não pela armadura
+            if fo.get("alive") and not saved:
+                apply_status(fo, "burning", 2, {"n": 1, "d": 6})
+            splash.append({"cid": fo["cid"], "name": fo["name"], "dmg": dd,
+                           "hp": fo["hp"], "hp_max": fo["hp_max"], "killed": not fo.get("alive")})
+        res.update({"aoe": True, "breath": True, "splash": splash, "dc": dc, "self": True,
+                    "dmg": (splash[0]["dmg"] if splash else 0)})
     elif aid == "lamina_venenosa":
         if actor.get("_venom_used"):
             res["fail"] = True; return res
@@ -944,6 +968,8 @@ def _ability_view(me):
             ready = (R.get("lay_on_hands", {}).get("cur", 0) > 0)
         elif aid == "bardic":
             ready = (R.get("bardic", {}).get("cur", 0) > 0)
+        elif aid == "sopro_draconico":
+            ready = not me.get("_breath_used")
         out.append({"id": aid, "name": meta.get("name", aid), "slot": meta.get("slot", "action"),
                     "target": bool(meta.get("target")), "ranged": bool(meta.get("ranged")),
                     "desc": meta.get("desc", ""), "ready": ready})

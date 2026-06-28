@@ -27,6 +27,7 @@ ABILITIES = {
     "golpe_morte_alada": {"name": "Golpe da Morte Alada", "slot": "action", "god": "Nherith", "target": True, "form": "coruja", "desc": "Dom de Nherith (só na forma de Coruja Demoníaca). Garras necróticas que causam dano altíssimo (igual a um paladino de Força 20 com a espada do Coveiro) e curam 30% do dano causado em vida."},
     "cancao_cabare":  {"name": "Canção do Cabaré", "slot": "action", "god": "José", "desc": "Dom de José (só Bardo). 1x por combate: o bardo canta e fica 3 turnos sem poder agir. Em troca, por 10 turnos nenhum inimigo consegue te causar dano em área nem te aplicar qualquer debuff. Pelo contrário: quem tentar leva o próprio dano e a própria maldição de volta. (No futuro, protege o grupo inteiro.)"},
     "luz_criacao":    {"name": "Luz da Criação", "slot": "action", "target": True, "ranged": True, "posture": "martir", "desc": "Postura Mártir de Valíria: um raio radiante à distância que soma TODO o seu potencial de dano. Sempre que acerta, cura o grupo inteiro."},
+    "sopro_draconico": {"name": "Sopro Dracônico", "slot": "action", "desc": "Traço do Draconato. 1x por combate: solta o sopro da sua linhagem e atinge TODOS os inimigos com fogo em área (dano escala com o nível). Eles resistem com Destreza pra metade; quem falhar ainda fica pegando fogo."},
 }
 
 CLASS_ABILITIES = {
@@ -38,6 +39,11 @@ CLASS_ABILITIES = {
     "bardo":     ["bardic"],
 }
 
+# Habilidades ATIVAS de raça (traços do texto que viram mecânica de verdade).
+RACE_ABILITIES = {
+    "draconato": ["sopro_draconico"],
+}
+
 
 def get(ability_id):
     return ABILITIES.get(ability_id)
@@ -45,3 +51,7 @@ def get(ability_id):
 
 def for_class(class_id):
     return list(CLASS_ABILITIES.get(class_id, []))
+
+
+def for_race(race_id):
+    return list(RACE_ABILITIES.get(race_id, []))
