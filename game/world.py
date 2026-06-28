@@ -52,6 +52,7 @@ def default_look(i=0):
         "hat": "none",
         "hair": HAIRS[0],
         "staff": False,
+        "sex": "M",            # M (masculino) ou F (feminino): muda a silhueta do avatar
     }
 
 
@@ -70,6 +71,8 @@ def sanitize_look(raw, i=0):
         if raw.get("hat") in HATS:
             look["hat"] = raw["hat"]
         look["staff"] = bool(raw.get("staff", False))
+        if raw.get("sex") in ("M", "F"):
+            look["sex"] = raw["sex"]
     return look
 
 
@@ -225,6 +228,8 @@ class World:
             if mp == "ermo":                 # a vila vive no centro do 100x100
                 hx, hy = hx + world_map.OX, hy + world_map.OY
             home = _walkable_near(hx, hy, mp)
+            _look = dict(spec["look"])
+            _look.setdefault("sex", npcs.sex_of(spec))   # gênero do NPC (meninas já trazem F; mestres derivam do título)
             self.players[spec["id"]] = {
                 "id": spec["id"],
                 "player_id": None,
@@ -232,7 +237,7 @@ class World:
                 "y": home[1],
                 "facing": "down",
                 "name": spec["name"],
-                "look": dict(spec["look"]),
+                "look": _look,
                 "map": mp,
                 "inventory": [],
                 "equipment": {},

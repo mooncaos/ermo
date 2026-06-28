@@ -207,7 +207,7 @@ const CLOAKS = ['#9b6dff','#f4b860','#5fd0c5','#e85d75','#7cc4f4','#b6e36a','#f4
 const SKINS  = ['#f1c9a5','#e8b58c','#c68642','#8d5524','#ffe0bd'];
 const HAIRS  = ['#2a2233','#5a3f28','#8a6a3a','#d8b25a','#b6b0be','#9c3b2e'];
 
-const currentLook = { skin:SKINS[0], cloak:CLOAKS[0], hood:'up', hat:'none', hair:HAIRS[0], staff:false };
+const currentLook = { skin:SKINS[0], cloak:CLOAKS[0], hood:'up', hat:'none', hair:HAIRS[0], staff:false, sex:'M' };
 
 function buildSwatches(containerId, colors, key){
   const box = document.getElementById(containerId);
@@ -239,6 +239,7 @@ function buildPills(containerId, options, key){
 }
 function buildCreator(){
   buildSwatches('row-cloak', CLOAKS, 'cloak');
+  buildPills('row-sex', [['M','Masculino'],['F','Feminino']], 'sex');
   buildSwatches('row-skin',  SKINS,  'skin');
   buildSwatches('row-hair',  HAIRS,  'hair');
   buildPills('row-hood', [['up','Pra cima'],['down','Pra baixo']], 'hood');
@@ -3915,7 +3916,8 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
 
   if(look.staff) drawStaff(c, cx, py, ts, bob);
 
-  const bodyTop = py+ts*0.42 + bob, bodyH = ts*0.40, bodyW = ts*0.44;
+  const fem = (look.sex === 'F');                              // gênero: muda a silhueta
+  const bodyTop = py+ts*0.42 + bob, bodyH = ts*0.40, bodyW = ts*(fem ? 0.395 : 0.44);
 
   // ---- corpo (capa): preenche, sombreia embaixo, luz no peito, contorno ----
   c.fillStyle = cloak;
@@ -3926,6 +3928,28 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
   c.restore();
   c.strokeStyle = ink; c.lineWidth = 1.4;
   roundRect(c, cx-bodyW/2, bodyTop, bodyW, bodyH, 5); c.stroke();
+
+  // ---- saia/vestido (silhueta feminina): trapézio que abre na base, cobrindo as pernas ----
+  if(fem){
+    const skTop = bodyTop + bodyH*0.50, skBot = py+ts*0.80 + bob;
+    const skTw = bodyW*0.50, skBw = bodyW*0.92;               // meias-larguras: estreito no quadril, largo na barra
+    c.fillStyle = cloak;
+    c.beginPath();
+    c.moveTo(cx-skTw, skTop); c.lineTo(cx+skTw, skTop);
+    c.lineTo(cx+skBw, skBot); c.lineTo(cx-skBw, skBot); c.closePath(); c.fill();
+    c.save(); c.clip();                                        // sombra na barra + dobras do tecido
+    c.fillStyle = cloakDk; c.fillRect(cx-skBw, skBot-ts*0.07, skBw*2, ts*0.07);
+    c.fillStyle = cloakLt; c.fillRect(cx-skTw*0.6, skTop, skTw*0.5, (skBot-skTop)*0.7);
+    c.strokeStyle = cloakDk; c.lineWidth = 1;
+    for(let i=-1;i<=1;i++){ c.beginPath(); c.moveTo(cx+i*skTw*0.7, skTop+2); c.lineTo(cx+i*skBw*0.7, skBot); c.stroke(); }
+    c.restore();
+    c.strokeStyle = ink; c.lineWidth = 1.3;
+    c.beginPath(); c.moveTo(cx-skTw, skTop); c.lineTo(cx-skBw, skBot);
+    c.lineTo(cx+skBw, skBot); c.lineTo(cx+skTw, skTop); c.stroke();
+    c.fillStyle = shade(cloak,-0.5);                          // pezinhos espiando sob a barra
+    roundRect(c, cx-ts*0.11, skBot-1.5, ts*0.085, ts*0.05, 2); c.fill();
+    roundRect(c, cx+ts*0.025, skBot-1.5, ts*0.085, ts*0.05, 2); c.fill();
+  }
 
   // ---- cabeça + pescoço ----
   const hr = ts*0.205, hy = py+ts*0.335 + bob, hx = cx;
@@ -3954,6 +3978,14 @@ function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
     c.fillStyle = hairDk; c.fillRect(hx-hr*0.98, hy-hr*0.12+1.5, hr*1.96, 1.5);
     c.strokeStyle = hairLt; c.lineWidth=1.6;                                              // mecha de luz
     c.beginPath(); c.arc(hx, hy-hr*0.12, hr*0.7, Math.PI*1.08, Math.PI*1.5); c.stroke();
+    if(fem){                                                                              // cabelo longo: mechas até os ombros
+      c.fillStyle = look.hair;
+      roundRect(c, hx-hr*1.02, hy-hr*0.12, hr*0.40, hr*1.55, 3); c.fill();
+      roundRect(c, hx+hr*0.62, hy-hr*0.12, hr*0.40, hr*1.55, 3); c.fill();
+      c.fillStyle = hairDk;
+      c.fillRect(hx-hr*1.02, hy+hr*1.0, hr*0.40, 2);
+      c.fillRect(hx+hr*0.62, hy+hr*1.0, hr*0.40, 2);
+    }
     c.fillStyle = hood;                                                                   // gola
     roundRect(c, cx-bodyW*0.34, bodyTop-2, bodyW*0.68, 5, 3); c.fill();
   }

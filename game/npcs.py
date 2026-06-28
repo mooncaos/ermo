@@ -29,6 +29,31 @@ from . import valdris
 contains_curse = valdris.contains_curse
 
 
+# ----------------------------------------------------------------- GÊNERO dos NPCs
+# Sexo (M/F) muda a silhueta no cliente. Mestres derivam do título (Mestra=F).
+# As meninas já marcam "sex":"F" no spec. Aqui ficam as demais NPCs femininas;
+# todo o resto é M por padrão.
+_FEMALE_NPCS = {
+    "Beth", "Dalia", "Marlene", "Cleide", "Maria Cachorra",
+    "Dona Chica", "Robetina", "Marta", "Xamã Miranda",
+    "Marion, a Bruxa", "Cigana Vidente",
+}
+
+
+def sex_of(spec):
+    """Devolve 'M' ou 'F' pro NPC. Respeita um 'sex' explícito no registro,
+    deriva mestres pelo título, e usa a lista de femininas pro resto."""
+    s = spec.get("sex")
+    if s in ("M", "F"):
+        return s
+    name = spec.get("name", "") or ""
+    if name.startswith("Mestra"):
+        return "F"
+    if name.startswith("Mestre"):
+        return "M"
+    return "F" if name in _FEMALE_NPCS else "M"
+
+
 # --------------------------------------------------------------- Bento (campones)
 # Nativo do Ermo: nasceu no barro como o pai e o avo. Cuida de um pedaco de terra
 # sob o sol torto. Ja viu forasteiros cairem do ceu por anos (o Valdris e o mais
@@ -426,7 +451,7 @@ def _menina_spec(m):
         "id": "npc:menina_" + m["name"].lower(),
         "name": m["name"],
         "look": {"skin": m["skin"], "cloak": m["cloak"], "hood": "down",
-                 "hat": "none", "hair": m["hair"], "staff": False},
+                 "hat": "none", "hair": m["hair"], "staff": False, "sex": "F"},
         "map": casa,                                  # mora dentro da casa dela
         "home": _MENINA_IHOME.get(m["name"], (7, 4)), # ponto dentro do interior
         "radius": 1, "wanders": True, "step_every": 1.6,
