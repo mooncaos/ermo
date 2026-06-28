@@ -133,13 +133,21 @@ def make_player_combatant(sid, player, ficha):
     elif cid == "druida" and ficha.get("form") == "lobo":
         sneak = (lvl * 5) // 2                           # Forma do Lobo: golpe furtivo pesado, dano de "ladino" (glass cannon)
     rage_dmg = 2 if lvl < 9 else (3 if lvl < 16 else 4)
+    rp = races.race_passives_for(ficha.get("race_id"))      # PASSIVAS RACIAIS mecânicas
+    st["armor"] = max(0, st.get("armor", 0) + rp["armor"])  # armadura natural (Povo Lagarto/Tartaruga)
+    st["speed"] = st.get("speed", 0) + rp["speed"]          # deslocamento racial (mais rápido/lento)
     return {
         "cid": sid, "kind": "player", "name": player.get("name", "Você"),
         "hp": int(ficha.get("hp", 1)) + fb.get("hp", 0), "hp_max": int(ficha.get("hp_max", 1)) + fb.get("hp", 0),
         "ac": st["ac"], "atk": st["atk"], "dmg": st["dmg"], "reach": st["reach"],
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
         "armor": st.get("armor", 0), "dodge": st.get("dodge", 0.0), "ward": st.get("ward", 0), "mres": st.get("mres", 0.0),
-        "immune": list(eq.get("immune", [])), "smoke": bool(eq.get("smoke")),   # Botas de Vargo: imunidade a status + aura de fumaça
+        "immune": list(eq.get("immune", [])) + list(rp["immune"]),   # imunidade a status (equip + raça: veneno/sono)
+        "resist": list(rp["resist"]),                                 # resistência racial a DOT (veneno/fogo: dano pela metade)
+        "ward_status": list(rp["ward"]),                             # proteção racial contra status (medo/encanto: 50% anula)
+        "race_lucky": bool(rp["lucky"]),                            # Sortudo (Halfling): rerrola o 1 natural
+        "relentless": bool(rp["relentless"]),                      # Resistência Implacável (Meio-Orc): cai em 1 PV, não morre
+        "smoke": bool(eq.get("smoke")),   # Botas de Vargo: aura de fumaça
         "gm_god": bool(player.get("gm_god")),   # GM god mode: não toma dano nenhum
         "_ac0": st["ac"], "_block0": st["block"], "_shield_ac": int(eq.get("shield_ac", 0)),     # CA/bloqueio base + CA do escudo (Mártir zera; Combatente larga o escudo)
         "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
@@ -397,7 +405,10 @@ def _apply_damage(target, dmg, enc=None, magic=False):
             apply_status(target, "facalan_folego", 3)
             target["_facalan_revived"] = True
         else:
-            target["alive"] = False
+            if target.get("relentless") and not target.get("_relentless_used"):   # Resistência Implacável (Meio-Orc)
+                target["hp"] = 1; target["_relentless_used"] = True; target["_relentless_proc"] = True
+            else:
+                target["alive"] = False
     return dmg
 
 
@@ -410,6 +421,14 @@ def _mark_bonus(enc, attacker, target, crit):
 
 def _save_mod(target, attr):
     return int((target.get("saves") or {}).get(attr, 0))
+
+
+def _save_d20(c):
+    """d20 de resistência com Sortudo racial (Halfling rerrola o 1 natural)."""
+    d = _d20()
+    if d == 1 and c.get("race_lucky"):
+        d = _d20()
+    return d
 
 
 def _spend(res, key):
@@ -443,7 +462,9 @@ def apply_status(c, name, turns, dmg=None):
     """Aplica/renova um status no combatente (fica a maior duracao)."""
     if not c or not c.get("alive"):
         return
-    if name in (c.get("immune") or ()):              # imunidade por equipamento (Botas de Vargo)
+    if name in (c.get("immune") or ()):              # imunidade por equipamento (Botas de Vargo) ou raça (veneno/sono)
+        return
+    if name in (c.get("ward_status") or ()) and random.random() < 0.5:   # proteção racial (medo/encanto): vantagem na resistência ~ 50% anula
         return
     st = c.setdefault("status", {})
     prev = st.get(name) or {}
@@ -490,6 +511,8 @@ def tick_statuses(enc, c):
         eff = st[name]
         if name in DOT_STATUS and eff.get("dmg"):
             dd = _roll_dmg(eff["dmg"], False)
+            if name in c.get("resist", ()):       # resistência racial: dano do DOT pela metade
+                dd //= 2
             total += dd
             fx.append({"type": name, "dmg": dd})
         eff["turns"] = int(eff.get("turns", 0)) - 1
@@ -504,7 +527,10 @@ def tick_statuses(enc, c):
     if total > 0:
         c["hp"] = max(0, c["hp"] - total)      # DoT ignora a resistencia da Furia
         if c["hp"] <= 0:
-            c["alive"] = False; killed = True
+            if c.get("relentless") and not c.get("_relentless_used"):   # Implacável: aguenta em 1 PV
+                c["hp"] = 1; c["_relentless_used"] = True; fx.append({"type": "relentless"})
+            else:
+                c["alive"] = False; killed = True
     if not st:
         c.pop("status", None)
     if not fx:
@@ -529,6 +555,8 @@ def attack(enc, attacker, target):
     Furtivo/Castigo no dano, e resistencia no alvo."""
     ad = _adv_dis(attacker, target)
     d = max(_d20(), _d20()) if ad > 0 else (min(_d20(), _d20()) if ad < 0 else _d20())
+    if d == 1 and attacker.get("race_lucky"):     # Sortudo (Halfling): rerrola o 1 natural
+        d = _d20()
     crit = (d == 20)
     total = d + attacker.get("atk", 0)
     if attacker.get("bless_die"):
@@ -990,7 +1018,7 @@ def monster_ability(enc, mon, tgt, ab):
                                "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": False})
                 continue
             saved = False
-            if save and (_d20() + _save_mod(pl, save)) >= dc:
+            if save and (_save_d20(pl) + _save_mod(pl, save)) >= dc:
                 saved = True
                 dd = 0 if pl.get("class_id") == "ladino" else dd // 2   # Esquiva Total do Ladino: passou = não toma NADA
             _apply_damage(pl, dd, enc, magic=True)            # sopro/magia em área: resistência mágica vale, esquiva não
@@ -1023,7 +1051,7 @@ def monster_ability(enc, mon, tgt, ab):
         return res
     if kind in ("gaze", "fear"):
         save = ab.get("save", "CON")
-        roll = _d20() + _save_mod(tgt, save)
+        roll = _save_d20(tgt) + _save_mod(tgt, save)
         dc = int(ab.get("dc", 13))
         success = roll >= dc
         res.update({"save": save, "save_roll": roll, "dc": dc, "success": success, "gaze": True})

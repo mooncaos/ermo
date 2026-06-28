@@ -6508,6 +6508,31 @@ const racePctx     = racePcanvas ? racePcanvas.getContext('2d') : null;
 
 const TIER_DOT = { nucleo:'#3fae5a', expansao:'#3aa6a0', monstruosa:'#d08a3a', cenario:'#9b6dff', avulsa:'#8a8597' };
 
+// Resumo das passivas que FUNCIONAM de verdade no combate (espelha game/races.py).
+function racePassivesText(r){
+  const tl = (r.traits||'').toLowerCase(), sp = (r.speed||''), out = [];
+  let m = tl.match(/\+(\d+)\s*pv por n[íi]vel/); if(m) out.push('+'+m[1]+' PV/nível');
+  const res=[];
+  if(tl.indexOf('dano de veneno')>=0 || tl.indexOf('resili')>=0 || tl.indexOf('resistência robusta')>=0) res.push('veneno');
+  if(tl.indexOf('dano de fogo')>=0 || tl.indexOf('infernal')>=0) res.push('fogo');
+  if(res.length) out.push('resistência a '+res.join(', '));
+  const imu=[];
+  if(tl.indexOf('imune a veneno')>=0 || tl.indexOf('imunidade a veneno')>=0) imu.push('veneno');
+  if(tl.indexOf('feérica')>=0 || tl.indexOf('feerica')>=0) imu.push('sono');
+  if(imu.length) out.push('imune a '+imu.join(', '));
+  const wd=[];
+  if(tl.indexOf('bravura')>=0) wd.push('medo');
+  if(tl.indexOf('feérica')>=0 || tl.indexOf('feerica')>=0) wd.push('encanto');
+  if(tl.indexOf('resili')>=0 || tl.indexOf('resistência robusta')>=0) wd.push('veneno');
+  if(wd.length) out.push('defesa contra '+wd.join(', '));
+  if(tl.indexOf('sortudo')>=0) out.push('Sortudo (rerrola o 1)');
+  if(tl.indexOf('implac')>=0) out.push('Implacável (cai em 1 PV)');
+  if(tl.indexOf('armadura natural')>=0) out.push('armadura natural +3');
+  if(sp.indexOf('10,5')===0 || sp.indexOf('12')===0) out.push('mais veloz');
+  else if(sp.indexOf('7,5')===0) out.push('mais lento');
+  return out.join(' · ');
+}
+
 let raceMode = 'create';            // 'create' (cadastro) ou 'choose' (conta sem raça)
 let selectedRace = null;            // id da raça escolhida
 let pendingReg = null;              // {email,name,pass} entre o portão e a confirmação
@@ -6593,6 +6618,7 @@ function selectRace(rid){
     '<div class="fila"><span class="k">Visão no escuro</span><span class="v">' + esc(dark) + '</span></div>' +
     '<div class="fila"><span class="k">Idiomas</span><span class="v">' + esc(r.languages || '—') + '</span></div>' +
     '<div class="fsec">Traços raciais</div><div class="ftext">' + esc(r.traits || '—').replace(/;\s*/g, '<br>') + '</div>' +
+    (racePassivesText(r) ? '<div class="fsec">⚙️ Passivas ativas no combate</div><div class="ftext" style="color:#9fd6a8">' + esc(racePassivesText(r)) + '</div>' : '') +
     '<div class="fsec">Descrição</div><div class="ftext">' + esc(r.desc || '') + '</div>';
   raceConfirm.disabled = false;
   raceConfirm.textContent = (raceMode === 'choose' ? 'Confirmar ' : 'Escolher ') + rowLabel(r) + ' e entrar';
