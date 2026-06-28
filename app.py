@@ -47,7 +47,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from game import (db, accounts, items, npcs, rules, valdris, classes, races,
                   leveling, feats, class_features, monsters as monsters_def, combat,
-                  spells as spells_def, abilities as abilities_def)
+                  spells as spells_def, abilities as abilities_def, gm)
 from game import secret_worlds, world_map as wm
 from game.world import World, public
 from game.world_map import (MAP_ROWS, map_rows, EDGE_LINKS,
@@ -234,6 +234,8 @@ def _enter_world(player_id, row):
         "postures": classes.POSTURES,
         "day_length": DAY_LENGTH,
         "server_now": time.time(),
+        "is_gm": gm.is_gm(player),                      # painel de GM só aparece pra conta GM
+        "gm_monsters": gm.monster_catalog() if gm.is_gm(player) else [],
     })
     emit("player_joined", public(player), room=mp, include_self=False)
 
@@ -1416,6 +1418,8 @@ def _smite(player, npc):
     o raio (todo mundo perto ve) e manda o engracadinho pro spawn.
     NOTA: quando a morte/combate existir, trocar o 'manda pro spawn' por
     dano/morte de verdade (ja anotado pra quando chegar la)."""
+    if player.get("gm_god"):     # GM god mode: o Valdris não frita o Mestre
+        return
     mp = player.get("map", "ermo")
     npc["facing"] = _face_to(npc, player)
     socketio.emit("player_moved", _npc_moved_payload(npc), room=mp)
@@ -2335,6 +2339,157 @@ def _fagulha_exchange(player, god_id):
         socketio.emit("ficha", {"ficha": f}, to=sid)                     # atualiza marcas + forma no painel
         if reward_txt:
             socketio.emit("toast", {"text": reward_txt}, to=sid)
+@socketio.on("gm_command")
+def on_gm_command(data):
+    """Comandos do Mestre (GM). SEMPRE revalida is_gm no servidor: o cliente nunca
+    decide sozinho. Cobre god mode, voar, teleporte, dar item, invocar monstro,
+    grana, cura, nível, e gestão de jogadores (ir até, trazer, kickar)."""
+    player = world.players.get(request.sid)
+    if not player or not gm.is_gm(player):
+        return
+    action = (data or {}).get("action")
+    p = (data or {}).get("params") or {}
+    mp = player.get("map", "ermo")
+    sid = request.sid
+
+    def _emit_self_hp(reason):
+        f = player.get("ficha") or {}
+        emit("xp", {"xp": f.get("xp", 0), "level": f.get("level", 1),
+                    "hp": f.get("hp"), "hp_max": f.get("hp_max"), "prof": f.get("prof"),
+                    "gained": 0, "reason": reason, "pending_asi": f.get("pending_asi", [])})
+
+    if action == "god":                                   # 🛡️ invencível
+        player["gm_god"] = not player.get("gm_god")
+        enc = COMBAT.get(sid)
+        if enc and enc["combs"].get(sid):
+            enc["combs"][sid]["gm_god"] = player["gm_god"]
+        emit("gm_state", {"god": player["gm_god"]})
+        emit("toast", {"text": "🛡️ God mode " + ("LIGADO" if player["gm_god"] else "desligado")})
+
+    elif action == "fly":                                 # ✈️ noclip
+        player["gm_fly"] = not player.get("gm_fly")
+        emit("gm_state", {"fly": player["gm_fly"]})
+        emit("toast", {"text": "✈️ Voar " + ("LIGADO" if player["gm_fly"] else "desligado")})
+
+    elif action == "tp":                                  # 📍 teleporte no mapa atual
+        if player.get("in_combat"):
+            return
+        try:
+            x = int(p.get("x")); y = int(p.get("y"))
+        except (TypeError, ValueError):
+            return
+        if not rules.in_bounds(x, y, mp):
+            return
+        player["x"], player["y"] = x, y
+        player["_dirty"] = True
+        if not player.get("invisible"):
+            socketio.emit("player_moved",
+                          {"id": player["id"], "x": x, "y": y, "facing": player["facing"]},
+                          room=mp, skip_sid=sid)
+        emit("gm_tp", {"x": x, "y": y})                   # cliente do GM dá o snap + recentraliza
+        _world_refresh(mp, sid)
+
+    elif action == "give":                                # 🎁 dar item
+        item_id = p.get("item")
+        if not item_id or item_id not in items.ITEMS:
+            return
+        try:
+            qty = max(1, min(99, int(p.get("qty", 1) or 1)))
+        except (TypeError, ValueError):
+            qty = 1
+        items.add_to_bag(player.setdefault("inventory", []), item_id, qty)
+        _persist_loadout(player)
+        emit("loadout", {"bag": player["inventory"], "equipment": player.get("equipment", {})})
+        emit("toast", {"text": "🎁 +%dx %s" % (qty, (items.get(item_id) or {}).get("name", item_id))})
+
+    elif action == "spawn":                               # 👹 invocar monstro
+        if player.get("in_combat"):
+            emit("toast", {"text": "Saia do combate pra invocar."}); return
+        type_id = p.get("monster")
+        if not type_id or not monsters_def.get(type_id):
+            return
+        mid = world.spawn_one(type_id, player["x"], player["y"], mp)
+        if mid:
+            _world_refresh(mp)
+            emit("toast", {"text": "👹 Invocado: %s" % world.monsters[mid]["name"]})
+
+    elif action == "money":                               # 💰 carteira infinita
+        player["wallet"] = 999999999
+        if player.get("player_id"):
+            try: db.save_wallet(player["player_id"], player["wallet"])
+            except Exception: pass
+        emit("wallet", {"bronze": player["wallet"]})
+        emit("toast", {"text": "💰 Carteira infinita"})
+
+    elif action == "heal":                                # 💚 vida cheia
+        f = player.get("ficha") or {}
+        f["hp"] = int(f.get("hp_max", 1))
+        if player.get("player_id"):
+            try: db.save_ficha(player["player_id"], f)
+            except Exception: pass
+        enc = COMBAT.get(sid)
+        if enc and enc["combs"].get(sid):
+            c = enc["combs"][sid]; c["hp"] = c.get("hp_max", c.get("hp", 1))
+            _combat_push(enc)
+        _emit_self_hp("gm_heal")
+        emit("toast", {"text": "💚 Vida cheia"})
+
+    elif action == "setlevel":                            # ⚡ definir nível
+        try:
+            lvl = max(1, min(leveling.MAX_LEVEL, int(p.get("level"))))
+        except (TypeError, ValueError):
+            return
+        f = player.get("ficha") or {}
+        f["xp"] = leveling.XP_TABLE[lvl]
+        leveling.recompute(f)
+        f["hp"] = int(f.get("hp_max", 1))
+        player["ficha"] = f
+        if player.get("player_id"):
+            try: db.save_ficha(player["player_id"], f)
+            except Exception: pass
+        _emit_self_hp("gm_level")
+        emit("ficha", {"ficha": f})
+        emit("toast", {"text": "⚡ Nível %d" % f.get("level", lvl)})
+
+    elif action == "players":                             # 👁️ lista de jogadores online
+        lst = [{"id": q["id"], "name": q.get("name", "?"), "map": q.get("map", "ermo")}
+               for q in world.players.values()
+               if not q.get("is_npc") and q.get("kind") != "monster"]
+        emit("gm_players", {"players": lst})
+
+    elif action == "goto":                                # 👁️ teleporta VOCÊ pro jogador
+        if player.get("in_combat"):
+            return
+        tgt = world.players.get(p.get("id"))
+        if tgt and not tgt.get("is_npc") and tgt.get("kind") != "monster":
+            _go_to(sid, tgt.get("map", "ermo"), tgt["x"], tgt["y"])
+
+    elif action == "bring":                               # 👁️ traz o jogador até VOCÊ
+        tsid = p.get("id")
+        tgt = world.players.get(tsid)
+        if tgt and tsid != sid and not tgt.get("is_npc") and tgt.get("kind") != "monster":
+            if tgt.get("in_combat"):
+                emit("toast", {"text": "Esse jogador está em combate."}); return
+            _go_to(tsid, mp, player["x"], player["y"])
+            socketio.emit("toast", {"text": "✨ Um GM te trouxe."}, to=tsid)
+
+    elif action == "kick":                                # 🦶 expulsa o jogador
+        tsid = p.get("id")
+        tgt = world.players.get(tsid)
+        if tgt and tsid != sid and not tgt.get("is_npc") and tgt.get("kind") != "monster":
+            socketio.emit("kicked", {"reason": "gm"}, to=tsid)
+            emit("toast", {"text": "🦶 Expulso: %s" % tgt.get("name", "?")})
+
+    elif action == "killall":                             # 🧹 limpa monstros do mapa
+        gone = [mid for mid, m in list(world.monsters.items())
+                if m.get("map") == mp and not m.get("in_combat")]
+        for mid in gone:
+            world.monsters.pop(mid, None)
+        if gone:
+            _world_refresh(mp)
+        emit("toast", {"text": "🧹 Limpou %d monstros" % len(gone)})
+
+
 @socketio.on("chat")
 def on_chat(data):
     """Mensagem de chat. Vira balao acima do jogador pra todo mundo perto.

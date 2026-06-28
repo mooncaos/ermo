@@ -140,6 +140,7 @@ def make_player_combatant(sid, player, ficha):
         "speed": st["speed"], "dex": st["dex"], "spell_pow": st["spell_pow"], "block": st["block"],
         "armor": st.get("armor", 0), "dodge": st.get("dodge", 0.0), "ward": st.get("ward", 0), "mres": st.get("mres", 0.0),
         "immune": list(eq.get("immune", [])), "smoke": bool(eq.get("smoke")),   # Botas de Vargo: imunidade a status + aura de fumaça
+        "gm_god": bool(player.get("gm_god")),   # GM god mode: não toma dano nenhum
         "_ac0": st["ac"], "_block0": st["block"], "_shield_ac": int(eq.get("shield_ac", 0)),     # CA/bloqueio base + CA do escudo (Mártir zera; Combatente larga o escudo)
         "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
         "x": player["x"], "y": player["y"], "alive": True,
@@ -342,6 +343,8 @@ def _apply_damage(target, dmg, enc=None, magic=False):
       3) WARD: a barreira arcana dos casters absorve um naco de qualquer dano.
     Mantém tudo que já funcionava: Mártir/Soldado/Mão/Aurora de Valíria, Fúria do Bárbaro e
     Esquiva Ladina (-25%). `magic=True` quando o dano vem de magia ou do sopro em área de chefe."""
+    if target.get("gm_god"):           # GM god mode: invencível, ignora qualquer dano
+        return 0
     # Mártir de Valíria: TODO dano que iria pra um aliado vai pro paladino mártir
     if enc and target.get("kind") == "player" and target.get("posture") != "martir":
         martyr = next((c for c in enc["combs"].values()

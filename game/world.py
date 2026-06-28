@@ -420,31 +420,35 @@ class World:
 
     # --------------------------------------------------------------- monstros
 
+    def spawn_one(self, type_id, x, y, mp):
+        """Cria UM monstro vivo no mundo e devolve o mid (ou None se o tipo não
+        existe). Usado pelo spawn inicial e pelo GM (invocar monstro)."""
+        spec = monsters_def.get(type_id)
+        if not spec:
+            return None
+        pos = _walkable_near(x, y, mp)
+        self._monster_seq += 1
+        mid = "mob:%d" % self._monster_seq
+        self.monsters[mid] = {
+            "id": mid, "type": type_id, "name": spec["name"],
+            "x": pos[0], "y": pos[1], "facing": "down", "map": mp,
+            "hp": spec["hp"], "hp_max": spec["hp"], "ac": spec["ac"],
+            "atk": spec["atk"], "dmg": dict(spec["dmg"]), "reach": spec["reach"],
+            "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
+            "glyph": spec["glyph"], "kind": "monster", "alive": True,
+            "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
+            "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
+            "size": spec.get("size"),
+            "_spawn": (type_id, pos[0], pos[1]),
+        }
+        return mid
+
     def spawn_monsters(self):
         """Coloca os monstros iniciais no mundo (O Descampado e o Repouso da Dama).
         Cada um e uma entidade viva em self.monsters, com o stat block copiado do
         registro. Ficam parados ate o combate chegar; aqui so existem e aparecem."""
         self.monsters.clear()
-
-        def _spawn(type_id, x, y, mp):
-            spec = monsters_def.get(type_id)
-            if not spec:
-                return
-            pos = _walkable_near(x, y, mp)
-            self._monster_seq += 1
-            mid = "mob:%d" % self._monster_seq
-            self.monsters[mid] = {
-                "id": mid, "type": type_id, "name": spec["name"],
-                "x": pos[0], "y": pos[1], "facing": "down", "map": mp,
-                "hp": spec["hp"], "hp_max": spec["hp"], "ac": spec["ac"],
-                "atk": spec["atk"], "dmg": dict(spec["dmg"]), "reach": spec["reach"],
-                "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
-                "glyph": spec["glyph"], "kind": "monster", "alive": True,
-                "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
-                "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
-                "size": spec.get("size"),
-                "_spawn": (type_id, pos[0], pos[1]),
-            }
+        _spawn = lambda type_id, x, y, mp: self.spawn_one(type_id, x, y, mp)
 
         for (type_id, x, y) in monsters_def.DESCAMPADO_SPAWNS:
             _spawn(type_id, x, y, "descampado")

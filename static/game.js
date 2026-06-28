@@ -5862,6 +5862,10 @@ if(canvas) canvas.addEventListener('click', (e)=>{
   const cx = (e.clientX - rect.left) * (canvas.width / rect.width);
   const cy = (e.clientY - rect.top) * (canvas.height / rect.height);
   const tx = Math.floor((cx + camX) / TS), ty = Math.floor((cy + camY) / TS);
+  if(isGM && gmTeleport && !combat){            // GM em modo teleporte: clica no mapa e vai
+    gmSend('tp', { x: tx, y: ty });
+    return;
+  }
   let mob = null;
   players.forEach(p=>{ if(p.kind === 'monster' && !p._dead && p.x === tx && p.y === ty) mob = p; });
   if(!combat){ if(mob) socket.emit('combat_engage', { target: mob.id }); return; }
@@ -5901,6 +5905,169 @@ function buildDpad(){
     pad.appendChild(b);
   }
   document.body.appendChild(pad);
+}
+
+// ===========================================================================
+//  GM (Mestre) — painel de administração, só aparece pra conta GM (Portuz)
+// ===========================================================================
+let isGM = false, gmMonsters = [], gmTeleport = false, gmGod = false, gmFly = false;
+let gmBtnEl = null, gmPanelEl = null;
+
+function gmSend(action, params){ if(socket) socket.emit('gm_command', { action, params: params || {} }); }
+
+function setupGM(){
+  if(gmBtnEl) { gmBtnEl.style.display = 'block'; return; }
+  const st = document.createElement('style');
+  st.textContent = `
+  #gm-btn{position:fixed;right:12px;bottom:140px;z-index:60;width:46px;height:46px;border-radius:50%;
+    border:2px solid #e7b23c;background:#1a1320;color:#e7b23c;font-size:22px;cursor:pointer;box-shadow:0 2px 10px #000a}
+  #gm-panel{position:fixed;right:10px;bottom:196px;z-index:61;width:300px;max-height:74vh;overflow-y:auto;
+    display:none;background:#140f1b;border:2px solid #e7b23c;border-radius:12px;padding:10px;
+    color:#eee;font-size:13px;box-shadow:0 6px 24px #000c}
+  #gm-panel h3{margin:0 0 8px;font-size:14px;color:#e7b23c;display:flex;justify-content:space-between;align-items:center}
+  #gm-panel h3 .x{cursor:pointer;color:#c66;font-size:16px;padding:0 4px}
+  .gm-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .gm-row button,.gm-sec button{flex:1;min-width:84px;padding:7px 6px;border-radius:8px;border:1px solid #3a2f44;
+    background:#221a2c;color:#eee;cursor:pointer;font-size:12px}
+  .gm-row button.on{background:#2c5a2c;border-color:#5fbf5f;color:#dfffdf}
+  .gm-row button#gm-tp-btn.on{background:#3a3a6a;border-color:#8a8aff;color:#dfdfff}
+  .gm-sec{border-top:1px solid #2a2233;padding-top:8px;margin-bottom:8px}
+  .gm-sec-title{font-size:12px;color:#e7b23c;margin-bottom:6px;display:flex;justify-content:space-between}
+  .gm-sec input{width:100%;box-sizing:border-box;padding:6px;border-radius:6px;border:1px solid #3a2f44;
+    background:#0e0a14;color:#eee;margin-bottom:6px;font-size:12px}
+  .gm-list{max-height:130px;overflow-y:auto;border:1px solid #2a2233;border-radius:6px}
+  .gm-it{display:flex;align-items:center;gap:7px;padding:5px 7px;cursor:pointer;border-bottom:1px solid #1c1626}
+  .gm-it:hover{background:#231b30}
+  .gm-it .dot{width:12px;height:12px;border-radius:3px;flex:none}
+  .gm-it .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gm-it .boss{color:#ff6;font-size:10px}
+  .gm-pl{display:flex;align-items:center;gap:5px;padding:5px 7px;border-bottom:1px solid #1c1626}
+  .gm-pl .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gm-pl button{padding:3px 7px;font-size:11px;border-radius:6px;border:1px solid #3a2f44;background:#221a2c;color:#eee;cursor:pointer}
+  .gm-lvl-wrap{display:flex;gap:6px;align-items:center}
+  .gm-lvl-wrap input{width:64px}`;
+  document.head.appendChild(st);
+
+  gmBtnEl = document.createElement('button');
+  gmBtnEl.id = 'gm-btn'; gmBtnEl.textContent = '🛠️'; gmBtnEl.title = 'Painel de GM';
+  gmBtnEl.addEventListener('click', ()=>{
+    gmPanelEl.style.display = (gmPanelEl.style.display === 'block') ? 'none' : 'block';
+  });
+  document.body.appendChild(gmBtnEl);
+
+  gmPanelEl = document.createElement('div');
+  gmPanelEl.id = 'gm-panel';
+  gmPanelEl.innerHTML = `
+    <h3>🛠️ GM <span class="x">✕</span></h3>
+    <div class="gm-row">
+      <button data-act="god">🛡️ God: OFF</button>
+      <button data-act="fly">✈️ Voar: OFF</button>
+      <button id="gm-tp-btn">📍 Teleporte: OFF</button>
+    </div>
+    <div class="gm-row">
+      <button data-act="money">💰 Grana ∞</button>
+      <button data-act="heal">💚 Curar</button>
+      <button data-act="killall">🧹 Limpar bichos</button>
+    </div>
+    <div class="gm-row gm-lvl-wrap">
+      <span>Nível:</span><input id="gm-lvl" type="number" min="1" max="20" value="20">
+      <button id="gm-lvl-btn" style="flex:none">⚡ Setar</button>
+    </div>
+    <div class="gm-sec">
+      <div class="gm-sec-title"><span>🎁 Dar item</span><span>qtd:<input id="gm-qty" type="number" min="1" max="99" value="1" style="width:46px;display:inline-block;margin:0 0 0 4px"></span></div>
+      <input id="gm-item-search" placeholder="buscar item...">
+      <div id="gm-item-list" class="gm-list"></div>
+    </div>
+    <div class="gm-sec">
+      <div class="gm-sec-title">👹 Invocar monstro</div>
+      <input id="gm-mob-search" placeholder="buscar monstro...">
+      <div id="gm-mob-list" class="gm-list"></div>
+    </div>
+    <div class="gm-sec">
+      <div class="gm-sec-title"><span>👁️ Jogadores</span><button id="gm-pl-refresh" style="flex:none;padding:2px 8px">🔄</button></div>
+      <div id="gm-players-list" class="gm-list"></div>
+    </div>`;
+  document.body.appendChild(gmPanelEl);
+
+  gmPanelEl.querySelector('.x').addEventListener('click', ()=> gmPanelEl.style.display='none');
+  gmPanelEl.querySelectorAll('.gm-row button[data-act]').forEach(b=>{
+    b.addEventListener('click', ()=> gmSend(b.getAttribute('data-act')));
+  });
+  document.getElementById('gm-tp-btn').addEventListener('click', ()=>{
+    gmTeleport = !gmTeleport; updateGmToggles();
+    toastMsg(gmTeleport ? '📍 Modo teleporte: clique no mapa.' : 'Teleporte desligado.');
+  });
+  document.getElementById('gm-lvl-btn').addEventListener('click', ()=>{
+    const v = parseInt(document.getElementById('gm-lvl').value, 10);
+    if(v >= 1 && v <= 20) gmSend('setlevel', { level: v });
+  });
+  document.getElementById('gm-item-search').addEventListener('input', e=> renderGmItems(e.target.value));
+  document.getElementById('gm-mob-search').addEventListener('input', e=> renderGmMobs(e.target.value));
+  document.getElementById('gm-pl-refresh').addEventListener('click', ()=> gmSend('players'));
+  renderGmItems(''); renderGmMobs(''); gmSend('players');
+}
+
+function updateGmToggles(){
+  if(!gmPanelEl) return;
+  const g = gmPanelEl.querySelector('[data-act="god"]'); if(g){ g.classList.toggle('on', gmGod); g.textContent = '🛡️ God: ' + (gmGod?'ON':'OFF'); }
+  const f = gmPanelEl.querySelector('[data-act="fly"]'); if(f){ f.classList.toggle('on', gmFly); f.textContent = '✈️ Voar: ' + (gmFly?'ON':'OFF'); }
+  const t = document.getElementById('gm-tp-btn'); if(t){ t.classList.toggle('on', gmTeleport); t.textContent = '📍 Teleporte: ' + (gmTeleport?'ON':'OFF'); }
+}
+
+function renderGmItems(filter){
+  const box = document.getElementById('gm-item-list'); if(!box) return;
+  const q = (filter||'').toLowerCase().trim();
+  const ids = Object.keys(catalog).filter(id=>{
+    const d = catalog[id]; if(!d) return false;
+    return !q || (d.name||id).toLowerCase().includes(q) || id.includes(q);
+  }).slice(0, 60);
+  box.innerHTML = '';
+  ids.forEach(id=>{
+    const d = catalog[id];
+    const row = document.createElement('div'); row.className = 'gm-it';
+    row.innerHTML = `<span class="dot" style="background:${d.color||'#888'}"></span><span class="nm">${d.name||id}</span>`;
+    row.addEventListener('click', ()=>{
+      const qty = Math.max(1, Math.min(99, parseInt(document.getElementById('gm-qty').value,10)||1));
+      gmSend('give', { item: id, qty });
+    });
+    box.appendChild(row);
+  });
+  if(!ids.length) box.innerHTML = '<div class="gm-it" style="opacity:.6">nada encontrado</div>';
+}
+
+function renderGmMobs(filter){
+  const box = document.getElementById('gm-mob-list'); if(!box) return;
+  const q = (filter||'').toLowerCase().trim();
+  const list = gmMonsters.filter(m=> !q || m.name.toLowerCase().includes(q) || m.id.includes(q)).slice(0, 60);
+  box.innerHTML = '';
+  list.forEach(m=>{
+    const row = document.createElement('div'); row.className = 'gm-it';
+    row.innerHTML = `<span class="nm">${m.name}</span>${m.boss?'<span class="boss">CHEFE</span>':''}`;
+    row.addEventListener('click', ()=> gmSend('spawn', { monster: m.id }));
+    box.appendChild(row);
+  });
+  if(!list.length) box.innerHTML = '<div class="gm-it" style="opacity:.6">nada encontrado</div>';
+}
+
+function renderGmPlayers(list){
+  const box = document.getElementById('gm-players-list'); if(!box) return;
+  box.innerHTML = '';
+  (list||[]).forEach(pl=>{
+    const row = document.createElement('div'); row.className = 'gm-pl';
+    const mine = (pl.id === myId);
+    row.innerHTML = `<span class="nm">${pl.name}${mine?' (você)':''}</span><span style="opacity:.6;font-size:10px">${pl.map}</span>`;
+    if(!mine){
+      const go = document.createElement('button'); go.textContent = 'ir'; go.title='teleportar até';
+      go.addEventListener('click', ()=> gmSend('goto', { id: pl.id }));
+      const br = document.createElement('button'); br.textContent = 'trazer';
+      br.addEventListener('click', ()=> gmSend('bring', { id: pl.id }));
+      const kk = document.createElement('button'); kk.textContent = 'kick'; kk.style.color='#f88';
+      kk.addEventListener('click', ()=>{ if(confirm('Expulsar '+pl.name+'?')) gmSend('kick', { id: pl.id }); });
+      row.appendChild(go); row.appendChild(br); row.appendChild(kk);
+    }
+    box.appendChild(row);
+  });
+  if(!(list||[]).length) box.innerHTML = '<div class="gm-pl" style="opacity:.6">ninguém online</div>';
 }
 
 // ===========================================================================
@@ -5954,6 +6121,9 @@ function connectWithToken(token){
     refreshInventory();
     myFicha = data.ficha || {};
     renderFicha();
+    isGM = !!data.is_gm; gmMonsters = data.gm_monsters || [];
+    if(isGM) setupGM();
+    else if(gmBtnEl){ gmBtnEl.style.display='none'; if(gmPanelEl) gmPanelEl.style.display='none'; }
     if((myFicha.pending_asi||[]).length)
       setTimeout(()=> toastMsg('Você tem melhoria de nível pra escolher! Abra a ficha (📜).'), 1400);
 
@@ -6066,6 +6236,16 @@ function connectWithToken(token){
     if(fichaTab === 'grimorio' && fichaPanelOpen) renderFicha();
   });
   socket.on('toast', d=>{ if(d && d.text) toastMsg(d.text); });
+  socket.on('gm_state', s=>{
+    if('god' in s) gmGod = s.god;
+    if('fly' in s) gmFly = s.fly;
+    updateGmToggles();
+  });
+  socket.on('gm_players', d=> renderGmPlayers(d.players || []));
+  socket.on('gm_tp', d=>{                       // GM se teleportou: cola a própria posição e recentraliza
+    const me = players.get(myId); if(!me) return;
+    me.x = d.x; me.y = d.y; me.rx = d.x*TS; me.ry = d.y*TS;
+  });
   socket.on('form_set', d=>{
     if(myFicha){ myFicha.form = d.form || null; }
     if(typeof fichaPanelOpen === 'undefined' || fichaPanelOpen) renderFicha();
