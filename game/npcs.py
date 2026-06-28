@@ -1201,3 +1201,22 @@ ROSTER.append({
     "step_every": 999, "solid": True, "kind": "mesa",
     "greetings": ["..."], "party_table": True,
 })
+
+# A Goblin do Cofre: roubou o cofre de Lorde Varth e se escondeu no canto sudeste
+# da câmara. Vende o set Necrótico (épico, melhor que o do Coveiro) por bronze +
+# Símbolos de Varth.
+ROSTER.append({
+    "id": "npc:goblin_cofre", "name": "Goblin do Cofre",
+    "look": {"skin": "#7a9a4a", "cloak": "#243016", "hood": "up",
+             "hat": "none", "hair": "#3a2a10", "staff": False},
+    "map": "camara_varth", "home": (78, 84), "radius": 1, "wanders": True,
+    "step_every": 2.0, "solid": True, "kind": "person",
+    "greetings": [
+        "Pssiu! Aqui no cantinho... roubei o cofre do Lorde bem debaixo do nariz dele, hehe.",
+        "Tudo roxo, tudo necrótico, tudo arrancado do cofre de Varth. Quer ver a mercadoria?",
+        "O Lorde tá ocupado lá no trono. Aproveita a liquidação do cofre, forasteiro.",
+        "Os melhores trecos da Torre, um tier acima do velho Coveiro. A arma então... nem se compara.",
+        "Bronze eu aceito, mas o que eu quero MESMO são os Símbolos de Varth. Cinco por peça, sem choro.",
+    ],
+    "goblin_cofre": True,
+})

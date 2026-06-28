@@ -6241,6 +6241,15 @@ function _renderShopBody(){
   if(!_shopBodyEl || !shopData) return;
   _shopBodyEl.innerHTML = '';
   if(shopTab === 'buy'){
+    if(shopData.extra && shopData.extra.item){
+      const ex = shopData.extra;
+      const have = (inventory||[]).reduce((n,s)=> n + (s.item===ex.item ? (s.qty||0) : 0), 0);
+      const enough = have >= (ex.qty||0);
+      const b = document.createElement('div');
+      b.style.cssText = 'background:#241a33;border:1px solid #5a3a8a;border-radius:9px;padding:9px 11px;margin:4px 2px 11px;font-size:12.5px;line-height:1.45;color:#d8c8f0;';
+      b.innerHTML = 'Cada peça também custa <b style="color:#c79bff">'+(ex.qty||0)+' '+esc(ex.name||'símbolos')+'</b> \ud83d\udfe3 — você tem <b style="color:'+(enough?'#9be3a0':'#e89090')+'">'+have+'</b>.';
+      _shopBodyEl.appendChild(b);
+    }
     (shopData.potions || []).forEach((pt, i)=>{
       if(i === 0){
         const h = document.createElement('div'); h.textContent = 'Poções';

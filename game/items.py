@@ -169,6 +169,7 @@ def equip_summary(equipment):
     'offhand' (duas armas), e quem a usa soma o dano dela no ataque."""
     eq = equipment or {}
     ac = atk = spell_pow = block = 0
+    attrs = {}
 
     def _wp(iid):
         it = ITEMS.get(iid) or {}
@@ -189,8 +190,10 @@ def equip_summary(equipment):
         atk += int(it.get("atk", 0))
         spell_pow += int(it.get("spell_pow", 0))
         block += int(it.get("block", 0))
+        for _ak, _av in (it.get("attr") or {}).items():      # +atributo (set Necrótico)
+            attrs[_ak] = attrs.get(_ak, 0) + int(_av)
     return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow,
-            "block": block, "rng": rng, "offhand": offhand}
+            "block": block, "rng": rng, "offhand": offhand, "attrs": attrs}
 
 
 # Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).
@@ -521,5 +524,67 @@ def _gen_tier_sets():
         TIER_SETS[pfx] = sets; TIER_ITEMS[pfx] = ids_all; TIER_PRICE[pfx] = price
 _gen_tier_sets()
 TIER_LABEL = {"t1": "Mascate Errante", "t2": "Nômade Raiz", "t3": "Coveiro Mórbido"}
-# todos os ids vendidos pelos 3 mercadores (pra validar compra)
+
+# atributo principal de cada classe (pro bonus do set Necrótico)
+_CLASS_ATTR = {
+    "barbaro": "FOR", "guerreiro": "FOR", "paladino": "FOR",
+    "ladino": "DES", "monge": "DES", "patrulheiro": "DES",
+    "mago": "INT", "feiticeiro": "CAR", "bruxo": "CAR", "bardo": "CAR",
+    "clerigo": "SAB", "druida": "SAB",
+}
+
+def _gen_necrotico_set():
+    """O set Necrótico da Goblin do Cofre (escondida na câmara de Varth): armadura/
+    escudo UM tier acima do Coveiro (t3), ARMA DOIS tiers acima, e TODA peça soma
+    +2 no atributo principal da classe. Continua épico (roxo, igual ao Coveiro).
+    Prefixo 'Necrótico' no nome. Custa 800.000 de bronze + 5 Símbolos de Varth a peça."""
+    pfx, suf, rar, price = "necro", "Necrótico", "epico", 800000
+    # ARMA (2 tiers acima de t3): dano e acerto bem altos
+    w_mdice, w_mflat, w_matk = 15, 35, 34      # marcial: dados, dano fixo, +acerto
+    w_cdice, w_cpow, w_catk = 5, 40, 14        # caster: dados, +poder mágico, +acerto
+    acb, sblock = 6, 16                         # armadura/escudo (1 tier acima)
+    attr_bonus = 2                             # cada peça: +2 no atributo principal
+    sets = []; ids_all = set()
+    for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
+        wn, wvis, dn, dd, watk, wac = weap
+        caster = cid in CASTER_CLASSES
+        attr = _CLASS_ATTR.get(cid, "FOR")
+        ids = []
+        wid = "necro_%s_arma" % cid
+        wdmg = {"n": (w_cdice if caster else w_mdice), "d": dd}
+        if (not caster) and w_mflat:
+            wdmg["flat"] = w_mflat
+        W = {"name": "%s %s" % (suf, wn), "kind": "weapon", "stackable": False,
+             "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
+             "dmg": wdmg, "atk": watk + (w_catk if caster else w_matk), "value": price,
+             "attr": {attr: attr_bonus}}
+        if wac:
+            W["ac"] = wac + acb
+        if (cid in POW_CLASSES) and w_cpow:
+            W["spell_pow"] = w_cpow
+        if cid in RANGED_RANGE:
+            W["rng"] = RANGED_RANGE[cid]
+        ITEMS[wid] = W; ids.append(wid)
+        a = _ARQ[arq]
+        for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
+            vis, slabel = _SLOT_VIS[slot]
+            iid = "necro_%s_%s" % (cid, slot)
+            ITEMS[iid] = {"name": "%s %s %s" % (suf, slabel, tema), "kind": "armor",
+                          "stackable": False, "color": cor, "slot": slot, "visual": vis,
+                          "rarity": rar, "ac": a[slot] + acb, "value": price,
+                          "attr": {attr: attr_bonus}}
+            ids.append(iid)
+        if arq in _SHIELD_AC:
+            sidh = "necro_%s_escudo" % cid
+            ITEMS[sidh] = {"name": "%s Escudo %s" % (suf, tema), "kind": "armor",
+                           "stackable": False, "color": cor, "slot": "hand", "visual": "shield",
+                           "rarity": rar, "ac": _SHIELD_AC[arq] + acb, "block": sblock,
+                           "value": price, "attr": {attr: attr_bonus}}
+            ids.append(sidh)
+        sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
+    TIER_SETS["necro"] = sets; TIER_ITEMS["necro"] = ids_all; TIER_PRICE["necro"] = price
+    TIER_LABEL["necro"] = "Goblin do Cofre"
+_gen_necrotico_set()
+
+# todos os ids vendidos pelos mercadores (pra validar compra)
 ALL_TIER_ITEMS = set().union(*TIER_ITEMS.values())

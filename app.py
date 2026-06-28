@@ -1466,6 +1466,14 @@ def on_interact(_data=None):
                    items.TIER_SETS[_tier], items.TIER_PRICE[_tier])
         return
 
+    # Goblin do Cofre (câmara de Varth, canto SE): set Necrótico, custa 800.000 de
+    # bronze + 5 Símbolos de Varth por peça
+    if npc.get("_spec", {}).get("goblin_cofre"):
+        _open_shop(player, npc, "Goblin do Cofre", items.TIER_SETS["necro"],
+                   items.TIER_PRICE["necro"],
+                   extra={"item": "simbolo_varth", "qty": 5, "name": "Símbolos de Varth"})
+        return
+
     # Cigana Vidente (Itatinga): vende Pocao de Vida por 10 pratas (1000 bronze)
     if npc.get("_spec", {}).get("sells_potion"):
         _open_shop(player, npc, "Cigana Vidente", [], 0, potions=[("pocao_vida", 1000)])
@@ -1757,7 +1765,7 @@ def on_xama_offer(data=None):
     emit("xama_open", _xama_payload(player, msg))
 
 
-def _open_shop(player, npc, title, sets, price, potions=None):
+def _open_shop(player, npc, title, sets, price, potions=None, extra=None):
     """Abre a loja: emite a fala do NPC, monta o catalogo e GUARDA os precos no
     player (pra validar a compra depois, ja que cada mercador cobra diferente)."""
     mp = player.get("map", "ermo")
@@ -1775,9 +1783,11 @@ def _open_shop(player, npc, title, sets, price, potions=None):
                      "color": c.get("color"), "heal": c.get("heal")})
         prices[pid] = pprice
     player["_shop_prices"] = prices
+    player["_shop_extra"] = extra        # moeda extra: {"item": id, "qty": n, "name": ...} ou None
     emit("shop_open", {
         "title": title, "sets": cat, "potions": pots,
         "wallet": int(player.get("wallet", 0)), "sell_rate": items.SHOP_SELL_RATE,
+        "extra": extra,
     })
 
 
@@ -1807,7 +1817,17 @@ def on_shop_buy(data):
     if wallet < price:
         emit("toast", {"text": "Bronze insuficiente (custa %d)." % price})
         return
+    extra = player.get("_shop_extra")
+    if extra and extra.get("item"):                      # moeda extra (ex: 5 Símbolos de Varth)
+        need = int(extra.get("qty", 0))
+        have = items.count_in_bag(player.get("inventory", []), extra["item"])
+        if have < need:
+            emit("toast", {"text": "Faltam %s (precisa de %d, você tem %d)."
+                                   % (extra.get("name", "símbolos"), need, have)})
+            return
     player["wallet"] = wallet - price
+    if extra and extra.get("item"):
+        items.remove_from_bag(player.setdefault("inventory", []), extra["item"], int(extra.get("qty", 0)))
     items.add_to_bag(player.setdefault("inventory", []), item_id, 1)
     _persist_loadout_wallet(player)
     emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})

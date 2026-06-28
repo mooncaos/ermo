@@ -56,9 +56,15 @@ def player_stats(ficha):
 
 
 def make_player_combatant(sid, player, ficha):
-    st = player_stats(ficha)
     # equipamento: armadura soma CA, anel/amuleto somam acerto, arma define o dano
     eq = items.equip_summary(player.get("equipment") or {})
+    if eq.get("attrs"):                                  # set Necrótico: +atributo principal
+        ficha = dict(ficha)                              # copia (não altera a ficha salva)
+        _boost = dict(ficha.get("attrs_final") or ficha.get("attrs") or {})
+        for _ak, _av in eq["attrs"].items():
+            _boost[_ak] = int(_boost.get(_ak, 10)) + int(_av)
+        ficha["attrs_final"] = _boost
+    st = player_stats(ficha)
     st["ac"] += eq["ac"]
     st["atk"] += eq["atk"]
     if eq["dmg"]:
