@@ -183,6 +183,8 @@ const MAP_AMBIENT = {
   fadrakor_selva:   {r:38,  g:108, b:58,  a:0.16, part:'#a9f0c0'},  // selva densa
   fadrakor_vulcao:  {r:230, g:90,  b:40,  a:0.18, part:'#ffb070'},  // vulcao
   repouso_dama:     {r:22,  g:44,  b:42,  a:0.10, part:'#a9f0c0'},  // mata fria esverdeada
+  planaltos_ermais: {r:150, g:170, b:190, a:0.10, part:'#dfeaf2'},  // planalto frio, neblina clara
+  floresta_ermo:    {r:16,  g:36,  b:28,  a:0.14, part:'#9fe0b0'},  // mata fechada, breu esverdeado (Ilex)
 };
 // mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
 const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth']);
@@ -1064,14 +1066,110 @@ function drawForestTile(c, ch, px, py, ts, gx, gy){
       c.fillRect(px+ts*rng(gx,gy,3), py+ts*(0.36+rng(gx,gy,4)*0.28), 2, 1.5);
       return true;
     case '+': forestFloor(c,px,py,ts,gx,gy,false); return true;
+    case '%': {   // SANTUARIO da floresta (pedra musgosa, estilo Ilex)
+      forestFloor(c,px,py,ts,gx,gy,false);
+      c.fillStyle='rgba(0,0,0,0.24)'; c.beginPath(); c.ellipse(px+ts*0.5,py+ts*0.85,ts*0.34,ts*0.12,0,0,Math.PI*2); c.fill();
+      c.fillStyle='#6a6a5e'; c.fillRect(px+ts*0.27,py+ts*0.5,ts*0.46,ts*0.34);   // base
+      c.fillStyle='#7c7c6e'; c.fillRect(px+ts*0.33,py+ts*0.2,ts*0.34,ts*0.34);   // corpo
+      c.fillStyle='#565649'; c.fillRect(px+ts*0.27,py+ts*0.5,ts*0.46,3);          // sombra base
+      c.fillStyle='#8a8a7a'; c.fillRect(px+ts*0.37,py+ts*0.16,ts*0.26,5);         // topo
+      c.fillStyle='#3d6b34'; c.fillRect(px+ts*0.3,py+ts*0.46,4,3); c.fillRect(px+ts*0.63,py+ts*0.3,4,3); c.fillRect(px+ts*0.34,py+ts*0.24,3,3);   // musgo
+      return true;
+    }
   }
   return false;   // T, ^, 4 usam o desenho padrao (o breu por cima escurece tudo)
+}
+
+// ---------- bioma PLANALTO (Planaltos Ermais): rocha, penhasco, tarn, pinheiro ----------
+const PCOL = {
+  grass:'#6f8260', grassDk:'#5d6f50', grassLt:'#84976f',
+  rock:'#8a8577', rockDk:'#6e695d', rockLt:'#a6a193',
+  gravel:'#9a9384', gravelDk:'#827c6e',
+  water:'#4a7a93', waterLt:'#6f9fb5', waterDk:'#3a6276',
+  pine:'#2f4a36', pineDk:'#26402d', pineTip:'#4a6b46', ptrunk:'#3a2c1e',
+  heather:['#9a6a9e','#c08fb0','#d6b36a'],
+};
+function plateauGrass(c,px,py,ts,gx,gy){
+  const tone=rng(gx,gy,17);
+  c.fillStyle = tone<0.25 ? PCOL.grassDk : (tone>0.78 ? PCOL.grassLt : PCOL.grass);
+  c.fillRect(px,py,ts,ts);
+  if(rng(gx,gy,29)>0.6){ c.fillStyle=PCOL.rockDk; c.fillRect(px+rng(gx,gy,3)*ts*0.9, py+rng(gx,gy,4)*ts*0.9, 2,2); }
+  const sway=Math.sin(Date.now()/750 + (gx*0.8+gy*1.1))*1.2; c.lineWidth=1;
+  for(let i=0;i<4;i++){ const bx=px+rng(gx,gy,i+1)*ts, by=py+ts*(0.4+rng(gx,gy,i+6)*0.5), h=2+rng(gx,gy,i+11)*2;
+    c.strokeStyle = rng(gx,gy,i+16)>0.5 ? PCOL.grassLt : PCOL.grassDk;
+    c.beginPath(); c.moveTo(bx,by); c.lineTo(bx+sway,by-h); c.stroke(); }
+}
+function plateauBoulder(c,px,py,ts,gx,gy){
+  plateauGrass(c,px,py,ts,gx,gy);
+  c.fillStyle='rgba(0,0,0,0.18)'; c.beginPath(); c.ellipse(px+ts*0.54,py+ts*0.78,ts*0.32,ts*0.12,0,0,Math.PI*2); c.fill();
+  c.fillStyle=PCOL.rockDk; c.beginPath(); c.arc(px+ts*0.5,py+ts*0.52,ts*0.34,0,Math.PI*2); c.fill();
+  c.fillStyle=PCOL.rock; c.beginPath(); c.arc(px+ts*0.45,py+ts*0.48,ts*0.27,0,Math.PI*2); c.fill();
+  c.fillStyle=PCOL.rockLt; c.beginPath(); c.arc(px+ts*0.4,py+ts*0.42,ts*0.12,0,Math.PI*2); c.fill();
+  c.fillStyle=shade(PCOL.rockDk,-0.08); c.fillRect(px+ts*0.5,py+ts*0.55,ts*0.2,2);
+}
+function drawPlateauTile(c, ch, px, py, ts, gx, gy){
+  switch(ch){
+    case '.': case '+': plateauGrass(c,px,py,ts,gx,gy); return true;
+    case ',':
+      plateauGrass(c,px,py,ts,gx,gy);
+      { const col=PCOL.heather[Math.floor(rng(gx,gy,3)*PCOL.heather.length)]; const fx=px+ts*0.5, fy=py+ts*0.5;
+        c.fillStyle=col; c.fillRect(fx-1,fy-2,2,2); c.fillRect(fx-2,fy,2,2); c.fillRect(fx+1,fy,2,2); }
+      return true;
+    case ':':
+      plateauGrass(c,px,py,ts,gx,gy);
+      c.fillStyle=PCOL.pineDk; c.beginPath(); c.arc(px+ts*0.5,py+ts*0.56,ts*0.26,0,Math.PI*2); c.fill();
+      c.fillStyle=PCOL.pine; c.beginPath(); c.arc(px+ts*0.43,py+ts*0.48,ts*0.17,0,Math.PI*2); c.fill();
+      return true;
+    case 'r':
+      plateauGrass(c,px,py,ts,gx,gy);
+      for(let i=0;i<5;i++){ c.fillStyle = rng(gx,gy,i)>0.5?PCOL.rock:PCOL.rockDk;
+        c.fillRect(px+rng(gx,gy,i+2)*ts*0.8, py+rng(gx,gy,i+7)*ts*0.8, 3,2); }
+      return true;
+    case '=': {
+      c.fillStyle = rng(gx,gy,9)<0.5 ? PCOL.gravel : PCOL.gravelDk; c.fillRect(px,py,ts,ts);
+      for(let i=0;i<6;i++){ c.fillStyle = rng(gx,gy,i+13)>0.5 ? shade(PCOL.gravel,0.10) : shade(PCOL.gravel,-0.12);
+        c.fillRect(px+rng(gx,gy,i)*ts, py+rng(gx,gy,i+4)*ts, 2,2); }
+      return true;
+    }
+    case '~': {
+      c.fillStyle = rng(gx,gy,5)<0.5 ? PCOL.water : shade(PCOL.water,0.05); c.fillRect(px,py,ts,ts);
+      const wt=Date.now()/900 + (gx*0.5+gy*0.8); c.strokeStyle='rgba(220,240,255,0.35)'; c.lineWidth=1;
+      const wy=py+ts*0.45 + Math.sin(wt)*1.6;
+      c.beginPath(); c.moveTo(px+3,wy); c.quadraticCurveTo(px+ts*0.5,wy-2,px+ts-3,wy); c.stroke();
+      c.fillStyle=PCOL.waterDk; c.fillRect(px+ts*(0.2+rng(gx,gy,3)*0.5), py+ts*(0.55+rng(gx,gy,4)*0.3),2,1.5);
+      return true;
+    }
+    case 'T': {
+      plateauGrass(c,px,py,ts,gx,gy);
+      c.fillStyle='rgba(0,0,0,0.16)'; c.beginPath(); c.ellipse(px+ts*0.52,py+ts*0.8,ts*0.22,ts*0.09,0,0,Math.PI*2); c.fill();
+      c.fillStyle=PCOL.ptrunk; c.fillRect(px+ts*0.46,py+ts*0.56,ts*0.08,ts*0.28);
+      c.fillStyle=PCOL.pineDk;
+      for(let k=0;k<3;k++){ const yy=py+ts*(0.24+k*0.17), wsp=ts*(0.32-k*0.06);
+        c.beginPath(); c.moveTo(px+ts*0.5,yy-ts*0.08); c.lineTo(px+ts*0.5-wsp,yy+ts*0.13); c.lineTo(px+ts*0.5+wsp,yy+ts*0.13); c.closePath(); c.fill(); }
+      c.fillStyle=PCOL.pine; c.beginPath(); c.moveTo(px+ts*0.5,py+ts*0.18); c.lineTo(px+ts*0.37,py+ts*0.35); c.lineTo(px+ts*0.63,py+ts*0.35); c.closePath(); c.fill();
+      c.fillStyle=PCOL.pineTip; c.fillRect(px+ts*0.48,py+ts*0.2,2,3);
+      return true;
+    }
+    case 'H': {
+      c.fillStyle=PCOL.rockDk; c.fillRect(px,py,ts,ts);
+      c.fillStyle=PCOL.rock; c.fillRect(px,py,ts,ts*0.7);
+      c.fillStyle=PCOL.rockLt; c.fillRect(px,py,ts,3);
+      for(let i=0;i<3;i++){ c.fillStyle=shade(PCOL.rockDk,-0.1);
+        c.fillRect(px+ts*(0.2+rng(gx,gy,i)*0.6), py+ts*0.15, 2, ts*0.5); }
+      c.fillStyle='rgba(0,0,0,0.30)'; c.fillRect(px,py+ts-4,ts,4);
+      return true;
+    }
+    case '^': plateauBoulder(c,px,py,ts,gx,gy); return true;
+  }
+  return false;
 }
 
 function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName === 'taverna' || (mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0))){ drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
   if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'floresta_ermo' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'planaltos_ermais' && drawPlateauTile(c, ch, px, py, ts, gx, gy)) return;
   if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'mina_avhur' && drawMineTile(c, ch, px, py, ts, gx, gy)) return;

@@ -64,7 +64,7 @@ SOLID_CHARS = {"~", "T", "#", "^", "H", "M", "m", "L", "W", "V",
                "A", "l", "q", "N", "I", "v", "y",
                "z", "G", "Y", "B", "F", "K",
                "4", "5", "6", "&", "X", "8", "7", "J",
-               "!", "$", "-"}
+               "!", "$", "-", "%"}
 
 # Onde os jogadores nascem (precisa ser tile passável).
 SPAWN_POINTS = [
@@ -1247,6 +1247,7 @@ def _embed_ermo():
     g[ERMO_H - 1][gx] = "+"; g[ERMO_H - 2][gx] = "+"      # SUL -> Descampado
     g[gy][ERMO_W - 1] = "+"; g[gy][ERMO_W - 2] = "+"      # LESTE -> Repouso
     g[ERMO_H - 3][gx] = "="; g[gy][ERMO_W - 3] = "="      # estrada coladinha
+    g[0][gx] = "+"; g[1][gx] = "+"; g[2][gx] = "="        # NORTE -> Planaltos Ermais (estrada ja sobe ate aqui)
     return ["".join(r) for r in g]
 
 
@@ -1262,6 +1263,130 @@ for _yy in range(5):
         _tav[_TVY + _yy][_TVX + _xx] = "{" if _yy <= 1 else "}"
 _tav[_TVY + 4][_TVX + 3] = "D"                  # porta -> (83, 49)
 MAP_ROWS = ["".join(r) for r in _tav]
+
+# ===========================================================================
+#  MAPAS DO NORTE (vazios, foco em arte): Planaltos Ermais + Floresta do Ermo
+# ===========================================================================
+def _build_planaltos_ermais():
+    """Planalto de altitude 120x120: degraus de penhasco, tarns, pedregulhos,
+    pinheiros esparsos e uma estrada de pedra serpenteando do sul ao norte.
+    Entrada sul (vinda do Ermo, col 60) e saida norte (pra Floresta, col 60)."""
+    W = H = 120
+    g = _grid(W, H, ".")
+    rng = _rnd.Random(7001)
+    _ring(g, "T")
+    for by, gap in [(28, 58), (58, 44), (88, 74)]:           # bandas de penhasco (degraus)
+        for x in range(2, W - 2):
+            if abs(x - gap) > 5:
+                g[by][x] = "H"
+                if rng.random() < 0.45 and g[by - 1][x] == ".":
+                    g[by - 1][x] = "^"
+                if rng.random() < 0.30 and g[by + 1][x] == ".":
+                    g[by + 1][x] = "^"
+    for _ in range(8):                                        # campos de pedregulho
+        cx, cy = rng.randint(12, W - 12), rng.randint(12, H - 12)
+        for _ in range(rng.randint(10, 22)):
+            bx, by = cx + rng.randint(-6, 6), cy + rng.randint(-6, 6)
+            if 1 <= bx < W - 1 and 1 <= by < H - 1 and g[by][bx] == ".":
+                g[by][bx] = rng.choice(["^", "^", "r"])
+    for cx, cy, rad in [(26, 48, 7), (86, 36, 8), (54, 98, 6), (95, 92, 5)]:   # tarns
+        for y in range(cy - rad, cy + rad + 1):
+            for x in range(cx - rad, cx + rad + 1):
+                if 1 <= x < W - 1 and 1 <= y < H - 1 and (x - cx) ** 2 + (y - cy) ** 2 < rad * rad and g[y][x] in (".", "r"):
+                    g[y][x] = "~"
+    for _ in range(420):                                      # textura esparsa
+        x, y = rng.randint(2, W - 3), rng.randint(2, H - 3)
+        if g[y][x] == ".":
+            g[y][x] = rng.choice(["T", "T", ":", ":", ",", ",", "^", "r", "."])
+    x = 60                                                    # estrada serpenteante (carve por ultimo)
+    for y in range(H - 1, -1, -1):
+        x += rng.choice([-1, 0, 0, 0, 1]); x = max(7, min(W - 8, x))
+        if y < 6 or y > H - 7:
+            x += (1 if x < 60 else (-1 if x > 60 else 0))
+        for dx in (0, 1):
+            xx = max(1, min(W - 2, x + dx))
+            if g[y][xx] != "~":
+                g[y][xx] = "="
+    for yy in (1, 2, 3, 4):                                   # corredor de entrada limpo (norte/sul)
+        g[yy][60] = "="; g[H - 1 - yy][60] = "="
+    g[H - 1][60] = "+"; g[H - 1][61] = "+"; g[H - 2][60] = "="; g[H - 2][61] = "="   # SUL -> Ermo
+    g[0][60] = "+"; g[0][61] = "+"; g[1][60] = "="; g[1][61] = "="                   # NORTE -> Floresta
+    return ["".join(r) for r in g]
+
+
+def _build_floresta_ermo():
+    """Floresta densa 150x150 ao estilo Ilex (Pokemon Gold): mata fechada com
+    corredores estreitos serpenteando, uma clareira central com um SANTUARIO de
+    pedra ('%'), um lago e piso variado. Entrada sul (col 75)."""
+    W = H = 150
+    g = _grid(W, H, "T")
+    rng = _rnd.Random(7777)
+
+    def carve(x, y, r=1):
+        for dy in range(-r, r + 1):
+            for dx in range(-r, r + 1):
+                xx, yy = x + dx, y + dy
+                if 1 <= xx < W - 1 and 1 <= yy < H - 1:
+                    g[yy][xx] = "."
+
+    cx, cy = 75, 75
+    x, y = 75, H - 2                                          # tronco do caminho (sul -> centro)
+    while y > cy:
+        carve(x, y, 1); y -= 1
+        x += rng.choice([-1, 0, 0, 1]); x = max(6, min(W - 7, x))
+    for _ in range(10):                                       # ramos saindo do tronco
+        by = rng.randint(cy + 2, H - 8); dirx = rng.choice([-1, 1]); px, py = 75, by
+        for _ in range(rng.randint(15, 40)):
+            px += dirx; py += rng.choice([-1, 0, 0, 1])
+            if not (2 <= px < W - 2 and 2 <= py < H - 2):
+                break
+            carve(px, py, 1)
+    for yy in range(cy - 9, cy + 10):                         # clareira central
+        for xx in range(cx - 9, cx + 10):
+            if (xx - cx) ** 2 + (yy - cy) ** 2 < 80 and 1 <= xx < W - 1 and 1 <= yy < H - 1:
+                g[yy][xx] = "."
+    nx = cx                                                   # TRONCO NORTE: clareira -> topo (deixa o norte alcancavel)
+    north_trunk = []
+    yy2 = cy - 8
+    while yy2 > 5:
+        carve(nx, yy2, 1); north_trunk.append((nx, yy2))
+        yy2 -= 1; nx += rng.choice([-1, 0, 0, 1]); nx = max(6, min(W - 7, nx))
+    for _ in range(12):                                       # ramos do tronco norte (saem de pontos REAIS = conectados)
+        bx, by = rng.choice(north_trunk)
+        dirx = rng.choice([-1, 1]); px, py = bx, by
+        for _ in range(rng.randint(12, 30)):
+            px += dirx; py += rng.choice([-1, 0, 0, 1])
+            if not (2 <= px < W - 2 and 2 <= py < H - 2):
+                break
+            carve(px, py, 1)
+    g[cy][cx] = "%"                                           # SANTUARIO
+    g[cy - 1][cx] = "d"; g[cy + 1][cx] = "d"; g[cy][cx - 1] = "d"; g[cy][cx + 1] = "d"   # piso de pedra
+    for yy in range(48, 60):                                  # lago na mata
+        for xx in range(36, 50):
+            if (xx - 43) ** 2 + ((yy - 54) * 1.2) ** 2 < 42 and 1 <= xx < W - 1 and 1 <= yy < H - 1:
+                g[yy][xx] = "~"
+    for yy in range(1, H - 1):                                # textura: terra, piso claro, pinheiros
+        for xx in range(1, W - 1):
+            if g[yy][xx] == ".":
+                r = rng.random()
+                if r < 0.10:
+                    g[yy][xx] = ","
+                elif r < 0.16:
+                    g[yy][xx] = "d"
+            elif g[yy][xx] == "T" and rng.random() < 0.10:
+                g[yy][xx] = rng.choice(["^", "Y"])
+    for yy in (2, 3, 4):                                      # corredor de entrada limpo (sul)
+        g[H - 1 - yy][75] = "."
+    g[H - 2][75] = "."; g[H - 2][76] = "."
+    g[H - 1][75] = "+"; g[H - 1][76] = "+"                    # SUL -> Planaltos
+    return ["".join(r) for r in g]
+
+
+PLANALTOS_ROWS = _build_planaltos_ermais()
+FLORESTA_ROWS = _build_floresta_ermo()
+PLANALTOS_SPAWN = [(60, 117), (59, 117), (61, 117), (60, 116)]   # logo dentro da entrada sul
+FLORESTA_SPAWN = [(75, 147), (74, 147), (76, 147), (75, 146)]    # logo dentro da entrada sul
+
 
 MAPS = {
     "ermo":             {"rows": MAP_ROWS,             "spawns": SPAWN_POINTS},
@@ -1284,6 +1409,8 @@ MAPS = {
     "torre_andar2":     {"rows": TORRE_ANDAR2_ROWS,     "spawns": TORRE_SPAWN},
     "torre_andar3":     {"rows": TORRE_ANDAR3_ROWS,     "spawns": TORRE_SPAWN},
     "camara_varth":     {"rows": CAMARA_VARTH_ROWS,     "spawns": CAMARA_VARTH_SPAWN},
+    "planaltos_ermais": {"rows": PLANALTOS_ROWS,        "spawns": PLANALTOS_SPAWN},
+    "floresta_ermo":    {"rows": FLORESTA_ROWS,         "spawns": FLORESTA_SPAWN},
 }
 
 
@@ -1318,7 +1445,11 @@ for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba:
 # Voce anda ate a faixa de '+' numa borda e cai no mapa vizinho, virado pra dentro.
 EDGE_LINKS = {
     "ermo":             {"south": ("descampado",      50, 4,  "down"),
+                         "north": ("planaltos_ermais", 60, 117, "up"),
                          "east":  ("repouso_dama",     3, 50, "right")},
+    "planaltos_ermais": {"south": ("ermo",            49,  3, "down"),
+                         "north": ("floresta_ermo",   75, 147, "up")},
+    "floresta_ermo":    {"south": ("planaltos_ermais", 60,  2, "down")},
     "descampado":       {"north": ("ermo",       OX + 19, ERMO_H - 3, "up"),
                          "south": ("avasham",          49,  4, "down")},
     "repouso_dama":     {"west":  ("ermo",       ERMO_W - 3, OY + 15, "left"),
