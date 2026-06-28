@@ -120,9 +120,9 @@ TRANSFORMS = {
          "desc": "Forma Selvagem da Águia: ágil e certeira. +3 deslocamento, +3 para acertar e +1 de dano.",
          "bonus": {"speed": 3, "atk": 3, "dmg_flat": 1}},
         {"id": "mainecoon", "name": "Maine Coon", "icon": "🐈",
-         "desc": "A forma abençoada por Pofnir: o grande gato Maine Coon, majestoso e equilibrado. +2 dados e +8 de dano, +5 para acertar, mitigação altíssima, +25 de vida, +4 deslocamento e regenera 6 de vida por turno (o maior sobrevivente do jogo).",
+         "desc": "A forma abençoada por Pofnir: o grande gato Maine Coon, majestoso e equilibrado. +2 dados e +8 de dano, +5 para acertar, boa mitigação, 20% de resistência mágica, +25 de vida, +4 deslocamento e regenera 4 de vida por turno.",
          "requires": "blessing_pofnir",
-         "bonus": {"armor": 24, "atk": 5, "dmg_dice": 2, "dmg_flat": 8, "speed": 4, "hp": 25}, "regen": 6},
+         "bonus": {"armor": 18, "mres": 0.20, "atk": 5, "dmg_dice": 2, "dmg_flat": 8, "speed": 4, "hp": 25}, "regen": 4},
     ],
     "ladino": [
         {"id": "lebre", "name": "Lebre de Nharé", "icon": "🐇",

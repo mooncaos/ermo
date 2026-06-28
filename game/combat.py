@@ -109,8 +109,9 @@ def make_player_combatant(sid, player, ficha):
         st["speed"] += fb.get("speed", 0)
         st["atk"] += fb.get("atk", 0)
         st["block"] = st.get("block", 0) + fb.get("block", 0)     # resistência da forma (Coruja: +10)
-        st["armor"] = max(0, st.get("armor", 0) + fb.get("armor", 0))   # mitigação da forma (Urso +28, Maine Coon +10, Lobo -14)
+        st["armor"] = max(0, st.get("armor", 0) + fb.get("armor", 0))   # mitigação da forma (Urso +28, Maine Coon +18, Lobo -14)
         st["dodge"] = min(0.6, max(0.0, st.get("dodge", 0) + fb.get("dodge", 0)))
+        st["mres"]  = min(0.9, max(0.0, st.get("mres", 0) + fb.get("mres", 0)))   # resistência mágica da forma (Maine Coon)
         if fb.get("dmg_dice"):                                  # forma que soma DADOS de dano (Lobo/Maine Coon)
             st["dmg"] = dict(st["dmg"]); st["dmg"]["n"] = st["dmg"].get("n", 1) + fb["dmg_dice"]
         if fb.get("dmg_flat"):
@@ -184,6 +185,7 @@ def apply_form(comb, bonus, regen):
     comb["block"] = comb.get("block", 0) - old.get("block", 0) + bonus.get("block", 0)   # resistência (reduz dano fixo)
     comb["armor"] = max(0, comb.get("armor", 0) - old.get("armor", 0) + bonus.get("armor", 0))   # mitigação da forma (Urso/Maine Coon/Lobo)
     comb["dodge"] = min(0.6, max(0.0, comb.get("dodge", 0) - old.get("dodge", 0) + bonus.get("dodge", 0)))
+    comb["mres"] = min(0.9, max(0.0, comb.get("mres", 0) - old.get("mres", 0) + bonus.get("mres", 0)))
     flat = comb.get("dmg", {}).get("flat", 0) - old.get("dmg_flat", 0) + bonus.get("dmg_flat", 0)
     comb["dmg"] = dict(comb.get("dmg") or {}); comb["dmg"]["flat"] = flat
     hpd = bonus.get("hp", 0) - old.get("hp", 0)        # +vida máxima da forma (ajusta a vida atual junto)

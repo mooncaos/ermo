@@ -260,6 +260,7 @@ def describe(item_id):
         if it.get("dodge"): bits.append("%d%% de esquiva" % round(it["dodge"] * 100))
         if it.get("ward"): bits.append("barreira absorve %d" % it["ward"])
         if it.get("mres"): bits.append("%d%% de resistência mágica" % round(it["mres"] * 100))
+        if it.get("spell_pow"): bits.append("+%d de poder mágico" % it["spell_pow"])
         if it.get("block"): bits.append("bloqueia %d de dano por golpe" % it["block"])
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
     elif k == "consumivel":
@@ -429,7 +430,7 @@ _CLASS_GEAR = {
 _ARQ = {
     "pesada": {"head": 1, "shoulder": 1, "back": 1, "chest": 3, "legs": 2, "feet": 1, "anome": "Placa"},
     "media":  {"head": 1, "shoulder": 1, "back": 0, "chest": 2, "legs": 1, "feet": 1, "anome": "Couro"},
-    "robe":   {"head": 0, "shoulder": 0, "back": 1, "chest": 1, "legs": 1, "feet": 0, "anome": "Manto"},
+    "robe":   {"head": 1, "shoulder": 1, "back": 1, "chest": 2, "legs": 1, "feet": 1, "anome": "Manto"},
 }
 _SLOT_VIS = {
     "head":     ("helmet",   "Elmo"),
@@ -453,12 +454,14 @@ _SHIELD_AC = {"pesada": 3, "media": 2}   # escudo: arquetipos marciais (robe nao
 # paladino full goblin toma ~4/turno do Varth como antes); distribuídos por peça.
 _DEF = {   # tier -> {pa:armadura pesada, ma:armadura media, md:esquiva media,
            #          ra:armadura robe, rw:ward robe, rm:resist. mágica robe}
-    "set":   {"pa": 2,  "ma": 1,  "md": 0.05, "ra": 1,  "rw": 2,  "rm": 0.05},
-    "t1":    {"pa": 5,  "ma": 3,  "md": 0.12, "ra": 2,  "rw": 6,  "rm": 0.15},
-    "t2":    {"pa": 12, "ma": 6,  "md": 0.20, "ra": 5,  "rw": 12, "rm": 0.25},
-    "t3":    {"pa": 26, "ma": 13, "md": 0.28, "ra": 9,  "rw": 22, "rm": 0.38},
-    "necro": {"pa": 58, "ma": 26, "md": 0.38, "ra": 14, "rw": 34, "rm": 0.50},
+    "set":   {"pa": 2,  "ma": 1,  "md": 0.05, "ra": 2,  "rw": 4,  "rm": 0.05},
+    "t1":    {"pa": 5,  "ma": 3,  "md": 0.12, "ra": 4,  "rw": 9,  "rm": 0.15},
+    "t2":    {"pa": 12, "ma": 6,  "md": 0.20, "ra": 7,  "rw": 16, "rm": 0.25},
+    "t3":    {"pa": 26, "ma": 13, "md": 0.28, "ra": 13, "rw": 28, "rm": 0.38},
+    "necro": {"pa": 58, "ma": 26, "md": 0.38, "ra": 18, "rw": 42, "rm": 0.50},
 }
+# CHAPÉU do caster (robe): +poder mágico (somado no dano de TODA magia), crescente por tier.
+_HEAD_POW = {"set": 1, "t1": 2, "t2": 4, "t3": 8, "necro": 12}
 def _split_int(total, arch):
     """Distribui um total inteiro pelas 6 peças conforme o peso do arquétipo (peitoral pega o resto)."""
     w = _ARQ[arch]; slots = ("head", "shoulder", "back", "chest", "legs", "feet")
@@ -495,6 +498,8 @@ def _piece_defense(arch, slot, tierkey):
         if wd: out["ward"] = wd
         mr = D["rm"] * frac
         if mr > 0: out["mres"] = round(mr, 4)
+        if slot == "head":                     # o CHAPÉU do caster reforça a magia (+dano), crescente por tier
+            out["spell_pow"] = _HEAD_POW.get(tierkey, _HEAD_POW["set"])
     return out
 
 # Classes que FOCAM EM MAGIA: a arma vira modesta, mas o equipamento da +poder
