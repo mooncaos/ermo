@@ -6838,6 +6838,7 @@ function _shopStat(def){
   if(def.rng) b.push(def.rng >= 50 ? 'à distância' : ('alcance ' + def.rng));
   if(def.atk) b.push('+' + def.atk + ' atq');
   if(def.spell_pow) b.push('+' + def.spell_pow + ' poder mág.');
+  if(def.spell_hit) b.push('+' + def.spell_hit + ' acerto mág.');
   if(def.ac) b.push('+' + def.ac + ' CA');
   if(def.armor) b.push('mitiga ' + def.armor);
   if(def.dodge) b.push(Math.round(def.dodge*100) + '% esquiva');

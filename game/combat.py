@@ -119,6 +119,7 @@ def make_player_combatant(sid, player, ficha):
     luck = 3 if "sortudo" in feats else 0       # Sortudo: re-rolagens de ataque ruim
     save_bonus = 1 if "iniciado_magia" in feats else 0      # Iniciado em Magia: +1 resistencias
     spell_bonus = 1 if "conjurador_guerra" in feats else 0  # Conjurador de Guerra: +1 ataque/CD magico
+    spell_bonus += int(eq.get("spell_hit", 0))              # +acerto/CD mágico do equipamento (cajado/chapéu de caster)
     cid = ficha.get("class_id")
     final = ficha.get("attrs_final") or ficha.get("attrs") or {}
     lvl = int(ficha.get("level", 1))
@@ -673,7 +674,8 @@ def cast_spell(enc, caster, spell_id, target):
                         and max(abs(cc.get("x", 0) - target.get("x", 0)),
                                 abs(cc.get("y", 0) - target.get("y", 0))) <= rad):
                     targets.append(cc)
-        base = _roll_dmg(_scaled_dmg(sp, caster), False) + _spow(caster)   # rola UMA vez (explosao unica)
+        _pow = _spow(caster) // 2 if sp.get("aoe") else _spow(caster)   # AoE: poder mágico pela METADE por alvo (não estoura)
+        base = _roll_dmg(_scaled_dmg(sp, caster), False) + _pow   # rola UMA vez (explosao unica)
         hits = []
         for tg in targets:
             roll = _d20() + _save_mod(tg, sp["save"])

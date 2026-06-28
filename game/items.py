@@ -170,6 +170,7 @@ def equip_summary(equipment):
     'offhand' (duas armas), e quem a usa soma o dano dela no ataque."""
     eq = equipment or {}
     ac = atk = spell_pow = block = 0
+    spell_hit = 0          # +acerto/CD mágico do equipamento (rebalance ofensivo do caster)
     armor = ward = 0
     dodge = mres = 0.0
     speed = 0
@@ -196,6 +197,7 @@ def equip_summary(equipment):
         ac += int(it.get("ac", 0))
         atk += int(it.get("atk", 0))
         spell_pow += int(it.get("spell_pow", 0))
+        spell_hit += int(it.get("spell_hit", 0))             # +acerto/CD mágico (cajado/chapéu de caster)
         block += int(it.get("block", 0))
         armor += int(it.get("armor", 0))                     # mitigação (reduz dano por golpe)
         dodge += float(it.get("dodge", 0))                   # esquiva (anula o golpe)
@@ -211,7 +213,7 @@ def equip_summary(equipment):
             shield_ac += int(it.get("ac", 0))
         for _ak, _av in (it.get("attr") or {}).items():      # +atributo (set Necrótico)
             attrs[_ak] = attrs.get(_ak, 0) + int(_av)
-    return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow,
+    return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow, "spell_hit": spell_hit,
             "block": block, "rng": rng, "offhand": offhand, "attrs": attrs, "shield_ac": shield_ac,
             "armor": armor, "dodge": round(dodge, 4), "ward": ward, "mres": round(mres, 4),
             "speed": speed, "immune": immune, "smoke": smoke}
@@ -253,6 +255,7 @@ def describe(item_id):
             bits.append("à distância" if it["rng"] >= 50 else ("alcance %d" % it["rng"]))
         if it.get("atk"): bits.append("+%d para acertar" % it["atk"])
         if it.get("spell_pow"): bits.append("+%d de poder mágico" % it["spell_pow"])
+        if it.get("spell_hit"): bits.append("+%d de acerto mágico" % it["spell_hit"])
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
     elif k == "armor":
         head = "Escudo." if it.get("slot") == "hand" else "Peça de armadura."
@@ -283,7 +286,7 @@ def catalog():
             "equippable": "slot" in v, "slot": v.get("slot"),
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
             "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
-            "spell_pow": v.get("spell_pow", 0), "block": v.get("block", 0), "rng": v.get("rng"),
+            "spell_pow": v.get("spell_pow", 0), "spell_hit": v.get("spell_hit", 0), "block": v.get("block", 0), "rng": v.get("rng"),
             "armor": v.get("armor", 0), "dodge": v.get("dodge", 0),       # mitigação / esquiva (defesa Tibia)
             "ward": v.get("ward", 0), "mres": v.get("mres", 0),           # barreira arcana / resistência mágica
             "heal": v.get("heal"), "desc": describe(k), "protect": v.get("protect"),
@@ -462,6 +465,14 @@ _DEF = {   # tier -> {pa:armadura pesada, ma:armadura media, md:esquiva media,
 }
 # CHAPÉU do caster (robe): +poder mágico (somado no dano de TODA magia), crescente por tier.
 _HEAD_POW = {"set": 1, "t1": 2, "t2": 4, "t3": 8, "necro": 12}
+# REBALANCE OFENSIVO DO CASTER: a magia precisa ACERTAR como a espada e BATER forte
+# (glass cannon: compensa em dano o que o caster perde em sobrevivência).
+# +acerto/CD mágico do equipamento por tier (conserta a mira que não escalava com o gear):
+_CASTER_HIT = {"set": 3, "t1": 5, "t2": 9, "t3": 10, "necro": 11}
+# poder mágico TOTAL alvo por tier (arma + chapéu). A ARMA carrega o total menos o que o chapéu já dá.
+_CASTER_POW_TOTAL = {"set": 3, "t1": 13, "t2": 46, "t3": 84, "necro": 150}
+def _caster_weapon_pow(tierkey):
+    return max(0, _CASTER_POW_TOTAL.get(tierkey, 0) - _HEAD_POW.get(tierkey, 0))
 def _split_int(total, arch):
     """Distribui um total inteiro pelas 6 peças conforme o peso do arquétipo (peitoral pega o resto)."""
     w = _ARQ[arch]; slots = ("head", "shoulder", "back", "chest", "legs", "feet")
@@ -505,6 +516,9 @@ def _piece_defense(arch, slot, tierkey):
 # Classes que FOCAM EM MAGIA: a arma vira modesta, mas o equipamento da +poder
 # magico (somado no dano de TODA magia). As marciais batem forte na arma.
 CASTER_CLASSES = {"mago", "feiticeiro", "bruxo", "clerigo", "druida", "bardo"}
+# Casters de MANTO (robe): frágeis -> glass cannon (dano mágico ALTO). Os outros casters
+# (clérigo pesada, druida/bardo média) são tankudos -> poder mágico MODESTO (princípio: dano compensa fragilidade).
+ROBE_CASTERS = {"mago", "feiticeiro", "bruxo"}
 # Armas que atacam o ataque basico A DISTANCIA: classe -> alcance em tiles
 # (arco = livre/combate todo; cajado de conjurador = medio).
 RANGED_RANGE = {"patrulheiro": 99, "mago": 6, "feiticeiro": 6}
@@ -525,6 +539,11 @@ def _gen_class_sets():
         ITEMS[wid] = {"name": wn, "kind": "weapon", "stackable": False, "color": cor,
                       "slot": "hand", "visual": wvis, "rarity": "comum",
                       "dmg": {"n": dn, "d": dd}, "atk": watk, "value": SHOP_PRICE}
+        if cid in ROBE_CASTERS:                         # manto (frágil): poder mágico base + acerto
+            ITEMS[wid]["spell_pow"] = _caster_weapon_pow("set")
+            ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
+        elif cid in CASTER_CLASSES:                     # clérigo/druida/bardo (tankudos): só acerto mágico
+            ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
         if cid in RANGED_RANGE:
             ITEMS[wid]["rng"] = RANGED_RANGE[cid]
         ids.append(wid)
@@ -583,8 +602,14 @@ def _gen_tier_sets():
             W = {"name": "%s %s" % (wn, suf), "kind": "weapon", "stackable": False,
                  "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
                  "dmg": wdmg, "atk": watk + (catk if caster else matk), "value": price}
-            if (cid in POW_CLASSES) and cpow:
-                W["spell_pow"] = cpow          # o foco magico carrega o poder do set (caster + paladino)
+            if cid in ROBE_CASTERS:                     # manto (frágil): poder mágico ALTO + acerto (glass cannon)
+                W["spell_pow"] = _caster_weapon_pow(pfx)
+                W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
+            elif cid in CASTER_CLASSES:                 # clérigo/druida/bardo (tankudos): poder MODESTO + acerto
+                W["spell_pow"] = cpow
+                W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
+            elif (cid in POW_CLASSES) and cpow:          # paladino híbrido: poder mágico modesto (Castigo Divino)
+                W["spell_pow"] = cpow
             if cid in RANGED_RANGE:
                 W["rng"] = RANGED_RANGE[cid]
             ITEMS[wid] = W
@@ -643,7 +668,13 @@ def _gen_necrotico_set():
              "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
              "dmg": wdmg, "atk": watk + (w_catk if caster else w_matk), "value": price,
              "attr": {attr: attr_bonus}}
-        if (cid in POW_CLASSES) and w_cpow:
+        if cid in ROBE_CASTERS:                         # manto (frágil): poder mágico altíssimo + acerto (glass cannon)
+            W["spell_pow"] = _caster_weapon_pow("necro")
+            W["spell_hit"] = _CASTER_HIT["necro"]
+        elif cid in CASTER_CLASSES:                     # clérigo/druida/bardo (tankudos): poder MODESTO + acerto
+            W["spell_pow"] = w_cpow
+            W["spell_hit"] = _CASTER_HIT["necro"]
+        elif (cid in POW_CLASSES) and w_cpow:            # paladino híbrido: poder mágico modesto (Castigo Divino)
             W["spell_pow"] = w_cpow
         if cid in RANGED_RANGE:
             W["rng"] = RANGED_RANGE[cid]
