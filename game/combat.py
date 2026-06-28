@@ -127,7 +127,11 @@ def make_player_combatant(sid, player, ficha):
     cast_attr = spells.CASTING.get(cid)
     cast_mod = races.attr_mod(int(final.get(cast_attr, 10))) if cast_attr else 0
     cs = spells.loadout_for(ficha)
-    sneak = ((lvl + 1) // 2) if cid == "ladino" else 0
+    sneak = 0
+    if cid == "ladino":
+        sneak = (lvl * 4) // 3                          # Furtivo reforçado: ladino frágil = dano alto (glass cannon)
+    elif cid == "druida" and ficha.get("form") == "lobo":
+        sneak = (lvl * 5) // 2                           # Forma do Lobo: golpe furtivo pesado, dano de "ladino" (glass cannon)
     rage_dmg = 2 if lvl < 9 else (3 if lvl < 16 else 4)
     return {
         "cid": sid, "kind": "player", "name": player.get("name", "Você"),
@@ -189,6 +193,12 @@ def apply_form(comb, bonus, regen):
     comb["mres"] = min(0.9, max(0.0, comb.get("mres", 0) - old.get("mres", 0) + bonus.get("mres", 0)))
     flat = comb.get("dmg", {}).get("flat", 0) - old.get("dmg_flat", 0) + bonus.get("dmg_flat", 0)
     comb["dmg"] = dict(comb.get("dmg") or {}); comb["dmg"]["flat"] = flat
+    dice = comb["dmg"].get("n", 1) - old.get("dmg_dice", 0) + bonus.get("dmg_dice", 0)   # DADOS extras da forma (Lobo/Maine Coon) ao vivo
+    comb["dmg"]["n"] = max(1, dice)
+    if bonus.get("sneak_form"):                        # Forma do Lobo: golpe furtivo da forma ao vivo
+        comb["sneak"] = (int(comb.get("level", 1)) * 5) // 2
+    elif comb.get("class_id") != "ladino":
+        comb["sneak"] = 0
     hpd = bonus.get("hp", 0) - old.get("hp", 0)        # +vida máxima da forma (ajusta a vida atual junto)
     if hpd:
         comb["hp_max"] = max(1, comb.get("hp_max", 1) + hpd)
@@ -555,7 +565,7 @@ def attack(enc, attacker, target):
         if attacker.get("raging"):
             dmg += attacker.get("rage_dmg", 0)
         dmg += _mark_bonus(enc, attacker, target, crit)
-        if attacker.get("class_id") == "ladino" and attacker.get("sneak") and not enc.get("sneak_used"):
+        if attacker.get("sneak") and not enc.get("sneak_used"):   # Furtivo (Ladino) ou Golpe do Lobo (Druida)
             dmg += _roll_dmg({"n": attacker["sneak"], "d": 6}, crit)
             enc["sneak_used"] = True
             res["sneak"] = True
@@ -833,8 +843,9 @@ def use_ability(enc, actor, aid, target=None):
     elif aid == "golpe_morte_alada":
         if actor.get("form_id") != "coruja" or not target:
             res["fail"] = True; return res
-        # dano fixo equivalente a um paladino FOR 20 com a espada do Coveiro (9d8 + 20), nao escala
-        dmg = _roll_dmg({"n": 9, "d": 8, "flat": 20}, False)
+        # dano divino que ESCALA com o poder mágico do bruxo. Calibrado pra ficar ~no nível do
+        # caster (acerta sempre + rouba 30% de vida + Coruja tankia): o "absurdo" é o PACOTE, não dominância.
+        dmg = _roll_dmg({"n": 9, "d": 8}, False) + 12 + int(int(actor.get("spell_pow", 0)) * 0.8)
         dealt = _apply_damage(target, dmg)
         heal = int(dealt * 0.30)                      # rouba 30% do dano causado em vida
         before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + heal)

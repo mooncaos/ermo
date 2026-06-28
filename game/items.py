@@ -21,17 +21,17 @@ ITEMS = {
                      "slot": "hand", "visual": "staff", "rarity": "raro", "dmg": {"n": 1, "d": 6}, "atk": 1},
     "cajado_magico": {"name": "Cajado Mágico", "kind": "weapon", "stackable": False, "color": "#7ad6ff",
                       "slot": "hand", "visual": "staff_magic", "rarity": "lendario",
-                      "dmg": {"n": 1, "d": 10}, "atk": 3, "ac": 2, "value": 2000},
+                      "dmg": {"n": 1, "d": 10}, "atk": 3, "armor": 2, "value": 2000},
 
     # --- equipamento inicial (o kit simples da Robetina, assistente social) ---
     "touca_la":         {"name": "Touca de Lã",      "kind": "armor",   "stackable": False, "color": "#8a7d63", "slot": "head",     "visual": "helmet",   "rarity": "comum", "ac": 0, "value": 4},
-    "camiseta_surrada": {"name": "Camiseta Surrada", "kind": "armor",   "stackable": False, "color": "#b6532f", "slot": "chest",    "visual": "shirt",    "rarity": "comum", "ac": 1, "value": 6},
+    "camiseta_surrada": {"name": "Camiseta Surrada", "kind": "armor",   "stackable": False, "color": "#b6532f", "slot": "chest",    "visual": "shirt",    "rarity": "comum", "armor": 1, "value": 6},
     "ombreira_couro":   {"name": "Ombreira de Couro","kind": "armor",   "stackable": False, "color": "#6e573e", "slot": "shoulder", "visual": "pauldron", "rarity": "comum", "ac": 0, "value": 5},
     "capa_puida":       {"name": "Capa Puída",       "kind": "armor",   "stackable": False, "color": "#5a5a6a", "slot": "back",     "visual": "cloak",    "rarity": "comum", "ac": 0, "value": 5},
-    "calca_jeans":      {"name": "Calça Jeans",      "kind": "armor",   "stackable": False, "color": "#3a5a86", "slot": "legs",     "visual": "pants",    "rarity": "comum", "ac": 1, "value": 6},
+    "calca_jeans":      {"name": "Calça Jeans",      "kind": "armor",   "stackable": False, "color": "#3a5a86", "slot": "legs",     "visual": "pants",    "rarity": "comum", "armor": 1, "value": 6},
     "chinelo":          {"name": "Chinelo de Dedo",  "kind": "armor",   "stackable": False, "color": "#3a8a6a", "slot": "feet",     "visual": "sandal",   "rarity": "comum", "ac": 0, "value": 3},
     "faca_cozinha":     {"name": "Faca de Cozinha",  "kind": "weapon",  "stackable": False, "color": "#cbd2d9", "slot": "hand_r",   "visual": "knife",    "rarity": "comum", "dmg": {"n": 1, "d": 4}, "value": 6},
-    "tampa_panela":     {"name": "Tampa de Panela",  "kind": "armor",   "stackable": False, "color": "#9aa0aa", "slot": "hand_l",   "visual": "lid",      "rarity": "comum", "ac": 1, "value": 5},
+    "tampa_panela":     {"name": "Tampa de Panela",  "kind": "armor",   "stackable": False, "color": "#9aa0aa", "slot": "hand_l",   "visual": "lid",      "rarity": "comum", "block": 1, "value": 5},
     "anel_lata":        {"name": "Anel de Lata",     "kind": "trinket", "stackable": False, "color": "#b9b2a0", "slot": "ring",     "visual": "ring",     "rarity": "comum", "atk": 0, "value": 4},
     "anel_varth":       {"name": "Anel do Lorde Varth", "kind": "trinket", "stackable": False, "color": "#7a4ad0", "slot": "ring", "visual": "ring", "rarity": "lendario", "armor": 10, "atk": 4, "value": 2000, "desc": "O selo de Lorde Varth, pulsando com energia necromântica. Mitiga até 10 de dano por golpe e +4 para acertar, o melhor anel que existe."},
     "moeda_avhur":      {"name": "Moeda de Avhur", "kind": "trofeu", "stackable": True, "color": "#d8b24a", "value": 500, "sell_value": 500, "rarity": "raro", "desc": "Moeda antiga cunhada nas profundezas da Mina de Avhur. Os mercadores pagam 500 de bronze por ela. Dizem que ainda guarda outro proposito."},
@@ -473,6 +473,10 @@ _CASTER_HIT = {"set": 3, "t1": 5, "t2": 9, "t3": 10, "necro": 11}
 _CASTER_POW_TOTAL = {"set": 3, "t1": 13, "t2": 46, "t3": 84, "necro": 150}
 def _caster_weapon_pow(tierkey):
     return max(0, _CASTER_POW_TOTAL.get(tierkey, 0) - _HEAD_POW.get(tierkey, 0))
+# DRUIDA: caster de batalha (forma humana = mago). ~85% do poder de um manto puro (ele é
+# média/mais tankudo e tem as formas), tudo na arma (druida não usa chapéu de robe).
+def _druida_weapon_pow(tierkey):
+    return int(round(0.85 * _CASTER_POW_TOTAL.get(tierkey, 0)))
 def _split_int(total, arch):
     """Distribui um total inteiro pelas 6 peças conforme o peso do arquétipo (peitoral pega o resto)."""
     w = _ARQ[arch]; slots = ("head", "shoulder", "back", "chest", "legs", "feet")
@@ -542,7 +546,10 @@ def _gen_class_sets():
         if cid in ROBE_CASTERS:                         # manto (frágil): poder mágico base + acerto
             ITEMS[wid]["spell_pow"] = _caster_weapon_pow("set")
             ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
-        elif cid in CASTER_CLASSES:                     # clérigo/druida/bardo (tankudos): só acerto mágico
+        elif cid == "druida":                           # druida (caster de batalha): poder forte + acerto
+            ITEMS[wid]["spell_pow"] = _druida_weapon_pow("set")
+            ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
+        elif cid in CASTER_CLASSES:                     # clérigo/bardo (tankudos): só acerto mágico
             ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
         if cid in RANGED_RANGE:
             ITEMS[wid]["rng"] = RANGED_RANGE[cid]
@@ -605,7 +612,10 @@ def _gen_tier_sets():
             if cid in ROBE_CASTERS:                     # manto (frágil): poder mágico ALTO + acerto (glass cannon)
                 W["spell_pow"] = _caster_weapon_pow(pfx)
                 W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
-            elif cid in CASTER_CLASSES:                 # clérigo/druida/bardo (tankudos): poder MODESTO + acerto
+            elif cid == "druida":                       # druida (caster de batalha): forte + acerto
+                W["spell_pow"] = _druida_weapon_pow(pfx)
+                W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
+            elif cid in CASTER_CLASSES:                 # clérigo/bardo (tankudos): poder MODESTO + acerto
                 W["spell_pow"] = cpow
                 W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
             elif (cid in POW_CLASSES) and cpow:          # paladino híbrido: poder mágico modesto (Castigo Divino)
@@ -671,7 +681,10 @@ def _gen_necrotico_set():
         if cid in ROBE_CASTERS:                         # manto (frágil): poder mágico altíssimo + acerto (glass cannon)
             W["spell_pow"] = _caster_weapon_pow("necro")
             W["spell_hit"] = _CASTER_HIT["necro"]
-        elif cid in CASTER_CLASSES:                     # clérigo/druida/bardo (tankudos): poder MODESTO + acerto
+        elif cid == "druida":                           # druida (caster de batalha): forte + acerto
+            W["spell_pow"] = _druida_weapon_pow("necro")
+            W["spell_hit"] = _CASTER_HIT["necro"]
+        elif cid in CASTER_CLASSES:                     # clérigo/bardo (tankudos): poder MODESTO + acerto
             W["spell_pow"] = w_cpow
             W["spell_hit"] = _CASTER_HIT["necro"]
         elif (cid in POW_CLASSES) and w_cpow:            # paladino híbrido: poder mágico modesto (Castigo Divino)
