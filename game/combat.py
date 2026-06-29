@@ -151,6 +151,7 @@ def make_player_combatant(sid, player, ficha):
         "race_lucky": bool(rp["lucky"]),                            # Sortudo (Halfling): rerrola o 1 natural
         "relentless": bool(rp["relentless"]),                      # Resistência Implacável (Meio-Orc): cai em 1 PV, não morre
         "smoke": bool(eq.get("smoke")),   # Botas de Vargo: aura de fumaça
+        "dmg_mult": float(eq.get("dmg_mult", 1.0)),   # multiplicador de dano (anel O Chamado de Atalech)
         "gm_god": bool(player.get("gm_god")),   # GM god mode: não toma dano nenhum
         "_ac0": st["ac"], "_block0": st["block"], "_shield_ac": int(eq.get("shield_ac", 0)),     # CA/bloqueio base + CA do escudo (Mártir zera; Combatente larga o escudo)
         "offhand": (st.get("offhand") if cid in items.DUAL_WIELD_CLASSES else None),
@@ -346,7 +347,7 @@ def _posture_dmg(c, dmg):
     return dmg
 
 
-def _apply_damage(target, dmg, enc=None, magic=False):
+def _apply_damage(target, dmg, enc=None, magic=False, bypass=False):
     """Sistema de defesa em CAMADAS (estilo Tibia):
       1) ESQUIVA: chance de ANULAR o golpe físico (média/ágil; não vale contra magia/sopro);
       2) MITIGAÇÃO: golpe físico perde a ARMADURA (valor aleatório entre metade e o total dela)
@@ -363,6 +364,25 @@ def _apply_damage(target, dmg, enc=None, magic=False):
                        and c["cid"] != target["cid"]), None)
         if martyr:
             target = martyr
+    if has_status(target, "couraca_vargo") and dmg > 0 and not bypass:
+        dmg = dmg // 2                 # Manto de Vargo: o lorde brilha em roxo, só toma metade do dano
+    if bypass:                         # DANO VERDADEIRO (Praga de Atalech): fura TODA a defesa
+        dmg = max(0, int(dmg))
+        if has_status(target, "facalan_folego"):
+            dmg = min(dmg, max(0, target["hp"] - 1))
+        target["hp"] = max(0, target["hp"] - dmg)
+        if target["hp"] <= 0:
+            if has_status(target, "facalan"):
+                (target.get("status") or {}).pop("facalan", None)
+                bonus = int(target.get("_facalan_hp", 0))
+                target["hp_max"] = max(1, target["hp_max"] - bonus); target["_facalan_hp"] = 0
+                target["hp"] = target["hp_max"]; apply_status(target, "facalan_folego", 3)
+                target["_facalan_revived"] = True
+            elif target.get("relentless") and not target.get("_relentless_used"):
+                target["hp"] = 1; target["_relentless_used"] = True; target["_relentless_proc"] = True
+            else:
+                target["alive"] = False
+        return dmg
     if target.get("raging"):
         dmg = dmg // 2
     if target.get("posture") == "soldado":            # Soldado de Valíria: recebe 75% a menos
@@ -415,6 +435,12 @@ def _apply_damage(target, dmg, enc=None, magic=False):
     return dmg
 
 
+def _out(attacker, dmg):
+    """Multiplicador de dano de SAIDA do atacante (anel O Chamado de Atalech: +100%)."""
+    m = float(attacker.get("dmg_mult", 1.0))
+    return int(dmg * m) if m != 1.0 else dmg
+
+
 def _mark_bonus(enc, attacker, target, crit):
     mk = enc.get("mark")
     if mk and mk.get("by") == attacker["cid"] and mk.get("target") == target["cid"]:
@@ -459,7 +485,7 @@ def _spend_slot(res, min_level=1):
 #    DoT: poison/burning/bleeding (dano por turno; poison tambem desvantagem).
 # ===========================================================================
 INCAP_STATUS = ("stunned",)
-DOT_STATUS = ("poison", "burning", "bleeding", "maldicao", "veneno_varth")
+DOT_STATUS = ("poison", "burning", "bleeding", "maldicao", "veneno_varth", "praga_atalech")
 
 def apply_status(c, name, turns, dmg=None):
     """Aplica/renova um status no combatente (fica a maior duracao)."""
@@ -643,6 +669,8 @@ def attack(enc, attacker, target):
             dmg *= 2; radiant *= 2
             attacker["double_next"] = False
             res["doubled"] = True
+        if attacker.get("dmg_mult", 1.0) != 1.0:          # anel O Chamado de Atalech: +100% de dano
+            dmg = _out(attacker, dmg); radiant = _out(attacker, radiant)
         dealt = _apply_damage(target, dmg, enc)
         res["dmg"] = dealt
         if target.pop("_dodged", False):              # esquiva física: o cliente mostra "Esquivou!"
@@ -654,7 +682,7 @@ def attack(enc, attacker, target):
         # Forma de Facalan (Fagulha de Facalan): a pantera dourada GOLPEIA DUAS VEZES
         if has_status(attacker, "facalan") and target.get("alive"):
             d2 = _roll_dmg(attacker["dmg"], crit) + _roll_dmg({"n": 2, "d": attacker["dmg"].get("d", 6)}, crit)
-            res["strike2_dmg"] = _apply_damage(target, d2, enc)
+            res["strike2_dmg"] = _apply_damage(target, _out(attacker, d2), enc)
             res["strike2"] = True
         res["target_hp"] = target["hp"]
         if not target.get("alive"):
@@ -706,6 +734,7 @@ def cast_spell(enc, caster, spell_id, target):
                     "total": total, "hit": hit, "crit": crit, "dmg": 0})
         if hit:
             dmg = _roll_dmg(_scaled_dmg(sp, caster), crit) + _mark_bonus(enc, caster, target, crit) + _spow(caster)
+            dmg = _out(caster, dmg)
             res["dmg"] = _apply_damage(target, _posture_dmg(caster, dmg))
             res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
     elif k == "save":
@@ -720,6 +749,7 @@ def cast_spell(enc, caster, spell_id, target):
                     targets.append(cc)
         _pow = _spow(caster) // 2 if sp.get("aoe") else _spow(caster)   # AoE: poder mágico pela METADE por alvo (não estoura)
         base = _roll_dmg(_scaled_dmg(sp, caster), False) + _pow   # rola UMA vez (explosao unica)
+        base = _out(caster, base)
         hits = []
         for tg in targets:
             roll = _d20() + _save_mod(tg, sp["save"])
@@ -737,6 +767,7 @@ def cast_spell(enc, caster, spell_id, target):
     elif k == "auto":
         darts = int(sp.get("darts", 1))
         dmg = sum(_roll_dmg(sp["dmg"], False) for _ in range(darts)) + _spow(caster)
+        dmg = _out(caster, dmg)
         res.update({"target": target["cid"], "target_name": target["name"], "auto": True,
                     "darts": darts, "dmg": _apply_damage(target, _posture_dmg(caster, dmg))})
         res["target_hp"] = target["hp"]; res["killed"] = not target.get("alive")
@@ -759,6 +790,7 @@ def cast_spell(enc, caster, spell_id, target):
         dmg = 0
         if sp.get("dmg"):
             dmg = _roll_dmg(sp["dmg"], False) + _spow(caster)
+            dmg = _out(caster, dmg)
             if success:
                 dmg = dmg // 2 if sp.get("save_effect") == "half" else 0
         applied = None
@@ -901,6 +933,7 @@ def use_ability(enc, actor, aid, target=None):
         # dano divino que ESCALA com o poder mágico do bruxo. Calibrado pra ficar ~no nível do
         # caster (acerta sempre + rouba 30% de vida + Coruja tankia): o "absurdo" é o PACOTE, não dominância.
         dmg = _roll_dmg({"n": 9, "d": 8}, False) + 12 + int(int(actor.get("spell_pow", 0)) * 0.8)
+        dmg = _out(actor, dmg)
         dealt = _apply_damage(target, dmg)
         heal = int(dealt * 0.30)                      # rouba 30% do dano causado em vida
         before = actor["hp"]; actor["hp"] = min(actor["hp_max"], actor["hp"] + heal)
@@ -930,6 +963,7 @@ def use_ability(enc, actor, aid, target=None):
                           "flat": int(wd.get("flat", 0))}, False)
         bonus = int(actor.get("atk", 0)) + int(actor.get("spell_pow", 0)) + int(actor.get("level", 1)) * 2
         dmg = base + bonus
+        dmg = _out(actor, dmg)
         dealt = _apply_damage(target, dmg, enc)
         heal_amt = max(1, int(dealt * 0.5))
         healed = []
@@ -1028,6 +1062,31 @@ def monster_ability(enc, mon, tgt, ab):
            "vfx": ab.get("vfx"),
            "mon_ability": True, "dmg": 0, "killed": False, "atk_name": ab.get("name", ""),
            "target_hp": tgt["hp"], "target_hp_max": tgt["hp_max"]}
+    # PRAGA DE ATALECH: dano FIXO verdadeiro (fura toda a defesa) + veneno verdadeiro por N turnos.
+    if kind == "trueblast":
+        fixed = int(ab.get("fixed", 50)); splash = []
+        for pl in alive_of(enc, "player"):
+            if has_status(pl, "cancao"):                 # Canção do Cabaré: reflete tudo no inimigo
+                apply_status(mon, "praga_atalech", int(ab.get("turns", 10)), ab.get("dot"))
+                splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": 0, "blocked": True,
+                               "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": False})
+                continue
+            _apply_damage(pl, fixed, enc, bypass=True)   # dano verdadeiro: ignora armadura/esquiva/ward/mres
+            apply_status(pl, "praga_atalech", int(ab.get("turns", 10)), ab.get("dot"))   # veneno verdadeiro
+            splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": fixed,
+                           "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": not pl.get("alive")})
+        res.update({"aoe": True, "truedmg": True, "splash": splash, "applied": "praga_atalech",
+                    "dmg": (splash[0]["dmg"] if splash else 0),
+                    "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"],
+                    "target_hp": tgt["hp"], "killed": not tgt.get("alive")})
+        return res
+    # MANTO DE VARGO: o lorde se envolve numa aura ROXA e passa a tomar metade do dano.
+    if kind == "selfbuff":
+        apply_status(mon, ab.get("status", "couraca_vargo"), int(ab.get("turns", 3)))
+        res.update({"self": True, "selfbuff": ab.get("status", "couraca_vargo"),
+                    "buff_turns": int(ab.get("turns", 3)), "target": mon["cid"],
+                    "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"]})
+        return res
     # AoE explosivo: a magia estoura e acerta TODOS os jogadores vivos (teste pra metade do dano)
     if ab.get("aoe"):
         save = ab.get("save")
@@ -1128,6 +1187,25 @@ def _pick_monster_ability(enc, mon):
     return None
 
 
+def _pick_ready_aoe(enc, mon):
+    """PRIORIDADE de chefe caster: solta uma habilidade de AREA pronta antes das outras."""
+    abl = mon.get("abilities")
+    if not abl:
+        return None
+    cds = mon.setdefault("_ab_cd", {})
+    rnd = enc.get("round", 1)
+    for ab in abl:
+        if not ab.get("aoe"):
+            continue
+        aid = ab.get("id")
+        if rnd < cds.get(aid, 0):
+            continue
+        if random.random() <= ab.get("chance", 0.5):
+            cds[aid] = rnd + int(ab.get("cd", 3))
+            return ab
+    return None
+
+
 def monster_decide(enc, monster):
     """IA simples: mira o jogador vivo mais perto, anda ate ele (ate o speed) e
     ataca se chegar no alcance. Devolve (passos [(x,y)...], resultado_do_ataque|None)."""
@@ -1183,17 +1261,33 @@ def boss_turn(enc, boss):
         boss["_ab_cd"] = {}                  # enlouqueceu: zera os cooldowns e despeja habilidades
         out["enraged"] = True
         out["say_cat"] = "enrage"
-    # 2) chama o bonde (gasta o turno): tem invocacoes e a vida ja baixou (<=70%)
+    # 2) chama o bonde (gasta o turno): invoca VARIOS reforcos quando a vida baixa
     alive_mobs = len(alive_of(enc, "monster"))
     if (not out["enraged"] and boss.get("summons_left", 0) > 0
-            and alive_mobs < 6 and hpfrac <= 0.70):
-        boss["summons_left"] -= 1
+            and alive_mobs < 12 and hpfrac <= 0.85):
+        n = 5 if hpfrac <= 0.35 else (4 if hpfrac <= 0.6 else 3)
+        n = min(n, int(boss.get("summons_left", 0)))
+        boss["summons_left"] -= n
         out["summon"] = True
-        out["summon_count"] = 2 if hpfrac <= 0.35 else 1
+        out["summon_count"] = n
         out["say_cat"] = "summon"
         return out
-    # 3) turno normal: anda ate o alvo e ataca
-    budget = boss.get("speed", 6)
+    # 3) escolhe a habilidade. PRIORIZA area (Cataclisma/Nova) parte do tempo e solta
+    #    A DISTANCIA; o resto mistura magia single-target e o golpe FISICO buffado.
+    ab = (_pick_ready_aoe(enc, boss) if random.random() < 0.55 else None) or _pick_monster_ability(enc, boss)
+    ranged = ab and (ab.get("ranged") or ab.get("aoe")
+                     or ab.get("type") in ("inflict", "fear", "gaze", "drain", "heal"))
+    if ranged:
+        budget = max(0, boss.get("speed", 6) - 2)          # ainda flutua um pouco, mas conjura sem precisar colar
+        while budget > 0 and not in_reach(boss, tgt):
+            nx, ny = _step_toward(enc, boss, tgt)
+            if nx is None:
+                break
+            boss["x"], boss["y"] = nx, ny; out["steps"].append((nx, ny)); budget -= 1
+        out["atk"] = monster_ability(enc, boss, tgt, ab)
+        out["say_cat"] = out["say_cat"] or "cast"
+        return out
+    budget = boss.get("speed", 6)                          # golpe fisico: precisa chegar perto
     while budget > 0 and not in_reach(boss, tgt):
         nx, ny = _step_toward(enc, boss, tgt)
         if nx is None:
@@ -1202,7 +1296,6 @@ def boss_turn(enc, boss):
         out["steps"].append((nx, ny))
         budget -= 1
     if in_reach(boss, tgt):
-        ab = _pick_monster_ability(enc, boss)              # chefe tambem usa habilidade
         out["atk"] = monster_ability(enc, boss, tgt, ab) if ab else attack(enc, boss, tgt)
     if not out["say_cat"]:
         out["say_cat"] = "taunt"

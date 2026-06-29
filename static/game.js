@@ -123,6 +123,8 @@ let socket = null, myId = null;
 let wasKicked = false;   // conta aberta em outro lugar: nao reconectar
 let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null, mapName = 'ermo', throneBounds = null;
 let camX = 0, camY = 0;
+let shakeUntil = 0, shakeMag = 0, shakeDur = 1;   // tremor de tela (Cataclisma)
+function screenShake(mag, durMs){ shakeMag = mag; shakeDur = Math.max(1, durMs); shakeUntil = performance.now() + durMs; }
 const players = new Map();
 let started = false;
 
@@ -2676,6 +2678,19 @@ function drawLordeVarth(c, sx, sy, ts, p){       // Lorde Varth: senhor necroman
   const cx=sx+ts/2, t=performance.now(), bob=Math.sin(t/800+cx)*1.4, cy=sy+ts*0.5+bob;
   const ROBE='#1f1430', ROBE2='#2e1f48', TRIM='#7a40c0', BONE='#e8e0d0', GLOW='#b070ff', SOUL='#c8b0ff';
   c.save();
+  // MANTO DE VARGO: aura ROXA pulsante (igual o brilho do Pofnir) enquanto toma metade do dano
+  const _manto = (p._status && p._status.couraca_vargo) || (p._purpleAura && t < p._purpleAura);
+  if(_manto){
+    c.save(); c.globalCompositeOperation='lighter';
+    const rg=c.createRadialGradient(cx,cy,0,cx,cy,ts*0.98);
+    rg.addColorStop(0,'rgba(176,112,255,0.50)'); rg.addColorStop(0.5,'rgba(155,47,224,0.32)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+    c.globalAlpha=0.55+0.25*Math.sin(t/240); c.fillStyle=rg;
+    c.beginPath(); c.arc(cx,cy,ts*0.98,0,Math.PI*2); c.fill();
+    c.globalAlpha=0.8; c.strokeStyle='#c8b0ff'; c.lineWidth=Math.max(1.5,ts*0.022);
+    for(let i=0;i<8;i++){ const a=t/500+i*Math.PI/4; c.beginPath();
+      c.arc(cx+Math.cos(a)*ts*0.52, cy+Math.sin(a)*ts*0.52, ts*0.035, 0, Math.PI*2); c.stroke(); }
+    c.restore();
+  }
   c.fillStyle='rgba(0,0,0,.38)'; c.beginPath(); c.ellipse(cx,sy+ts*0.9,ts*0.34,ts*0.12,0,0,Math.PI*2); c.fill();
   // caveiras de alma orbitando
   c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.5; c.fillStyle=SOUL;
@@ -3138,6 +3153,19 @@ function drawLordeVarthBoss(c, sx, sy, ts, p){
     c.fillStyle=i%2?SOUL:GLOW; const ex=cx+Math.sin(t/300+i)*S*0.5;
     c.beginPath(); c.arc(ex, cy+S*0.7-ph*S*1.3, 2.2*(1-ph*0.5), 0, Math.PI*2); c.fill(); }
   c.restore();
+  // MANTO DE VARGO: aura ROXA intensa (igual o brilho do Pofnir) enquanto Varth toma metade do dano
+  const _manto = (p._status && p._status.couraca_vargo) || (p._purpleAura && t < p._purpleAura);
+  if(_manto){
+    c.save(); c.globalCompositeOperation='lighter';
+    const mg=c.createRadialGradient(cx, cy, 0, cx, cy, S*1.25);
+    mg.addColorStop(0,'rgba(190,130,255,0.55)'); mg.addColorStop(0.5,'rgba(155,47,224,0.34)'); mg.addColorStop(1,'rgba(0,0,0,0)');
+    c.globalAlpha=0.6+0.25*Math.sin(t/230); c.fillStyle=mg;
+    c.beginPath(); c.arc(cx, cy, S*1.25, 0, Math.PI*2); c.fill();
+    c.globalAlpha=0.85; c.strokeStyle='#d8c0ff'; c.lineWidth=Math.max(2,S*0.05);
+    for(let i=0;i<10;i++){ const a=t/520+i*Math.PI/5; c.beginPath();
+      c.arc(cx+Math.cos(a)*S*0.95, cy+Math.sin(a)*S*0.95, S*0.05, 0, Math.PI*2); c.stroke(); }
+    c.restore();
+  }
 
   c.save(); c.translate(cx, cy+bob);
   // caveiras de alma orbitando (só as de trás)
@@ -5151,6 +5179,14 @@ function spawnDarkBlast(atId, radius, color, delay){   // EXPLOSÃO sombria (mag
   vfx.push({kind:'shadowblast', x1:e.x, y1:e.y, color:color||'#a050ff', radius:Math.max(1,radius||2),
             t0:performance.now()+(delay||0), life:840});
 }
+function spawnAtalechPlague(atId){   // PRAGA DE ATALECH: miasma roxo-esverdeado do bosque profano (camadas)
+  const e=players.get(atId); if(!e) return;
+  const now=performance.now();
+  vfx.push({kind:'shadowblast', x1:e.x, y1:e.y, color:'#7a1fb0', radius:3, t0:now,     life:960});
+  vfx.push({kind:'blast',       x1:e.x, y1:e.y, color:'#4ad06a', radius:3, t0:now+150,  life:880});
+  vfx.push({kind:'shadowblast', x1:e.x, y1:e.y, color:'#c01890', radius:2, t0:now+320,  life:820});
+  vfx.push({kind:'blast',       x1:e.x, y1:e.y, color:'#9be36a', radius:2, t0:now+460,  life:700});
+}
 function spawnSoulDrain(fromId, toId, color){      // dreno de ALMA: wisps do alvo -> monstro
   const a=players.get(fromId), b=players.get(toId); if(!a||!b) return;
   vfx.push({kind:'souldrain', x0:a.x, y0:a.y, x1:b.x, y1:b.y, color:color||'#b070ff', t0:performance.now(), life:640});
@@ -5164,6 +5200,7 @@ function spawnDarkBolt(fromId, toId, color){       // RAIO necrótico (monstro -
 function spawnCataclysm(atId){                      // CATACLISMA DE VARGO: nova necrótica suprema 10x10 (o efeito mais elaborado do jogo)
   const e=players.get(atId); if(!e) return;
   const t=performance.now();
+  screenShake(9, 1000);                             // o chao treme quando o vazio erupciona
   vfx.push({kind:'cataclysm', x1:e.x, y1:e.y, color:'#b060ff', t0:t, life:1700});
   for(let i=0;i<14;i++){                            // chuva de caveiras ao redor
     const ang=Math.random()*Math.PI*2, dist=Math.random()*4.6;
@@ -5573,6 +5610,11 @@ function frame(now){
     const tcy = me.ry + TS/2 - canvas.height/2;
     camX = Math.round(Math.max(0, Math.min(tcx, mapW*TS - canvas.width)));
     camY = Math.round(Math.max(0, Math.min(tcy, mapH*TS - canvas.height)));
+  }
+  if(now < shakeUntil){                              // tremor: decai ao longo da duracao
+    const s = shakeMag * ((shakeUntil - now) / shakeDur);
+    camX += (Math.random() - 0.5) * s * 2;
+    camY += (Math.random() - 0.5) * s * 2;
   }
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -6810,7 +6852,7 @@ const DOLL_LAYOUT = {
 // visual fantasma de cada espaco vazio
 const SLOT_GHOST = { head:'helmet', neck:'amulet', shoulder:'pauldron', back:'cloak', chest:'shirt',
   hand_r:'sword', hand_l:'shield', ring1:'ring', ring2:'ring', legs:'pants', feet:'sandal' };
-const RARITY_COL = { comum:'#7c8290', incomum:'#5ec27a', raro:'#5a9bf4', epico:'#b06bff', lendario:'#f4b860', divino:'#f7d6ff' };
+const RARITY_COL = { comum:'#7c8290', incomum:'#5ec27a', raro:'#5a9bf4', epico:'#b06bff', lendario:'#f4b860', divino:'#f7d6ff', maldito:'#b81d1d' };
 const DIVINO_GRAD = 'linear-gradient(90deg,#ff6e6e,#f6c453,#5ec27a,#5a9bf4,#b06bff,#ff6e6e)';
 // borda multicolorida do tier DIVINO (anéis de cor via box-shadow, respeitam o canto arredondado)
 function applyRarityBorder(el, rarity){
@@ -6818,6 +6860,9 @@ function applyRarityBorder(el, rarity){
   if(rarity === 'divino'){
     el.style.borderColor = 'transparent';
     el.style.boxShadow = '0 0 0 1px #ff6e6e, 0 0 0 2px #f6c453, 0 0 0 3px #5ec27a, 0 0 0 4px #5a9bf4, 0 0 9px 1px #b06bff';
+  } else if(rarity === 'maldito'){
+    el.style.borderColor = '#b81d1d';
+    el.style.boxShadow = '0 0 8px 1px #7a1414, inset 0 0 6px #5a0d0d';   // brilho rubro amaldiçoado
   } else {
     el.style.borderColor = rc;
   }
@@ -7081,32 +7126,33 @@ function drawEquipVisual(c, cx, cy, s, visual, col){
       c.strokeStyle = 'hsl('+((hue+200)%360)+',70%,78%)'; c.lineWidth = 1;        // fiapos de la
       for(let i=0;i<3;i++){ const a=t/600+i*2.1; c.beginPath(); c.moveTo(cx+Math.cos(a)*orad, oy+Math.sin(a)*orad); c.lineTo(cx+Math.cos(a)*orad*1.5, oy+Math.sin(a)*orad*1.5); c.stroke(); }
       return true; }
-    case 'divine_boot': {                         // Botas de Vargo: bota divina multicolorida + fumaça preta + faíscas
-      const t = performance.now(), hue = (t/18) % 360;
+    case 'divine_boot': {                         // Botas de Vargo: bota amaldiçoada vermelho-sangue + fumaça preta + brasas
+      const t = performance.now();
       // fumaça preta subindo
-      c.save(); c.globalAlpha = 0.34; c.fillStyle = '#0a0a12';
+      c.save(); c.globalAlpha = 0.36; c.fillStyle = '#0a0a12';
       for(let i=0;i<3;i++){ const ph=((t/14+i*40)%50)/50, px=cx+Math.sin(t/500+i*2.1)*s*0.14, py=cy-s*0.08-ph*s*0.4;
         c.beginPath(); c.arc(px, py, s*0.09*(1-ph), 0, 7); c.fill(); }
       c.restore();
-      // raios divinos multicoloridos
+      // raios necróticos rubros
       c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.5;
-      for(let i=0;i<8;i++){ const a=i*Math.PI/4+t/900; c.strokeStyle='hsl('+((hue+i*45)%360)+',90%,70%)'; c.lineWidth=1.4;
+      for(let i=0;i<8;i++){ const a=i*Math.PI/4+t/900; c.strokeStyle = i%2? '#b81d1d':'#7a1414'; c.lineWidth=1.4;
         c.beginPath(); c.moveTo(cx+Math.cos(a)*s*0.18, cy+s*0.06+Math.sin(a)*s*0.1); c.lineTo(cx+Math.cos(a)*s*0.34, cy+s*0.06+Math.sin(a)*s*0.18); c.stroke(); }
       c.restore();
-      // silhueta da bota com gradiente arco-íris
-      const bg = c.createLinearGradient(cx-s*0.25, cy, cx+s*0.25, cy+s*0.2);
-      bg.addColorStop(0,'hsl('+hue+',90%,72%)'); bg.addColorStop(0.5,'hsl('+((hue+120)%360)+',85%,60%)'); bg.addColorStop(1,'hsl('+((hue+240)%360)+',80%,52%)');
+      // silhueta da bota com gradiente vermelho-escuro
+      const bg = c.createLinearGradient(cx-s*0.25, cy-s*0.22, cx+s*0.25, cy+s*0.2);
+      bg.addColorStop(0,'#d23030'); bg.addColorStop(0.5,'#7a1414'); bg.addColorStop(1,'#3a0808');
       c.fillStyle=bg; c.beginPath();
       c.moveTo(cx-s*0.12, cy-s*0.22); c.lineTo(cx+s*0.06, cy-s*0.22);
       c.lineTo(cx+s*0.08, cy+s*0.06); c.lineTo(cx+s*0.26, cy+s*0.08);
       c.lineTo(cx+s*0.26, cy+s*0.2); c.lineTo(cx-s*0.14, cy+s*0.2);
       c.closePath(); c.fill();
-      c.strokeStyle='hsl('+((hue+60)%360)+',95%,85%)'; c.lineWidth=1.4; c.stroke();
-      c.save(); c.globalAlpha=0.6; c.fillStyle='hsl('+((hue+60)%360)+',95%,88%)';
+      c.strokeStyle='#e85a5a'; c.lineWidth=1.4; c.stroke();
+      // brilho pulsante de brasa
+      c.save(); c.globalAlpha=0.55+0.25*Math.sin(t/300); c.fillStyle='#ff5a4a';
       c.beginPath(); c.ellipse(cx-s*0.02, cy-s*0.08, s*0.05, s*0.1, 0, 0, 7); c.fill(); c.restore();
-      // faíscas coloridas flutuando
+      // faíscas rubras flutuando
       c.save(); c.globalCompositeOperation='lighter';
-      for(let i=0;i<4;i++){ const a=t/400+i*1.6; c.fillStyle='hsl('+((hue+i*90)%360)+',95%,80%)';
+      for(let i=0;i<4;i++){ const a=t/400+i*1.6; c.fillStyle = i%2? '#ff6a4a':'#c01818';
         c.beginPath(); c.arc(cx+Math.cos(a)*s*0.28, cy+s*0.02+Math.sin(a)*s*0.2, 1.6, 0, 7); c.fill(); }
       c.restore();
       return true; }
@@ -7726,6 +7772,7 @@ function fmtXP(n){
 // Marcas/titulos (vindas de flags da ficha). Mais virao ao longo do dev.
 const MARCAS = [
   {flag:'blessing_pofnir', icon:'🛡️', name:'Amigo do Pof', desc:'O Pofnir te abençoou em Valoran. Você carrega um pedaço da luz dele (+5 de vida máxima).'},
+  {flag:'slayer_varth',    icon:'☠️', name:'Flagelo de Varth', desc:'Você derrotou Lorde Varth no topo da Torre e sobreviveu à Praga de Atalech. O bosque sussurra o seu nome.'},
   {flag:'banned_valoran',  icon:'💀', name:'Deixou o Pofnir Ansioso', desc:'Você insistiu no trono do Criador. Foi obliterado e está banido de Valoran.'},
   {flag:'dom_nhare',   icon:'🐇', name:'Nharé sabe se esconder', desc:'Nharé, a Lebre de Mil Saídas, te ensinou a Milésima Saída e a virar uma lebre invisível. Quando não houver mais saída, sempre existe mais uma.'},
   {flag:'bola_pofnir', icon:'🧶', name:'Pofnir deixou você brincar', desc:'Você ofereceu uma Fagulha ao gato branco e ele te deu a Bola de Lã dele. Poucos no Ermo já ouviram o Pofnir ronronar.'},
@@ -8389,16 +8436,16 @@ function popDamage(cid, text, color){
   dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
-  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', veneno_varth:'☠️', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', veneno_varth:'☠️', praga_atalech:'☣️', couraca_vargo:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
-  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', veneno_varth:'Veneno de Varth', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', veneno_varth:'Veneno de Varth', praga_atalech:'Praga de Atalech', couraca_vargo:'Manto de Vargo', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
 const TOWER_MOBS = new Set(['tumular_torre','carniceiro_torre','cavaleiro_torre','algoz_torre','necromante_torre','profanador_torre','lorde_varth']);
 function _isDark(res){ return !!res.vfx || TOWER_MOBS.has((players.get(res.attacker)||{}).mtype); }
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){
     if(f.type === 'expire' || !f.dmg) continue;
-    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':(f.type==='maldicao'?'#b06bff':(f.type==='veneno_varth'?'#a060e0':'#ff7a7a')));
+    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':(f.type==='maldicao'?'#b06bff':(f.type==='veneno_varth'?'#a060e0':(f.type==='praga_atalech'?'#7ee07a':'#ff7a7a'))));
     popDamage(fx.cid, (STATUS_ICON[f.type]||'✦')+'-'+f.dmg, col);
   }
 }
@@ -8410,17 +8457,30 @@ function showAttackResult(res){
     toastMsg('💀 '+(res.ability||'Invocação')+': '+((res.summon_count||0)>0?(res.summon_count+' '):'')+'reforço(s) chegaram!', true);
     return;
   }
-  // AoE: explosão (SOMBRIA na torre, CATACLISMA do Varth) + dano em todos os alvos
+  // Manto de Vargo: o lorde se envolve numa aura ROXA e passa a tomar metade do dano
+  if(res.selfbuff){
+    spawnAt(res.attacker, 'heal', '#b06bff');
+    spawnDarkBlast(res.attacker, 2, '#9b2fe0');
+    const e = players.get(res.attacker); if(e){ e._purpleAura = performance.now() + (res.buff_turns||3)*1100 + 600; }
+    toastMsg('🟣 '+(res.ability||'Manto de Vargo')+'! Lorde Varth brilha em roxo e passa a tomar metade do dano.', true);
+    return;
+  }
+  // AoE: explosão (SOMBRIA na torre, CATACLISMA do Varth, PRAGA DE ATALECH) + dano em todos os alvos
   if(res.aoe && Array.isArray(res.splash)){
     const cata = (res.vfx === 'cataclysm');
+    const atalech = (res.vfx === 'atalech');
     if(cata) spawnCataclysm(res.target);
+    else if(atalech) spawnAtalechPlague(res.target);
     else if(dark) spawnDarkBlast(res.target, 2, '#a050ff');
     else spawnBlast(res.target, 2, '#ff7a30');
+    const _pcol = atalech ? '#7ee07a' : (cata?'#d49bff':(dark?'#c79bff':'#ff9a4a'));
+    const _ptag = atalech ? '☣ -' : (cata?'☠ -':'-');
     setTimeout(()=>{ for(const s of res.splash){
       if(s.blocked) popDamage(s.cid, 'refletiu', '#9be36a');
-      else popDamage(s.cid, (cata?'☠ -':'-')+s.dmg, cata?'#d49bff':(dark?'#c79bff':'#ff9a4a'));
-    } if(res.reflected) popDamage(res.attacker, '-'+res.reflected, '#9be36a'); }, cata?640:220);
-    if(cata) toastMsg('☠️ '+(res.ability||'CATACLISMA DE VARGO')+'! O vazio engole o campo — '+(STATUS_PT[res.applied]||'Veneno de Varth')+'!', true);
+      else popDamage(s.cid, _ptag+s.dmg, _pcol);
+    } if(res.reflected) popDamage(res.attacker, '-'+res.reflected, '#9be36a'); }, (cata||atalech)?640:220);
+    if(atalech) toastMsg('☣️ '+(res.ability||'Praga de Atalech')+'! 50 de dano que FURA toda defesa + veneno por 10 turnos. Não há cura para o bosque.', true);
+    else if(cata) toastMsg('☠️ '+(res.ability||'CATACLISMA DE VARGO')+'! O vazio engole o campo — '+(STATUS_PT[res.applied]||'Veneno de Varth')+'!', true);
     else toastMsg('💥 '+(res.ability||'Explosão')+'!'+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):''), true);
     return;
   }

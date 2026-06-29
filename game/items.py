@@ -39,7 +39,8 @@ ITEMS = {
     "fagulha_divindade":{"name": "Fagulha de Divindade", "kind": "tesouro", "stackable": True, "color": "#ffffff", "rarity": "divino", "value": 30000, "sell_value": 30000, "desc": "Um fragmento puro de poder divino arrancado de Avhur, o Maldito. Pulsa com todas as cores que existem e algumas que não deviam existir. Dizem que os deuses do Ermo trocariam quase tudo por uma destas. Por ora, vale 30.000 de bronze pra quem não tem coragem de guardá-la."},
     "bola_la_pofnir":   {"name": "Bola de Lã do Pofnir", "kind": "tesouro", "stackable": False, "color": "#f7d6ff", "slot": "neck", "visual": "divine_orb", "rarity": "divino", "ac": 0, "value": 30000, "sell_value": 0, "desc": "Uma bola de lã que o próprio Pofnir amassou com as patas, encharcada do mesmo brilho multicolorido da Fagulha de Divindade. Pulsa com todas as cores e ronrona baixinho quando ninguém está olhando. Não faz nada (ainda), mas é a prova de que o gato branco te aceitou. Não tem preço, e por isso não se vende."},
     "pocao_divina":     {"name": "Poção Divina", "kind": "consumivel", "stackable": True, "color": "#f7d6ff", "visual": "potion", "rarity": "divino", "heal": 100, "double_next": True, "value": 0, "sell_value": 0, "desc": "Um néctar multicolorido que um deus destilou da própria Fagulha que você ofereceu. Restaura 100 de vida na hora e faz o seu PRÓXIMO golpe valer pelo dobro. Brilha com cores que não deviam existir. Vale mais que ouro, e por isso nenhum mercador ousa comprá-la."},
-    "botas_vargo":      {"name": "Botas de Vargo", "kind": "armor", "stackable": False, "color": "#f7d6ff", "slot": "feet", "visual": "divine_boot", "rarity": "divino", "armor": 14, "speed": 2, "attr": {"FOR": 3, "DES": 3, "CON": 3, "INT": 3, "SAB": 3, "CAR": 3}, "immune": ["poison", "bleeding", "veneno_varth"], "smoke": True, "value": 0, "sell_value": 0, "desc": "As botas que Vargo, o primeiro lich, calçou ao renunciar à própria carne. Tecidas com a mesma luz multicolorida da Fagulha de Divindade e encharcadas de necromancia, exalam uma fumaça preta que nunca se dissipa. Mitigam até 14 de dano por golpe (a melhor bota que existe), dão +3 em TODOS os seis atributos, deixam quem as veste imune a veneno e a sangramento, e leves como uma sombra. Nenhum mercador ousa tocá-las."},
+    "botas_vargo":      {"name": "Botas de Vargo", "kind": "armor", "stackable": False, "color": "#7a1414", "slot": "feet", "visual": "divine_boot", "rarity": "maldito", "armor": 6, "speed": 2, "atk": 6, "dmg_flat": 16, "smoke": True, "value": 0, "sell_value": 0, "desc": "As botas que Vargo, o primeiro lich, calçou ao renunciar à própria carne. A luz multicolorida apagou: hoje pulsam num vermelho-sangue escuro, encharcadas de necromancia, exalando uma fumaça preta que nunca se dissipa. Cada passo é um golpe: +6 para acertar e +16 de dano em TODO ataque, e leves como uma sombra. Quem as calça espalha morte sem parar."},
+    "anel_atalech":     {"name": "O Chamado de Atalech", "kind": "trinket", "stackable": False, "color": "#b81d1d", "slot": "ring", "visual": "ring", "rarity": "maldito", "armor": -60, "ward": -60, "dodge": -0.6, "mres": -0.6, "ac": -20, "dmg_mult": 1.0, "value": 3000, "sell_value": 1500, "desc": "Um aro de ferro rubro que pulsa com a fome do bosque de Atalech. Ele DOBRA todo o seu dano (+100%), mas em troca dilacera as suas defesas: -50 em todas as resistências de vida. O portador vira uma lâmina de vidro: atroz no ataque, frágil como um graveto. Para quem quer matar antes de morrer."},
     "simbolo_varth":{"name": "Símbolo de Varth", "kind": "tesouro", "stackable": True, "color": "#7a4ad0", "rarity": "epico", "value": 2500, "sell_value": 2500, "desc": "Um sigilo de osso e obsidiana gravado com a marca de Lorde Varth, ainda quente de necromancia. Os comerciantes pagam 2.500 de bronze por um troféu desses arrancado da Torre do Lorde Necrótico."},
     "correntes_colosso":{"name": "Correntes do Colosso", "kind": "tesouro", "stackable": False, "color": "#9a8a6a", "slot": "neck", "visual": "amulet", "rarity": "lendario", "armor": 14, "atk": 3, "value": 4000, "desc": "As correntes de pedra e bronze que prendiam o Colosso de Avasham, pesadas como a própria montanha. Mitigam até 14 de dano por golpe e +3 para acertar, o melhor colar que existe."},
     "pelo_chacal_avhur":{"name": "Pelo de Chacal de Avhur", "kind": "trofeu", "stackable": True, "color": "#2e2820", "value": 500, "animal": True, "couraria_only": True, "rarity": "raro", "desc": "A pelagem negra e densa de um chacal de Avhur, impregnada da poeira da tumba. So o coureiro Valdir sabe o que vale: 1000 de bronze por peca."},
@@ -174,6 +175,8 @@ def equip_summary(equipment):
     armor = ward = 0
     dodge = mres = 0.0
     speed = 0
+    dmg_mult_add = 0.0     # +100% do anel O Chamado de Atalech (somatorio)
+    dmg_flat_bonus = 0     # dano fixo extra por golpe (Botas de Vargo)
     immune = []
     smoke = False
     attrs = {}
@@ -204,6 +207,8 @@ def equip_summary(equipment):
         ward += int(it.get("ward", 0))                       # barreira arcana (absorve dano)
         mres += float(it.get("mres", 0))                     # resistência mágica (% no dano de magia)
         speed += int(it.get("speed", 0))                     # +deslocamento (Botas de Vargo)
+        dmg_mult_add += float(it.get("dmg_mult", 0))         # +100% de dano (anel O Chamado de Atalech)
+        dmg_flat_bonus += int(it.get("dmg_flat", 0))         # dano fixo por golpe (Botas de Vargo)
         for _im in (it.get("immune") or []):                 # imunidade a status (Botas de Vargo)
             if _im not in immune:
                 immune.append(_im)
@@ -213,10 +218,14 @@ def equip_summary(equipment):
             shield_ac += int(it.get("ac", 0))
         for _ak, _av in (it.get("attr") or {}).items():      # +atributo (set Necrótico)
             attrs[_ak] = attrs.get(_ak, 0) + int(_av)
+    if dmg_flat_bonus:                              # Botas de Vargo: soma dano fixo em todo golpe
+        dmg = dict(dmg) if dmg else {"n": 0, "d": 1, "flat": 0}
+        dmg["flat"] = int(dmg.get("flat", 0)) + dmg_flat_bonus
     return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow, "spell_hit": spell_hit,
             "block": block, "rng": rng, "offhand": offhand, "attrs": attrs, "shield_ac": shield_ac,
             "armor": armor, "dodge": round(dodge, 4), "ward": ward, "mres": round(mres, 4),
-            "speed": speed, "immune": immune, "smoke": smoke}
+            "speed": speed, "immune": immune, "smoke": smoke,
+            "dmg_mult": round(1.0 + dmg_mult_add, 3)}
 
 
 # Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).

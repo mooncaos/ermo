@@ -431,14 +431,14 @@ _SUMMON_SEQ = [0]        # contador dos reforcos invocados pelo chefe
 
 
 def _summon_minions(enc, boss, count):
-    """O chefe chama reforço: cria 'count' lacaios do tipo dele (bonde/manada)."""
+    """O chefe chama reforço: cria 'count' lacaios. summon_type pode ser uma LISTA
+    (o bonde da Torre) -> cada reforço sorteia um tipo, pra vir variado."""
     stype = boss.get("summon_type") or "capanga"
-    spec = dict(monsters_def.get(stype) or {})
-    spec["_type"] = stype
+    types = stype if isinstance(stype, list) else [stype]
     mp = enc["map"]
     occ = {(c["x"], c["y"]) for c in enc["combs"].values() if c.get("alive", True)}
     placed = 0
-    for r in range(1, 4):
+    for r in range(1, 6):
         if placed >= count:
             break
         for dx in range(-r, r + 1):
@@ -448,6 +448,8 @@ def _summon_minions(enc, boss, count):
                 x, y = boss["x"] + dx, boss["y"] + dy
                 if (x, y) in occ or not rules.is_walkable(x, y, mp):
                     continue
+                t = random.choice(types)                          # variedade: cada reforço de um tipo da torre
+                spec = dict(monsters_def.get(t) or {}); spec["_type"] = t
                 _SUMMON_SEQ[0] += 1
                 cid = "lacaio:%d" % _SUMMON_SEQ[0]
                 combat.add_combatant(enc, combat.make_summon_combatant(spec, cid, x, y))
@@ -749,6 +751,8 @@ def _end_combat(enc, oc):
     if oc == "victory":
         xp = sum(c.get("xp", 0) for c in enc["combs"].values()
                  if c["kind"] == "monster" and not c.get("alive"))
+        varth_slain = any(c.get("mtype") == "lorde_varth" for c in enc["combs"].values()
+                          if c["kind"] == "monster" and not c.get("alive"))   # marca Flagelo de Varth
         for c in enc["combs"].values():
             if c["kind"] == "monster" and not c.get("alive"):
                 m = enc["_monsters"].get(c["cid"])
@@ -761,6 +765,8 @@ def _end_combat(enc, oc):
                 continue
             f = pl.get("ficha") or {}
             f["hp"] = f.get("hp_max", f.get("hp", 1))   # cura/revive após a vitória
+            if varth_slain and not f.get("slayer_varth"):
+                f["slayer_varth"] = True                # ganhou a marca "Flagelo de Varth"
             pl["ficha"] = f
             drops, bronze = _collect_drops(pl, enc)      # cada um rola o seu espólio
             try:
