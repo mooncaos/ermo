@@ -52,6 +52,7 @@ def default_look(i=0):
         "hat": "none",
         "hair": HAIRS[0],
         "staff": False,
+        "sex": "M",            # M (masculino) ou F (feminino): muda a silhueta do avatar
     }
 
 
@@ -70,6 +71,8 @@ def sanitize_look(raw, i=0):
         if raw.get("hat") in HATS:
             look["hat"] = raw["hat"]
         look["staff"] = bool(raw.get("staff", False))
+        if raw.get("sex") in ("M", "F"):
+            look["sex"] = raw["sex"]
     return look
 
 
@@ -98,6 +101,8 @@ def public(p):
     }
     if p.get("wild_form"):
         out["wild_form"] = p["wild_form"]              # forma selvagem (lobo/urso/aguia/mainecoon)
+    if (p.get("equipment") or {}).get("feet") == "botas_vargo":
+        out["smoke"] = True                            # Botas de Vargo: aura de fumaça preta
     if p.get("is_npc"):
         out["npc"] = True
         out["kind"] = p.get("kind", "person")    # "person" ou "bird"
@@ -223,6 +228,8 @@ class World:
             if mp == "ermo":                 # a vila vive no centro do 100x100
                 hx, hy = hx + world_map.OX, hy + world_map.OY
             home = _walkable_near(hx, hy, mp)
+            _look = dict(spec["look"])
+            _look.setdefault("sex", npcs.sex_of(spec))   # gênero do NPC (meninas já trazem F; mestres derivam do título)
             self.players[spec["id"]] = {
                 "id": spec["id"],
                 "player_id": None,
@@ -230,7 +237,7 @@ class World:
                 "y": home[1],
                 "facing": "down",
                 "name": spec["name"],
-                "look": dict(spec["look"]),
+                "look": _look,
                 "map": mp,
                 "inventory": [],
                 "equipment": {},
@@ -418,31 +425,35 @@ class World:
 
     # --------------------------------------------------------------- monstros
 
+    def spawn_one(self, type_id, x, y, mp):
+        """Cria UM monstro vivo no mundo e devolve o mid (ou None se o tipo não
+        existe). Usado pelo spawn inicial e pelo GM (invocar monstro)."""
+        spec = monsters_def.get(type_id)
+        if not spec:
+            return None
+        pos = _walkable_near(x, y, mp)
+        self._monster_seq += 1
+        mid = "mob:%d" % self._monster_seq
+        self.monsters[mid] = {
+            "id": mid, "type": type_id, "name": spec["name"],
+            "x": pos[0], "y": pos[1], "facing": "down", "map": mp,
+            "hp": spec["hp"], "hp_max": spec["hp"], "ac": spec["ac"],
+            "atk": spec["atk"], "dmg": dict(spec["dmg"]), "reach": spec["reach"],
+            "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
+            "glyph": spec["glyph"], "kind": "monster", "alive": True,
+            "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
+            "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
+            "size": spec.get("size"), "passive": spec.get("passive", False),
+            "_spawn": (type_id, pos[0], pos[1]),
+        }
+        return mid
+
     def spawn_monsters(self):
         """Coloca os monstros iniciais no mundo (O Descampado e o Repouso da Dama).
         Cada um e uma entidade viva em self.monsters, com o stat block copiado do
         registro. Ficam parados ate o combate chegar; aqui so existem e aparecem."""
         self.monsters.clear()
-
-        def _spawn(type_id, x, y, mp):
-            spec = monsters_def.get(type_id)
-            if not spec:
-                return
-            pos = _walkable_near(x, y, mp)
-            self._monster_seq += 1
-            mid = "mob:%d" % self._monster_seq
-            self.monsters[mid] = {
-                "id": mid, "type": type_id, "name": spec["name"],
-                "x": pos[0], "y": pos[1], "facing": "down", "map": mp,
-                "hp": spec["hp"], "hp_max": spec["hp"], "ac": spec["ac"],
-                "atk": spec["atk"], "dmg": dict(spec["dmg"]), "reach": spec["reach"],
-                "speed": spec["speed"], "xp": spec["xp"], "dex": spec["dex"],
-                "glyph": spec["glyph"], "kind": "monster", "alive": True,
-                "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
-                "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
-                "size": spec.get("size"),
-                "_spawn": (type_id, pos[0], pos[1]),
-            }
+        _spawn = lambda type_id, x, y, mp: self.spawn_one(type_id, x, y, mp)
 
         for (type_id, x, y) in monsters_def.DESCAMPADO_SPAWNS:
             _spawn(type_id, x, y, "descampado")
@@ -466,7 +477,49 @@ class World:
             _spawn(type_id, x, y, "torre_andar3")
         for (type_id, x, y) in monsters_def.CAMARA_VARTH_SPAWNS:
             _spawn(type_id, x, y, "camara_varth")
+        for (type_id, x, y) in monsters_def.FLORESTA_ERMO_SPAWNS:
+            _spawn(type_id, x, y, "floresta_ermo")
+        for (type_id, x, y) in monsters_def.PLANALTOS_ERMAIS_SPAWNS:
+            _spawn(type_id, x, y, "planaltos_ermais")
+        for (type_id, x, y) in monsters_def.BRASAL_SPAWNS:
+            _spawn(type_id, x, y, "brasal")
+        for (type_id, x, y) in monsters_def.GOELA_1_SPAWNS:
+            _spawn(type_id, x, y, "goela_1")
+        for (type_id, x, y) in monsters_def.GOELA_2_SPAWNS:
+            _spawn(type_id, x, y, "goela_2")
+        for (type_id, x, y) in monsters_def.COVIL_KREZATH_SPAWNS:
+            _spawn(type_id, x, y, "covil_krezath")
+        for (type_id, x, y) in monsters_def.COSTA_MARAVAI_SPAWNS:
+            _spawn(type_id, x, y, "costa_maravai")
+        for (type_id, x, y) in monsters_def.UMBRAVAL_SPAWNS:
+            _spawn(type_id, x, y, "umbraval")
+        for (type_id, x, y) in monsters_def.VESPERA_SPAWNS:
+            _spawn(type_id, x, y, "vespera")
+        self._spawn_nodes()
         return self.monsters
+
+    def _spawn_nodes(self):
+        """Semeia os pontos de coleta das profissões (veios, árvores, ervas)."""
+        from . import professions
+        self.nodes = {}
+        n = 0
+        for mp, lst in professions.NODE_SPAWNS.items():
+            for (ntype, x, y) in lst:
+                if ntype not in professions.NODES:
+                    continue
+                nx, ny = _walkable_near(x, y, mp)
+                n += 1
+                nid = "nd:%d" % n
+                self.nodes[nid] = {"id": nid, "type": ntype, "map": mp,
+                                   "x": nx, "y": ny, "until": 0.0}
+
+    def nodes_in(self, mp):
+        """Os nodes de coleta de um mapa (pro cliente desenhar)."""
+        import time as _t
+        now = _t.time()
+        return [{"id": nd["id"], "type": nd["type"], "x": nd["x"], "y": nd["y"],
+                 "depleted": nd["until"] > now}
+                for nd in getattr(self, "nodes", {}).values() if nd["map"] == mp]
 
     def monster_at(self, mp, x, y):
         """O monstro vivo nessa casa (ou None)."""
@@ -498,6 +551,29 @@ class World:
         for m in self.monsters.values():
             if not m.get("alive", True) or m.get("map") != mp or m.get("in_combat") or m.get("boss"):
                 continue
+            # bicho PASSIVO (caça): foge do jogador mais perto (ignora a coleira pra escapar)
+            if m.get("passive"):
+                thr = min((p for p in self.players.values()
+                           if p.get("map") == mp and not p.get("_inside")
+                           and max(abs(p["x"] - m["x"]), abs(p["y"] - m["y"])) <= 6),
+                          key=lambda p: abs(p["x"] - m["x"]) + abs(p["y"] - m["y"]), default=None)
+                if thr:
+                    best = None; bestd = -1
+                    for nm, ddx, ddy in dirs:
+                        nx2, ny2 = m["x"] + ddx, m["y"] + ddy
+                        if (nx2, ny2) in ptiles or (nx2, ny2) in occ:
+                            continue
+                        if not rules.is_walkable(nx2, ny2, mp):
+                            continue
+                        dd = abs(thr["x"] - nx2) + abs(thr["y"] - ny2)   # quanto mais longe do jogador, melhor
+                        if dd > bestd:
+                            bestd = dd; best = (nm, nx2, ny2)
+                    if best:
+                        nm, nx2, ny2 = best
+                        occ.discard((m["x"], m["y"])); occ.add((nx2, ny2))
+                        m["facing"] = nm; m["x"], m["y"] = nx2, ny2
+                        moved.append({"id": m["id"], "x": nx2, "y": ny2, "facing": nm})
+                    continue
             if random.random() > chance:
                 continue
             name, dx, dy = random.choice(dirs)

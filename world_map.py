@@ -84,6 +84,14 @@ def apply_move(world, player, direction):
     player["facing"] = direction  # vira o personagem na direção tentada
     nx, ny = player["x"] + dx, player["y"] + dy
 
+    if player.get("gm_fly"):                  # GM voando (noclip): atravessa parede, mas fica dentro do mapa
+        if not in_bounds(nx, ny, mmap):
+            return None
+        player["x"], player["y"] = nx, ny
+        player["_last_move"] = now
+        player["_dirty"] = True
+        return player
+
     if not is_walkable(nx, ny, mmap):
         return None
 

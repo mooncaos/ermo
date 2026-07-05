@@ -21,24 +21,28 @@ ITEMS = {
                      "slot": "hand", "visual": "staff", "rarity": "raro", "dmg": {"n": 1, "d": 6}, "atk": 1},
     "cajado_magico": {"name": "Cajado Mágico", "kind": "weapon", "stackable": False, "color": "#7ad6ff",
                       "slot": "hand", "visual": "staff_magic", "rarity": "lendario",
-                      "dmg": {"n": 1, "d": 10}, "atk": 3, "ac": 2, "value": 2000},
+                      "dmg": {"n": 1, "d": 10}, "atk": 3, "armor": 2, "value": 2000},
 
     # --- equipamento inicial (o kit simples da Robetina, assistente social) ---
     "touca_la":         {"name": "Touca de Lã",      "kind": "armor",   "stackable": False, "color": "#8a7d63", "slot": "head",     "visual": "helmet",   "rarity": "comum", "ac": 0, "value": 4},
-    "camiseta_surrada": {"name": "Camiseta Surrada", "kind": "armor",   "stackable": False, "color": "#b6532f", "slot": "chest",    "visual": "shirt",    "rarity": "comum", "ac": 1, "value": 6},
+    "camiseta_surrada": {"name": "Camiseta Surrada", "kind": "armor",   "stackable": False, "color": "#b6532f", "slot": "chest",    "visual": "shirt",    "rarity": "comum", "armor": 1, "value": 6},
     "ombreira_couro":   {"name": "Ombreira de Couro","kind": "armor",   "stackable": False, "color": "#6e573e", "slot": "shoulder", "visual": "pauldron", "rarity": "comum", "ac": 0, "value": 5},
     "capa_puida":       {"name": "Capa Puída",       "kind": "armor",   "stackable": False, "color": "#5a5a6a", "slot": "back",     "visual": "cloak",    "rarity": "comum", "ac": 0, "value": 5},
-    "calca_jeans":      {"name": "Calça Jeans",      "kind": "armor",   "stackable": False, "color": "#3a5a86", "slot": "legs",     "visual": "pants",    "rarity": "comum", "ac": 1, "value": 6},
+    "calca_jeans":      {"name": "Calça Jeans",      "kind": "armor",   "stackable": False, "color": "#3a5a86", "slot": "legs",     "visual": "pants",    "rarity": "comum", "armor": 1, "value": 6},
     "chinelo":          {"name": "Chinelo de Dedo",  "kind": "armor",   "stackable": False, "color": "#3a8a6a", "slot": "feet",     "visual": "sandal",   "rarity": "comum", "ac": 0, "value": 3},
     "faca_cozinha":     {"name": "Faca de Cozinha",  "kind": "weapon",  "stackable": False, "color": "#cbd2d9", "slot": "hand_r",   "visual": "knife",    "rarity": "comum", "dmg": {"n": 1, "d": 4}, "value": 6},
-    "tampa_panela":     {"name": "Tampa de Panela",  "kind": "armor",   "stackable": False, "color": "#9aa0aa", "slot": "hand_l",   "visual": "lid",      "rarity": "comum", "ac": 1, "value": 5},
+    "tampa_panela":     {"name": "Tampa de Panela",  "kind": "armor",   "stackable": False, "color": "#9aa0aa", "slot": "hand_l",   "visual": "lid",      "rarity": "comum", "block": 1, "value": 5},
     "anel_lata":        {"name": "Anel de Lata",     "kind": "trinket", "stackable": False, "color": "#b9b2a0", "slot": "ring",     "visual": "ring",     "rarity": "comum", "atk": 0, "value": 4},
-    "anel_varth":       {"name": "Anel do Lorde Varth", "kind": "trinket", "stackable": False, "color": "#7a4ad0", "slot": "ring", "visual": "ring", "rarity": "lendario", "ac": 4, "atk": 4, "value": 2000, "desc": "O selo de Lorde Varth, pulsando com energia necromântica. +4 de armadura e +4 para acertar."},
+    "anel_varth":       {"name": "Anel do Lorde Varth", "kind": "trinket", "stackable": False, "color": "#7a4ad0", "slot": "ring", "visual": "ring", "rarity": "lendario", "armor": 10, "atk": 4, "value": 2000, "desc": "O selo de Lorde Varth, pulsando com energia necromântica. Mitiga até 10 de dano por golpe e +4 para acertar, o melhor anel que existe."},
     "moeda_avhur":      {"name": "Moeda de Avhur", "kind": "trofeu", "stackable": True, "color": "#d8b24a", "value": 500, "sell_value": 500, "rarity": "raro", "desc": "Moeda antiga cunhada nas profundezas da Mina de Avhur. Os mercadores pagam 500 de bronze por ela. Dizem que ainda guarda outro proposito."},
-    "mascara_faraonica":{"name": "Máscara Faraônica", "kind": "tesouro", "stackable": False, "color": "#f4d06a", "slot": "head", "visual": "helmet", "rarity": "lendario", "ac": 7, "atk": 3, "value": 4000, "desc": "A máscara funerária de ouro do Faraó de Avhur, fria e pesada nas mãos. +7 de armadura e +3 para acertar, o melhor elmo que existe. Os mortos ainda obedecem a quem a porta."},
+    "mascara_faraonica":{"name": "Máscara Faraônica", "kind": "tesouro", "stackable": False, "color": "#f4d06a", "slot": "head", "visual": "helmet", "rarity": "lendario", "armor": 14, "atk": 3, "value": 4000, "desc": "A máscara funerária de ouro do Faraó de Avhur, fria e pesada nas mãos. Mitiga até 14 de dano por golpe e +3 para acertar, o melhor elmo que existe (mais que o dobro de qualquer peça de cabeça do Goblin). Os mortos ainda obedecem a quem a porta."},
     "fagulha_divindade":{"name": "Fagulha de Divindade", "kind": "tesouro", "stackable": True, "color": "#ffffff", "rarity": "divino", "value": 30000, "sell_value": 30000, "desc": "Um fragmento puro de poder divino arrancado de Avhur, o Maldito. Pulsa com todas as cores que existem e algumas que não deviam existir. Dizem que os deuses do Ermo trocariam quase tudo por uma destas. Por ora, vale 30.000 de bronze pra quem não tem coragem de guardá-la."},
+    "bola_la_pofnir":   {"name": "Bola de Lã do Pofnir", "kind": "tesouro", "stackable": False, "color": "#f7d6ff", "slot": "neck", "visual": "divine_orb", "rarity": "divino", "ac": 0, "value": 30000, "sell_value": 0, "desc": "Uma bola de lã que o próprio Pofnir amassou com as patas, encharcada do mesmo brilho multicolorido da Fagulha de Divindade. Pulsa com todas as cores e ronrona baixinho quando ninguém está olhando. Não faz nada (ainda), mas é a prova de que o gato branco te aceitou. Não tem preço, e por isso não se vende."},
+    "pocao_divina":     {"name": "Poção Divina", "kind": "consumivel", "stackable": True, "color": "#f7d6ff", "visual": "potion", "rarity": "divino", "heal": 100, "double_next": True, "value": 0, "sell_value": 0, "desc": "Um néctar multicolorido que um deus destilou da própria Fagulha que você ofereceu. Restaura 100 de vida na hora e faz o seu PRÓXIMO golpe valer pelo dobro. Brilha com cores que não deviam existir. Vale mais que ouro, e por isso nenhum mercador ousa comprá-la."},
+    "botas_vargo":      {"name": "Botas de Vargo", "kind": "armor", "stackable": False, "color": "#7a1414", "slot": "feet", "visual": "divine_boot", "rarity": "maldito", "armor": 6, "speed": 2, "atk": 6, "dmg_flat": 16, "smoke": True, "value": 0, "sell_value": 0, "desc": "As botas que Vargo, o primeiro lich, calçou ao renunciar à própria carne. A luz multicolorida apagou: hoje pulsam num vermelho-sangue escuro, encharcadas de necromancia, exalando uma fumaça preta que nunca se dissipa. Cada passo é um golpe: +6 para acertar e +16 de dano em TODO ataque, e leves como uma sombra. Quem as calça espalha morte sem parar."},
+    "anel_atalech":     {"name": "O Chamado de Atalech", "kind": "trinket", "stackable": False, "color": "#b81d1d", "slot": "ring", "visual": "ring", "rarity": "maldito", "armor": -60, "ward": -60, "dodge": -0.6, "mres": -0.6, "ac": -20, "dmg_mult": 1.0, "value": 3000, "sell_value": 1500, "desc": "Um aro de ferro rubro que pulsa com a fome do bosque de Atalech. Ele DOBRA todo o seu dano (+100%), mas em troca dilacera as suas defesas: -50 em todas as resistências de vida. O portador vira uma lâmina de vidro: atroz no ataque, frágil como um graveto. Para quem quer matar antes de morrer."},
     "simbolo_varth":{"name": "Símbolo de Varth", "kind": "tesouro", "stackable": True, "color": "#7a4ad0", "rarity": "epico", "value": 2500, "sell_value": 2500, "desc": "Um sigilo de osso e obsidiana gravado com a marca de Lorde Varth, ainda quente de necromancia. Os comerciantes pagam 2.500 de bronze por um troféu desses arrancado da Torre do Lorde Necrótico."},
-    "correntes_colosso":{"name": "Correntes do Colosso", "kind": "tesouro", "stackable": False, "color": "#9a8a6a", "slot": "neck", "visual": "amulet", "rarity": "lendario", "ac": 7, "atk": 3, "value": 4000, "desc": "As correntes de pedra e bronze que prendiam o Colosso de Avasham, pesadas como a própria montanha. +7 de armadura e +3 para acertar, o melhor colar que existe."},
+    "correntes_colosso":{"name": "Correntes do Colosso", "kind": "tesouro", "stackable": False, "color": "#9a8a6a", "slot": "neck", "visual": "amulet", "rarity": "lendario", "armor": 14, "atk": 3, "value": 4000, "desc": "As correntes de pedra e bronze que prendiam o Colosso de Avasham, pesadas como a própria montanha. Mitigam até 14 de dano por golpe e +3 para acertar, o melhor colar que existe."},
     "pelo_chacal_avhur":{"name": "Pelo de Chacal de Avhur", "kind": "trofeu", "stackable": True, "color": "#2e2820", "value": 500, "animal": True, "couraria_only": True, "rarity": "raro", "desc": "A pelagem negra e densa de um chacal de Avhur, impregnada da poeira da tumba. So o coureiro Valdir sabe o que vale: 1000 de bronze por peca."},
     "cordao_fake":      {"name": "Cordão Banhado",   "kind": "trinket", "stackable": False, "color": "#d9c27a", "slot": "neck",     "visual": "amulet",   "rarity": "comum", "ac": 0, "value": 5},
 
@@ -53,7 +57,7 @@ ITEMS = {
     "marreta_velha": {"name": "Marreta Enferrujada", "kind": "trofeu", "stackable": True, "color": "#6b6256", "value": 14},
     # --- drops unicos de chefe ---
     "correntao_ouro":  {"name": "Correntão de Ouro",    "kind": "tesouro", "stackable": False, "color": "#f4d06a", "value": 250,
-                        "slot": "neck", "visual": "chain", "rarity": "raro", "ac": 1, "atk": 1},
+                        "slot": "neck", "visual": "chain", "rarity": "raro", "armor": 1, "atk": 1},
     "microfone_patrao":{"name": "Microfone do Patrão",  "kind": "tesouro", "stackable": True, "color": "#c9c2cc", "value": 120, "protect": 15},
     "presa_velho_bob": {"name": "Dente Quebrado do Velho Bob", "kind": "tesouro", "stackable": True, "color": "#d9cba0", "value": 180, "protect": 10},
     "couro_velho_bob": {"name": "Couro do Velho Bob",   "kind": "tesouro", "stackable": True,  "color": "#5a5048", "value": 20},
@@ -78,6 +82,103 @@ ITEMS = {
     "placa_verme":         {"name": "Placa de Verme",        "kind": "trofeu", "stackable": True, "color": "#c08a5a", "value": 72},
     "nucleo_areia":        {"name": "Núcleo de Areia",       "kind": "trofeu", "stackable": True, "color": "#e8cf8a", "value": 82},
     "olho_basilisco":      {"name": "Olho de Basilisco",     "kind": "trofeu", "stackable": True, "color": "#d6b84a", "value": 120},
+
+    # --- caça e couros da Floresta do Ermo ---
+    "carne_caca":          {"name": "Carne de Caça", "kind": "consumivel", "stackable": True, "color": "#b5503a", "visual": "potion", "heal": 0.18, "value": 40, "desc": "Um naco de carne fresca de caça, assado no fogo. Restaura 18% da vida na hora. O sustento de quem vive nos ermos."},
+    "pele_macia":          {"name": "Pele Macia",            "kind": "trofeu", "stackable": True, "color": "#cdbba2", "value": 12, "animal": True},
+    "couro_selvagem":      {"name": "Couro Selvagem",        "kind": "trofeu", "stackable": True, "color": "#8a6a44", "value": 38, "animal": True},
+    "galhada":             {"name": "Galhada de Cervo",      "kind": "trofeu", "stackable": True, "color": "#cdb98a", "value": 70, "animal": True},
+    "couro_urso":          {"name": "Couro de Urso",         "kind": "trofeu", "stackable": True, "color": "#5a3f2a", "value": 160, "animal": True},
+    "pelego_do_rei":       {"name": "Pelego do Rei do Planalto", "kind": "armor", "stackable": False, "color": "#6e4a2e", "slot": "back", "visual": "cloak", "rarity": "lendario", "armor": 12, "ward": 10, "speed": 1, "value": 4500, "desc": "O manto feito do couro do próprio Urso Rei, ainda quente de fúria. Pesado, imponente, coroado de garras. Mitiga até 12 de dano por golpe, soma 10 de barreira e dá um passo a mais de deslocamento. Quem o veste carrega o trono do planalto nas costas."},
+
+    # --- Brasal e Goela de Krezath ---
+    "seiva_flamejante":    {"name": "Seiva Flamejante", "kind": "consumivel", "stackable": True, "color": "#ff7a30", "visual": "potion", "heal": 0.35, "value": 120, "desc": "Resina incandescente colhida das árvores mortas do Brasal. Desce queimando e costura a carne por dentro: restaura 35% da vida. Arde. Funciona."},
+    "escama_obsidiana":    {"name": "Escama de Obsidiana",  "kind": "trofeu", "stackable": True, "color": "#3a2a4a", "value": 120, "animal": True},
+    "nucleo_magma":        {"name": "Núcleo de Magma",      "kind": "trofeu", "stackable": True, "color": "#ff6a30", "value": 200},
+    "fragmento_forja":     {"name": "Fragmento de Forja",   "kind": "trofeu", "stackable": True, "color": "#c9885a", "value": 90},
+    "coracao_brasa":       {"name": "Coração de Brasa",     "kind": "trofeu", "stackable": True, "color": "#ff4a20", "value": 350},
+    "garra_krezath":       {"name": "Garra de Krezath",     "kind": "trofeu", "stackable": True, "color": "#8a2020", "value": 900, "animal": True, "desc": "Uma garra do Devorador Soterrado, ainda morna mil anos depois. Colecionadores matariam por ela. Você só precisou matar um dragão."},
+    "martelo_do_guardiao": {"name": "Martelo do Guardião", "kind": "weapon", "stackable": False, "color": "#c9885a", "slot": "hand", "visual": "hammer", "rarity": "lendario", "dmg": {"n": 3, "d": 10, "flat": 8}, "atk": 6, "value": 5200, "desc": "O martelo de forja com que Vulkar selou a Goela por mil anos. A cabeça ainda guarda o calor do primeiro fogo. Cada golpe soa como uma porta se fechando."},
+    "elmo_da_fornalha":    {"name": "Elmo da Fornalha", "kind": "armor", "stackable": False, "color": "#a85a30", "slot": "head", "visual": "helm", "rarity": "epico", "armor": 9, "ward": 6, "value": 3800, "desc": "O elmo de basalto do Guardião da Goela, com fendas que brilham como brasas quando o perigo chega. Quem o veste pensa frio até no meio do fogo."},
+    "presa_do_devorador":  {"name": "Presa do Devorador", "kind": "weapon", "stackable": False, "color": "#e8e0d0", "slot": "hand", "visual": "sword", "rarity": "lendario", "dmg": {"n": 4, "d": 10, "flat": 10}, "atk": 8, "dmg_flat": 8, "value": 9000, "desc": "Uma presa de Krezath lapidada em lâmina. Corta como se o mundo devesse algo a ela: 4d10+10 de dano, +8 para acertar e +8 de dano fixo em todo golpe. A arma mais faminta dos ermos."},
+    "coracao_de_krezath":  {"name": "Coração de Krezath", "kind": "trinket", "stackable": False, "color": "#ff3a20", "slot": "neck", "visual": "amulet", "rarity": "lendario", "spell_pow": 10, "ward": 12, "armor": 6, "value": 9000, "desc": "O coração do Devorador, cristalizado em rubi vivo. Ainda BATE. Cada pulso empurra poder pra quem o carrega: +10 de poder mágico, 12 de barreira e 6 de mitigação. Você sente ele julgando suas escolhas."},
+    "manto_de_escamas":    {"name": "Manto de Escamas do Devorador", "kind": "armor", "stackable": False, "color": "#3a2a4a", "slot": "back", "visual": "cloak", "rarity": "lendario", "armor": 10, "ward": 12, "immune": ["burning", "chama_eterna"], "value": 8500, "desc": "Escamas de obsidiana do próprio Krezath, trançadas em manto. O fogo simplesmente desiste: imunidade total a queimadura e à Chama Eterna, 10 de mitigação e 12 de barreira. O dragão morreu, a proteção ficou."},
+    "anel_da_fornalha":    {"name": "Anel da Fornalha", "kind": "trinket", "stackable": False, "color": "#ff8a40", "slot": "ring", "visual": "ring", "rarity": "epico", "atk": 5, "spell_pow": 6, "dmg_flat": 6, "value": 6000, "desc": "Um aro forjado no calor da Goela, quente ao toque pra sempre. Alimenta o braço e a mente: +5 para acertar, +6 de poder mágico e +6 de dano fixo por golpe."},
+
+    # --- Costa de Maravai: comida de praia, tesouros do mar, artesanato caiçara ---
+    "peixe_assado":        {"name": "Peixe Assado", "kind": "consumivel", "stackable": True, "color": "#d8a868", "visual": "potion", "heal": 0.22, "value": 80, "desc": "Peixe fresco na brasa, com sal grosso e limão. Cura 22% da vida e a saudade de casa."},
+    "moqueca_capixaba":    {"name": "Moqueca da Vila", "kind": "consumivel", "stackable": True, "color": "#e07030", "visual": "potion", "heal": 0.45, "value": 260, "desc": "A panela de barro da Dona Maricota, com dendê, leite de coco e segredo de família. Restaura 45% da vida. Vale a viagem."},
+    "caldo_de_sururu":     {"name": "Caldo de Sururu", "kind": "consumivel", "stackable": True, "color": "#c9885a", "visual": "potion", "heal": 0.30, "value": 150, "desc": "Quente, temperado e levanta defunto, como dizem na vila. Cura 30% da vida."},
+    "agua_de_coco":        {"name": "Água de Coco", "kind": "consumivel", "stackable": True, "color": "#e8e0c0", "visual": "potion", "heal": 0.15, "value": 50, "desc": "Gelada, direto do coqueiro da praia. Cura 15% da vida e zera o mau humor."},
+    "espetinho_camarao":   {"name": "Espetinho de Camarão", "kind": "consumivel", "stackable": True, "color": "#ff9a70", "visual": "potion", "heal": 0.25, "value": 110, "desc": "Camarão graúdo no espeto de bambu. Cura 25% da vida. Cuidado com as gaivotas."},
+    "concha_rara":         {"name": "Concha Rara",      "kind": "trofeu", "stackable": True, "color": "#f0d8e8", "value": 60, "desc": "Uma concha de madrepérola que canta o mar quando encostada no ouvido. A Mestra Conchinha paga bem, mas prefere trocar."},
+    "perola":              {"name": "Pérola",           "kind": "trofeu", "stackable": True, "color": "#f6f0f8", "value": 500, "desc": "Uma lágrima do mar, redonda e perfeita. Caranguejos velhos guardam essas por décadas."},
+    "pluma_vistosa":       {"name": "Pluma Vistosa",    "kind": "trofeu", "stackable": True, "color": "#e8d8f0", "value": 35, "animal": True},
+    "couro_rubro":         {"name": "Couro Rubro",      "kind": "trofeu", "stackable": True, "color": "#a84838", "value": 45, "animal": True},
+    "couro_de_leao":       {"name": "Couro de Leão",    "kind": "trofeu", "stackable": True, "color": "#c9a05a", "value": 90, "animal": True},
+    "chifre_de_bufalo":    {"name": "Chifre de Búfalo", "kind": "trofeu", "stackable": True, "color": "#6a5a48", "value": 70, "animal": True},
+    "juba_maraja":         {"name": "Juba do Marajá",   "kind": "trofeu", "stackable": True, "color": "#f0ead8", "value": 700, "animal": True, "desc": "A juba alva do Leão Branco da savana. O coureiro Valdir choraria de emoção: paga 3500 de bronze por ela."},
+    "manto_do_leao_branco": {"name": "Manto do Leão Branco", "kind": "armor", "stackable": False, "color": "#f0ead8", "slot": "back", "visual": "cloak", "rarity": "epico", "armor": 8, "ward": 8, "speed": 1, "value": 4200, "desc": "O manto costurado da pelagem alva do Marajá. Quem o veste anda como rei da savana: 8 de mitigação, 8 de barreira e um passo a mais."},
+    # artesanato da Mestra Conchinha (troca: bronze + conchas raras)
+    "colar_de_conchas":    {"name": "Colar de Conchas", "kind": "trinket", "stackable": False, "color": "#f0d8e8", "slot": "neck", "visual": "amulet", "rarity": "raro", "ward": 8, "mres": 0.08, "value": 2500, "desc": "Conchas de madrepérola trançadas em fio de rede. O mar protege quem o usa: 8 de barreira e 8% de resistência mágica."},
+    "anel_de_perola":      {"name": "Anel de Pérola", "kind": "trinket", "stackable": False, "color": "#f6f0f8", "slot": "ring", "visual": "ring", "rarity": "raro", "spell_pow": 5, "ward": 6, "value": 3200, "desc": "Uma pérola perfeita cravada em prata de naufrágio. Sussurra marés pra quem conjura: +5 de poder mágico e 6 de barreira."},
+    "tridente_do_caicara": {"name": "Tridente do Caiçara", "kind": "weapon", "stackable": False, "color": "#8a9aa8", "slot": "hand", "visual": "spear", "rarity": "raro", "dmg": {"n": 3, "d": 8, "flat": 6}, "atk": 5, "rng": 2, "value": 2800, "desc": "Forjado pra fisgar peixe grande, promovido a fisgar problema grande. 3d8+6 de dano, +5 para acertar e alcance de haste."},
+    "chapeu_de_palha":     {"name": "Chapéu de Palha Encantado", "kind": "armor", "stackable": False, "color": "#d8c088", "slot": "head", "visual": "hat", "rarity": "raro", "armor": 5, "ward": 5, "speed": 1, "value": 2200, "desc": "Trançado com palha de coqueiro e uma bênção de maré mansa. 5 de mitigação, 5 de barreira e o passo leve de quem anda na areia."},
+
+    # ================= RECURSOS DE COLETA (profissões) =================
+    "minerio_ferro":    {"name": "Minério de Ferro",   "kind": "trofeu", "stackable": True, "color": "#8a8078", "value": 18, "desc": "Pedra pesada com veios avermelhados. O pão de cada dia do ferreiro."},
+    "minerio_prata":    {"name": "Minério de Prata",   "kind": "trofeu", "stackable": True, "color": "#c9d0d8", "value": 45, "desc": "Brilha frio na mão. Ferreiros e joalheiros brigam por ele, e dizem que a prata morde criaturas da noite."},
+    "minerio_umbrio":   {"name": "Minério Umbrío",     "kind": "trofeu", "stackable": True, "color": "#3a3a6a", "value": 120, "desc": "Um metal escuro que só cresce onde o sol nunca chegou. Frio como a Noite Eterna que o pariu."},
+    "madeira_carvalho": {"name": "Madeira de Carvalho","kind": "trofeu", "stackable": True, "color": "#8a6a44", "value": 15, "desc": "Toras firmes de carvalho nobre. O carpinteiro transforma isso em arco, cajado e história."},
+    "madeira_rubra":    {"name": "Madeira Rubra",      "kind": "trofeu", "stackable": True, "color": "#a84a30", "value": 40, "desc": "Madeira avermelhada da savana, densa e quente ao toque."},
+    "madeira_umbria":   {"name": "Madeira Umbría",     "kind": "trofeu", "stackable": True, "color": "#2e3450", "value": 110, "desc": "Cortada das árvores da Noite Eterna. Escura, fria e estranhamente leve."},
+    "erva_solar":       {"name": "Erva Solar",         "kind": "trofeu", "stackable": True, "color": "#e8c840", "value": 25, "desc": "Folhas douradas que guardam calor de sol. Base de todo tônico honesto."},
+    "erva_lunar":       {"name": "Erva Lunar",         "kind": "trofeu", "stackable": True, "color": "#a0c0e8", "value": 60, "desc": "Só floresce no escuro absoluto. Os alquimistas pagam bem; os lobisomens dormem em cima."},
+    "fibra_capim":      {"name": "Fibra de Capim",     "kind": "trofeu", "stackable": True, "color": "#c9b868", "value": 8, "desc": "Capim alto trançável. Costureiros fazem disso capa, corda e sustento."},
+    "gema_bruta":       {"name": "Gema Bruta",         "kind": "trofeu", "stackable": True, "color": "#d060c0", "value": 300, "desc": "Uma pedra preciosa ainda sonhando em ser joia. A Mestra Petra sabe acordá-la."},
+    "tecido_nobre":     {"name": "Tecido Nobre",       "kind": "trofeu", "stackable": True, "color": "#8a3050", "value": 220, "desc": "Veludo e seda dos salões de Véspera, ainda cheirando a sangue antigo. Costureiros disputam cada retalho."},
+    "pelagem_lupina":   {"name": "Pelagem Lupina",     "kind": "trofeu", "stackable": True, "color": "#4a4055", "value": 260, "animal": True, "desc": "Pelo grosso de lobisomem, quente mesmo depois da morte. O coureiro Valdir paga 1300 de bronze e não pergunta como conseguiu."},
+    "presa_vampirica":  {"name": "Presa Vampírica",    "kind": "trofeu", "stackable": True, "color": "#e8e0d8", "value": 350, "desc": "Uma presa fria que nunca amarela. Alquimistas moem, cozinheiros ousados temperam, joalheiros arrepiam."},
+
+    # ================= PRODUTOS DAS PROFISSÕES =================
+    # ferreiro
+    "espada_de_ferro":   {"name": "Espada de Ferro",    "kind": "weapon", "stackable": False, "color": "#a8a8b0", "slot": "hand", "visual": "sword", "rarity": "comum",  "dmg": {"n": 2, "d": 8, "flat": 4}, "atk": 3, "value": 600, "desc": "Forjada com minério honesto e martelo firme. 2d8+4 de dano e +3 para acertar."},
+    "armadura_de_ferro": {"name": "Armadura de Ferro",  "kind": "armor",  "stackable": False, "color": "#8a8a94", "slot": "chest", "visual": "plate", "rarity": "raro",  "armor": 7, "value": 1400, "desc": "Placas batidas na forja do Bragan. 7 de mitigação e o peso da segurança."},
+    "lamina_de_prata":   {"name": "Lâmina de Prata",    "kind": "weapon", "stackable": False, "color": "#d8e0e8", "slot": "hand", "visual": "sword", "rarity": "raro",  "dmg": {"n": 3, "d": 8, "flat": 8}, "atk": 5, "dmg_flat": 4, "value": 3200, "desc": "Prata pura que MORDE a noite: vampiros e lobisomens odeiam o brilho dela. 3d8+8, +5 para acertar e +4 de dano fixo."},
+    "espada_umbria":     {"name": "Espada Umbría",      "kind": "weapon", "stackable": False, "color": "#4a4a8a", "slot": "hand", "visual": "sword", "rarity": "epico", "dmg": {"n": 4, "d": 8, "flat": 12}, "atk": 6, "dmg_flat": 6, "value": 8000, "desc": "Metal umbrío temperado em prata. Corta como a meia-noite corta o dia: 4d8+12, +6 para acertar e +6 de dano fixo."},
+    # coureiro
+    "couraca_de_couro":  {"name": "Couraça de Couro",   "kind": "armor", "stackable": False, "color": "#8a6242", "slot": "chest", "visual": "leather", "rarity": "comum", "armor": 5, "ward": 2, "value": 500, "desc": "Couro curtido em camadas. 5 de mitigação, 2 de barreira e cheiro de estrada."},
+    "botas_do_cacador":  {"name": "Botas do Caçador",   "kind": "armor", "stackable": False, "color": "#6a4a30", "slot": "feet", "visual": "boots", "rarity": "comum", "armor": 4, "speed": 1, "value": 700, "desc": "Sola dupla de javali, passo leve de caçador. 4 de mitigação e um passo a mais."},
+    "calcas_de_couro":   {"name": "Calças de Couro Real","kind": "armor", "stackable": False, "color": "#a8824a", "slot": "legs", "visual": "pants", "rarity": "raro", "armor": 6, "ward": 3, "value": 1800, "desc": "Costuradas do couro de leão ermal. 6 de mitigação e 3 de barreira, com pose de rei."},
+    "armadura_lupina":   {"name": "Armadura Lupina",    "kind": "armor", "stackable": False, "color": "#4a4058", "slot": "chest", "visual": "leather", "rarity": "epico", "armor": 9, "ward": 6, "value": 7000, "desc": "Pelagem de lobisomem sobre couro negro. Quente, silenciosa, quase viva: 9 de mitigação e 6 de barreira."},
+    # costureiro
+    "capa_de_fibra":     {"name": "Capa de Fibra",      "kind": "armor", "stackable": False, "color": "#c9b868", "slot": "back", "visual": "cloak", "rarity": "comum", "armor": 3, "ward": 3, "value": 350, "desc": "Trançada do capim alto da savana. 3 de mitigação e 3 de barreira, leve como brisa."},
+    "tunica_de_viagem":  {"name": "Túnica de Viagem",   "kind": "armor", "stackable": False, "color": "#a89060", "slot": "chest", "visual": "cloth", "rarity": "comum", "armor": 4, "speed": 1, "value": 800, "desc": "Costura reforçada pra quem vive na estrada. 4 de mitigação e um passo a mais."},
+    "traje_nobre":       {"name": "Traje Nobre",        "kind": "armor", "stackable": False, "color": "#8a3050", "slot": "chest", "visual": "cloth", "rarity": "raro", "ward": 8, "spell_pow": 4, "value": 3400, "desc": "Veludo de Véspera recosturado pra vivos. 8 de barreira, +4 de poder mágico e um caimento de outro século."},
+    "manto_lupino":      {"name": "Manto Lupino",       "kind": "armor", "stackable": False, "color": "#4a4055", "slot": "back", "visual": "cloak", "rarity": "epico", "armor": 8, "ward": 8, "mres": 0.08, "value": 7500, "desc": "Pelagem de lobisomem forrada de tecido nobre. 8 de mitigação, 8 de barreira e 8% de resistência mágica."},
+    # carpinteiro
+    "arco_de_carvalho":  {"name": "Arco de Carvalho",   "kind": "weapon", "stackable": False, "color": "#8a6a44", "slot": "hand", "visual": "bow", "rarity": "comum", "dmg": {"n": 2, "d": 8, "flat": 3}, "atk": 2, "rng": 4, "value": 650, "desc": "Verga firme, corda de fibra. 2d8+3 de dano, +2 para acertar e alcance de 4 casas."},
+    "cajado_rubro":      {"name": "Cajado Rubro",       "kind": "weapon", "stackable": False, "color": "#a84a30", "slot": "hand", "visual": "staff", "rarity": "comum", "dmg": {"n": 2, "d": 6, "flat": 2}, "spell_pow": 5, "value": 900, "desc": "Madeira rubra da savana, quente na palma. +5 de poder mágico."},
+    "arco_rubro":        {"name": "Arco Rubro",         "kind": "weapon", "stackable": False, "color": "#c05838", "slot": "hand", "visual": "bow", "rarity": "raro", "dmg": {"n": 3, "d": 8, "flat": 6}, "atk": 4, "rng": 4, "value": 2600, "desc": "A tensão da madeira rubra canta a cada tiro. 3d8+6, +4 para acertar, alcance 4."},
+    "cajado_umbrio":     {"name": "Cajado Umbrío",      "kind": "weapon", "stackable": False, "color": "#3a3a6a", "slot": "hand", "visual": "staff", "rarity": "epico", "dmg": {"n": 3, "d": 6, "flat": 4}, "spell_pow": 9, "value": 7800, "desc": "Madeira da Noite Eterna com uma gema acordada no topo. +9 de poder mágico e sussurros no escuro."},
+    # alquimista
+    "pocao_leve":        {"name": "Poção Leve",         "kind": "consumivel", "stackable": True, "color": "#e8c840", "visual": "potion", "heal": 0.30, "value": 180, "desc": "Erva solar destilada. Cura 30% da vida com gosto de manhã."},
+    "elixir_lunar":      {"name": "Elixir Lunar",       "kind": "consumivel", "stackable": True, "color": "#a0c0e8", "visual": "potion", "heal": 0.50, "value": 450, "desc": "Prateado e frio. Cura 50% da vida e deixa um silêncio bom."},
+    "tonico_umbrio":     {"name": "Tônico Umbrío",      "kind": "consumivel", "stackable": True, "color": "#5a5a9a", "visual": "potion", "heal": 0.70, "value": 900, "desc": "Escuro como a mata que o gerou. Cura 70% da vida."},
+    "panaceia":          {"name": "Panaceia",           "kind": "consumivel", "stackable": True, "color": "#f0e8ff", "visual": "potion", "heal": 1.00, "value": 2200, "desc": "A obra-prima do Mestre Vidal: cura TODA a vida. Ingredientes que é melhor não perguntar."},
+    # joalheiro
+    "anel_de_prata":     {"name": "Anel de Prata",      "kind": "trinket", "stackable": False, "color": "#d8e0e8", "slot": "ring", "visual": "ring", "rarity": "comum", "atk": 2, "spell_pow": 2, "value": 800, "desc": "Simples, honesto, brilhante. +2 para acertar e +2 de poder mágico."},
+    "colar_de_gema":     {"name": "Colar de Gema",      "kind": "trinket", "stackable": False, "color": "#d060c0", "slot": "neck", "visual": "amulet", "rarity": "raro", "ward": 6, "value": 2400, "desc": "Uma gema lapidada pela Mestra Petra. 6 de barreira e olhares na rua."},
+    "anel_lunar":        {"name": "Anel Lunar",         "kind": "trinket", "stackable": False, "color": "#a0c0e8", "slot": "ring", "visual": "ring", "rarity": "raro", "spell_pow": 6, "ward": 4, "value": 4200, "desc": "Metal umbrío com uma pérola do mar de Maravai. +6 de poder mágico e 4 de barreira."},
+    "diadema_umbrio":    {"name": "Diadema Umbrío",     "kind": "trinket", "stackable": False, "color": "#6a5a9a", "slot": "head", "visual": "crown", "rarity": "epico", "armor": 4, "spell_pow": 8, "ward": 8, "value": 9000, "desc": "Duas gemas acordadas num arco de metal da Noite. 4 de mitigação, +8 de poder mágico, 8 de barreira."},
+    # cozinheiro
+    "espeto_do_cacador": {"name": "Espeto do Caçador",  "kind": "consumivel", "stackable": True, "color": "#c08a50", "visual": "potion", "heal": 0.28, "value": 130, "desc": "Carne de caça na brasa, ponto perfeito. Cura 28% da vida."},
+    "ensopado_da_vila":  {"name": "Ensopado da Vila",   "kind": "consumivel", "stackable": True, "color": "#a86a40", "visual": "potion", "heal": 0.40, "value": 260, "desc": "Panela cheia, coração quente. Cura 40% da vida."},
+    "banquete_do_maraja":{"name": "Banquete do Marajá", "kind": "consumivel", "stackable": True, "color": "#e8a040", "visual": "potion", "heal": 0.60, "value": 600, "desc": "Receita digna do Leão Branco. Cura 60% da vida e rende histórias."},
+    "festim_umbrio":     {"name": "Festim Umbrío",      "kind": "consumivel", "stackable": True, "color": "#8a6aa8", "visual": "potion", "heal": 0.85, "value": 1300, "desc": "O prato proibido do Bartolo, com um tempero de presa vampírica. Cura 85% da vida."},
+    "peixe_fresco":      {"name": "Peixe Fresco",       "kind": "trofeu", "stackable": True, "color": "#8ab0c9", "value": 40, "desc": "Fisgado no píer da Vila Caiçara. A Dona Maricota paga bem por ele."},
+    "peixe_dourado":     {"name": "Peixe Dourado",      "kind": "trofeu", "stackable": True, "color": "#e8c040", "value": 300, "desc": "Raro, brilhante e briguento. Os pescadores contam histórias sobre esse aí."},
+    "filhote_capivara":  {"name": "Filhote de Capivara","kind": "trofeu", "stackable": False, "color": "#a8875c", "value": 5000, "desc": "Uma capivarinha mansa que decidiu que você é da família. Te segue pra todo lado."},
 
     # trofeus do Cemitério Antigo de Valdarkram (vendiveis na Armas Peteco)
     "osso_amaldicoado":    {"name": "Osso Amaldiçoado",      "kind": "trofeu", "stackable": True, "color": "#d8d2c0", "value": 100},
@@ -167,6 +268,16 @@ def equip_summary(equipment):
     'offhand' (duas armas), e quem a usa soma o dano dela no ataque."""
     eq = equipment or {}
     ac = atk = spell_pow = block = 0
+    spell_hit = 0          # +acerto/CD mágico do equipamento (rebalance ofensivo do caster)
+    armor = ward = 0
+    dodge = mres = 0.0
+    speed = 0
+    dmg_mult_add = 0.0     # +100% do anel O Chamado de Atalech (somatorio)
+    dmg_flat_bonus = 0     # dano fixo extra por golpe (Botas de Vargo)
+    immune = []
+    smoke = False
+    attrs = {}
+    shield_ac = 0
 
     def _wp(iid):
         it = ITEMS.get(iid) or {}
@@ -186,9 +297,32 @@ def equip_summary(equipment):
         ac += int(it.get("ac", 0))
         atk += int(it.get("atk", 0))
         spell_pow += int(it.get("spell_pow", 0))
+        spell_hit += int(it.get("spell_hit", 0))             # +acerto/CD mágico (cajado/chapéu de caster)
         block += int(it.get("block", 0))
-    return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow,
-            "block": block, "rng": rng, "offhand": offhand}
+        armor += int(it.get("armor", 0))                     # mitigação (reduz dano por golpe)
+        dodge += float(it.get("dodge", 0))                   # esquiva (anula o golpe)
+        ward += int(it.get("ward", 0))                       # barreira arcana (absorve dano)
+        mres += float(it.get("mres", 0))                     # resistência mágica (% no dano de magia)
+        speed += int(it.get("speed", 0))                     # +deslocamento (Botas de Vargo)
+        dmg_mult_add += float(it.get("dmg_mult", 0))         # +100% de dano (anel O Chamado de Atalech)
+        dmg_flat_bonus += int(it.get("dmg_flat", 0))         # dano fixo por golpe (Botas de Vargo)
+        for _im in (it.get("immune") or []):                 # imunidade a status (Botas de Vargo)
+            if _im not in immune:
+                immune.append(_im)
+        if it.get("smoke"):
+            smoke = True                                     # aura de fumaça preta (Botas de Vargo)
+        if it.get("visual") == "shield":                     # CA do escudo (pro Combatente largar)
+            shield_ac += int(it.get("ac", 0))
+        for _ak, _av in (it.get("attr") or {}).items():      # +atributo (set Necrótico)
+            attrs[_ak] = attrs.get(_ak, 0) + int(_av)
+    if dmg_flat_bonus:                              # Botas de Vargo: soma dano fixo em todo golpe
+        dmg = dict(dmg) if dmg else {"n": 0, "d": 1, "flat": 0}
+        dmg["flat"] = int(dmg.get("flat", 0)) + dmg_flat_bonus
+    return {"ac": ac, "atk": atk, "dmg": dmg, "spell_pow": spell_pow, "spell_hit": spell_hit,
+            "block": block, "rng": rng, "offhand": offhand, "attrs": attrs, "shield_ac": shield_ac,
+            "armor": armor, "dodge": round(dodge, 4), "ward": ward, "mres": round(mres, 4),
+            "speed": speed, "immune": immune, "smoke": smoke,
+            "dmg_mult": round(1.0 + dmg_mult_add, 3)}
 
 
 # Kit inicial que a Robetina entrega (um por espaco, bem simples; sobra um anel).
@@ -210,8 +344,166 @@ def shows_staff(item_id):
     return bool(it and it.get("visual") == "staff")
 
 
+# ---------------------------------------------------------------- descrições
+# LORE fixo dos itens icônicos (escrito à mão). Os demais ganham um sabor
+# automático por categoria/classe/raridade, sempre seguido da linha mecânica.
+ITEM_LORE = {
+    # kit inicial da Robetina (humilde e honesto)
+    "touca_la":        "Uma touca de lã que já aqueceu três gerações de cabeças azaradas.",
+    "camiseta_surrada": "Puída nos ombros, rasgada na barra. Ainda assim, é sua.",
+    "ombreira_couro":  "Um retalho de couro amarrado com barbante. Melhor que ombro nu.",
+    "capa_puida":      "Já foi capa de alguém importante. Hoje só corta o vento dos ermos.",
+    "calca_jeans":     "Um jeans surrado que atravessou mundos. Literalmente.",
+    "chinelo":         "O calçado dos guerreiros humildes. Estala no chão e no destino.",
+    "faca_cozinha":    "Afiada pra cebola, promovida a arma. Os ermos não julgam.",
+    "tampa_panela":    "Escudo improvisado que já aparou pancada de marido e de monstro.",
+    "anel_lata":       "Um anel de lasca de lata. Não vale nada, mas brilha se você acreditar.",
+    "cordao_fake":     "Dourado por fora, decepção por dentro. Impressiona de longe.",
+    "bornal_cria":     "A bolsa de quem cresceu se virando. Cabe pouco, aguenta tudo.",
+    # moedas e poções
+    "coin_bronze":     "A moeda miúda dos ermos. Com muitas delas, até o Goblin sorri.",
+    "coin_silver":     "Prata honesta. Compra uma noite quente e uma refeição de verdade.",
+    "coin_gold":       "Ouro puro. Nos ermos, quem tem ouro tem inimigos.",
+    "pocao_vida":      "Um vidro rubro que fecha ferida e devolve o fôlego. O melhor amigo de quem apanha.",
+    # armas icônicas de caster
+    "staff_portuz":    "O cajado do velho Portuz, entalhado em madeira de raio. Ainda estala faísca.",
+    "cajado_magico":   "Um cajado de aprendiz com o verniz gasto de tanto conjurar.",
+    # troféus do Descampado e da mata
+    "rabo_rato":       "Rabo de rato gigante. Nojento, mas o Goblin paga sem perguntar.",
+    "presa_lobo":      "Presa amarelada de lobo. Nos ermos, vira colar de valentia.",
+    "pelego_lobo":     "Pelego cinza e quente. Forra bota, sela e orgulho de caçador.",
+    "presa_javali":    "Presa curva de javali. Já rasgou canela de gente distraída.",
+    "couro_javali":    "Couro grosso de javali, cheio de cicatriz. Bom pra remendo.",
+    "presa_velho_bob": "A presa quebrada do Velho Bob. O patriarca caiu, a lenda ficou.",
+    "couro_velho_bob": "O couro grisalho do javali mais velho dos ermos. Pesa história.",
+    "couro_lobo_negro": "Couro negro que engole a luz. Os caçadores pagam bem pelo medo.",
+    "marreta_velha":   "Uma marreta de obra que trocou o cimento pelo crânio alheio.",
+    "correntao_ouro":  "O cordão do Maurão. Grosso, dourado e pesado de ostentação.",
+    "microfone_patrao": "O microfone do baile do QG. Ainda ecoa o grave da Sapopemba.",
+    # troféus do Repouso e do cemitério
+    "pena_harpia":     "Pena longa de harpia, leve como um mau agouro.",
+    "dedo_bruxa":      "Um dedo ressecado que ainda aponta pra onde não se deve ir.",
+    "ectoplasma":      "Gosma fria de assombração. Escorre devagar, como um suspiro preso.",
+    "veu_assombracao": "Um véu que flutua sozinho quando ninguém olha.",
+    "cinza_espectral": "Cinza que não esquenta nem esfria. Restos de alguém que insiste.",
+    "essencia_sombria": "Um frasco de escuridão condensada. Não abra perto de vela.",
+    "lamento_petrificado": "Um grito que virou pedra. Segure longe do ouvido.",
+    "lagrima_da_dama": "Uma lágrima cristalizada da Dama. Quem a vende, sonha com ela por semanas.",
+    "olho_basilisco":  "O olho que petrificava. Agora só encara, parado, quem o carrega.",
+    "veneno_naja":     "Peçonha dourada de naja tumular. Uma gota mata um boi.",
+    "carne_putrida":   "Carne que os carniçais disputavam. O cheiro chega antes de você.",
+    "osso_amaldicoado": "Um osso que range sozinho nas noites frias. Vende logo.",
+    # caça da Floresta do Ermo
+    "pele_macia":      "Pele macia de caça miúda. Forra luva, capuz e berço de criança.",
+    "couro_selvagem":  "Couro firme de veado dos ermos. O curtidor paga sorrindo.",
+    "galhada":         "Galhada de cervo em ponto de troféu. Enfeita taverna e rende bronze.",
+    "couro_urso":      "Couro espesso de urso. Uma manta dele atravessa qualquer inverno.",
+}
+
+# sabor automático por CLASSE (sets: set_<classe>_<peça>)
+CLASS_FLAVOR = {
+    "barbaro":     "Forjado para a fúria: os bárbaros vestem pouco e quebram muito.",
+    "guerreiro":   "Aço de linha de frente, batido para quem segura a batalha no peito.",
+    "paladino":    "Consagrado nos altares de Valíria, brilha contra o que é profano.",
+    "ladino":      "Costurado para o silêncio. Quem ouve um ladino já morreu.",
+    "monge":       "Leve como a respiração. O corpo é a arma, isto é só o invólucro.",
+    "patrulheiro": "Curtido em trilha e chuva, no tom exato da mata ao entardecer.",
+    "mago":        "Tecido com fios de conhecimento. Cheira a pergaminho antigo.",
+    "feiticeiro":  "Pulsa de leve, como se lembrasse da linhagem de quem o veste.",
+    "bruxo":       "Um sussurro do patrono vive costurado na bainha. Ele escuta.",
+    "bardo":       "Elegante o bastante pro palco, resistente o bastante pra fuga.",
+    "clerigo":     "Ungido com óleo e fé. Protege o corpo enquanto a prece protege a alma.",
+    "druida":      "Fibra, osso e folha trançados. A mata reconhece quem o veste.",
+}
+
+# pools de sabor por categoria (escolha determinística pelo id: mesma frase sempre)
+_FLAVOR = {
+    "weapon_low": [
+        "Ferro honesto de forja de beira de estrada.",
+        "Já viu mais brigas de taverna que campos de batalha.",
+        "Simples, gasto e confiável, como as coisas dos ermos.",
+        "O fio é irregular, mas corta o que precisa cortar.",
+    ],
+    "weapon_high": [
+        "Aço que já provou sangue de coisa que não devia existir.",
+        "Forjado por mãos que sabiam que o mundo é perigoso.",
+        "Equilíbrio perfeito: a arma quase decide sozinha onde acertar.",
+        "Há runas finas no metal que só aparecem sob a lua.",
+    ],
+    "shield": [
+        "Cada marca nele é um golpe que não chegou em você.",
+        "Pesado no braço, leve na consciência.",
+        "Um bom escudo vale mais que um bom amigo. Este é bom.",
+    ],
+    "head": [
+        "Protege as ideias, que nos ermos valem tanto quanto o crânio.",
+        "Ajustado pra não escorregar na hora errada.",
+    ],
+    "chest": [
+        "Guarda o coração, que é onde os ermos sempre miram.",
+        "O peso no tronco que separa o susto do enterro.",
+    ],
+    "shoulder": [
+        "Ombros firmes carregam mais que armadura.",
+        "Apara o golpe que desce de cima, o favorito dos covardes.",
+    ],
+    "back": [
+        "Corta o vento frio e esconde a silhueta na estrada.",
+        "As costas de um andarilho contam a viagem inteira.",
+    ],
+    "legs": [
+        "Pernas inteiras levam você pra casa. Cuide delas.",
+        "Reforçado no joelho, onde a estrada cobra primeiro.",
+    ],
+    "feet": [
+        "Sola firme pra lama, pedra e o que mais o chão inventar.",
+        "Quem anda bem calçado foge melhor e chuta mais forte.",
+    ],
+    "ring": [
+        "Um aro discreto com mais história que muita gente.",
+        "Aperta de leve o dedo, como um lembrete.",
+    ],
+    "neck": [
+        "Pende no peito e pesa exatamente o que promete.",
+        "Um talismã contra o que os olhos não veem.",
+    ],
+    "trofeu": [
+        "Espólio de caça dos ermos. Os mercadores pagam em bronze vivo.",
+        "Prova de que a fera caiu. O resto é história de taverna.",
+        "Troféu que se vende caro e se conta mais caro ainda.",
+    ],
+    "tesouro": [
+        "Brilha com a promessa de bronze e o silêncio de quem o perdeu.",
+        "Valioso demais pra carregar à mostra nos ermos.",
+    ],
+    "consumivel": [
+        "Feito pra hora do aperto. Não deixe pra depois do golpe.",
+    ],
+}
+
+def _auto_flavor(item_id, it):
+    """Sabor determinístico: o mesmo item conta sempre a mesma historinha."""
+    if item_id.startswith("set_"):
+        parts = item_id.split("_")
+        if len(parts) >= 2 and parts[1] in CLASS_FLAVOR:
+            return CLASS_FLAVOR[parts[1]]
+    k = it.get("kind")
+    if k == "weapon":
+        rare = it.get("rarity", "comum")
+        pool = _FLAVOR["weapon_high"] if rare in ("raro", "epico", "lendario", "divino", "maldito") else _FLAVOR["weapon_low"]
+    elif k == "armor":
+        slot = it.get("slot")
+        pool = _FLAVOR["shield"] if slot == "hand" else _FLAVOR.get(slot) or _FLAVOR["chest"]
+    elif k in _FLAVOR:
+        pool = _FLAVOR[k]
+    else:
+        return ""
+    h = sum(ord(ch) for ch in item_id)
+    return pool[h % len(pool)]
+
+
 def describe(item_id):
-    """Gera uma descricao curta do item a partir dos atributos (ou usa 'desc' fixo)."""
+    """Descrição do item: LORE (fixo ou automático) + linha mecânica dos atributos."""
     it = ITEMS.get(item_id) or {}
     if it.get("desc"):
         return it["desc"]
@@ -227,21 +519,34 @@ def describe(item_id):
             bits.append("à distância" if it["rng"] >= 50 else ("alcance %d" % it["rng"]))
         if it.get("atk"): bits.append("+%d para acertar" % it["atk"])
         if it.get("spell_pow"): bits.append("+%d de poder mágico" % it["spell_pow"])
+        if it.get("spell_hit"): bits.append("+%d de acerto mágico" % it["spell_hit"])
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+        if it.get("dmg_flat"): bits.append("+%d de dano fixo" % it["dmg_flat"])
     elif k == "armor":
         head = "Escudo." if it.get("slot") == "hand" else "Peça de armadura."
-        if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+        if it.get("armor"): bits.append("mitiga até %d de dano por golpe" % it["armor"])
+        if it.get("dodge"): bits.append("%d%% de esquiva" % round(it["dodge"] * 100))
+        if it.get("ward"): bits.append("barreira absorve %d" % it["ward"])
+        if it.get("mres"): bits.append("%d%% de resistência mágica" % round(it["mres"] * 100))
+        if it.get("spell_pow"): bits.append("+%d de poder mágico" % it["spell_pow"])
         if it.get("block"): bits.append("bloqueia %d de dano por golpe" % it["block"])
+        if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+        if it.get("atk"): bits.append("+%d para acertar" % it["atk"])
+        if it.get("speed"): bits.append("+%d de deslocamento" % it["speed"])
     elif k == "consumivel":
         head = "Consumível."
         if it.get("heal"): bits.append("cura %d%% da vida" % int(it["heal"] * 100))
     elif k == "currency":
-        return "Moeda do Ermo."
+        return ITEM_LORE.get(item_id, "Moeda do Ermo.")
     else:
         head = it.get("name", "Item")
     rare = it.get("rarity")
     tail = (" Raridade: %s." % rare) if rare and rare != "comum" else ""
-    return head + ((" " + ", ".join(bits) + ".") if bits else "") + tail
+    lore = ITEM_LORE.get(item_id) or _auto_flavor(item_id, it)
+    mech = ((" ".join([", ".join(bits).capitalize()]) + ".") if bits else "")
+    if lore:
+        return lore + ((" " + mech) if mech else "") + tail
+    return head + ((" " + mech) if mech else "") + tail
 
 
 def catalog():
@@ -252,7 +557,9 @@ def catalog():
             "equippable": "slot" in v, "slot": v.get("slot"),
             "visual": v.get("visual"), "rarity": v.get("rarity", "comum"),
             "ac": v.get("ac", 0), "atk": v.get("atk", 0), "dmg": v.get("dmg"),
-            "spell_pow": v.get("spell_pow", 0), "block": v.get("block", 0), "rng": v.get("rng"),
+            "spell_pow": v.get("spell_pow", 0), "spell_hit": v.get("spell_hit", 0), "block": v.get("block", 0), "rng": v.get("rng"),
+            "armor": v.get("armor", 0), "dodge": v.get("dodge", 0),       # mitigação / esquiva (defesa Tibia)
+            "ward": v.get("ward", 0), "mres": v.get("mres", 0),           # barreira arcana / resistência mágica
             "heal": v.get("heal"), "desc": describe(k), "protect": v.get("protect"),
             "animal": v.get("animal"), "value": v.get("value", 1),
             "sell_value": v.get("sell_value"), "couraria_only": v.get("couraria_only")}
@@ -397,7 +704,7 @@ _CLASS_GEAR = {
 _ARQ = {
     "pesada": {"head": 1, "shoulder": 1, "back": 1, "chest": 3, "legs": 2, "feet": 1, "anome": "Placa"},
     "media":  {"head": 1, "shoulder": 1, "back": 0, "chest": 2, "legs": 1, "feet": 1, "anome": "Couro"},
-    "robe":   {"head": 0, "shoulder": 0, "back": 1, "chest": 1, "legs": 1, "feet": 0, "anome": "Manto"},
+    "robe":   {"head": 1, "shoulder": 1, "back": 1, "chest": 2, "legs": 1, "feet": 1, "anome": "Manto"},
 }
 _SLOT_VIS = {
     "head":     ("helmet",   "Elmo"),
@@ -412,9 +719,81 @@ SHOP_SETS = []          # [{"class_id":..., "items":[ids na ordem arma->botas]}]
 SHOP_ITEMS = set()      # todos os ids que a loja vende (pra validar compra)
 _SHIELD_AC = {"pesada": 3, "media": 2}   # escudo: arquetipos marciais (robe nao usa)
 
+# === SISTEMA DE DEFESA estilo Tibia (mitigação / esquiva / ward) =============
+# Em vez de empilhar CA, cada arquétipo defende do seu jeito:
+#   pesada -> ARMADURA alta (cada golpe leva uma mitigação aleatória metade-total) + bloqueio do escudo
+#   media  -> ARMADURA baixa + ESQUIVA (chance de ANULAR o golpe)
+#   robe   -> WARD (barreira que absorve dano) + RESISTÊNCIA MÁGICA (% no dano de magia)
+# Os totais abaixo são do SET COMPLETO (calibrados pra equivaler ao poder de hoje:
+# paladino full goblin toma ~4/turno do Varth como antes); distribuídos por peça.
+_DEF = {   # tier -> {pa:armadura pesada, ma:armadura media, md:esquiva media,
+           #          ra:armadura robe, rw:ward robe, rm:resist. mágica robe}
+    "set":   {"pa": 2,  "ma": 1,  "md": 0.05, "ra": 2,  "rw": 4,  "rm": 0.05},
+    "t1":    {"pa": 5,  "ma": 3,  "md": 0.12, "ra": 4,  "rw": 9,  "rm": 0.15},
+    "t2":    {"pa": 12, "ma": 6,  "md": 0.20, "ra": 7,  "rw": 16, "rm": 0.25},
+    "t3":    {"pa": 26, "ma": 13, "md": 0.28, "ra": 13, "rw": 28, "rm": 0.38},
+    "necro": {"pa": 58, "ma": 26, "md": 0.38, "ra": 18, "rw": 42, "rm": 0.50},
+}
+# CHAPÉU do caster (robe): +poder mágico (somado no dano de TODA magia), crescente por tier.
+_HEAD_POW = {"set": 1, "t1": 2, "t2": 4, "t3": 8, "necro": 12}
+# REBALANCE OFENSIVO DO CASTER: a magia precisa ACERTAR como a espada e BATER forte
+# (glass cannon: compensa em dano o que o caster perde em sobrevivência).
+# +acerto/CD mágico do equipamento por tier (conserta a mira que não escalava com o gear):
+_CASTER_HIT = {"set": 3, "t1": 5, "t2": 9, "t3": 10, "necro": 11}
+# poder mágico TOTAL alvo por tier (arma + chapéu). A ARMA carrega o total menos o que o chapéu já dá.
+_CASTER_POW_TOTAL = {"set": 3, "t1": 13, "t2": 46, "t3": 84, "necro": 150}
+def _caster_weapon_pow(tierkey):
+    return max(0, _CASTER_POW_TOTAL.get(tierkey, 0) - _HEAD_POW.get(tierkey, 0))
+# DRUIDA: caster de batalha (forma humana = mago). ~85% do poder de um manto puro (ele é
+# média/mais tankudo e tem as formas), tudo na arma (druida não usa chapéu de robe).
+def _druida_weapon_pow(tierkey):
+    return int(round(0.85 * _CASTER_POW_TOTAL.get(tierkey, 0)))
+def _split_int(total, arch):
+    """Distribui um total inteiro pelas 6 peças conforme o peso do arquétipo (peitoral pega o resto)."""
+    w = _ARQ[arch]; slots = ("head", "shoulder", "back", "chest", "legs", "feet")
+    sw = sum(w[s] for s in slots) or 1
+    out = {s: 0 for s in slots}
+    if total <= 0:
+        return out
+    acc = 0
+    for s in slots:
+        if s == "chest":
+            continue
+        out[s] = int(round(total * w[s] / sw)); acc += out[s]
+    out["chest"] = max(0, total - acc)
+    return out
+def _piece_defense(arch, slot, tierkey):
+    """Defesa (armadura/esquiva/ward/resist) de UMA peça conforme arquétipo + tier."""
+    D = _DEF.get(tierkey, _DEF["set"])
+    w = _ARQ[arch]; slots = ("head", "shoulder", "back", "chest", "legs", "feet")
+    sw = sum(w[s] for s in slots) or 1
+    frac = w[slot] / sw
+    out = {}
+    if arch == "pesada":
+        a = _split_int(D["pa"], arch).get(slot, 0)
+        if a: out["armor"] = a
+    elif arch == "media":
+        a = _split_int(D["ma"], arch).get(slot, 0)
+        if a: out["armor"] = a
+        dg = D["md"] * frac
+        if dg > 0: out["dodge"] = round(dg, 4)
+    elif arch == "robe":
+        a = _split_int(D["ra"], arch).get(slot, 0)
+        if a: out["armor"] = a
+        wd = _split_int(D["rw"], arch).get(slot, 0)
+        if wd: out["ward"] = wd
+        mr = D["rm"] * frac
+        if mr > 0: out["mres"] = round(mr, 4)
+        if slot == "head":                     # o CHAPÉU do caster reforça a magia (+dano), crescente por tier
+            out["spell_pow"] = _HEAD_POW.get(tierkey, _HEAD_POW["set"])
+    return out
+
 # Classes que FOCAM EM MAGIA: a arma vira modesta, mas o equipamento da +poder
 # magico (somado no dano de TODA magia). As marciais batem forte na arma.
 CASTER_CLASSES = {"mago", "feiticeiro", "bruxo", "clerigo", "druida", "bardo"}
+# Casters de MANTO (robe): frágeis -> glass cannon (dano mágico ALTO). Os outros casters
+# (clérigo pesada, druida/bardo média) são tankudos -> poder mágico MODESTO (princípio: dano compensa fragilidade).
+ROBE_CASTERS = {"mago", "feiticeiro", "bruxo"}
 # Armas que atacam o ataque basico A DISTANCIA: classe -> alcance em tiles
 # (arco = livre/combate todo; cajado de conjurador = medio).
 RANGED_RANGE = {"patrulheiro": 99, "mago": 6, "feiticeiro": 6}
@@ -435,8 +814,14 @@ def _gen_class_sets():
         ITEMS[wid] = {"name": wn, "kind": "weapon", "stackable": False, "color": cor,
                       "slot": "hand", "visual": wvis, "rarity": "comum",
                       "dmg": {"n": dn, "d": dd}, "atk": watk, "value": SHOP_PRICE}
-        if wac:
-            ITEMS[wid]["ac"] = wac
+        if cid in ROBE_CASTERS:                         # manto (frágil): poder mágico base + acerto
+            ITEMS[wid]["spell_pow"] = _caster_weapon_pow("set")
+            ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
+        elif cid == "druida":                           # druida (caster de batalha): poder forte + acerto
+            ITEMS[wid]["spell_pow"] = _druida_weapon_pow("set")
+            ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
+        elif cid in CASTER_CLASSES:                     # clérigo/bardo (tankudos): só acerto mágico
+            ITEMS[wid]["spell_hit"] = _CASTER_HIT["set"]
         if cid in RANGED_RANGE:
             ITEMS[wid]["rng"] = RANGED_RANGE[cid]
         ids.append(wid)
@@ -444,15 +829,17 @@ def _gen_class_sets():
         for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
             vis, slabel = _SLOT_VIS[slot]
             iid = "set_%s_%s" % (cid, slot)
-            ITEMS[iid] = {"name": "%s %s" % (slabel, tema), "kind": "armor", "stackable": False,
-                          "color": cor, "slot": slot, "visual": vis, "rarity": "comum",
-                          "ac": a[slot], "value": SHOP_PRICE}
+            piece = {"name": "%s %s" % (slabel, tema), "kind": "armor", "stackable": False,
+                     "color": cor, "slot": slot, "visual": vis, "rarity": "comum",
+                     "value": SHOP_PRICE}
+            piece.update(_piece_defense(arq, slot, "set"))
+            ITEMS[iid] = piece
             ids.append(iid)
         if arq in _SHIELD_AC:
             sidh = "set_%s_escudo" % cid
             ITEMS[sidh] = {"name": "Escudo %s" % tema, "kind": "armor", "stackable": False,
                            "color": cor, "slot": "hand", "visual": "shield", "rarity": "comum",
-                           "ac": _SHIELD_AC[arq], "block": 2, "value": SHOP_PRICE}
+                           "block": 2, "value": SHOP_PRICE}
             ids.append(sidh)
         SHOP_SETS.append({"class_id": cid, "items": ids})
         SHOP_ITEMS.update(ids)
@@ -493,10 +880,17 @@ def _gen_tier_sets():
             W = {"name": "%s %s" % (wn, suf), "kind": "weapon", "stackable": False,
                  "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
                  "dmg": wdmg, "atk": watk + (catk if caster else matk), "value": price}
-            if wac:
-                W["ac"] = wac + acb
-            if (cid in POW_CLASSES) and cpow:
-                W["spell_pow"] = cpow          # o foco magico carrega o poder do set (caster + paladino)
+            if cid in ROBE_CASTERS:                     # manto (frágil): poder mágico ALTO + acerto (glass cannon)
+                W["spell_pow"] = _caster_weapon_pow(pfx)
+                W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
+            elif cid == "druida":                       # druida (caster de batalha): forte + acerto
+                W["spell_pow"] = _druida_weapon_pow(pfx)
+                W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
+            elif cid in CASTER_CLASSES:                 # clérigo/bardo (tankudos): poder MODESTO + acerto
+                W["spell_pow"] = cpow
+                W["spell_hit"] = _CASTER_HIT.get(pfx, 0)
+            elif (cid in POW_CLASSES) and cpow:          # paladino híbrido: poder mágico modesto (Castigo Divino)
+                W["spell_pow"] = cpow
             if cid in RANGED_RANGE:
                 W["rng"] = RANGED_RANGE[cid]
             ITEMS[wid] = W
@@ -505,19 +899,93 @@ def _gen_tier_sets():
             for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
                 vis, slabel = _SLOT_VIS[slot]
                 iid = "%s_%s_%s" % (pfx, cid, slot)
-                ITEMS[iid] = {"name": "%s %s %s" % (slabel, tema, suf), "kind": "armor",
-                              "stackable": False, "color": cor, "slot": slot, "visual": vis,
-                              "rarity": rar, "ac": a[slot] + acb, "value": price}
+                piece = {"name": "%s %s %s" % (slabel, tema, suf), "kind": "armor",
+                         "stackable": False, "color": cor, "slot": slot, "visual": vis,
+                         "rarity": rar, "value": price}
+                piece.update(_piece_defense(arq, slot, pfx))
+                ITEMS[iid] = piece
                 ids.append(iid)
             if arq in _SHIELD_AC:
                 sidh = "%s_%s_escudo" % (pfx, cid)
                 ITEMS[sidh] = {"name": "Escudo %s %s" % (tema, suf), "kind": "armor",
                                "stackable": False, "color": cor, "slot": "hand", "visual": "shield",
-                               "rarity": rar, "ac": _SHIELD_AC[arq] + acb, "block": sblock, "value": price}
+                               "rarity": rar, "block": sblock, "value": price}
                 ids.append(sidh)
             sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
         TIER_SETS[pfx] = sets; TIER_ITEMS[pfx] = ids_all; TIER_PRICE[pfx] = price
 _gen_tier_sets()
 TIER_LABEL = {"t1": "Mascate Errante", "t2": "Nômade Raiz", "t3": "Coveiro Mórbido"}
-# todos os ids vendidos pelos 3 mercadores (pra validar compra)
+
+# atributo principal de cada classe (pro bonus do set Necrótico)
+_CLASS_ATTR = {
+    "barbaro": "FOR", "guerreiro": "FOR", "paladino": "CON",
+    "ladino": "DES", "monge": "DES", "patrulheiro": "DES",
+    "mago": "INT", "feiticeiro": "CAR", "bruxo": "CAR", "bardo": "CAR",
+    "clerigo": "SAB", "druida": "SAB",
+}
+
+def _gen_necrotico_set():
+    """O set Necrótico da Goblin do Cofre (escondida na câmara de Varth): armadura/
+    escudo UM tier acima do Coveiro (t3), ARMA DOIS tiers acima, e TODA peça soma
+    +2 no atributo principal da classe. Continua épico (roxo, igual ao Coveiro).
+    Prefixo 'Necrótico' no nome. Custa 800.000 de bronze + 5 Símbolos de Varth a peça."""
+    pfx, suf, rar, price = "necro", "Necrótico", "epico", 800000
+    # ARMA (2 tiers acima de t3): dano e acerto bem altos
+    w_mdice, w_mflat, w_matk = 15, 35, 34      # marcial: dados, dano fixo, +acerto
+    w_cdice, w_cpow, w_catk = 5, 40, 14        # caster: dados, +poder mágico, +acerto
+    acb, sblock = 6, 16                         # armadura/escudo (1 tier acima)
+    attr_bonus = 2                             # +2 no atributo da classe na ARMA e no PEITORAL (+4 total, não em cada peça)
+    sets = []; ids_all = set()
+    for cid, (tema, cor, arq, weap) in _CLASS_GEAR.items():
+        wn, wvis, dn, dd, watk, wac = weap
+        caster = cid in CASTER_CLASSES
+        attr = _CLASS_ATTR.get(cid, "FOR")
+        ids = []
+        wid = "necro_%s_arma" % cid
+        wdmg = {"n": (w_cdice if caster else w_mdice), "d": dd}
+        if (not caster) and w_mflat:
+            wdmg["flat"] = w_mflat
+        W = {"name": "%s %s" % (suf, wn), "kind": "weapon", "stackable": False,
+             "color": cor, "slot": "hand", "visual": wvis, "rarity": rar,
+             "dmg": wdmg, "atk": watk + (w_catk if caster else w_matk), "value": price,
+             "attr": {attr: attr_bonus}}
+        if cid in ROBE_CASTERS:                         # manto (frágil): poder mágico altíssimo + acerto (glass cannon)
+            W["spell_pow"] = _caster_weapon_pow("necro")
+            W["spell_hit"] = _CASTER_HIT["necro"]
+        elif cid == "druida":                           # druida (caster de batalha): forte + acerto
+            W["spell_pow"] = _druida_weapon_pow("necro")
+            W["spell_hit"] = _CASTER_HIT["necro"]
+        elif cid in CASTER_CLASSES:                     # clérigo/bardo (tankudos): poder MODESTO + acerto
+            W["spell_pow"] = w_cpow
+            W["spell_hit"] = _CASTER_HIT["necro"]
+        elif (cid in POW_CLASSES) and w_cpow:            # paladino híbrido: poder mágico modesto (Castigo Divino)
+            W["spell_pow"] = w_cpow
+        if cid in RANGED_RANGE:
+            W["rng"] = RANGED_RANGE[cid]
+        ITEMS[wid] = W; ids.append(wid)
+        a = _ARQ[arq]
+        for slot in ("head", "shoulder", "back", "chest", "legs", "feet"):
+            vis, slabel = _SLOT_VIS[slot]
+            iid = "necro_%s_%s" % (cid, slot)
+            it = {"name": "%s %s %s" % (suf, slabel, tema), "kind": "armor",
+                  "stackable": False, "color": cor, "slot": slot, "visual": vis,
+                  "rarity": rar, "value": price}
+            it.update(_piece_defense(arq, slot, "necro"))
+            if slot == "chest":                       # so o peitoral concede atributo (+ a arma) = +4 no total
+                it["attr"] = {attr: attr_bonus}
+            ITEMS[iid] = it
+            ids.append(iid)
+        if arq in _SHIELD_AC:
+            sidh = "necro_%s_escudo" % cid
+            ITEMS[sidh] = {"name": "%s Escudo %s" % (suf, tema), "kind": "armor",
+                           "stackable": False, "color": cor, "slot": "hand", "visual": "shield",
+                           "rarity": rar, "block": sblock,
+                           "value": price}
+            ids.append(sidh)
+        sets.append({"class_id": cid, "items": ids}); ids_all.update(ids)
+    TIER_SETS["necro"] = sets; TIER_ITEMS["necro"] = ids_all; TIER_PRICE["necro"] = price
+    TIER_LABEL["necro"] = "Goblin do Cofre"
+_gen_necrotico_set()
+
+# todos os ids vendidos pelos mercadores (pra validar compra)
 ALL_TIER_ITEMS = set().union(*TIER_ITEMS.values())

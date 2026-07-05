@@ -29,6 +29,31 @@ from . import valdris
 contains_curse = valdris.contains_curse
 
 
+# ----------------------------------------------------------------- GÊNERO dos NPCs
+# Sexo (M/F) muda a silhueta no cliente. Mestres derivam do título (Mestra=F).
+# As meninas já marcam "sex":"F" no spec. Aqui ficam as demais NPCs femininas;
+# todo o resto é M por padrão.
+_FEMALE_NPCS = {
+    "Beth", "Dalia", "Marlene", "Cleide", "Maria Cachorra",
+    "Dona Chica", "Robetina", "Marta", "Xamã Miranda",
+    "Marion, a Bruxa", "Cigana Vidente",
+}
+
+
+def sex_of(spec):
+    """Devolve 'M' ou 'F' pro NPC. Respeita um 'sex' explícito no registro,
+    deriva mestres pelo título, e usa a lista de femininas pro resto."""
+    s = spec.get("sex")
+    if s in ("M", "F"):
+        return s
+    name = spec.get("name", "") or ""
+    if name.startswith("Mestra"):
+        return "F"
+    if name.startswith("Mestre"):
+        return "M"
+    return "F" if name in _FEMALE_NPCS else "M"
+
+
 # --------------------------------------------------------------- Bento (campones)
 # Nativo do Ermo: nasceu no barro como o pai e o avo. Cuida de um pedaco de terra
 # sob o sol torto. Ja viu forasteiros cairem do ceu por anos (o Valdris e o mais
@@ -426,7 +451,7 @@ def _menina_spec(m):
         "id": "npc:menina_" + m["name"].lower(),
         "name": m["name"],
         "look": {"skin": m["skin"], "cloak": m["cloak"], "hood": "down",
-                 "hat": "none", "hair": m["hair"], "staff": False},
+                 "hat": "none", "hair": m["hair"], "staff": False, "sex": "F"},
         "map": casa,                                  # mora dentro da casa dela
         "home": _MENINA_IHOME.get(m["name"], (7, 4)), # ponto dentro do interior
         "radius": 1, "wanders": True, "step_every": 1.6,
@@ -1097,6 +1122,13 @@ COVEIRO_GREETINGS = [
     "os mortos não precisam mais disso, forasteiro. você precisa. paga e leva.",
     "três vezes o aço do nômade, dez vezes o medo. é o que a morte deixou.",
 ]
+MARION_GREETINGS = [
+    "Moeda de Avhur... eu sinto o cheiro delas na tua mochila. Traz pra Marion, eu pago bem.",
+    "os mercadores te dão 500 por uma moeda dessas. a velha Marion te dá 2500. eu sei o que elas valem de verdade.",
+    "não pergunta pra que eu quero as moedas. pergunta só quanto eu pago: 2500 de bronze, cada uma.",
+    "*mexe num caldeirão fumegante* Avhur não cunhou aquilo só com metal, forasteiro. me vende as tuas moedas.",
+    "cinco vezes o preço de um mercador, por cada Moeda de Avhur. pega ou deixa.",
+]
 CIGANA_GREETINGS = [
     "psiu... a cigana lê teu futuro e vende teu remédio. Poção de Vida, 10 pratas, te enche a vida toda.",
     "bebe a poção no meio da briga e ela cura tudo. mas cuidado, meu bem: virar o copo leva DOIS turnos, e nesses dois o bicho te bate à vontade. as cartas avisaram.",
@@ -1124,6 +1156,191 @@ ROSTER.extend([
             "Me traz os restos dos grandes e eu te dou proteção pro além.",
         ],
         "smiter": False, "xama": True,
+    },
+    # ================= VILA CAIÇARA (Costa de Maravai) =================
+    {
+        "id": "npc:maricota", "name": "Dona Maricota",
+        "look": {"skin": "#8a5a38", "cloak": "#e07030", "hood": "down",
+                 "hat": "none", "hair": "#e8e0d8", "staff": False},
+        "sex": "F",
+        "map": "costa_maravai", "home": (232, 208), "radius": 3, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "murmurs": [
+            "Peixe fresco! Saiu do mar faz uma hora!",
+            "Essa moqueca leva segredo de três gerações...",
+        ],
+        "greetings": [
+            "Chega mais, benzinho! Peixe assado, moqueca, caldo que levanta defunto.",
+            "Tá magro demais pra enfrentar leão, meu filho. Come primeiro.",
+        ],
+        "smiter": False, "peixaria": True,
+    },
+    {
+        "id": "npc:mestre_bragan", "name": "Mestre Bragan",
+        "look": {"skin": "#6a4a30", "cloak": "#5a3a2a", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "ermo", "home": (44, 17), "radius": 1, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['O ferro não mente. Gente mente, ferro não.', 'Prata boa morde vampiro. Anota isso.'],
+        "greetings": ['Traz minério que eu te faço lâmina, viajante. A forja tá sempre quente.'],
+        "smiter": False, "prof": "ferreiro",
+    },
+    {
+        "id": "npc:mestra_iolanda", "name": "Mestra Iolanda",
+        "look": {"skin": "#8a5a38", "cloak": "#7a5030", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "sex": "F",
+        "map": "ermo", "home": (44, 22), "radius": 1, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Couro bom se conhece pelo cheiro.', 'Pelagem de lobisomem... isso sim é material.'],
+        "greetings": ['Pele crua vira armadura fina nas minhas mãos. Traz o couro, benzinho.'],
+        "smiter": False, "prof": "coureiro",
+    },
+    {
+        "id": "npc:mestre_justo", "name": "Mestre Justo",
+        "look": {"skin": "#7a5436", "cloak": "#8a6a44", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "ermo", "home": (44, 27), "radius": 1, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Madeira torta também vira arco. Só precisa de paciência.', 'Carvalho pro corpo, rubra pra alma.'],
+        "greetings": ['Madeira boa e fibra firme: é só o que peço. O resto essas mãos resolvem.'],
+        "smiter": False, "prof": "carpinteiro",
+    },
+    {
+        "id": "npc:mestre_vidal", "name": "Mestre Vidal",
+        "look": {"skin": "#9a6a48", "cloak": "#4a6a4a", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "ermo", "home": (44, 32), "radius": 1, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Erva solar de dia, lunar de noite. O corpo agradece os dois.', 'A panaceia existe. Só não pergunta o preço.'],
+        "greetings": ['Ervas, viajante! Solar, lunar, o que tiver. Eu destilo a cura.'],
+        "smiter": False, "prof": "alquimista",
+    },
+    {
+        "id": "npc:mestra_linah", "name": "Mestra Linah",
+        "look": {"skin": "#b08a68", "cloak": "#8a3050", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "sex": "F",
+        "map": "ermo", "home": (54, 19), "radius": 1, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Uma agulha certa vale por dez espadas.', 'Tecido nobre de Véspera... que desperdício deixar lá.'],
+        "greetings": ['Fibra, pele ou veludo: eu costuro proteção em qualquer pano, querido.'],
+        "smiter": False, "prof": "costureiro",
+    },
+    {
+        "id": "npc:mestra_petra", "name": "Mestra Petra",
+        "look": {"skin": "#7a5436", "cloak": "#d060c0", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "sex": "F",
+        "map": "ermo", "home": (54, 25), "radius": 1, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Toda gema bruta sonha. Eu só acordo elas.', 'Prata e pérola: casamento perfeito.'],
+        "greetings": ['Prata, gema, pérola... traz o que o mundo esconde que eu faço brilhar.'],
+        "smiter": False, "prof": "joalheiro",
+    },
+    {
+        "id": "npc:mestre_bartolo", "name": "Mestre Bartolo",
+        "look": {"skin": "#8a5a38", "cloak": "#a86a40", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "ermo", "home": (54, 31), "radius": 1, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Fome é o único inimigo que volta três vezes por dia.', 'Carne de caça com chifre ralado... segredo do banquete.'],
+        "greetings": ['Carne fresca aqui vira festim, amigo! Cozinho até presa de vampiro, se tiver coragem.'],
+        "smiter": False, "prof": "cozinheiro",
+    },
+    {
+        "id": "npc:irma_solene", "name": "Irmã Solene",
+        "look": {"skin": "#b08a68", "cloak": "#e8e0d0", "hood": "up",
+                 "hat": "none", "hair": "#d8d0c0", "staff": True},
+        "sex": "F",
+        "map": "ermo", "home": (58, 10), "radius": 1, "wanders": True,
+        "step_every": 2.0, "solid": True, "kind": "person",
+        "murmurs": [
+            "Doze nomes, um só silêncio...",
+            "Drazun ri, Atalech observa, Korgath ruge. E o templo escuta todos.",
+            "Uma oferenda sincera vale mais que cem juras.",
+        ],
+        "greetings": [
+            "Bem-vindo ao Templo dos Doze, viajante. Uma oferenda de 100 de bronze e os deuses fecham tuas feridas.",
+        ],
+        "smiter": False, "templo": True,
+    },
+    {
+        "id": "npc:cronista", "name": "Cronista Fabiano",
+        "look": {"skin": "#9a6a48", "cloak": "#4a5a7a", "hood": "down",
+                 "hat": "none", "hair": "#c8c0b8", "staff": False},
+        "map": "ermo", "home": (62, 10), "radius": 1, "wanders": True,
+        "step_every": 2.2, "solid": True, "kind": "person",
+        "murmurs": [
+            "Toda lenda começa com um nome numa página...",
+            "O Memorial não esquece. Eu não deixo.",
+        ],
+        "greetings": [
+            "Quer ouvir quem são os heróis do Ermo, viajante? O Memorial guarda cada feito.",
+        ],
+        "smiter": False, "memorial": True,
+    },
+    {
+        "id": "npc:ze_do_remo", "name": "Zé do Remo",
+        "look": {"skin": "#6a4a30", "cloak": "#3a5a7a", "hood": "down",
+                 "hat": "straw", "hair": "#4a4038", "staff": True},
+        "map": "costa_maravai", "home": (250, 250), "radius": 2, "wanders": True,
+        "step_every": 1.8, "solid": True, "kind": "person",
+        "murmurs": [
+            "Maré tá boa pra viagem, tá sim...",
+            "Esse barco já cruzou tempestade que afundava navio grande.",
+        ],
+        "greetings": [
+            "Quer carona pro Ermo, forasteiro? Meu barco corta essa costa num sopro.",
+        ],
+        "smiter": False, "barqueiro": True,
+    },
+    {
+        "id": "npc:seu_milton", "name": "Seu Milton",
+        "look": {"skin": "#7a5436", "cloak": "#8a6a2a", "hood": "down",
+                 "hat": "none", "hair": "#c8c0b8", "staff": False},
+        "map": "costa_maravai", "home": (262, 226), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "murmurs": [
+            "O búzio nunca mente... só desagrada.",
+            "Já vi homem rico virar pobre e pobre virar lenda nessa mesa.",
+        ],
+        "greetings": [
+            "Senta, forasteiro. Duzentos de bronze na mesa e o búzio decide teu dia.",
+        ],
+        "smiter": False, "buzio": True,
+    },
+    {
+        "id": "npc:conchinha", "name": "Mestra Conchinha",
+        "look": {"skin": "#9a6a48", "cloak": "#e8b8d0", "hood": "down",
+                 "hat": "none", "hair": "#2a2020", "staff": False},
+        "sex": "F",
+        "map": "costa_maravai", "home": (222, 232), "radius": 3, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": [
+            "Concha por concha, o mar me paga o aluguel.",
+            "Pérola boa é a que ninguém procurou.",
+        ],
+        "greetings": [
+            "Traz conchas raras da praia que eu te faço tesouro, querido. Bronze só não basta aqui.",
+        ],
+        "smiter": False, "concha_shop": True,
+    },
+    {
+        "id": "npc:tiao_caicara", "name": "Caiçara Tião",
+        "look": {"skin": "#6a4a30", "cloak": "#5a7a5a", "hood": "down",
+                 "hat": "straw", "hair": "#2a2420", "staff": False},
+        "map": "costa_maravai", "home": (270, 240), "radius": 6, "wanders": True,
+        "step_every": 1.4, "solid": False, "kind": "person",
+        "murmurs": [
+            "Remendando rede, remendando a vida...",
+            "O Marajá rugiu de novo ontem. Ninguém pesca no rio da savana faz mês.",
+            "Dizem que caranguejo velho guarda pérola. Eu digo que guarda dedo de curioso.",
+        ],
+        "greetings": [
+            "Bem-vindo à vila, forasteiro. Aqui o mar dá o peixe e a savana dá o susto.",
+        ],
+        "smiter": False,
     },
     {
         "id": "npc:valdir", "name": "Valdir, o Coureiro",
@@ -1168,6 +1385,14 @@ ROSTER.extend([
         "greetings": COVEIRO_GREETINGS, "smiter": False, "shop_tier": "t3",
     },
     {
+        "id": "npc:marion", "name": "Marion, a Bruxa",
+        "look": {"skin": "#b89a7a", "cloak": "#5a2a7a", "hood": "down",
+                 "hat": "wizard", "hair": "#1a1020", "staff": True},
+        "map": "valdarkram", "home": (47, 49), "radius": 2, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "greetings": MARION_GREETINGS, "smiter": False, "buys_avhur": True,
+    },
+    {
         "id": "npc:cigana", "name": "Cigana Vidente",
         "look": {"skin": "#caa06a", "cloak": "#a0306a", "hood": "down",
                  "hat": "none", "hair": "#1a1a22", "staff": False},
@@ -1176,3 +1401,32 @@ ROSTER.extend([
         "greetings": CIGANA_GREETINGS, "smiter": False, "sells_potion": True,
     },
 ])
+
+# A Mesa de Confraternizações: um NPC que é uma mesa, no centro da taverna.
+# Clicar nela abre a interface de formação de party (ready check mútuo).
+ROSTER.append({
+    "id": "npc:mesa_confra", "name": "Mesa de Confraternizações",
+    "look": {"skin": "#caa06a", "cloak": "#6a4a2a"},
+    "map": "taverna", "home": (10, 7), "radius": 0, "wanders": False,
+    "step_every": 999, "solid": True, "kind": "mesa",
+    "greetings": ["..."], "party_table": True,
+})
+
+# A Goblin do Cofre: roubou o cofre de Lorde Varth e se escondeu no canto sudeste
+# da câmara. Vende o set Necrótico (épico, melhor que o do Coveiro) por bronze +
+# Símbolos de Varth.
+ROSTER.append({
+    "id": "npc:goblin_cofre", "name": "Goblin do Cofre",
+    "look": {"skin": "#7a9a4a", "cloak": "#243016", "hood": "up",
+             "hat": "none", "hair": "#3a2a10", "staff": False},
+    "map": "camara_varth", "home": (78, 84), "radius": 1, "wanders": True,
+    "step_every": 2.0, "solid": True, "kind": "person",
+    "greetings": [
+        "Pssiu! Aqui no cantinho... roubei o cofre do Lorde bem debaixo do nariz dele, hehe.",
+        "Tudo roxo, tudo necrótico, tudo arrancado do cofre de Varth. Quer ver a mercadoria?",
+        "O Lorde tá ocupado lá no trono. Aproveita a liquidação do cofre, forasteiro.",
+        "Os melhores trecos da Torre, um tier acima do velho Coveiro. A arma então... nem se compara.",
+        "Bronze eu aceito, mas o que eu quero MESMO são os Símbolos de Varth. Cinco por peça, sem choro.",
+    ],
+    "goblin_cofre": True,
+})

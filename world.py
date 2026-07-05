@@ -135,11 +135,14 @@ MONSTERS = {
         "drops": [("correntes_colosso", 1.0, 1, 1), ("coin_gold", 1.0, 3, 5)], "bronze": (400, 650),
     },
     "lorde_varth": {
-        "name": "Lorde Varth", "hp": 2400, "ac": 23, "atk": 18,
-        "dmg": {"n": 7, "d": 10, "flat": 16}, "reach": 3, "speed": 5,
-        "xp": 4200, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 4,
-        "atk_name": "raio necromântico", "boss": True, "summon_type": "esqueleto_guerreiro", "summons": 4,
-        "drops": [("simbolo_varth", 1.0, 1, 2), ("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 4, 6)], "bronze": (1500, 2500),
+        "name": "Lorde Varth", "hp": 8000, "ac": 23, "atk": 24,
+        "dmg": {"n": 8, "d": 12, "flat": 28}, "reach": 3, "speed": 5,
+        "xp": 4200, "dex": 4, "glyph": "\U0001f9d9", "kind": "necromante", "size": 5,
+        "atk_name": "raio necromântico", "boss": True,
+        "summon_type": ["tumular_torre", "carniceiro_torre", "cavaleiro_torre",
+                        "algoz_torre", "necromante_torre", "profanador_torre"],
+        "summons": 16,
+        "drops": [("botas_vargo", 1.0, 1, 1), ("anel_atalech", 1.0, 1, 1), ("simbolo_varth", 1.0, 1, 2), ("anel_varth", 1.0, 1, 1), ("coin_gold", 1.0, 4, 6)], "bronze": (1500, 2500),
     },
 
     # ===================== TORRE DO LORDE NECROTICO =====================
@@ -373,6 +376,286 @@ MONSTERS = {
         "drops": [("fagulha_divindade", 1.0, 1, 1), ("mascara_faraonica", 1.0, 1, 1), ("moeda_avhur", 1.0, 6, 10), ("coin_gold", 1.0, 3, 6)],
         "bronze": (500, 800),
     },
+
+    # ===================== FLORESTA DO ERMO: SANTUÁRIO SELVAGEM =====================
+    # --- FAIXA 1 (sul, entrada): bichos PASSIVOS (caça: carne pra curar + couro pra vender) ---
+    "coelho": {
+        "name": "Coelho do Ermo", "hp": 6, "ac": 11, "atk": 0,
+        "dmg": {"n": 1, "d": 2, "flat": 0}, "reach": 1, "speed": 7,
+        "xp": 30, "dex": 4, "glyph": "🐇", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "patada", "drops": [("carne_caca", 1.0, 1, 1), ("pele_macia", 0.6, 1, 1)], "bronze": (5, 15),
+    },
+    "lebre": {
+        "name": "Lebre Veloz", "hp": 9, "ac": 12, "atk": 1,
+        "dmg": {"n": 1, "d": 3, "flat": 0}, "reach": 1, "speed": 8,
+        "xp": 45, "dex": 5, "glyph": "🐇", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "coice", "drops": [("carne_caca", 1.0, 1, 2), ("pele_macia", 0.6, 1, 1)], "bronze": (8, 20),
+    },
+    "veado": {
+        "name": "Veado dos Ermos", "hp": 18, "ac": 12, "atk": 2,
+        "dmg": {"n": 1, "d": 4, "flat": 1}, "reach": 1, "speed": 6,
+        "xp": 70, "dex": 3, "glyph": "🦌", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "chifrada", "drops": [("carne_caca", 1.0, 1, 2), ("couro_selvagem", 0.8, 1, 1)], "bronze": (15, 35),
+    },
+    "cervo": {
+        "name": "Cervo de Galhada", "hp": 30, "ac": 13, "atk": 4,
+        "dmg": {"n": 2, "d": 4, "flat": 2}, "reach": 2, "speed": 6,
+        "xp": 110, "dex": 3, "glyph": "🦌", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "galhada", "drops": [("carne_caca", 1.0, 2, 3), ("couro_selvagem", 0.9, 1, 1), ("galhada", 0.7, 1, 1)], "bronze": (25, 55),
+    },
+
+    # --- FAIXA 2 (meio): LOBOS CINZENTOS DOS ERMOS (mais fortes que o 2º andar da Torre) ---
+    "lobo_cinzento_ermo": {
+        "name": "Lobo Cinzento dos Ermos", "hp": 820, "ac": 17, "atk": 18,
+        "dmg": {"n": 5, "d": 10, "flat": 13}, "reach": 1, "speed": 7,
+        "xp": 1400, "dex": 4, "glyph": "🐺", "kind": "besta", "size": 2,
+        "atk_name": "mordida dilacerante",
+        "drops": [("carne_caca", 1.0, 2, 3), ("couro_selvagem", 1.0, 1, 2), ("coin_gold", 0.5, 1, 3)], "bronze": (350, 600),
+    },
+
+    # --- FAIXA 3 (norte): URSOS. Pardo 30% > lobo; Negro > pardo. ---
+    "urso_pardo": {
+        "name": "Urso Pardo", "hp": 1070, "ac": 18, "atk": 19,
+        "dmg": {"n": 6, "d": 10, "flat": 17}, "reach": 2, "speed": 5,
+        "xp": 2000, "dex": 2, "glyph": "🐻", "kind": "besta", "size": 4,
+        "atk_name": "patada brutal",
+        "drops": [("carne_caca", 1.0, 3, 4), ("couro_urso", 1.0, 1, 2), ("coin_gold", 0.6, 2, 4)], "bronze": (500, 850),
+    },
+    "urso_negro": {
+        "name": "Urso Negro", "hp": 1380, "ac": 19, "atk": 20,
+        "dmg": {"n": 7, "d": 10, "flat": 20}, "reach": 2, "speed": 5,
+        "xp": 2600, "dex": 2, "glyph": "🐻", "kind": "besta", "size": 4,
+        "atk_name": "esmagamento",
+        "drops": [("carne_caca", 1.0, 3, 5), ("couro_urso", 1.0, 1, 2), ("coin_gold", 0.8, 3, 5)], "bronze": (700, 1100),
+    },
+    "urso_rei": {
+        "name": "Urso Rei do Planalto", "hp": 2100, "ac": 24, "atk": 18,
+        "dmg": {"n": 6, "d": 12, "flat": 22}, "reach": 2, "speed": 5,
+        "xp": 3200, "dex": 3, "glyph": "🐻", "kind": "besta", "size": 5, "boss": True,
+        "atk_name": "patada do rei",
+        "drops": [("pelego_do_rei", 1.0, 1, 1), ("couro_urso", 1.0, 2, 3), ("galhada", 1.0, 1, 2), ("coin_gold", 1.0, 5, 9)],
+        "bronze": (1200, 2000),
+    },
+
+    # ===================== BRASAL, A FERIDA DO MUNDO (leste do Descampado) =====================
+    # A elite dos ermos: tudo aqui é mais forte que os ursos da Floresta.
+    "cinzal": {
+        "name": "Espreitador de Cinzas", "hp": 1600, "ac": 19, "atk": 21,
+        "dmg": {"n": 6, "d": 10, "flat": 22}, "reach": 1, "speed": 8,
+        "xp": 2600, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "garras de cinza",
+        "drops": [("escama_obsidiana", 0.5, 1, 1), ("nucleo_magma", 0.35, 1, 1), ("seiva_flamejante", 0.4, 1, 1), ("coin_gold", 0.6, 2, 4)], "bronze": (600, 950),
+    },
+    "salamandra_brasal": {
+        "name": "Salamandra do Brasal", "hp": 1750, "ac": 19, "atk": 21,
+        "dmg": {"n": 6, "d": 10, "flat": 24}, "reach": 2, "speed": 6,
+        "xp": 2800, "dex": 4, "glyph": "\U0001f98e", "kind": "besta", "size": 2,
+        "atk_name": "chicote de fogo",
+        "drops": [("nucleo_magma", 0.6, 1, 2), ("seiva_flamejante", 0.5, 1, 1), ("coin_gold", 0.6, 2, 4)], "bronze": (650, 1000),
+    },
+    "serpe_magma": {
+        "name": "Serpe de Magma", "hp": 1950, "ac": 20, "atk": 22,
+        "dmg": {"n": 7, "d": 10, "flat": 24}, "reach": 2, "speed": 6,
+        "xp": 3200, "dex": 4, "glyph": "\U0001f409", "kind": "draconico", "size": 3,
+        "atk_name": "bote incandescente",
+        "drops": [("escama_obsidiana", 0.8, 1, 2), ("nucleo_magma", 0.5, 1, 1), ("coin_gold", 0.8, 3, 5)], "bronze": (800, 1200),
+    },
+    "golem_obsidiana": {
+        "name": "Golem de Obsidiana", "hp": 2600, "ac": 22, "atk": 21,
+        "dmg": {"n": 7, "d": 10, "flat": 28}, "reach": 2, "speed": 3,
+        "xp": 3800, "dex": 1, "glyph": "\U0001f5ff", "kind": "construto", "size": 4,
+        "atk_name": "punho de pedra viva",
+        "drops": [("escama_obsidiana", 1.0, 2, 3), ("fragmento_forja", 0.7, 1, 2), ("coin_gold", 0.8, 3, 6)], "bronze": (900, 1400),
+    },
+    "imp_brasal": {
+        "name": "Diabrete do Brasal", "hp": 1450, "ac": 20, "atk": 22,
+        "dmg": {"n": 5, "d": 10, "flat": 20}, "reach": 1, "speed": 8,
+        "xp": 2400, "dex": 5, "glyph": "\U0001f47f", "kind": "infernal", "size": 1,
+        "atk_name": "tridente em brasa",
+        "drops": [("fragmento_forja", 0.6, 1, 2), ("seiva_flamejante", 0.4, 1, 1), ("coin_gold", 0.5, 2, 4)], "bronze": (550, 900),
+    },
+    # --- Goela de Krezath (caverna) ---
+    "forjado_krezath": {
+        "name": "Forjado de Krezath", "hp": 2800, "ac": 22, "atk": 23,
+        "dmg": {"n": 8, "d": 10, "flat": 28}, "reach": 1, "speed": 4,
+        "xp": 4200, "dex": 2, "glyph": "\u2694\ufe0f", "kind": "construto", "size": 3,
+        "atk_name": "lâmina de obsidiana",
+        "drops": [("fragmento_forja", 1.0, 1, 3), ("escama_obsidiana", 0.6, 1, 2), ("coin_gold", 0.9, 3, 6)], "bronze": (1000, 1500),
+    },
+    "templario_magma": {
+        "name": "Templário do Magma", "hp": 3100, "ac": 23, "atk": 24,
+        "dmg": {"n": 8, "d": 10, "flat": 32}, "reach": 2, "speed": 4,
+        "xp": 4600, "dex": 2, "glyph": "\U0001f6e1\ufe0f", "kind": "construto", "size": 3,
+        "atk_name": "espadão fundido",
+        "drops": [("coracao_brasa", 0.5, 1, 1), ("fragmento_forja", 0.8, 1, 2), ("coin_gold", 1.0, 4, 7)], "bronze": (1200, 1800),
+    },
+    "devoto_krezath": {
+        "name": "Devoto de Krezath", "hp": 2200, "ac": 21, "atk": 23,
+        "dmg": {"n": 6, "d": 10, "flat": 24}, "reach": 3, "speed": 5,
+        "xp": 3600, "dex": 3, "glyph": "\U0001f9d9", "kind": "infernal", "size": 2,
+        "atk_name": "labareda devota",
+        "drops": [("coracao_brasa", 0.4, 1, 1), ("seiva_flamejante", 0.6, 1, 2), ("coin_gold", 0.8, 3, 5)], "bronze": (900, 1400),
+    },
+    "cria_krezath": {
+        "name": "Cria de Krezath", "hp": 950, "ac": 19, "atk": 21,
+        "dmg": {"n": 5, "d": 10, "flat": 18}, "reach": 1, "speed": 7,
+        "xp": 1200, "dex": 4, "glyph": "\U0001f409", "kind": "draconico", "size": 2,
+        "atk_name": "mordida em brasa",
+        "drops": [("escama_obsidiana", 0.7, 1, 1), ("coin_gold", 0.4, 1, 3)], "bronze": (300, 550),
+    },
+    "vulkar": {
+        "name": "Vulkar, Guardião da Goela", "hp": 5200, "ac": 24, "atk": 24,
+        "dmg": {"n": 9, "d": 10, "flat": 34}, "reach": 2, "speed": 4,
+        "xp": 6500, "dex": 2, "glyph": "\U0001f5ff", "kind": "construto", "size": 4, "boss": True,
+        "atk_name": "martelo da fornalha",
+        "drops": [("martelo_do_guardiao", 1.0, 1, 1), ("elmo_da_fornalha", 1.0, 1, 1), ("coracao_brasa", 1.0, 1, 2), ("coin_gold", 1.0, 5, 9)],
+        "bronze": (1800, 2800),
+    },
+    "krezath": {
+        "name": "Krezath, o Devorador Soterrado", "hp": 12000, "ac": 26, "atk": 27,
+        "dmg": {"n": 10, "d": 12, "flat": 38}, "reach": 3, "speed": 5,
+        "xp": 9000, "dex": 3, "glyph": "\U0001f409", "kind": "draconico", "size": 5,
+        "atk_name": "garras primordiais", "boss": True,
+        "summon_type": ["cria_krezath"],
+        "summons": 8,
+        "drops": [("presa_do_devorador", 1.0, 1, 1), ("coracao_de_krezath", 1.0, 1, 1), ("manto_de_escamas", 1.0, 1, 1), ("anel_da_fornalha", 1.0, 1, 1), ("garra_krezath", 1.0, 2, 3), ("coin_gold", 1.0, 8, 14)],
+        "bronze": (2500, 4000),
+    },
+
+    # ===================== COSTA DE MARAVAI (savana + praia) =====================
+    "capivara": {
+        "name": "Capivara", "hp": 60, "ac": 12, "atk": 3,
+        "dmg": {"n": 1, "d": 4}, "reach": 1, "speed": 5, "passive": True,
+        "xp": 40, "dex": 2, "glyph": "\U0001f9ab", "kind": "besta", "size": 2,
+        "atk_name": "mordidinha",
+        "drops": [("pele_macia", 0.9, 1, 2), ("carne_caca", 0.8, 1, 2), ("filhote_capivara", 0.03, 1, 1)], "bronze": (10, 30),
+    },
+    "antilope": {
+        "name": "Antílope da Savana", "hp": 55, "ac": 14, "atk": 3,
+        "dmg": {"n": 1, "d": 6}, "reach": 1, "speed": 9, "passive": True,
+        "xp": 45, "dex": 5, "glyph": "\U0001f98c", "kind": "besta", "size": 2,
+        "atk_name": "coice",
+        "drops": [("couro_selvagem", 0.8, 1, 2), ("carne_caca", 0.9, 1, 2), ("galhada", 0.4, 1, 1)], "bronze": (12, 35),
+    },
+    "avestruz_brava": {
+        "name": "Avestruz Brava", "hp": 700, "ac": 17, "atk": 17,
+        "dmg": {"n": 4, "d": 8, "flat": 12}, "reach": 1, "speed": 9,
+        "xp": 1200, "dex": 6, "glyph": "\U0001f9a4", "kind": "besta", "size": 2,
+        "atk_name": "bicada furiosa",
+        "drops": [("pluma_vistosa", 0.8, 1, 2), ("carne_caca", 0.6, 1, 2)], "bronze": (250, 450),
+    },
+    "hiena_rubra": {
+        "name": "Hiena Rubra", "hp": 820, "ac": 17, "atk": 18,
+        "dmg": {"n": 4, "d": 8, "flat": 14}, "reach": 1, "speed": 8,
+        "xp": 1350, "dex": 4, "glyph": "\U0001f436", "kind": "besta", "size": 1,
+        "atk_name": "mordida de matilha",
+        "drops": [("couro_rubro", 0.7, 1, 2), ("presa_lobo", 0.4, 1, 1)], "bronze": (280, 500),
+    },
+    "leao_ermal": {
+        "name": "Leão Ermal", "hp": 1250, "ac": 19, "atk": 20,
+        "dmg": {"n": 5, "d": 10, "flat": 16}, "reach": 1, "speed": 7,
+        "xp": 2100, "dex": 4, "glyph": "\U0001f981", "kind": "besta", "size": 2,
+        "atk_name": "patada real",
+        "drops": [("couro_de_leao", 0.8, 1, 1), ("presa_lobo", 0.5, 1, 2)], "bronze": (450, 800),
+    },
+    "bufalo_ermal": {
+        "name": "Búfalo Ermal", "hp": 1450, "ac": 21, "atk": 19,
+        "dmg": {"n": 5, "d": 10, "flat": 20}, "reach": 1, "speed": 5,
+        "xp": 2300, "dex": 2, "glyph": "\U0001f403", "kind": "besta", "size": 3,
+        "atk_name": "chifrada",
+        "drops": [("chifre_de_bufalo", 0.8, 1, 2), ("couro_selvagem", 0.7, 1, 2), ("carne_caca", 0.8, 1, 3)], "bronze": (500, 900),
+    },
+    "caranguejo_gigante": {
+        "name": "Caranguejo Gigante", "hp": 950, "ac": 23, "atk": 18,
+        "dmg": {"n": 4, "d": 10, "flat": 14}, "reach": 1, "speed": 3,
+        "xp": 1600, "dex": 1, "glyph": "\U0001f980", "kind": "besta", "size": 2,
+        "atk_name": "pincada",
+        "drops": [("concha_rara", 0.8, 1, 2), ("perola", 0.08, 1, 1), ("carne_caca", 0.5, 1, 1)], "bronze": (320, 600),
+    },
+    "medusa_de_areia": {
+        "name": "Medusa de Areia", "hp": 700, "ac": 15, "atk": 17,
+        "dmg": {"n": 3, "d": 8, "flat": 10}, "reach": 2, "speed": 2,
+        "xp": 1100, "dex": 1, "glyph": "\U0001fab8", "kind": "besta", "size": 1,
+        "atk_name": "tentáculo urticante",
+        "drops": [("concha_rara", 0.4, 1, 1)], "bronze": (200, 380),
+    },
+    "maraja": {
+        "name": "Marajá, o Leão Branco", "hp": 3200, "ac": 22, "atk": 22,
+        "dmg": {"n": 7, "d": 10, "flat": 26}, "reach": 2, "speed": 7,
+        "xp": 5000, "dex": 4, "glyph": "\U0001f981", "kind": "besta", "size": 4, "boss": True,
+        "atk_name": "garras do marajá",
+        "drops": [("juba_maraja", 1.0, 1, 1), ("manto_do_leao_branco", 1.0, 1, 1), ("couro_de_leao", 1.0, 2, 3), ("coin_gold", 1.0, 5, 9)],
+        "bronze": (1400, 2200),
+    },
+
+    # ===================== UMBRAVAL, A NOITE ETERNA =====================
+    "lobo_umbrio": {
+        "name": "Lobo Umbrío", "hp": 1600, "ac": 20, "atk": 21,
+        "dmg": {"n": 6, "d": 10, "flat": 20}, "reach": 1, "speed": 8,
+        "xp": 2700, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "presas da noite",
+        "drops": [("couro_lobo_negro", 0.7, 1, 2), ("presa_lobo", 0.5, 1, 2)], "bronze": (600, 1000),
+    },
+    "vulto_noturno": {
+        "name": "Vulto Noturno", "hp": 2000, "ac": 21, "atk": 22,
+        "dmg": {"n": 6, "d": 10, "flat": 24}, "reach": 2, "speed": 6,
+        "xp": 3300, "dex": 4, "glyph": "\U0001f47b", "kind": "espectro", "size": 2, "smoke": True,
+        "atk_name": "toque gélido",
+        "drops": [("essencia_sombria", 0.7, 1, 2), ("ectoplasma", 0.5, 1, 2)], "bronze": (750, 1200),
+    },
+
+    # ============ VÉSPERA: os VAMPIROS (o topo da cadeia, hoje) ============
+    "enxame_morcegos": {
+        "name": "Enxame de Morcegos", "hp": 600, "ac": 17, "atk": 19,
+        "dmg": {"n": 3, "d": 8, "flat": 10}, "reach": 1, "speed": 9,
+        "xp": 900, "dex": 7, "glyph": "\U0001f987", "kind": "besta", "size": 1, "smoke": True,
+        "atk_name": "nuvem de presas",
+        "drops": [], "bronze": (120, 260),
+    },
+    "cria_vampirica": {
+        "name": "Cria Vampírica", "hp": 3400, "ac": 22, "atk": 23,
+        "dmg": {"n": 7, "d": 10, "flat": 24}, "reach": 1, "speed": 8,
+        "xp": 5200, "dex": 6, "glyph": "\U0001f9db", "kind": "morto-vivo", "size": 2,
+        "atk_name": "garras famintas",
+        "drops": [("presa_vampirica", 0.5, 1, 1), ("tecido_nobre", 0.25, 1, 1)], "bronze": (700, 1200),
+    },
+    "vampiro_nobre": {
+        "name": "Vampiro Nobre", "hp": 4300, "ac": 24, "atk": 24,
+        "dmg": {"n": 7, "d": 12, "flat": 28}, "reach": 1, "speed": 8,
+        "xp": 6800, "dex": 6, "glyph": "\U0001f9db", "kind": "morto-vivo", "size": 2,
+        "atk_name": "estocada carmesim",
+        "drops": [("presa_vampirica", 0.7, 1, 1), ("tecido_nobre", 0.8, 1, 2), ("gema_bruta", 0.1, 1, 1)], "bronze": (1000, 1700),
+    },
+    "vampiro_anciao": {
+        "name": "Vampiro Ancião", "hp": 5600, "ac": 25, "atk": 26,
+        "dmg": {"n": 8, "d": 12, "flat": 32}, "reach": 2, "speed": 7,
+        "xp": 9000, "dex": 5, "glyph": "\U0001f9db", "kind": "morto-vivo", "size": 3,
+        "atk_name": "lâmina de sangue",
+        "drops": [("presa_vampirica", 1.0, 2, 2), ("tecido_nobre", 1.0, 2, 3), ("gema_bruta", 0.3, 1, 1), ("coin_gold", 0.6, 1, 3)], "bronze": (1500, 2500),
+    },
+
+    # ==== UMBRAVAL: os LOBISOMENS (5%% atrás dos vampiros, e com raiva disso) ====
+    "lobisomem_ferino": {
+        "name": "Lobisomem Ferino", "hp": 3230, "ac": 21, "atk": 22,
+        "dmg": {"n": 7, "d": 10, "flat": 22}, "reach": 1, "speed": 9,
+        "xp": 4900, "dex": 6, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "garras dilacerantes",
+        "drops": [("pelagem_lupina", 0.7, 1, 1), ("presa_lobo", 0.5, 1, 2)], "bronze": (650, 1100),
+    },
+    "lobisomem_uivador": {
+        "name": "Lobisomem Uivador", "hp": 4085, "ac": 23, "atk": 23,
+        "dmg": {"n": 7, "d": 12, "flat": 26}, "reach": 1, "speed": 8,
+        "xp": 6400, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "mordida lupina",
+        "drops": [("pelagem_lupina", 0.9, 1, 2), ("couro_lobo_negro", 0.5, 1, 1)], "bronze": (900, 1500),
+    },
+    "lobisomem_ancestral": {
+        "name": "Lobisomem Ancestral", "hp": 5320, "ac": 24, "atk": 25,
+        "dmg": {"n": 8, "d": 12, "flat": 30}, "reach": 2, "speed": 8,
+        "xp": 8500, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 3,
+        "atk_name": "fúria ancestral",
+        "drops": [("pelagem_lupina", 1.0, 2, 2), ("couro_lobo_negro", 1.0, 1, 2), ("presa_lobo", 0.8, 1, 2)], "bronze": (1300, 2200),
+    },
 }
 
 
@@ -446,6 +729,114 @@ BOSS_BARKS = {
         "win": [
             "volta pro berço, bambi. o mato é meu.",
             "FUNF FUNF. mais um que aprendeu na marra.",
+        ],
+    },
+    # Lorde Varth: o lich, senhor necrótico do topo da Torre. Frio, antigo, cruel.
+    "lorde_varth": {
+        "intro": [
+            "Mais carne para a minha torre. Sejam bem-vindos ao fim de vocês.",
+            "Sentem o frio? É a morte, e ela já sabe os seus nomes.",
+        ],
+        "taunt": [
+            "Seus deuses não te ouvem aqui. Só eu te escuto... e eu não tenho piedade.",
+            "Cada osso desta torre já foi um herói teimoso como você.",
+            "A morte não dói. O que vem depois, comigo, dói para sempre.",
+            "Lute. Eu adoro quando a alma se debate antes de eu arrancá-la.",
+        ],
+        "summon": [
+            "Levantem-se, meus mortos. Vamos receber as visitas.",
+        ],
+        "enrage": [
+            "VOCÊ OUSA?! Então vai conhecer o verdadeiro vazio!",
+        ],
+        "hurt": [
+            "Dor? Esqueci o que é isso há mil invernos. Você vai me lembrar... no seu lugar.",
+        ],
+        "win": [
+            "Mais uma alma para a coleção. Descanse... no que sobrou de você.",
+        ],
+    },
+    "urso_rei": {
+        "intro": [
+            "Um rugido colossal sacode o planalto. O Rei se ergue nas patas traseiras, alto como uma árvore.",
+            "O dono da floresta encara você. Aqui, todo galho range em nome dele.",
+        ],
+        "taunt": [
+            "As garras do Rei rasgam o ar a um palmo do seu rosto.",
+            "Ele bate o peito num trovão surdo. O chão estremece.",
+            "Os olhos do Rei do Planalto não conhecem medo, só fome territorial.",
+        ],
+        "enrage": [
+            "FERIDO, o Rei ENLOUQUECE! Um urro de fúria espanta os pássaros a quilômetros.",
+        ],
+        "hurt": [
+            "O Rei recua um passo, sangrando, e rosna mais alto. Você o irritou de verdade.",
+        ],
+        "win": [
+            "O último rugido ecoa pelo vale. O planalto volta a pertencer só a ele.",
+        ],
+    },
+    "vulkar": {
+        "intro": [
+            "NENHUM verme passa da Goela. Eu sou a porta, e a porta esmaga.",
+            "Vocês pisam na garganta do Devorador. Eu sou o dente que fecha.",
+        ],
+        "taunt": [
+            "O Senhor dorme lá embaixo. O barulho da sua morte não vai acordá-lo.",
+            "Minha forja nunca esfria. Seus ossos vão alimentá-la.",
+        ],
+        "enrage": [
+            "A FORJA RUGE EM MIM! Sintam o calor do meu dever!",
+        ],
+        "hurt": [
+            "Rachaduras... não importa. Pedra não sente. Pedra CUMPRE.",
+        ],
+        "win": [
+            "A Goela permanece fechada. Voltem ao pó, intrusos.",
+        ],
+    },
+    "krezath": {
+        "intro": [
+            "Eu dormia antes dos seus deuses aprenderem a mentir. E vocês... me ACORDARAM.",
+            "Este mundo é uma ferida que EU abri. Bem-vindos ao fundo dela.",
+        ],
+        "taunt": [
+            "Varth brinca com ossos na torre dele. Eu devorei impérios antes do primeiro osso.",
+            "Seu aço derrete. Sua magia evapora. Sua coragem... essa eu saboreio devagar.",
+            "Cada escama minha é o túmulo de um herói melhor que você.",
+            "Grite. O magma gosta de companhia.",
+        ],
+        "summon": [
+            "Filhos! Saiam das rachaduras. O jantar chegou andando.",
+        ],
+        "enrage": [
+            "CHEGA. Agora vocês vão conhecer o fogo que EXISTIA ANTES DO SOL.",
+        ],
+        "hurt": [
+            "Isso... arranhou. Há mil anos ninguém me arranhava. Vou guardar seu crânio por isso.",
+        ],
+        "win": [
+            "O Brasal engole mais uma leva de tolos. Voltem quando forem lendas... se conseguirem.",
+        ],
+    },
+    "maraja": {
+        "intro": [
+            "A savana inteira é meu tapete, forasteiro. E você está pisando nele.",
+            "Branco como osso, quieto como o meio-dia. Eu sou o Marajá. Ajoelha ou corre.",
+        ],
+        "taunt": [
+            "O sol nasce quando EU abro os olhos.",
+            "Já comi caçadores mais gordos e mais corajosos que você.",
+            "Corre pro mar. Talvez os caranguejos tenham pena.",
+        ],
+        "enrage": [
+            "AGORA a juba levanta. Reze pros seus deuses de cidade.",
+        ],
+        "hurt": [
+            "Sangue na juba branca... isso vai custar caro, verme.",
+        ],
+        "win": [
+            "A savana volta ao silêncio. O Marajá volta ao trono de capim.",
         ],
     },
 }
@@ -617,22 +1008,174 @@ VALDARKRAM_SPAWNS = [
 
 # ===================== TORRE DO LORDE NECROTICO =====================
 TORRE_ANDAR1_SPAWNS = [
-    ("tumular_torre", 10, 12), ("tumular_torre", 30, 12), ("carniceiro_torre", 20, 13),
-    ("tumular_torre", 12, 28), ("carniceiro_torre", 31, 28), ("tumular_torre", 10, 40),
-    ("carniceiro_torre", 31, 40), ("carniceiro_torre", 19, 38),
+    ("tumular_torre", 22, 16), ("carniceiro_torre", 34, 40), ("tumular_torre", 40, 12), ("carniceiro_torre", 14, 44),
+    ("tumular_torre", 6, 34), ("carniceiro_torre", 9, 22), ("tumular_torre", 15, 28), ("carniceiro_torre", 15, 31),
+    ("tumular_torre", 21, 19), ("carniceiro_torre", 24, 13), ("tumular_torre", 24, 16), ("carniceiro_torre", 24, 28),
+    ("tumular_torre", 27, 28), ("carniceiro_torre", 30, 10), ("tumular_torre", 30, 43), ("carniceiro_torre", 33, 28),
+    ("tumular_torre", 36, 10), ("carniceiro_torre", 36, 16),
 ]
 TORRE_ANDAR2_SPAWNS = [
-    ("cavaleiro_torre", 10, 12), ("algoz_torre", 30, 12), ("cavaleiro_torre", 20, 13),
-    ("algoz_torre", 12, 28), ("cavaleiro_torre", 31, 28), ("algoz_torre", 10, 40),
-    ("cavaleiro_torre", 31, 40), ("algoz_torre", 19, 38),
+    ("cavaleiro_torre", 22, 16), ("algoz_torre", 34, 40), ("cavaleiro_torre", 40, 12), ("algoz_torre", 14, 44),
+    ("cavaleiro_torre", 6, 34), ("algoz_torre", 9, 22), ("cavaleiro_torre", 15, 28), ("algoz_torre", 15, 31),
+    ("cavaleiro_torre", 21, 19), ("algoz_torre", 24, 13), ("cavaleiro_torre", 24, 16), ("algoz_torre", 24, 28),
+    ("cavaleiro_torre", 27, 28), ("algoz_torre", 30, 10), ("cavaleiro_torre", 30, 43), ("algoz_torre", 33, 28),
+    ("cavaleiro_torre", 36, 10), ("algoz_torre", 36, 16),
 ]
 TORRE_ANDAR3_SPAWNS = [
-    ("necromante_torre", 10, 12), ("profanador_torre", 30, 12), ("necromante_torre", 20, 13),
-    ("profanador_torre", 12, 28), ("necromante_torre", 31, 28), ("profanador_torre", 10, 40),
-    ("necromante_torre", 31, 40),
+    ("necromante_torre", 22, 16), ("profanador_torre", 34, 40), ("necromante_torre", 40, 12), ("profanador_torre", 14, 44),
+    ("necromante_torre", 6, 34), ("profanador_torre", 9, 22), ("necromante_torre", 15, 28), ("profanador_torre", 15, 31),
+    ("necromante_torre", 21, 19), ("profanador_torre", 24, 13), ("necromante_torre", 24, 16), ("profanador_torre", 24, 28),
+    ("necromante_torre", 27, 28), ("profanador_torre", 30, 10), ("necromante_torre", 30, 43), ("profanador_torre", 33, 28),
+    ("necromante_torre", 36, 10), ("profanador_torre", 36, 16),
 ]
 CAMARA_VARTH_SPAWNS = [
     ("lorde_varth", 50, 22),       # CHEFE FINAL no topo da Torre (saiu do cemitério)
+]
+
+
+# FLORESTA DO ERMO (150x150): a mata profunda segue quieta... por enquanto.
+# A fauna foi realocada pros PLANALTOS ERMAIS (o mapa do Rei do Planalto).
+FLORESTA_ERMO_SPAWNS = []
+
+
+# PLANALTOS ERMAIS (120x120): 3 terraços de muralhas + o TOPO do Rei.
+# De baixo pra cima: caça passiva -> lobos cinzentos -> ursos -> REI DO PLANALTO.
+PLANALTOS_ERMAIS_SPAWNS = [
+    # --- TERRAÇO SUL (entrada, y 92-116): caça passiva ---
+    ("coelho", 30, 112), ("coelho", 84, 108), ("coelho", 44, 98), ("coelho", 90, 96),
+    ("lebre", 22, 104), ("lebre", 72, 114),
+    ("veado", 38, 106), ("veado", 80, 100), ("veado", 50, 92),
+    ("cervo", 26, 94), ("cervo", 88, 112),
+    # --- TERRAÇO DO MEIO (y 62-85): lobos cinzentos dos ermos ---
+    ("lobo_cinzento_ermo", 30, 80), ("lobo_cinzento_ermo", 82, 76), ("lobo_cinzento_ermo", 46, 70),
+    ("lobo_cinzento_ermo", 92, 66), ("lobo_cinzento_ermo", 24, 66), ("lobo_cinzento_ermo", 70, 82),
+    ("lobo_cinzento_ermo", 54, 63),
+    # --- TERRAÇO ALTO (y 32-55): ursos pardos e negros ---
+    ("urso_pardo", 31, 53), ("urso_pardo", 86, 46), ("urso_pardo", 44, 38), ("urso_pardo", 93, 32),
+    ("urso_negro", 34, 34), ("urso_negro", 76, 52), ("urso_negro", 52, 44),
+    # --- O TOPO (y 6-24): o trono a céu aberto do REI, com dois negros de escolta ---
+    ("urso_negro", 40, 20), ("urso_negro", 82, 18),
+    ("urso_rei", 60, 10),           # REI DO PLANALTO: o senhor do topo
+]
+
+
+# BRASAL, A FERIDA DO MUNDO (150x150, entrada OESTE vindo do Descampado; Goela no LESTE)
+BRASAL_SPAWNS = [
+    ("cinzal", 24, 44), ("cinzal", 38, 62), ("cinzal", 30, 88), ("cinzal", 52, 34),
+    ("cinzal", 60, 100), ("cinzal", 82, 30),
+    ("salamandra_brasal", 44, 50), ("salamandra_brasal", 66, 70), ("salamandra_brasal", 58, 118),
+    ("salamandra_brasal", 90, 108), ("salamandra_brasal", 100, 48),
+    ("imp_brasal", 36, 76), ("imp_brasal", 74, 44), ("imp_brasal", 84, 86), ("imp_brasal", 108, 66),
+    ("imp_brasal", 118, 96),
+    ("serpe_magma", 70, 90), ("serpe_magma", 96, 60), ("serpe_magma", 112, 110), ("serpe_magma", 124, 52),
+    ("golem_obsidiana", 88, 74), ("golem_obsidiana", 116, 80), ("golem_obsidiana", 130, 100),
+    ("golem_obsidiana", 134, 62),
+    # reforço: a Ferida fervilha
+    ("cinzal", 100, 120), ("cinzal", 46, 30), ("salamandra_brasal", 76, 26),
+    ("salamandra_brasal", 120, 130), ("imp_brasal", 56, 90), ("imp_brasal", 96, 96),
+    ("imp_brasal", 128, 40), ("serpe_magma", 50, 66), ("serpe_magma", 86, 116),
+    ("golem_obsidiana", 62, 118), ("cinzal", 138, 86), ("salamandra_brasal", 30, 60),
+]
+
+# GOELA DE KREZATH nível 1 (70x70; entrada OESTE, escada NORTE)
+GOELA_1_SPAWNS = [
+    ("imp_brasal", 16, 36), ("imp_brasal", 30, 48), ("imp_brasal", 44, 22),
+    ("forjado_krezath", 24, 30), ("forjado_krezath", 38, 40), ("forjado_krezath", 50, 30),
+    ("forjado_krezath", 34, 14), ("serpe_magma", 46, 52), ("serpe_magma", 20, 16),
+    ("devoto_krezath", 40, 26), ("devoto_krezath", 28, 56),
+    ("imp_brasal", 52, 44), ("forjado_krezath", 18, 48), ("serpe_magma", 36, 30),
+    ("devoto_krezath", 48, 14), ("imp_brasal", 26, 20),
+]
+
+# GOELA DE KREZATH nível 2 (70x70; entrada SUL, escada NORTE guardada por VULKAR)
+GOELA_2_SPAWNS = [
+    ("forjado_krezath", 30, 52), ("forjado_krezath", 42, 44),
+    ("templario_magma", 24, 40), ("templario_magma", 44, 30), ("templario_magma", 34, 20),
+    ("devoto_krezath", 28, 28), ("devoto_krezath", 44, 54), ("devoto_krezath", 38, 12),
+    ("serpe_magma", 20, 56),
+    ("forjado_krezath", 22, 16), ("templario_magma", 48, 40), ("devoto_krezath", 20, 34),
+    ("serpe_magma", 44, 60),
+    ("vulkar", 35, 10),             # GUARDIÃO da porta pro covil
+]
+
+# COVIL DE KREZATH (60x50; o DEVORADOR no norte, sobre o lago de magma)
+COVIL_KREZATH_SPAWNS = [
+    ("krezath", 30, 12),
+]
+
+
+# COSTA DE MARAVAI (300x300): savana viva ao norte, praia mansa ao sul
+COSTA_MARAVAI_SPAWNS = [
+    # capivaras na lagoa + antílopes pastando (passivos)
+    ("capivara", 62, 92), ("capivara", 80, 90), ("capivara", 70, 72),
+    ("antilope", 40, 60), ("antilope", 110, 48), ("antilope", 150, 90), ("antilope", 220, 70),
+    # avestruzes bravas e hienas em matilha
+    ("avestruz_brava", 130, 60), ("avestruz_brava", 180, 110), ("avestruz_brava", 90, 130),
+    ("hiena_rubra", 160, 40), ("hiena_rubra", 166, 44), ("hiena_rubra", 172, 40),
+    ("hiena_rubra", 240, 120), ("hiena_rubra", 246, 124), ("hiena_rubra", 60, 140),
+    # leões e búfalos
+    ("leao_ermal", 200, 90), ("leao_ermal", 120, 100), ("leao_ermal", 260, 60), ("leao_ermal", 40, 110),
+    ("bufalo_ermal", 100, 40), ("bufalo_ermal", 230, 140), ("bufalo_ermal", 170, 140),
+    # o TRONO DE CAPIM: Marajá no coração da savana
+    ("maraja", 150, 24),
+    # praia: caranguejos nas pedras, medusas encalhadas (longe da vila)
+    ("caranguejo_gigante", 40, 240), ("caranguejo_gigante", 90, 250), ("caranguejo_gigante", 140, 244),
+    ("caranguejo_gigante", 180, 252),
+    ("medusa_de_areia", 60, 254), ("medusa_de_areia", 120, 256), ("medusa_de_areia", 160, 250),
+]
+
+# VÉSPERA, A CIDADE MORTA (150x150): os vampiros reinam
+VESPERA_SPAWNS = [
+    # PATRULHA LUPINA: lobisomens invadindo a cidade rival
+    ("lobisomem_ferino", 115, 130), ("lobisomem_ferino", 100, 118),
+    # a CATEDRAL: o Ancião e sua corte
+    ("vampiro_anciao", 75, 20),
+    ("vampiro_nobre", 68, 26), ("vampiro_nobre", 82, 26),
+    # nobres patrulhando as ruas
+    ("vampiro_nobre", 30, 65), ("vampiro_nobre", 90, 90), ("vampiro_nobre", 120, 40),
+    # crias famintas pelos quarteirões
+    ("cria_vampirica", 30, 40), ("cria_vampirica", 60, 40), ("cria_vampirica", 120, 65),
+    ("cria_vampirica", 30, 90), ("cria_vampirica", 60, 90), ("cria_vampirica", 120, 90),
+    ("cria_vampirica", 60, 115), ("cria_vampirica", 90, 115), ("cria_vampirica", 30, 115),
+    # praça da fonte seca
+    ("cria_vampirica", 62, 70), ("vampiro_nobre", 86, 76),
+    # enxames nos beirais
+    ("enxame_morcegos", 45, 52), ("enxame_morcegos", 100, 78), ("enxame_morcegos", 75, 100),
+    ("enxame_morcegos", 110, 120),
+]
+
+# UMBRAVAL (300x300): a mata onde o sol nunca entrou
+UMBRAVAL_SPAWNS = [
+    # os LOBISOMENS: donos da mata, rivais eternos de Véspera
+    # PATRULHA VAMPÍRICA: invasores de Véspera caçando na mata rival
+    ("cria_vampirica", 118, 30), ("cria_vampirica", 112, 60),
+    ("lobisomem_ferino", 76, 270),
+    ("lobisomem_ferino", 139, 234),
+    ("lobisomem_uivador", 190, 206),
+    ("lobisomem_ferino", 267, 169),
+    ("lobisomem_uivador", 163, 124),
+    ("lobisomem_ferino", 147, 107),
+    ("lobisomem_uivador", 125, 75),
+    ("lobisomem_ferino", 105, 34),
+    ("lobisomem_ancestral", 113, 13),
+    ("lobo_umbrio", 145, 272),
+    ("vulto_noturno", 188, 271),
+    ("vulto_noturno", 110, 222),
+    ("lobo_umbrio", 112, 238),
+    ("lobo_umbrio", 76, 197),
+    ("vulto_noturno", 89, 207),
+    ("vulto_noturno", 21, 168),
+    ("lobo_umbrio", 239, 174),
+    ("lobo_umbrio", 167, 140),
+    ("vulto_noturno", 263, 120),
+    ("vulto_noturno", 114, 117),
+    ("lobo_umbrio", 132, 104),
+    ("lobo_umbrio", 113, 77),
+    ("vulto_noturno", 122, 76),
+    ("vulto_noturno", 108, 51),
+    ("lobo_umbrio", 111, 60),
+    ("lobo_umbrio", 107, 39),
+    ("vulto_noturno", 109, 42),
 ]
 
 
@@ -659,6 +1202,38 @@ def catalog():
 #  cada habilidade: chance (prob. de usar quando pronta) e cd (recarga em rodadas).
 # ===========================================================================
 MONSTER_ABILITIES = {
+    # --- comuns que ganharam habilidade (melhoria geral) ---
+    "rato_gigante":  [{"id": "mordida_infecta", "name": "Mordida Infecta", "type": "inflict",
+                       "status": "poison", "turns": 2, "dot": {"n": 1, "d": 4}, "chance": 0.35, "cd": 2}],
+    "lobo":          [{"id": "dilacerar", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 6}, "status": "bleeding", "turns": 2, "dot": {"n": 1, "d": 4}, "chance": 0.4, "cd": 2}],
+    "javali":        [{"id": "investida", "name": "Investida Selvagem", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 6}, "chance": 0.4, "cd": 2}],
+    "capanga":       [{"id": "facada_suja", "name": "Facada Suja", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 6}, "status": "bleeding", "turns": 2, "dot": {"n": 1, "d": 4}, "chance": 0.4, "cd": 2}],
+    "capanga_brutamontes": [{"id": "coronhada", "name": "Coronhada", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "intimidacao", "name": "Intimidação", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "vulto":         [{"id": "toque_gelido", "name": "Toque Gélido", "type": "drain",
+                       "dmg_bonus": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "escaravelho_praga": [{"id": "praga_rastejante", "name": "Praga Rastejante", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 1, "d": 6}, "chance": 0.4, "cd": 2}],
+    "servo_envolto": [{"id": "atadura_sufocante", "name": "Atadura Sufocante", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 1, "d": 6}, "chance": 0.4, "cd": 2}],
+    "escravo_amaldicoado": [{"id": "lamento", "name": "Lamento Amaldiçoado", "type": "fear",
+                       "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3},
+                      {"id": "garras_quebradas", "name": "Garras Quebradas", "type": "heavy",
+                       "dmg_bonus": {"n": 1, "d": 8}, "chance": 0.4, "cd": 2}],
+    "chacal_anubita": [{"id": "dilacerar_chacal", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 1, "d": 8}, "status": "bleeding", "turns": 2, "dot": {"n": 1, "d": 6}, "chance": 0.4, "cd": 2},
+                      {"id": "uivo_anubis", "name": "Uivo de Anúbis", "type": "fear",
+                       "save": "SAB", "dc": 13, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "carregador_canopo": [{"id": "esmagar_canopo", "name": "Esmagamento Canópico", "type": "heavy",
+                       "dmg_bonus": {"n": 2, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "praga_dos_vasos", "name": "Praga dos Vasos", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.4, "cd": 2}],
+
     # --- floresta (Repouso da Dama) ---
     "harpia":        [{"id": "canto", "name": "Canto Hipnótico", "type": "fear",
                        "save": "SAB", "dc": 12, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3}],
@@ -744,11 +1319,18 @@ MONSTER_ABILITIES = {
                        "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3}],
 
     # arsenal do necromante: muitas magias, ele varia a cada turno
-    "lorde_varth": [{"id": "nova_necrotica", "name": "Nova Necrótica", "type": "blast", "aoe": True,
-                       "dmg_bonus": {"n": 10, "d": 8}, "save": "CON", "dc": 18,
-                       "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.45, "cd": 3},
+    "lorde_varth": [{"id": "praga_de_atalech", "name": "Praga de Atalech", "type": "trueblast", "aoe": True, "ranged": True, "vfx": "atalech",
+                       "fixed": 50, "turns": 10, "dot": {"n": 0, "d": 1, "flat": 5}, "chance": 1.0, "cd": 10},
+                      {"id": "manto_de_vargo", "name": "Manto de Vargo", "type": "selfbuff", "ranged": True, "vfx": "purpleglow",
+                       "status": "couraca_vargo", "turns": 3, "chance": 0.5, "cd": 7},
+                      {"id": "cataclisma", "name": "Cataclisma", "type": "blast", "aoe": True, "ranged": True, "vfx": "cataclysm",
+                       "dmg_bonus": {"n": 16, "d": 10, "flat": 20}, "save": "CON", "dc": 19,
+                       "status": "maldicao", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.6, "cd": 3},
+                      {"id": "nova_necrotica", "name": "Nova Necrótica", "type": "blast", "aoe": True, "ranged": True,
+                       "dmg_bonus": {"n": 12, "d": 8, "flat": 10}, "save": "CON", "dc": 18,
+                       "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.5, "cd": 2},
                       {"id": "raio_necrotico", "name": "Raio Necrótico", "type": "heavy",
-                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 1},
+                       "dmg_bonus": {"n": 6, "d": 12, "flat": 10}, "chance": 0.5, "cd": 1},
                       {"id": "dreno_de_vida", "name": "Dreno de Vida", "type": "drain",
                        "chance": 0.5, "cd": 2},
                       {"id": "praga_mortal", "name": "Praga Mortal", "type": "inflict",
@@ -816,7 +1398,225 @@ MONSTER_ABILITIES = {
                        "save": "SAB", "dc": 18, "status": "frightened", "turns": 3, "chance": 0.35, "cd": 3},
                       {"id": "banquete_dos_mortos", "name": "Banquete dos Mortos", "type": "heal",
                        "heal": {"n": 6, "d": 8}, "chance": 0.3, "cd": 4}],
+
+    # --- FERAS DA FLORESTA DO ERMO ---
+    "lobo_cinzento_ermo": [{"id": "dilacerar_ermo", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2},
+                      {"id": "bote_lupino", "name": "Bote Lupino", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "uivo_dos_ermos", "name": "Uivo dos Ermos", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "urso_pardo": [{"id": "patada_parda", "name": "Patada Brutal", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "dilacerar_urso", "name": "Dilacerar Carne", "type": "inflict",
+                       "dmg_bonus": {"n": 2, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2},
+                      {"id": "rugido_pardo", "name": "Rugido", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "urso_negro": [{"id": "esmagar_negro", "name": "Esmagamento", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "retalhar", "name": "Retalhar", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "rugido_negro", "name": "Rugido Feroz", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
+    "urso_rei": [{"id": "pisao_sismico", "name": "Pisão Sísmico", "type": "blast", "aoe": True, "ranged": True,
+                       "dmg_bonus": {"n": 8, "d": 10, "flat": 10}, "save": "DES", "dc": 18,
+                       "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.5, "cd": 3},
+                      {"id": "patada_real", "name": "Patada do Rei", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 1},
+                      {"id": "rugido_do_rei", "name": "Rugido do Rei", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 3, "chance": 0.4, "cd": 3},
+                      {"id": "dilacerar_real", "name": "Dilacerar Real", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.45, "cd": 2}],
+
+    # --- BRASAL / GOELA DE KREZATH ---
+    "cinzal": [{"id": "bote_cinzento", "name": "Bote Cinzento", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "garras_em_brasa", "name": "Garras em Brasa", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "salamandra_brasal": [{"id": "cuspe_de_fogo", "name": "Cuspe de Fogo", "type": "heavy", "ranged": True,
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "lingua_flamejante", "name": "Língua Flamejante", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.45, "cd": 2}],
+    "serpe_magma": [{"id": "bote_magmatico", "name": "Bote Magmático", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "constricao_ardente", "name": "Constrição Ardente", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.4, "cd": 2},
+                      {"id": "silvo_primordial", "name": "Silvo Primordial", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "golem_obsidiana": [{"id": "esmagar_obsidiana", "name": "Esmagar", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 10}, "chance": 0.55, "cd": 2},
+                      {"id": "tremor_local", "name": "Tremor", "type": "gaze",
+                       "save": "DES", "dc": 17, "status": "stunned", "turns": 1, "chance": 0.3, "cd": 3}],
+    "imp_brasal": [{"id": "espeto_ardente", "name": "Espeto Ardente", "type": "inflict",
+                       "dmg_bonus": {"n": 2, "d": 10}, "status": "burning", "turns": 2, "dot": {"n": 2, "d": 8}, "chance": 0.5, "cd": 2},
+                      {"id": "risada_infernal", "name": "Risada Infernal", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "forjado_krezath": [{"id": "corte_fundido", "name": "Corte Fundido", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.55, "cd": 2},
+                      {"id": "lamina_ardente", "name": "Lâmina Ardente", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.4, "cd": 2}],
+    "templario_magma": [{"id": "julgamento_igneo", "name": "Julgamento Ígneo", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 12}, "chance": 0.55, "cd": 2},
+                      {"id": "brasa_sagrada", "name": "Brasa Sagrada", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.4, "cd": 2},
+                      {"id": "voto_da_forja", "name": "Voto da Forja", "type": "heal",
+                       "heal": {"n": 5, "d": 10}, "chance": 0.3, "cd": 4}],
+    "devoto_krezath": [{"id": "prece_incendiaria", "name": "Prece Incendiária", "type": "blast", "aoe": True, "ranged": True,
+                       "dmg_bonus": {"n": 10, "d": 8, "flat": 10}, "save": "DES", "dc": 17,
+                       "status": "burning", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.5, "cd": 3},
+                      {"id": "labareda_dirigida", "name": "Labareda Dirigida", "type": "heavy", "ranged": True,
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2}],
+    "cria_krezath": [{"id": "sopro_juvenil", "name": "Sopro Juvenil", "type": "inflict",
+                       "dmg_bonus": {"n": 2, "d": 10}, "status": "burning", "turns": 2, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "vulkar": [{"id": "martelo_sismico", "name": "Martelo Sísmico", "type": "blast", "aoe": True, "ranged": True, "vfx": "magmastorm",
+                       "dmg_bonus": {"n": 10, "d": 10, "flat": 16}, "save": "DES", "dc": 18,
+                       "status": "burning", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.5, "cd": 3},
+                      {"id": "furia_da_forja", "name": "Fúria da Forja", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.4, "cd": 6},
+                      {"id": "pancada_do_guardiao", "name": "Pancada do Guardião", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 12}, "chance": 0.55, "cd": 1},
+                      {"id": "brado_da_goela", "name": "Brado da Goela", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
+    "krezath": [{"id": "halito_do_fim", "name": "Hálito do Fim", "type": "trueblast", "aoe": True, "ranged": True, "vfx": "dragonfire",
+                       "fixed": 65, "status": "chama_eterna", "turns": 8, "dot": {"n": 0, "d": 1, "flat": 6}, "chance": 1.0, "cd": 9},
+                      {"id": "escamas_de_obsidiana", "name": "Escamas de Obsidiana", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 3, "chance": 0.5, "cd": 7},
+                      {"id": "tempestade_de_magma", "name": "Tempestade de Magma", "type": "blast", "aoe": True, "ranged": True, "vfx": "magmastorm",
+                       "dmg_bonus": {"n": 18, "d": 10, "flat": 30}, "save": "DES", "dc": 20,
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.6, "cd": 3},
+                      {"id": "rugido_primordial", "name": "Rugido Primordial", "type": "fear",
+                       "save": "SAB", "dc": 19, "status": "frightened", "turns": 3, "chance": 0.4, "cd": 3},
+                      {"id": "cauda_sismica", "name": "Cauda Sísmica", "type": "heavy",
+                       "dmg_bonus": {"n": 8, "d": 12}, "chance": 0.55, "cd": 1},
+                      {"id": "garras_do_devorador", "name": "Garras do Devorador", "type": "inflict",
+                       "dmg_bonus": {"n": 4, "d": 12}, "status": "bleeding", "turns": 3, "dot": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2}],
+
+    # --- COSTA DE MARAVAI ---
+    "avestruz_brava": [{"id": "coice_duplo", "name": "Coice Duplo", "type": "heavy",
+                       "dmg_bonus": {"n": 3, "d": 8}, "chance": 0.5, "cd": 2}],
+    "hiena_rubra": [{"id": "mordida_rasgante", "name": "Mordida Rasgante", "type": "inflict",
+                       "status": "bleeding", "turns": 2, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "leao_ermal": [{"id": "bote_do_leao", "name": "Bote do Leão", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "rugido_ermal", "name": "Rugido", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "bufalo_ermal": [{"id": "investida", "name": "Investida", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 10}, "chance": 0.5, "cd": 2}],
+    "caranguejo_gigante": [{"id": "pinça_esmagadora", "name": "Pinça Esmagadora", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "carapaça", "name": "Carapaça", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.25, "cd": 6}],
+    "medusa_de_areia": [{"id": "ferroada_urticante", "name": "Ferroada Urticante", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.55, "cd": 2}],
+    "maraja": [{"id": "bote_real_maraja", "name": "Bote Real", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.55, "cd": 1},
+                      {"id": "rugido_do_maraja", "name": "Rugido do Marajá", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "sol_da_savana", "name": "Sol da Savana", "type": "heal",
+                       "heal": {"n": 6, "d": 10}, "chance": 0.3, "cd": 4},
+                      {"id": "dilacerar_alvo", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.4, "cd": 2}],
+    # --- UMBRAVAL ---
+    "lobo_umbrio": [{"id": "bote_umbrio", "name": "Bote Umbrío", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "uivo_da_noite", "name": "Uivo da Noite", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "vulto_noturno": [{"id": "abraco_gelido", "name": "Abraço Gélido", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "slowed", "turns": 2, "chance": 0.45, "cd": 2},
+                      {"id": "sussurro_umbrio", "name": "Sussurro Umbrío", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
+    # --- VÉSPERA: vampiros ---
+    "cria_vampirica": [{"id": "mordida_voraz", "name": "Mordida Voraz", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "sede_de_sangue", "name": "Sede de Sangue", "type": "heal",
+                       "heal": {"n": 4, "d": 10}, "chance": 0.35, "cd": 3}],
+    "vampiro_nobre": [{"id": "estocada_carmesim", "name": "Estocada Carmesim", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 2},
+                      {"id": "forma_de_nevoa", "name": "Forma de Névoa", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.3, "cd": 6},
+                      {"id": "beber_sangue", "name": "Beber Sangue", "type": "heal",
+                       "heal": {"n": 6, "d": 10}, "chance": 0.35, "cd": 3}],
+    "vampiro_anciao": [{"id": "olhar_hipnotico", "name": "Olhar Hipnótico", "type": "fear",
+                       "save": "SAB", "dc": 18, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "banquete_de_sangue", "name": "Banquete de Sangue", "type": "heal",
+                       "heal": {"n": 8, "d": 10}, "chance": 0.35, "cd": 3},
+                      {"id": "convocar_a_noite", "name": "Convocar a Noite", "type": "summon",
+                       "minion": "enxame_morcegos", "count": 2, "chance": 0.4, "cd": 5},
+                      {"id": "lamina_de_sangue", "name": "Lâmina de Sangue", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 12}, "chance": 0.5, "cd": 2}],
+    # --- UMBRAVAL: lobisomens ---
+    "lobisomem_ferino": [{"id": "garras_dilacerantes", "name": "Garras Dilacerantes", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.5, "cd": 2},
+                      {"id": "bote_lupino", "name": "Bote Lupino", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2}],
+    "lobisomem_uivador": [{"id": "uivo_aterrador", "name": "Uivo Aterrador", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "bote_lupino_u", "name": "Bote Lupino", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 2},
+                      {"id": "frenesi", "name": "Frenesi", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.25, "cd": 6}],
+    "lobisomem_ancestral": [{"id": "uivo_ancestral", "name": "Uivo Ancestral", "type": "fear",
+                       "save": "SAB", "dc": 18, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "furia_da_lua", "name": "Fúria da Lua", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 3, "chance": 0.3, "cd": 6},
+                      {"id": "dilacerar_ancestral", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 4, "d": 12}, "status": "bleeding", "turns": 3, "dot": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2}],
 }
+
+
+# --- arsenal SOMBRIO extra da Torre do Varth: habilidades e magias novas, todas sombrias.
+# o campo "vfx" escolhe o efeito visual sombrio no cliente (shadowblast/souldrain/cursesigil/darkbolt/shadow/soul).
+_TOWER_EXTRA = {
+    "tumular_torre": [
+        {"id": "vomito_necrotico", "name": "Vômito Necrótico", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 3, "d": 8}, "save": "CON", "dc": 15, "status": "poison", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.35, "cd": 3},
+        {"id": "agarrar_tumular", "name": "Agarrão Pútrido", "type": "inflict", "vfx": "shadow",
+         "dmg_bonus": {"n": 2, "d": 8}, "status": "restrained", "turns": 2, "chance": 0.35, "cd": 3}],
+    "carniceiro_torre": [
+        {"id": "decepar", "name": "Decepar", "type": "heavy", "vfx": "shadow",
+         "dmg_bonus": {"n": 3, "d": 10}, "chance": 0.45, "cd": 2},
+        {"id": "banquete_macabro", "name": "Banquete Macabro", "type": "heal", "vfx": "soul",
+         "heal": {"n": 4, "d": 10}, "chance": 0.3, "cd": 4}],
+    "cavaleiro_torre": [
+        {"id": "lamina_da_alma", "name": "Lâmina da Alma", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 3, "d": 10}, "chance": 0.4, "cd": 2},
+        {"id": "aura_profana", "name": "Aura Profana", "type": "inflict", "vfx": "cursesigil",
+         "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3}],
+    "algoz_torre": [
+        {"id": "marca_do_carrasco", "name": "Marca do Carrasco", "type": "gaze", "vfx": "cursesigil",
+         "save": "SAB", "dc": 16, "status": "maldicao", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.35, "cd": 3},
+        {"id": "lamina_sangrenta", "name": "Lâmina Sangrenta", "type": "inflict", "vfx": "shadow",
+         "dmg_bonus": {"n": 3, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "necromante_torre": [
+        {"id": "raio_necrotico", "name": "Raio Necrótico", "type": "heavy", "vfx": "darkbolt",
+         "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2},
+        {"id": "nuvem_de_almas", "name": "Nuvem de Almas", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 5, "d": 8}, "save": "CON", "dc": 17, "status": "blinded", "turns": 2, "chance": 0.35, "cd": 3}],
+    "profanador_torre": [
+        {"id": "colher_almas", "name": "Colher Almas", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2},
+        {"id": "tempestade_profana", "name": "Tempestade Profana", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 6, "d": 8}, "save": "DES", "dc": 18, "status": "maldicao", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.4, "cd": 3}],
+    "lorde_varth": [
+        {"id": "chuva_de_caveiras", "name": "Chuva de Caveiras", "type": "blast", "aoe": True, "vfx": "shadowblast",
+         "dmg_bonus": {"n": 8, "d": 8}, "save": "DES", "dc": 18, "status": "maldicao", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.4, "cd": 3},
+        {"id": "ceifar_alma", "name": "Ceifar a Alma", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 6, "d": 10}, "chance": 0.45, "cd": 2},
+        # --- 3 habilidades ÚNICAS do Lorde Varth (lich) ---
+        {"id": "raio_do_abismo", "name": "Raio do Abismo", "type": "heavy", "vfx": "darkbolt",
+         "dmg_bonus": {"n": 8, "d": 12}, "chance": 0.45, "cd": 2},
+        {"id": "coro_dos_condenados", "name": "Coro dos Condenados", "type": "fear", "vfx": "cursesigil",
+         "save": "SAB", "dc": 19, "status": "frightened", "turns": 3, "chance": 0.4, "cd": 3},
+        {"id": "banquete_de_almas", "name": "Banquete de Almas", "type": "drain", "vfx": "souldrain",
+         "dmg_bonus": {"n": 8, "d": 10}, "chance": 0.45, "cd": 2},
+        # --- HABILIDADE SUPREMA: cataclisma necrótico 10x10 (50 fixo + Veneno de Varth) ---
+        {"id": "cataclisma_de_vargo", "name": "Cataclisma de Vargo", "type": "blast", "aoe": True, "vfx": "cataclysm",
+         "fixed": 50, "status": "veneno_varth", "turns": 10, "dot": {"n": 0, "d": 1, "flat": 5},
+         "chance": 0.45, "cd": 4}],
+}
+for _mid, _extra in _TOWER_EXTRA.items():
+    MONSTER_ABILITIES.setdefault(_mid, [])
+    MONSTER_ABILITIES[_mid].extend(_extra)
 
 
 def abilities_for(type_id):

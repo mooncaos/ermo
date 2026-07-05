@@ -79,14 +79,17 @@ def xp_progress(xp):
 
 
 def _perm_hp_bonus(ficha, level):
-    """Bonus de vida maxima PERMANENTES (fora do nivel): bencao do Pofnir (+5) e
-    o talento Robusto (+2/nivel)."""
-    from . import feats
+    """Bonus de vida maxima PERMANENTES (fora do nivel): bencao do Pofnir (+5),
+    o talento Robusto (+2/nivel) e PV/nivel da RACA (ex.: Robustez Ana, +1/nivel)."""
+    from . import feats, races
     b = 5 if ficha.get("blessing_pofnir") else 0
     for fid in ficha.get("feats", []):
         fd = feats.get(fid)
         if fd and fd.get("hp_per_level"):
             b += int(fd["hp_per_level"]) * max(1, level)
+    rp = races.race_passives_for(ficha.get("race_id"))
+    if rp.get("hp_lvl"):
+        b += int(rp["hp_lvl"]) * max(1, level)
     return b
 
 

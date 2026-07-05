@@ -111,18 +111,33 @@ def apply_class(ficha, class_id, plus2):
 TRANSFORMS = {
     "druida": [
         {"id": "lobo",  "name": "Lobo",  "icon": "🐺",
-         "desc": "Forma Selvagem do Lobo: veloz e feroz. +4 de dano, +2 deslocamento e +1 para acertar.",
-         "bonus": {"dmg_flat": 4, "speed": 2, "atk": 1}},
+         "desc": "Forma Selvagem do Lobo: o caçador furtivo do druida. Dano de assassino (golpe furtivo que escala com o nível), +3 para acertar e +3 deslocamento, mas a pele fina derruba a defesa (cada golpe físico te machuca bem mais). Não lança magia nesta forma.",
+         "no_spells": True,
+         "bonus": {"dmg_dice": 3, "dmg_flat": 8, "atk": 3, "speed": 3, "armor": -14, "sneak_form": True}},
         {"id": "urso",  "name": "Urso",  "icon": "🐻",
-         "desc": "Forma Selvagem do Urso: muralha de músculo. +4 de armadura e +2 de dano.",
-         "bonus": {"ac": 4, "dmg_flat": 2}},
+         "desc": "Forma Selvagem do Urso: muralha de músculo e couro. Mitigação altíssima (cada golpe físico tira bem menos vida) e +25 de vida máxima, mas os golpes pesados são lentos (-2 de dano). Não lança magia nesta forma.",
+         "no_spells": True,
+         "bonus": {"armor": 28, "dmg_flat": -2, "hp": 25}},
         {"id": "aguia", "name": "Águia", "icon": "🦅",
-         "desc": "Forma Selvagem da Águia: ágil e certeira. +3 deslocamento, +3 para acertar e +1 de dano.",
+         "desc": "Forma Selvagem da Águia: ágil e certeira. +3 deslocamento, +3 para acertar e +1 de dano. Não lança magia nesta forma.",
+         "no_spells": True,
          "bonus": {"speed": 3, "atk": 3, "dmg_flat": 1}},
         {"id": "mainecoon", "name": "Maine Coon", "icon": "🐈",
-         "desc": "A forma abençoada por Pofnir: o grande gato Maine Coon. +4 em tudo e regenera 3 de vida a cada turno.",
-         "requires": "blessing_pofnir",
-         "bonus": {"ac": 4, "atk": 4, "dmg_flat": 4, "speed": 4}, "regen": 3},
+         "desc": "A forma abençoada por Pofnir: o grande gato Maine Coon, majestoso e equilibrado. +2 dados e +8 de dano, +5 para acertar, boa mitigação, 20% de resistência mágica, +25 de vida, +4 deslocamento e regenera 4 de vida por turno. Não lança magia nesta forma.",
+         "requires": "blessing_pofnir", "no_spells": True,
+         "bonus": {"armor": 18, "mres": 0.20, "atk": 5, "dmg_dice": 2, "dmg_flat": 8, "speed": 4, "hp": 25}, "regen": 4},
+    ],
+    "ladino": [
+        {"id": "lebre", "name": "Lebre de Nharé", "icon": "🐇",
+         "desc": "O dom de Nharé: vira uma lebre e some do mundo. Nenhum jogador ou monstro te enxerga, e os monstros não te atacam, até você atacar ou desfazer a forma. +3 de deslocamento.",
+         "requires": "dom_nhare", "invisible": True,
+         "bonus": {"speed": 3}},
+    ],
+    "bruxo": [
+        {"id": "coruja", "name": "Coruja Demoníaca", "icon": "🦉",
+         "desc": "O dom de Nherith: vira uma coruja demoníaca envolta na luz roxa do Faraó. +10 de resistência (cada golpe te tira 10 a menos), +10 de vida máxima e libera o Golpe da Morte Alada. Mas você NÃO pode lançar magias nesta forma.",
+         "requires": "dom_nherith", "no_spells": True,
+         "bonus": {"block": 10, "hp": 10}},
     ],
 }
 
@@ -161,3 +176,33 @@ def can_use_form(ficha, form_id):
     if req and not ficha.get(req):
         return False
     return True
+
+
+# ===========================================================================
+#  POSTURAS — só do Paladino (devoção a Valíria). É um menu parecido com o de
+#  transformação, mas serve pra OUTRA coisa: posturas de combate que mudam o
+#  papel do paladino (tanque / suporte / mártir). Trocadas durante a luta.
+# ===========================================================================
+POSTURES = {
+    "paladino": [
+        {"id": "soldado", "name": "Soldado de Valíria", "icon": "🛡️",
+         "desc": "A fortaleza de Valíria: recebe E causa 75% menos dano, e os debuffs também minguam 75%. Você vira um muro."},
+        {"id": "mao", "name": "A Mão de Valíria", "icon": "✋",
+         "desc": "Você para de causar dano, mas a Imposição das Mãos passa a curar o GRUPO inteiro, e todos no grupo recebem 20% menos dano."},
+        {"id": "martir", "name": "Mártir de Valíria", "icon": "✨",
+         "desc": "Sua CA zera e você não defende mais golpes: absorve TODO o dano que iria pro grupo. Ganha a Luz da Criação, um raio radiante que soma todo o seu dano e cura o grupo a cada acerto."},
+        {"id": "combatente", "name": "Combatente Valiriano", "icon": "⚔️",
+         "desc": "Fúria sagrada ofensiva: todo ataque básico ACERTA e crava 2 Castigos Divinos, e cada golpe ainda cura uma Imposição das Mãos. Em troca, abre mão do escudo: perde o bloqueio E a armadura do escudo."},
+    ],
+}
+
+
+def postures_for(class_id):
+    return POSTURES.get(class_id, [])
+
+
+def get_posture(class_id, posture_id):
+    for p in POSTURES.get(class_id, []):
+        if p["id"] == posture_id:
+            return p
+    return None
