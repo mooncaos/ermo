@@ -364,8 +364,8 @@ def _apply_damage(target, dmg, enc=None, magic=False, bypass=False):
                        and c["cid"] != target["cid"]), None)
         if martyr:
             target = martyr
-    if has_status(target, "couraca_vargo") and dmg > 0 and not bypass:
-        dmg = dmg // 2                 # Manto de Vargo: o lorde brilha em roxo, só toma metade do dano
+    if (has_status(target, "couraca_vargo") or has_status(target, "escamas_krezath")) and dmg > 0 and not bypass:
+        dmg = dmg // 2                 # égide (Manto de Vargo / Escamas de Krezath): metade do dano
     if bypass:                         # DANO VERDADEIRO (Praga de Atalech): fura TODA a defesa
         dmg = max(0, int(dmg))
         if has_status(target, "facalan_folego"):
@@ -485,7 +485,7 @@ def _spend_slot(res, min_level=1):
 #    DoT: poison/burning/bleeding (dano por turno; poison tambem desvantagem).
 # ===========================================================================
 INCAP_STATUS = ("stunned",)
-DOT_STATUS = ("poison", "burning", "bleeding", "maldicao", "veneno_varth", "praga_atalech")
+DOT_STATUS = ("poison", "burning", "bleeding", "maldicao", "veneno_varth", "praga_atalech", "chama_eterna")
 
 def apply_status(c, name, turns, dmg=None):
     """Aplica/renova um status no combatente (fica a maior duracao)."""
@@ -1067,15 +1067,15 @@ def monster_ability(enc, mon, tgt, ab):
         fixed = int(ab.get("fixed", 50)); splash = []
         for pl in alive_of(enc, "player"):
             if has_status(pl, "cancao"):                 # Canção do Cabaré: reflete tudo no inimigo
-                apply_status(mon, "praga_atalech", int(ab.get("turns", 10)), ab.get("dot"))
+                apply_status(mon, ab.get("status", "praga_atalech"), int(ab.get("turns", 10)), ab.get("dot"))
                 splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": 0, "blocked": True,
                                "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": False})
                 continue
             _apply_damage(pl, fixed, enc, bypass=True)   # dano verdadeiro: ignora armadura/esquiva/ward/mres
-            apply_status(pl, "praga_atalech", int(ab.get("turns", 10)), ab.get("dot"))   # veneno verdadeiro
+            apply_status(pl, ab.get("status", "praga_atalech"), int(ab.get("turns", 10)), ab.get("dot"))   # DOT verdadeiro
             splash.append({"cid": pl["cid"], "name": pl["name"], "dmg": fixed,
                            "hp": pl["hp"], "hp_max": pl["hp_max"], "killed": not pl.get("alive")})
-        res.update({"aoe": True, "truedmg": True, "splash": splash, "applied": "praga_atalech",
+        res.update({"aoe": True, "truedmg": True, "splash": splash, "applied": ab.get("status", "praga_atalech"),
                     "dmg": (splash[0]["dmg"] if splash else 0),
                     "mon_hp": mon["hp"], "mon_hp_max": mon["hp_max"],
                     "target_hp": tgt["hp"], "killed": not tgt.get("alive")})

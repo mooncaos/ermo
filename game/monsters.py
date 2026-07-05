@@ -436,6 +436,91 @@ MONSTERS = {
         "drops": [("pelego_do_rei", 1.0, 1, 1), ("couro_urso", 1.0, 2, 3), ("galhada", 1.0, 1, 2), ("coin_gold", 1.0, 5, 9)],
         "bronze": (1200, 2000),
     },
+
+    # ===================== BRASAL, A FERIDA DO MUNDO (leste do Descampado) =====================
+    # A elite dos ermos: tudo aqui é mais forte que os ursos da Floresta.
+    "cinzal": {
+        "name": "Espreitador de Cinzas", "hp": 1600, "ac": 19, "atk": 21,
+        "dmg": {"n": 6, "d": 10, "flat": 22}, "reach": 1, "speed": 8,
+        "xp": 2600, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "garras de cinza",
+        "drops": [("escama_obsidiana", 0.5, 1, 1), ("nucleo_magma", 0.35, 1, 1), ("seiva_flamejante", 0.4, 1, 1), ("coin_gold", 0.6, 2, 4)], "bronze": (600, 950),
+    },
+    "salamandra_brasal": {
+        "name": "Salamandra do Brasal", "hp": 1750, "ac": 19, "atk": 21,
+        "dmg": {"n": 6, "d": 10, "flat": 24}, "reach": 2, "speed": 6,
+        "xp": 2800, "dex": 4, "glyph": "\U0001f98e", "kind": "besta", "size": 2,
+        "atk_name": "chicote de fogo",
+        "drops": [("nucleo_magma", 0.6, 1, 2), ("seiva_flamejante", 0.5, 1, 1), ("coin_gold", 0.6, 2, 4)], "bronze": (650, 1000),
+    },
+    "serpe_magma": {
+        "name": "Serpe de Magma", "hp": 1950, "ac": 20, "atk": 22,
+        "dmg": {"n": 7, "d": 10, "flat": 24}, "reach": 2, "speed": 6,
+        "xp": 3200, "dex": 4, "glyph": "\U0001f409", "kind": "draconico", "size": 3,
+        "atk_name": "bote incandescente",
+        "drops": [("escama_obsidiana", 0.8, 1, 2), ("nucleo_magma", 0.5, 1, 1), ("coin_gold", 0.8, 3, 5)], "bronze": (800, 1200),
+    },
+    "golem_obsidiana": {
+        "name": "Golem de Obsidiana", "hp": 2600, "ac": 22, "atk": 21,
+        "dmg": {"n": 7, "d": 10, "flat": 28}, "reach": 2, "speed": 3,
+        "xp": 3800, "dex": 1, "glyph": "\U0001f5ff", "kind": "construto", "size": 4,
+        "atk_name": "punho de pedra viva",
+        "drops": [("escama_obsidiana", 1.0, 2, 3), ("fragmento_forja", 0.7, 1, 2), ("coin_gold", 0.8, 3, 6)], "bronze": (900, 1400),
+    },
+    "imp_brasal": {
+        "name": "Diabrete do Brasal", "hp": 1450, "ac": 20, "atk": 22,
+        "dmg": {"n": 5, "d": 10, "flat": 20}, "reach": 1, "speed": 8,
+        "xp": 2400, "dex": 5, "glyph": "\U0001f47f", "kind": "infernal", "size": 1,
+        "atk_name": "tridente em brasa",
+        "drops": [("fragmento_forja", 0.6, 1, 2), ("seiva_flamejante", 0.4, 1, 1), ("coin_gold", 0.5, 2, 4)], "bronze": (550, 900),
+    },
+    # --- Goela de Krezath (caverna) ---
+    "forjado_krezath": {
+        "name": "Forjado de Krezath", "hp": 2800, "ac": 22, "atk": 23,
+        "dmg": {"n": 8, "d": 10, "flat": 28}, "reach": 1, "speed": 4,
+        "xp": 4200, "dex": 2, "glyph": "\u2694\ufe0f", "kind": "construto", "size": 3,
+        "atk_name": "lâmina de obsidiana",
+        "drops": [("fragmento_forja", 1.0, 1, 3), ("escama_obsidiana", 0.6, 1, 2), ("coin_gold", 0.9, 3, 6)], "bronze": (1000, 1500),
+    },
+    "templario_magma": {
+        "name": "Templário do Magma", "hp": 3100, "ac": 23, "atk": 24,
+        "dmg": {"n": 8, "d": 10, "flat": 32}, "reach": 2, "speed": 4,
+        "xp": 4600, "dex": 2, "glyph": "\U0001f6e1\ufe0f", "kind": "construto", "size": 3,
+        "atk_name": "espadão fundido",
+        "drops": [("coracao_brasa", 0.5, 1, 1), ("fragmento_forja", 0.8, 1, 2), ("coin_gold", 1.0, 4, 7)], "bronze": (1200, 1800),
+    },
+    "devoto_krezath": {
+        "name": "Devoto de Krezath", "hp": 2200, "ac": 21, "atk": 23,
+        "dmg": {"n": 6, "d": 10, "flat": 24}, "reach": 3, "speed": 5,
+        "xp": 3600, "dex": 3, "glyph": "\U0001f9d9", "kind": "infernal", "size": 2,
+        "atk_name": "labareda devota",
+        "drops": [("coracao_brasa", 0.4, 1, 1), ("seiva_flamejante", 0.6, 1, 2), ("coin_gold", 0.8, 3, 5)], "bronze": (900, 1400),
+    },
+    "cria_krezath": {
+        "name": "Cria de Krezath", "hp": 950, "ac": 19, "atk": 21,
+        "dmg": {"n": 5, "d": 10, "flat": 18}, "reach": 1, "speed": 7,
+        "xp": 1200, "dex": 4, "glyph": "\U0001f409", "kind": "draconico", "size": 2,
+        "atk_name": "mordida em brasa",
+        "drops": [("escama_obsidiana", 0.7, 1, 1), ("coin_gold", 0.4, 1, 3)], "bronze": (300, 550),
+    },
+    "vulkar": {
+        "name": "Vulkar, Guardião da Goela", "hp": 5200, "ac": 24, "atk": 24,
+        "dmg": {"n": 9, "d": 10, "flat": 34}, "reach": 2, "speed": 4,
+        "xp": 6500, "dex": 2, "glyph": "\U0001f5ff", "kind": "construto", "size": 4, "boss": True,
+        "atk_name": "martelo da fornalha",
+        "drops": [("martelo_do_guardiao", 1.0, 1, 1), ("elmo_da_fornalha", 1.0, 1, 1), ("coracao_brasa", 1.0, 1, 2), ("coin_gold", 1.0, 5, 9)],
+        "bronze": (1800, 2800),
+    },
+    "krezath": {
+        "name": "Krezath, o Devorador Soterrado", "hp": 12000, "ac": 26, "atk": 27,
+        "dmg": {"n": 10, "d": 12, "flat": 38}, "reach": 3, "speed": 5,
+        "xp": 9000, "dex": 3, "glyph": "\U0001f409", "kind": "draconico", "size": 5,
+        "atk_name": "garras primordiais", "boss": True,
+        "summon_type": ["cria_krezath"],
+        "summons": 8,
+        "drops": [("presa_do_devorador", 1.0, 1, 1), ("coracao_de_krezath", 1.0, 1, 1), ("manto_de_escamas", 1.0, 1, 1), ("anel_da_fornalha", 1.0, 1, 1), ("garra_krezath", 1.0, 2, 3), ("coin_gold", 1.0, 8, 14)],
+        "bronze": (2500, 4000),
+    },
 }
 
 
@@ -554,6 +639,49 @@ BOSS_BARKS = {
         ],
         "win": [
             "O último rugido ecoa pelo vale. O planalto volta a pertencer só a ele.",
+        ],
+    },
+    "vulkar": {
+        "intro": [
+            "NENHUM verme passa da Goela. Eu sou a porta, e a porta esmaga.",
+            "Vocês pisam na garganta do Devorador. Eu sou o dente que fecha.",
+        ],
+        "taunt": [
+            "O Senhor dorme lá embaixo. O barulho da sua morte não vai acordá-lo.",
+            "Minha forja nunca esfria. Seus ossos vão alimentá-la.",
+        ],
+        "enrage": [
+            "A FORJA RUGE EM MIM! Sintam o calor do meu dever!",
+        ],
+        "hurt": [
+            "Rachaduras... não importa. Pedra não sente. Pedra CUMPRE.",
+        ],
+        "win": [
+            "A Goela permanece fechada. Voltem ao pó, intrusos.",
+        ],
+    },
+    "krezath": {
+        "intro": [
+            "Eu dormia antes dos seus deuses aprenderem a mentir. E vocês... me ACORDARAM.",
+            "Este mundo é uma ferida que EU abri. Bem-vindos ao fundo dela.",
+        ],
+        "taunt": [
+            "Varth brinca com ossos na torre dele. Eu devorei impérios antes do primeiro osso.",
+            "Seu aço derrete. Sua magia evapora. Sua coragem... essa eu saboreio devagar.",
+            "Cada escama minha é o túmulo de um herói melhor que você.",
+            "Grite. O magma gosta de companhia.",
+        ],
+        "summon": [
+            "Filhos! Saiam das rachaduras. O jantar chegou andando.",
+        ],
+        "enrage": [
+            "CHEGA. Agora vocês vão conhecer o fogo que EXISTIA ANTES DO SOL.",
+        ],
+        "hurt": [
+            "Isso... arranhou. Há mil anos ninguém me arranhava. Vou guardar seu crânio por isso.",
+        ],
+        "win": [
+            "O Brasal engole mais uma leva de tolos. Voltem quando forem lendas... se conseguirem.",
         ],
     },
 }
@@ -765,6 +893,42 @@ FLORESTA_ERMO_SPAWNS = [
     ("urso_negro", 80, 34), ("urso_negro", 50, 28), ("urso_negro", 95, 26),
     ("urso_pardo", 30, 30),
     ("urso_rei", 75, 14),           # REI DO PLANALTO: chefe no topo da floresta
+]
+
+
+# BRASAL, A FERIDA DO MUNDO (150x150, entrada OESTE vindo do Descampado; Goela no LESTE)
+BRASAL_SPAWNS = [
+    ("cinzal", 24, 44), ("cinzal", 38, 62), ("cinzal", 30, 88), ("cinzal", 52, 34),
+    ("cinzal", 60, 100), ("cinzal", 82, 30),
+    ("salamandra_brasal", 44, 50), ("salamandra_brasal", 66, 70), ("salamandra_brasal", 58, 118),
+    ("salamandra_brasal", 90, 108), ("salamandra_brasal", 100, 48),
+    ("imp_brasal", 36, 76), ("imp_brasal", 74, 44), ("imp_brasal", 84, 86), ("imp_brasal", 108, 66),
+    ("imp_brasal", 118, 96),
+    ("serpe_magma", 70, 90), ("serpe_magma", 96, 60), ("serpe_magma", 112, 110), ("serpe_magma", 124, 52),
+    ("golem_obsidiana", 88, 74), ("golem_obsidiana", 116, 80), ("golem_obsidiana", 130, 100),
+    ("golem_obsidiana", 134, 62),
+]
+
+# GOELA DE KREZATH nível 1 (70x70; entrada OESTE, escada NORTE)
+GOELA_1_SPAWNS = [
+    ("imp_brasal", 16, 36), ("imp_brasal", 30, 48), ("imp_brasal", 44, 22),
+    ("forjado_krezath", 24, 30), ("forjado_krezath", 38, 40), ("forjado_krezath", 50, 30),
+    ("forjado_krezath", 34, 14), ("serpe_magma", 46, 52), ("serpe_magma", 20, 16),
+    ("devoto_krezath", 40, 26), ("devoto_krezath", 28, 56),
+]
+
+# GOELA DE KREZATH nível 2 (70x70; entrada SUL, escada NORTE guardada por VULKAR)
+GOELA_2_SPAWNS = [
+    ("forjado_krezath", 30, 52), ("forjado_krezath", 42, 44),
+    ("templario_magma", 24, 40), ("templario_magma", 44, 30), ("templario_magma", 34, 20),
+    ("devoto_krezath", 28, 28), ("devoto_krezath", 44, 54), ("devoto_krezath", 38, 12),
+    ("serpe_magma", 20, 56),
+    ("vulkar", 35, 10),             # GUARDIÃO da porta pro covil
+]
+
+# COVIL DE KREZATH (60x50; o DEVORADOR no norte, sobre o lago de magma)
+COVIL_KREZATH_SPAWNS = [
+    ("krezath", 30, 12),
 ]
 
 
@@ -1016,6 +1180,69 @@ MONSTER_ABILITIES = {
                        "save": "SAB", "dc": 17, "status": "frightened", "turns": 3, "chance": 0.4, "cd": 3},
                       {"id": "dilacerar_real", "name": "Dilacerar Real", "type": "inflict",
                        "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.45, "cd": 2}],
+
+    # --- BRASAL / GOELA DE KREZATH ---
+    "cinzal": [{"id": "bote_cinzento", "name": "Bote Cinzento", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "garras_em_brasa", "name": "Garras em Brasa", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2}],
+    "salamandra_brasal": [{"id": "cuspe_de_fogo", "name": "Cuspe de Fogo", "type": "heavy", "ranged": True,
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "lingua_flamejante", "name": "Língua Flamejante", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.45, "cd": 2}],
+    "serpe_magma": [{"id": "bote_magmatico", "name": "Bote Magmático", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "constricao_ardente", "name": "Constrição Ardente", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.4, "cd": 2},
+                      {"id": "silvo_primordial", "name": "Silvo Primordial", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "golem_obsidiana": [{"id": "esmagar_obsidiana", "name": "Esmagar", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 10}, "chance": 0.55, "cd": 2},
+                      {"id": "tremor_local", "name": "Tremor", "type": "gaze",
+                       "save": "DES", "dc": 17, "status": "stunned", "turns": 1, "chance": 0.3, "cd": 3}],
+    "imp_brasal": [{"id": "espeto_ardente", "name": "Espeto Ardente", "type": "inflict",
+                       "dmg_bonus": {"n": 2, "d": 10}, "status": "burning", "turns": 2, "dot": {"n": 2, "d": 8}, "chance": 0.5, "cd": 2},
+                      {"id": "risada_infernal", "name": "Risada Infernal", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "forjado_krezath": [{"id": "corte_fundido", "name": "Corte Fundido", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.55, "cd": 2},
+                      {"id": "lamina_ardente", "name": "Lâmina Ardente", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.4, "cd": 2}],
+    "templario_magma": [{"id": "julgamento_igneo", "name": "Julgamento Ígneo", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 12}, "chance": 0.55, "cd": 2},
+                      {"id": "brasa_sagrada", "name": "Brasa Sagrada", "type": "inflict",
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.4, "cd": 2},
+                      {"id": "voto_da_forja", "name": "Voto da Forja", "type": "heal",
+                       "heal": {"n": 5, "d": 10}, "chance": 0.3, "cd": 4}],
+    "devoto_krezath": [{"id": "prece_incendiaria", "name": "Prece Incendiária", "type": "blast", "aoe": True, "ranged": True,
+                       "dmg_bonus": {"n": 10, "d": 8, "flat": 10}, "save": "DES", "dc": 17,
+                       "status": "burning", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.5, "cd": 3},
+                      {"id": "labareda_dirigida", "name": "Labareda Dirigida", "type": "heavy", "ranged": True,
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2}],
+    "cria_krezath": [{"id": "sopro_juvenil", "name": "Sopro Juvenil", "type": "inflict",
+                       "dmg_bonus": {"n": 2, "d": 10}, "status": "burning", "turns": 2, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "vulkar": [{"id": "martelo_sismico", "name": "Martelo Sísmico", "type": "blast", "aoe": True, "ranged": True, "vfx": "magmastorm",
+                       "dmg_bonus": {"n": 10, "d": 10, "flat": 16}, "save": "DES", "dc": 18,
+                       "status": "burning", "turns": 3, "dot": {"n": 2, "d": 10}, "chance": 0.5, "cd": 3},
+                      {"id": "furia_da_forja", "name": "Fúria da Forja", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.4, "cd": 6},
+                      {"id": "pancada_do_guardiao", "name": "Pancada do Guardião", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 12}, "chance": 0.55, "cd": 1},
+                      {"id": "brado_da_goela", "name": "Brado da Goela", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
+    "krezath": [{"id": "halito_do_fim", "name": "Hálito do Fim", "type": "trueblast", "aoe": True, "ranged": True, "vfx": "dragonfire",
+                       "fixed": 65, "status": "chama_eterna", "turns": 8, "dot": {"n": 0, "d": 1, "flat": 6}, "chance": 1.0, "cd": 9},
+                      {"id": "escamas_de_obsidiana", "name": "Escamas de Obsidiana", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 3, "chance": 0.5, "cd": 7},
+                      {"id": "tempestade_de_magma", "name": "Tempestade de Magma", "type": "blast", "aoe": True, "ranged": True, "vfx": "magmastorm",
+                       "dmg_bonus": {"n": 18, "d": 10, "flat": 30}, "save": "DES", "dc": 20,
+                       "status": "burning", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.6, "cd": 3},
+                      {"id": "rugido_primordial", "name": "Rugido Primordial", "type": "fear",
+                       "save": "SAB", "dc": 19, "status": "frightened", "turns": 3, "chance": 0.4, "cd": 3},
+                      {"id": "cauda_sismica", "name": "Cauda Sísmica", "type": "heavy",
+                       "dmg_bonus": {"n": 8, "d": 12}, "chance": 0.55, "cd": 1},
+                      {"id": "garras_do_devorador", "name": "Garras do Devorador", "type": "inflict",
+                       "dmg_bonus": {"n": 4, "d": 12}, "status": "bleeding", "turns": 3, "dot": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2}],
 }
 
 

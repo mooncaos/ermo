@@ -818,7 +818,8 @@ def _monster_wander_loop():
     while True:
         socketio.sleep(1.2)
         for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram", "mina_avhur", "camara_avhur",
-                   "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth", "floresta_ermo"):
+                   "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth", "floresta_ermo",
+                   "brasal", "goela_1", "goela_2", "covil_krezath"):
             moved = world.wander_monsters(mp)
             if moved:
                 socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)

@@ -188,14 +188,19 @@ const MAP_AMBIENT = {
   planaltos_ermais: {r:150, g:170, b:190, a:0.10, part:'#dfeaf2'},  // planalto frio, neblina clara
   floresta_ermo:    {r:16,  g:36,  b:28,  a:0.14, part:'#9fe0b0'},  // mata fechada, breu esverdeado (Ilex)
   bosque_atalech:   {r:12,  g:28,  b:30,  a:0.16, part:'#a7d8e0'},  // floresta negra alema: frio, sombrio, neblina azulada
+  brasal:           {r:235, g:80,  b:25,  a:0.15, part:'#ffb070'},  // a Ferida do Mundo: ar de brasa
+  goela_1:          {r:120, g:45,  b:15,  a:0.32, part:'#ff9a50'},  // goela: penumbra de forja
+  goela_2:          {r:135, g:45,  b:12,  a:0.36, part:'#ff8a40'},  // mais fundo, mais quente
+  covil_krezath:    {r:255, g:70,  b:20,  a:0.34, part:'#ffab60'},  // o covil: calor do Devorador
 };
 // mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
-const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth']);
+const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth','goela_1','goela_2','covil_krezath']);
 // TIPO de particula por bioma (rework visual): cada mapa tem a SUA vida no ar.
 // leaf=folhas caindo | ember=brasas/cinzas subindo | sand=areia soprando | mist=flocos de bruma | petal=palha dourada | spark=faisca eterea
 const MAP_PTYPE = {
   repouso_dama:'leaf', floresta_ermo:'leaf', bosque_atalech:'leaf', fadrakor_selva:'leaf',
   torre_andar1:'ember', torre_andar2:'ember', torre_andar3:'ember', camara_varth:'ember', fadrakor_vulcao:'ember',
+  brasal:'ember', goela_1:'ember', goela_2:'ember', covil_krezath:'ember',
   avasham:'sand', cova_colosso:'sand', mina_avhur:'sand',
   valdarkram:'mist', planaltos_ermais:'mist',
   rasharan:'petal',
@@ -1195,6 +1200,8 @@ function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'floresta_ermo' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'bosque_atalech' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'brasal' && drawBrasalTile(c, ch, px, py, ts, gx, gy)) return;
+  if((mapName === 'goela_1' || mapName === 'goela_2' || mapName === 'covil_krezath') && drawGoelaTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'planaltos_ermais' && drawPlateauTile(c, ch, px, py, ts, gx, gy)) return;
   if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
@@ -2748,6 +2755,8 @@ function drawMonster(c, sx, sy, ts, p){
   if(t === 'capanga' || t === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
   if(t === 'velho_bob' || t === 'rato_gigante' || t === 'lobo' || t === 'javali' || t === 'lobo_negro'){ drawBeast(c, sx, sy, ts, p); return; }
   if(t === 'coelho' || t === 'lebre' || t === 'veado' || t === 'cervo' || t === 'lobo_cinzento_ermo' || t === 'urso_pardo' || t === 'urso_negro' || t === 'urso_rei'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'cinzal' || t === 'salamandra_brasal' || t === 'serpe_magma' || t === 'cria_krezath'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'imp_brasal' || t === 'forjado_krezath' || t === 'templario_magma' || t === 'devoto_krezath'){ drawMagmaConstruct(c, sx, sy, ts, p); return; }
   if(t === 'harpia'){ drawHarpy(c, sx, sy, ts, p); return; }
   if(t === 'bruxa_louca'){ drawWitch(c, sx, sy, ts, p); return; }
   if(t === 'alma_errante' || t === 'assombracao' || t === 'espectro' || t === 'vulto' || t === 'alma_penada'){ drawSpirit(c, sx, sy, ts, p); return; }
@@ -3031,6 +3040,10 @@ const BEAST = {
   urso_pardo:   {body:'#6b4a30', belly:'#876848', size:2.60, ear:'round', tail:'tuft', snout:'#3a2a1c', tusk:false, bristle:false},
   urso_negro:   {body:'#221c20', belly:'#3a323a', size:2.80, ear:'round', tail:'tuft', snout:'#100c10', tusk:false, bristle:false},
   urso_rei:     {body:'#4a3424', belly:'#6a4e36', size:3.40, ear:'round', tail:'tuft', snout:'#281a10', tusk:false, bristle:true, crown:true},
+  cinzal:       {body:'#3c3a40', belly:'#5a565e', size:1.90, ear:'point', tail:'bush', snout:'#1e1c22', tusk:false, bristle:true},
+  salamandra_brasal: {body:'#a83a1e', belly:'#e07038', size:1.80, ear:'round', tail:'tuft', snout:'#6a1e0e', tusk:false, bristle:false},
+  serpe_magma:  {body:'#c04a14', belly:'#ff9a40', size:2.30, ear:'point', tail:'tuft', snout:'#7a2a0a', tusk:true, bristle:true},
+  cria_krezath: {body:'#5a1e1e', belly:'#a84028', size:1.60, ear:'point', tail:'tuft', snout:'#3a1010', tusk:false, bristle:true},
 };
 function _dirVec(f){ return f==='up'?[0,-1] : f==='down'?[0,1] : f==='left'?[-1,0] : [1,0]; }
 
@@ -5236,6 +5249,8 @@ const MAP_FOG = {
   floresta_ermo:    {hue:'140,190,150', a:0.040, n:3},   // hálito verde da mata fechada
   camara_varth:     {hue:'150,90,200',  a:0.060, n:4},   // miasma necrótico do trono
   mina_avhur:       {hue:'190,160,90',  a:0.045, n:3},   // pó dourado suspenso da tumba
+  brasal:           {hue:'70,50,45',    a:0.075, n:5},   // fumaça da Ferida do Mundo
+  covil_krezath:    {hue:'255,120,50',  a:0.055, n:4},   // ondas de calor do covil
 };
 function drawGroundFog(c, now){
   const f = MAP_FOG[mapName]; if(!f) return;
@@ -5869,7 +5884,8 @@ function frame(now){
     // AURA DE PRESENÇA dos chefes (rework): brasa pulsante no chão sob TODO boss
     if(p.kind === 'monster' && p.boss && !p._dead){
       const BOSS_AURA = { urso_rei:'244,200,74', farao_avhur:'255,217,138', maurao:'255,138,90',
-                          velho_bob:'192,176,144', colosso_avasham:'255,154,80', lorde_varth:'176,112,255' };
+                          velho_bob:'192,176,144', colosso_avasham:'255,154,80', lorde_varth:'176,112,255',
+                          krezath:'255,90,30', vulkar:'255,150,60' };
       const col = BOSS_AURA[p.mtype] || '232,184,96';
       const span = Math.max(1, p.size||1) * TS;
       const bx = sx + span/2, by = sy + span*0.82;
@@ -5908,6 +5924,8 @@ function frame(now){
     else if(p.kind === 'monster' && (p.size||0) >= 4 && !BEAST[p.mtype]){
       if(p.mtype === 'colosso_avasham') drawColosso(ctx, sx, sy, TS, p);
       else if(p.mtype === 'lorde_varth') drawLordeVarthBoss(ctx, sx, sy, TS, p);
+      else if(p.mtype === 'krezath') drawKrezath(ctx, sx, sy, TS, p);
+      else if(p.mtype === 'vulkar' || p.mtype === 'golem_obsidiana') drawMagmaConstruct(ctx, sx, sy, TS, p);
       else drawVarth(ctx, sx, sy, TS, p);
     }
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
@@ -8732,16 +8750,16 @@ function popDamage(cid, text, color){
                  ox:(Math.random()-0.5)*TS*0.8, big:num>=80 });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
-  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', veneno_varth:'☠️', praga_atalech:'☣️', couraca_vargo:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
+  frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', veneno_varth:'☠️', praga_atalech:'☣️', couraca_vargo:'🟣', chama_eterna:'🔥', escamas_krezath:'🐉', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
 const STATUS_PT = { stunned:'atordoado', poison:'envenenado', burning:'queimando', bleeding:'sangrando',
-  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', veneno_varth:'Veneno de Varth', praga_atalech:'Praga de Atalech', couraca_vargo:'Manto de Vargo', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
+  frightened:'amedrontado', restrained:'imobilizado', blinded:'cego', slowed:'lento', maldicao:'amaldiçoado', veneno_varth:'Veneno de Varth', praga_atalech:'Praga de Atalech', couraca_vargo:'Manto de Vargo', chama_eterna:'Chama Eterna', escamas_krezath:'Escamas de Obsidiana', aurora:'aura de Valíria', aurora_fraca:'luz consumida', facalan:'Forma de Facalan', facalan_folego:'fôlego de Facalan', cancao:'Canção do Cabaré' };
 const TOWER_MOBS = new Set(['tumular_torre','carniceiro_torre','cavaleiro_torre','algoz_torre','necromante_torre','profanador_torre','lorde_varth']);
 function _isDark(res){ return !!res.vfx || TOWER_MOBS.has((players.get(res.attacker)||{}).mtype); }
 function showStatusFx(fx){
   if(!fx) return;
   for(const f of (fx.fx||[])){
     if(f.type === 'expire' || !f.dmg) continue;
-    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':(f.type==='maldicao'?'#b06bff':(f.type==='veneno_varth'?'#a060e0':(f.type==='praga_atalech'?'#7ee07a':'#ff7a7a'))));
+    const col = f.type==='poison'?'#8bd450':(f.type==='burning'?'#ff8a3a':(f.type==='maldicao'?'#b06bff':(f.type==='veneno_varth'?'#a060e0':(f.type==='praga_atalech'?'#7ee07a':(f.type==='chama_eterna'?'#ff9a40':'#ff7a7a')))));
     popDamage(fx.cid, (STATUS_ICON[f.type]||'✦')+'-'+f.dmg, col);
   }
 }
@@ -8755,27 +8773,38 @@ function showAttackResult(res){
   }
   // Manto de Vargo: o lorde se envolve numa aura ROXA e passa a tomar metade do dano
   if(res.selfbuff){
-    spawnAt(res.attacker, 'heal', '#b06bff');
-    spawnDarkBlast(res.attacker, 2, '#9b2fe0');
-    const e = players.get(res.attacker); if(e){ e._purpleAura = performance.now() + (res.buff_turns||3)*1100 + 600; }
-    toastMsg('🟣 '+(res.ability||'Manto de Vargo')+'! Lorde Varth brilha em roxo e passa a tomar metade do dano.', true);
+    const ember = (res.selfbuff === 'escamas_krezath');
+    spawnAt(res.attacker, 'heal', ember ? '#ff9a40' : '#b06bff');
+    spawnDarkBlast(res.attacker, 2, ember ? '#ff6a20' : '#9b2fe0');
+    spawnRing(res.attacker, 2.0, ember ? '#ffb060' : '#c9a0ff');
+    const e = players.get(res.attacker);
+    if(e){ if(ember) e._emberAura = performance.now() + (res.buff_turns||3)*1100 + 600;
+           else e._purpleAura = performance.now() + (res.buff_turns||3)*1100 + 600; }
+    toastMsg(ember ? ('🐉 '+(res.ability||'Escamas de Obsidiana')+'! As escamas endurecem: metade do dano.')
+                   : ('🟣 '+(res.ability||'Manto de Vargo')+'! Lorde Varth brilha em roxo e passa a tomar metade do dano.'), true);
     return;
   }
   // AoE: explosão (SOMBRIA na torre, CATACLISMA do Varth, PRAGA DE ATALECH) + dano em todos os alvos
   if(res.aoe && Array.isArray(res.splash)){
     const cata = (res.vfx === 'cataclysm');
     const atalech = (res.vfx === 'atalech');
+    const magma = (res.vfx === 'magmastorm');
+    const dfire = (res.vfx === 'dragonfire');
     if(cata) spawnCataclysm(res.target);
+    else if(dfire){ spawnDragonfire(res.target); screenShake(7, 520); }
+    else if(magma){ spawnMagmaStorm(res.target); screenShake(6, 460); }
     else if(atalech){ spawnAtalechPlague(res.target); spawnRing(res.target, 3.2, '#7ee07a', 180); screenShake(6, 450); }
     else if(dark){ spawnDarkBlast(res.target, 2, '#a050ff'); spawnRing(res.target, 2.4, '#c79bff', 80); screenShake(4, 320); }
     else { spawnBlast(res.target, 2, '#ff7a30'); spawnRing(res.target, 2.4, '#ffb060', 80); screenShake(4, 320); }
-    const _pcol = atalech ? '#7ee07a' : (cata?'#d49bff':(dark?'#c79bff':'#ff9a4a'));
-    const _ptag = atalech ? '☣ -' : (cata?'☠ -':'-');
+    const _pcol = dfire ? '#ffd090' : (magma ? '#ff9a40' : (atalech ? '#7ee07a' : (cata?'#d49bff':(dark?'#c79bff':'#ff9a4a'))));
+    const _ptag = dfire ? '🔥 -' : (atalech ? '☣ -' : (cata?'☠ -':'-'));
     setTimeout(()=>{ for(const s of res.splash){
       if(s.blocked) popDamage(s.cid, 'refletiu', '#9be36a');
       else popDamage(s.cid, _ptag+s.dmg, _pcol);
-    } if(res.reflected) popDamage(res.attacker, '-'+res.reflected, '#9be36a'); }, (cata||atalech)?640:220);
-    if(atalech) toastMsg('☣️ '+(res.ability||'Praga de Atalech')+'! 50 de dano que FURA toda defesa + veneno por 10 turnos. Não há cura para o bosque.', true);
+    } if(res.reflected) popDamage(res.attacker, '-'+res.reflected, '#9be36a'); }, (cata||atalech||magma||dfire)?640:220);
+    if(dfire) toastMsg('🐉 '+(res.ability||'Hálito do Fim')+'! 65 de dano que FURA toda defesa + Chama Eterna por 8 turnos. O fogo de antes do sol.', true);
+    else if(magma) toastMsg('🌋 '+(res.ability||'Tempestade de Magma')+'! O chão erupciona sobre todos!', true);
+    else if(atalech) toastMsg('☣️ '+(res.ability||'Praga de Atalech')+'! 50 de dano que FURA toda defesa + veneno por 10 turnos. Não há cura para o bosque.', true);
     else if(cata) toastMsg('☠️ '+(res.ability||'CATACLISMA DE VARGO')+'! O vazio engole o campo — '+(STATUS_PT[res.applied]||'Veneno de Varth')+'!', true);
     else toastMsg('💥 '+(res.ability||'Explosão')+'!'+(res.applied?(' · '+(STATUS_PT[res.applied]||res.applied)):''), true);
     return;
@@ -9100,4 +9129,424 @@ canvas.addEventListener('wheel', e => {
   if(zi) zi.addEventListener('click', e => { e.preventDefault(); zoomStep(+1); });
   if(zo) zo.addEventListener('click', e => { e.preventDefault(); zoomStep(-1); });
   updateZoomLabel();
+}
+
+// ===========================================================================
+//  BRASAL, A FERIDA DO MUNDO + GOELA DE KREZATH (rework: tiles, feras e o Devorador)
+// ===========================================================================
+function _lavaTile(c, px, py, ts, gx, gy){
+  // LAVA VIVA: gradiente pulsante + crosta escura + bolhas que estouram
+  const t = performance.now();
+  const pulse = 0.5 + 0.5*Math.sin(t/900 + (gx*1.7 + gy*2.3));
+  const g = c.createLinearGradient(px, py, px+ts, py+ts);
+  g.addColorStop(0, pulse > 0.5 ? '#ff7a20' : '#e85a10');
+  g.addColorStop(0.5, '#c03a08');
+  g.addColorStop(1, '#ff9a30');
+  c.fillStyle = g; c.fillRect(px, py, ts, ts);
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.25 + 0.2*pulse;
+  const rg = c.createRadialGradient(px+ts/2, py+ts/2, 0, px+ts/2, py+ts/2, ts*0.8);
+  rg.addColorStop(0, '#ffd070'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = rg; c.fillRect(px, py, ts, ts); c.restore();
+  // placas de crosta escura
+  c.fillStyle = 'rgba(40,14,6,0.55)';
+  if(rng(gx,gy,3) > 0.5) c.fillRect(px + rng(gx,gy,4)*ts*0.5, py + rng(gx,gy,5)*ts*0.5, ts*0.34, ts*0.2);
+  if(rng(gx,gy,6) > 0.5) c.fillRect(px + rng(gx,gy,7)*ts*0.4, py + rng(gx,gy,8)*ts*0.5, ts*0.25, ts*0.16);
+  // bolha estourando (ciclo por tile)
+  const ph = ((t/16 + (gx*37+gy*91)) % 220) / 220;
+  if(ph < 0.3){
+    const bx = px + (0.25 + rng(gx,gy,9)*0.5)*ts, by = py + (0.25 + rng(gx,gy,10)*0.5)*ts;
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = (0.3-ph)/0.3 * 0.9;
+    c.fillStyle = '#ffd070'; c.beginPath(); c.arc(bx, by, ts*0.06 + ph*ts*0.3, 0, Math.PI*2); c.fill(); c.restore();
+  }
+}
+function drawBrasalTile(c, ch, px, py, ts, gx, gy){
+  const t = performance.now();
+  const base = () => {                                     // chão de cinza vulcânica
+    c.fillStyle = rng(gx,gy,1) > 0.5 ? '#2c2428' : '#251e23'; c.fillRect(px, py, ts, ts);
+    c.fillStyle = 'rgba(60,50,56,0.5)';
+    for(let i=0;i<3;i++) c.fillRect(px + rng(gx,gy,i+2)*ts, py + rng(gx,gy,i+6)*ts, 2, 1.4);
+    if(rng(gx,gy,12) > 0.86){                              // brasinha respirando na cinza
+      const gl = 0.4 + 0.5*Math.sin(t/700 + gx*3 + gy*5);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = gl*0.7;
+      c.fillStyle = '#ff7a30'; c.beginPath();
+      c.arc(px + (0.2+rng(gx,gy,13)*0.6)*ts, py + (0.2+rng(gx,gy,14)*0.6)*ts, 1.4, 0, Math.PI*2); c.fill(); c.restore();
+    }
+  };
+  switch(ch){
+    case '.': case '+': base(); return true;
+    case ',': {                                            // leito de brasas
+      base();
+      c.save(); c.globalCompositeOperation='lighter';
+      for(let i=0;i<4;i++){
+        const gl = 0.35 + 0.5*Math.sin(t/500 + i*2 + gx + gy);
+        c.globalAlpha = gl*0.8; c.fillStyle = i%2 ? '#ff8a30' : '#e8541a';
+        c.beginPath(); c.arc(px + rng(gx,gy,i+20)*ts, py + rng(gx,gy,i+25)*ts, 1.6, 0, Math.PI*2); c.fill();
+      } c.restore(); return true; }
+    case 'd': {                                            // terra rachada de magma
+      c.fillStyle = '#1e1517'; c.fillRect(px, py, ts, ts);
+      const gl = 0.5 + 0.4*Math.sin(t/800 + gx*2 + gy*3);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.55*gl;
+      c.strokeStyle = '#ff6a20'; c.lineWidth = 1.4; c.beginPath();
+      c.moveTo(px + rng(gx,gy,30)*ts, py);
+      c.lineTo(px + ts*0.4 + rng(gx,gy,31)*ts*0.3, py + ts*0.45);
+      c.lineTo(px + rng(gx,gy,32)*ts, py + ts); c.stroke();
+      c.beginPath(); c.moveTo(px, py + rng(gx,gy,33)*ts);
+      c.lineTo(px + ts*0.5, py + ts*0.5 + rng(gx,gy,34)*ts*0.2); c.stroke();
+      c.restore();
+      c.fillStyle = 'rgba(52,42,46,0.6)';
+      c.fillRect(px + rng(gx,gy,35)*ts*0.5, py + rng(gx,gy,36)*ts*0.5, ts*0.3, ts*0.2);
+      return true; }
+    case 'l': _lavaTile(c, px, py, ts, gx, gy); return true;
+    case 'B': {                                            // rocha de obsidiana facetada
+      base();
+      c.fillStyle = '#171020'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.08); c.lineTo(px+ts*0.9, py+ts*0.42);
+      c.lineTo(px+ts*0.78, py+ts*0.92); c.lineTo(px+ts*0.2, py+ts*0.88);
+      c.lineTo(px+ts*0.08, py+ts*0.4); c.closePath(); c.fill();
+      c.strokeStyle = '#4a3a6a'; c.lineWidth = 1; c.stroke();
+      c.strokeStyle = 'rgba(150,120,220,0.45)'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.08); c.lineTo(px+ts*0.44, py+ts*0.9); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.12, py+ts*0.44); c.lineTo(px+ts*0.86, py+ts*0.5); c.stroke();
+      c.save(); c.globalAlpha = 0.5; c.fillStyle = '#9a80d0';
+      c.fillRect(px+ts*0.3, py+ts*0.2, ts*0.14, ts*0.08); c.restore();
+      return true; }
+    case 'Y': {                                            // árvore carbonizada com brasa
+      base();
+      c.strokeStyle = '#0e0a0c'; c.lineWidth = Math.max(2, ts*0.12); c.lineCap='round';
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.95); c.lineTo(px+ts*0.46, py+ts*0.3); c.stroke();
+      c.lineWidth = Math.max(1.4, ts*0.06);
+      c.beginPath(); c.moveTo(px+ts*0.47, py+ts*0.45); c.lineTo(px+ts*0.2, py+ts*0.2); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.46, py+ts*0.34); c.lineTo(px+ts*0.75, py+ts*0.12); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.48, py+ts*0.6); c.lineTo(px+ts*0.78, py+ts*0.48); c.stroke();
+      const gl = 0.4 + 0.5*Math.sin(t/600 + gx*7);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = gl;
+      c.fillStyle = '#ff7a30'; c.beginPath(); c.arc(px+ts*0.75, py+ts*0.12, 1.6, 0, Math.PI*2); c.fill(); c.restore();
+      return true; }
+    case 'k': {                                            // ossada gigante (costelas)
+      base();
+      c.strokeStyle = '#cfc4ae'; c.lineWidth = Math.max(1.6, ts*0.08); c.lineCap='round';
+      for(let i=0;i<3;i++){
+        const bx = px + ts*(0.22 + i*0.26);
+        c.beginPath(); c.arc(bx, py + ts*0.85, ts*0.42, Math.PI*1.05, Math.PI*1.75); c.stroke();
+      }
+      c.strokeStyle = '#a89c86'; c.lineWidth = Math.max(1.2, ts*0.05);
+      c.beginPath(); c.moveTo(px+ts*0.1, py+ts*0.86); c.lineTo(px+ts*0.92, py+ts*0.84); c.stroke();
+      return true; }
+    case 'G': {                                            // gêiser: cratera que cospe brasas
+      base();
+      c.fillStyle = '#151013'; c.beginPath();
+      c.ellipse(px+ts/2, py+ts*0.6, ts*0.32, ts*0.2, 0, 0, Math.PI*2); c.fill();
+      c.strokeStyle = '#3a2c30'; c.lineWidth = 1.4; c.stroke();
+      const cyc = ((t/16 + (gx*53+gy*17)) % 260) / 260;
+      if(cyc < 0.35){                                      // erupção!
+        const k = cyc/0.35;
+        c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = (1-k)*0.9;
+        for(let i=0;i<5;i++){
+          const a = -Math.PI/2 + (i-2)*0.28, d = ts*(0.2 + k*1.1);
+          c.fillStyle = i%2 ? '#ffd070' : '#ff7a20';
+          c.beginPath(); c.arc(px+ts/2 + Math.cos(a)*d*0.5, py+ts*0.55 + Math.sin(a)*d, 1.8*(1-k*0.5), 0, Math.PI*2); c.fill();
+        } c.restore();
+      }
+      return true; }
+  }
+  return false;
+}
+function drawGoelaTile(c, ch, px, py, ts, gx, gy){
+  const t = performance.now();
+  switch(ch){
+    case '.': case '+': case ',': {                        // chão de basalto
+      c.fillStyle = rng(gx,gy,1) > 0.5 ? '#241c20' : '#1f181c'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = 'rgba(64,52,58,0.5)';
+      for(let i=0;i<3;i++) c.fillRect(px + rng(gx,gy,i+3)*ts, py + rng(gx,gy,i+7)*ts, 2, 1.4);
+      if(ch === ','){                                       // cascalho quente
+        c.fillStyle = 'rgba(120,70,50,0.5)';
+        for(let i=0;i<4;i++){ c.beginPath();
+          c.arc(px + rng(gx,gy,i+11)*ts, py + rng(gx,gy,i+15)*ts, 1.3, 0, Math.PI*2); c.fill(); }
+      }
+      return true; }
+    case '#': case 'v': {                                  // parede de basalto (com veio de magma no 'v')
+      c.fillStyle = '#120d10'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = '#1e161a';
+      c.fillRect(px, py + ts*0.15, ts, ts*0.14);
+      c.fillRect(px, py + ts*0.55, ts, ts*0.12);
+      c.strokeStyle = 'rgba(70,55,62,0.6)'; c.lineWidth = 1;
+      c.strokeRect(px+0.5, py+0.5, ts-1, ts-1);
+      if(ch === 'v'){
+        const gl = 0.5 + 0.45*Math.sin(t/700 + gx*3 + gy*2);
+        c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = gl;
+        c.strokeStyle = '#ff6a20'; c.lineWidth = 1.8; c.beginPath();
+        c.moveTo(px + rng(gx,gy,20)*ts, py);
+        c.lineTo(px + ts*0.5 + (rng(gx,gy,21)-0.5)*ts*0.4, py + ts*0.5);
+        c.lineTo(px + rng(gx,gy,22)*ts, py + ts); c.stroke();
+        c.globalAlpha = gl*0.4; c.lineWidth = 4; c.stroke();
+        c.restore();
+      }
+      return true; }
+    case 'l': _lavaTile(c, px, py, ts, gx, gy); return true;
+    case 'B': {                                            // estalagmite / coluna de obsidiana
+      c.fillStyle = '#1f181c'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = '#171020'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.05); c.lineTo(px+ts*0.82, py+ts*0.95);
+      c.lineTo(px+ts*0.18, py+ts*0.95); c.closePath(); c.fill();
+      c.strokeStyle = '#4a3a6a'; c.lineWidth = 1; c.stroke();
+      c.strokeStyle = 'rgba(150,120,220,0.4)';
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.08); c.lineTo(px+ts*0.5, py+ts*0.9); c.stroke();
+      return true; }
+  }
+  return false;
+}
+
+// ---------- CONSTRUTOS DE MAGMA: rocha negra com rachaduras vivas ----------
+function drawMagmaConstruct(c, sx, sy, ts, p){
+  const t = performance.now();
+  const kind = p.mtype;
+  const N = (p.size && p.size >= 3) ? p.size : 1.6;
+  const S = ts * N * 0.5;
+  const cx = sx + (p.size ? p.size*ts/2 : ts/2), cy = sy + (p.size ? p.size*ts/2 : ts/2);
+  const bob = Math.sin(t/520 + (p.x||0)) * S*0.03;
+  const pulse = 0.5 + 0.5*Math.sin(t/430 + (p.x||0)*2);
+  const enr = p._enraged;
+  const ROCK='#241a20', ROCK2='#332630', MAG = enr ? '#ff4a10' : '#ff7a20', EDGE='#4a3844';
+  c.save();
+  c.fillStyle='rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(cx, cy+S*0.85, S*0.7, S*0.22, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy+bob);
+  // pernas de pedra
+  c.fillStyle = ROCK;
+  c.fillRect(-S*0.42, S*0.25, S*0.3, S*0.55); c.fillRect(S*0.12, S*0.25, S*0.3, S*0.55);
+  // torso rochoso
+  const wide = (kind === 'golem_obsidiana' || kind === 'vulkar');
+  c.fillStyle = ROCK2; c.beginPath();
+  c.moveTo(-S*(wide?0.72:0.55), -S*0.35); c.lineTo(S*(wide?0.72:0.55), -S*0.35);
+  c.lineTo(S*(wide?0.6:0.45), S*0.35); c.lineTo(-S*(wide?0.6:0.45), S*0.35);
+  c.closePath(); c.fill();
+  c.strokeStyle = EDGE; c.lineWidth = Math.max(1.5, S*0.05); c.stroke();
+  // RACHADURAS DE MAGMA pulsantes no torso
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.55 + 0.4*pulse;
+  c.strokeStyle = MAG; c.lineWidth = Math.max(1.4, S*0.05); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.3, -S*0.25); c.lineTo(-S*0.1, 0); c.lineTo(-S*0.24, S*0.28); c.stroke();
+  c.beginPath(); c.moveTo(S*0.16, -S*0.3); c.lineTo(S*0.3, -S*0.02); c.lineTo(S*0.14, S*0.26); c.stroke();
+  c.beginPath(); c.moveTo(-S*0.05, -S*0.32); c.lineTo(0, S*0.3); c.stroke();
+  c.restore();
+  // braços
+  c.fillStyle = ROCK;
+  c.fillRect(-S*(wide?0.95:0.8), -S*0.3, S*0.26, S*0.7);
+  c.fillRect(S*(wide?0.69:0.54), -S*0.3, S*0.26, S*0.7);
+  // cabeça (por variante)
+  if(kind === 'devoto_krezath'){                            // capuz com olhos de brasa
+    c.fillStyle = '#2c1418'; c.beginPath();
+    c.moveTo(-S*0.34, -S*0.35); c.lineTo(0, -S*0.95); c.lineTo(S*0.34, -S*0.35); c.closePath(); c.fill();
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.9;
+    c.fillStyle = MAG; c.beginPath(); c.arc(-S*0.1, -S*0.52, S*0.05, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(S*0.1, -S*0.52, S*0.05, 0, Math.PI*2); c.fill(); c.restore();
+  } else if(kind === 'imp_brasal'){                         // cabeça pequena com chifres
+    c.fillStyle = ROCK2; c.beginPath(); c.arc(0, -S*0.55, S*0.26, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#c9885a'; c.lineWidth = Math.max(1.4, S*0.06);
+    c.beginPath(); c.moveTo(-S*0.18, -S*0.72); c.lineTo(-S*0.32, -S*0.98); c.stroke();
+    c.beginPath(); c.moveTo(S*0.18, -S*0.72); c.lineTo(S*0.32, -S*0.98); c.stroke();
+    c.save(); c.globalCompositeOperation='lighter'; c.fillStyle = MAG;
+    c.beginPath(); c.arc(-S*0.09, -S*0.57, S*0.045, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(S*0.09, -S*0.57, S*0.045, 0, Math.PI*2); c.fill(); c.restore();
+  } else if(kind === 'templario_magma'){                    // elmo com pluma de fogo
+    c.fillStyle = ROCK; c.fillRect(-S*0.26, -S*0.85, S*0.52, S*0.5);
+    c.fillStyle = '#0c080a'; c.fillRect(-S*0.2, -S*0.68, S*0.4, S*0.12);
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.85;
+    c.fillStyle = MAG; c.fillRect(-S*0.16, -S*0.66, S*0.32, S*0.07); c.restore();
+    for(let i=0;i<4;i++){                                   // pluma flamejante
+      const fy = -S*(0.9 + i*0.09), fw = S*(0.16 - i*0.03);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.7 - i*0.12;
+      c.fillStyle = i%2 ? '#ffd070' : MAG;
+      c.beginPath(); c.ellipse(Math.sin(t/180+i)*S*0.04, fy, fw, S*0.07, 0, 0, Math.PI*2); c.fill(); c.restore();
+    }
+  } else {                                                  // golem / forjado / vulkar: bloco com fenda ocular
+    const hw = wide ? S*0.4 : S*0.3;
+    c.fillStyle = ROCK; c.fillRect(-hw, -S*0.8, hw*2, S*0.45);
+    c.strokeStyle = EDGE; c.strokeRect(-hw, -S*0.8, hw*2, S*0.45);
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.75 + 0.25*pulse;
+    c.fillStyle = MAG; c.fillRect(-hw*0.7, -S*0.66, hw*1.4, S*0.09); c.restore();
+  }
+  // arma por variante
+  c.strokeStyle = '#161014'; c.lineWidth = Math.max(2, S*0.09); c.lineCap='round';
+  if(kind === 'forjado_krezath'){                           // lâmina de obsidiana
+    c.beginPath(); c.moveTo(S*0.82, S*0.3); c.lineTo(S*1.05, -S*0.75); c.stroke();
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=0.6;
+    c.strokeStyle = MAG; c.lineWidth = Math.max(1, S*0.03);
+    c.beginPath(); c.moveTo(S*0.84, S*0.25); c.lineTo(S*1.03, -S*0.7); c.stroke(); c.restore();
+  } else if(kind === 'templario_magma'){                    // espadão
+    c.lineWidth = Math.max(3, S*0.12);
+    c.beginPath(); c.moveTo(S*0.8, S*0.4); c.lineTo(S*0.8, -S*1.0); c.stroke();
+    c.strokeStyle = '#3a2c34'; c.lineWidth = Math.max(2, S*0.07);
+    c.beginPath(); c.moveTo(S*0.62, -S*0.55); c.lineTo(S*0.98, -S*0.55); c.stroke();
+  } else if(kind === 'imp_brasal'){                         // tridente
+    c.lineWidth = Math.max(1.6, S*0.05);
+    c.beginPath(); c.moveTo(S*0.7, S*0.35); c.lineTo(S*0.7, -S*0.7); c.stroke();
+    c.beginPath(); c.moveTo(S*0.58, -S*0.5); c.lineTo(S*0.58, -S*0.75); c.stroke();
+    c.beginPath(); c.moveTo(S*0.82, -S*0.5); c.lineTo(S*0.82, -S*0.75); c.stroke();
+  } else if(kind === 'vulkar'){                             // MARTELO da fornalha + coroa de brasas
+    c.lineWidth = Math.max(3, S*0.1);
+    c.beginPath(); c.moveTo(S*0.85, S*0.4); c.lineTo(S*0.85, -S*0.8); c.stroke();
+    c.fillStyle = '#2c2026'; c.fillRect(S*0.6, -S*1.05, S*0.5, S*0.32);
+    c.strokeStyle = EDGE; c.lineWidth = 1.4; c.strokeRect(S*0.6, -S*1.05, S*0.5, S*0.32);
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.6 + 0.35*pulse;
+    c.fillStyle = MAG; c.fillRect(S*0.64, -S*0.94, S*0.42, S*0.08); c.restore();
+    for(let i=0;i<5;i++){                                   // coroa de brasas orbitando
+      const a = t/800 + i*Math.PI*2/5;
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.75;
+      c.fillStyle = i%2 ? '#ffd070' : MAG;
+      c.beginPath(); c.arc(Math.cos(a)*S*0.55, -S*0.95 + Math.sin(a)*S*0.12, S*0.05, 0, Math.PI*2); c.fill(); c.restore();
+    }
+  }
+  // égide das Escamas (Fúria da Forja): casca ígnea
+  if((p._status && p._status.escamas_krezath) || (p._emberAura && t < p._emberAura)){
+    c.save(); c.globalCompositeOperation='lighter';
+    const eg = c.createRadialGradient(0, 0, 0, 0, 0, S*1.35);
+    eg.addColorStop(0,'rgba(255,150,60,0.4)'); eg.addColorStop(1,'rgba(0,0,0,0)');
+    c.globalAlpha = 0.6 + 0.3*Math.sin(t/210); c.fillStyle = eg;
+    c.beginPath(); c.arc(0, 0, S*1.35, 0, Math.PI*2); c.fill(); c.restore();
+  }
+  c.restore();
+  if(kind === 'vulkar'){
+    c.save(); c.font = '800 9px Cinzel, serif'; c.textAlign='center'; c.textBaseline='bottom';
+    const lbl = '🔥 GUARDIÃO DA GOELA', tw = c.measureText(lbl).width + 10, tagY = sy - 14;
+    c.fillStyle = 'rgba(24,10,4,0.92)'; roundRect(c, cx - tw/2, tagY-12, tw, 12, 3); c.fill();
+    c.fillStyle = '#ffab60'; c.fillText(lbl, cx, tagY-2); c.restore();
+  }
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+// ---------- KREZATH, O DEVORADOR SOTERRADO: o dragão ancião de obsidiana ----------
+function drawKrezath(c, sx, sy, ts, p){
+  const t = performance.now();
+  const N = p.size || 5, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const breathe = Math.sin(t/900) * S*0.03;
+  const pulse = 0.5 + 0.5*Math.sin(t/380);
+  const enr = p._enraged;
+  const SCALE='#1a1218', SCALE2='#2a1c24', MAG = enr ? '#ff3a08' : '#ff6a18', BELLY='#3a2830', HORN='#d8cbb4';
+  c.save();
+  // sombra + brasa do lago sob ele
+  c.fillStyle='rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx, cy+S*0.8, S*1.05, S*0.3, 0, 0, Math.PI*2); c.fill();
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.2 + 0.15*pulse;
+  const ug = c.createRadialGradient(cx, cy+S*0.6, 0, cx, cy+S*0.6, S*1.2);
+  ug.addColorStop(0, MAG); ug.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = ug; c.beginPath(); c.ellipse(cx, cy+S*0.6, S*1.2, S*0.4, 0, 0, Math.PI*2); c.fill(); c.restore();
+  c.translate(cx, cy + breathe);
+  // ---- ASAS membranosas abertas (atrás do corpo) ----
+  for(const sgn of [-1, 1]){
+    const flap = Math.sin(t/1100 + (sgn>0?0:1.2)) * 0.08;
+    c.save(); c.rotate(sgn * (0.06 + flap));
+    c.fillStyle = 'rgba(26,16,22,0.92)';
+    c.beginPath();
+    c.moveTo(sgn*S*0.2, -S*0.25);
+    c.quadraticCurveTo(sgn*S*0.9, -S*1.05, sgn*S*1.45, -S*0.75);
+    c.quadraticCurveTo(sgn*S*1.2, -S*0.35, sgn*S*1.3, -S*0.05);
+    c.quadraticCurveTo(sgn*S*0.85, -S*0.15, sgn*S*0.75, S*0.05);
+    c.quadraticCurveTo(sgn*S*0.45, -S*0.02, sgn*S*0.2, S*0.1);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#3a2a34'; c.lineWidth = Math.max(1.5, S*0.03); c.stroke();
+    // veias de magma na membrana
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.4 + 0.3*pulse;
+    c.strokeStyle = MAG; c.lineWidth = Math.max(1, S*0.02);
+    c.beginPath(); c.moveTo(sgn*S*0.25, -S*0.2); c.quadraticCurveTo(sgn*S*0.8, -S*0.75, sgn*S*1.35, -S*0.7); c.stroke();
+    c.beginPath(); c.moveTo(sgn*S*0.3, -S*0.05); c.quadraticCurveTo(sgn*S*0.75, -S*0.35, sgn*S*1.22, -S*0.1); c.stroke();
+    c.restore(); c.restore();
+  }
+  // ---- CAUDA serpenteando com espinho ----
+  c.strokeStyle = SCALE2; c.lineWidth = Math.max(4, S*0.16); c.lineCap='round';
+  const tw1 = Math.sin(t/700)*S*0.1;
+  c.beginPath(); c.moveTo(-S*0.35, S*0.35);
+  c.quadraticCurveTo(-S*0.95, S*0.55 + tw1, -S*1.25, S*0.15 + tw1*1.5); c.stroke();
+  c.fillStyle = HORN; c.save(); c.translate(-S*1.25, S*0.15 + tw1*1.5); c.rotate(-0.7);
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(-S*0.16, S*0.05); c.lineTo(-S*0.02, -S*0.16); c.closePath(); c.fill(); c.restore();
+  // ---- CORPO: massa escamada ----
+  c.fillStyle = SCALE2; c.beginPath();
+  c.ellipse(0, S*0.12, S*0.72, S*0.5, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#0c080a'; c.lineWidth = Math.max(1.5, S*0.03); c.stroke();
+  c.fillStyle = BELLY; c.beginPath();
+  c.ellipse(0, S*0.3, S*0.45, S*0.26, 0, 0, Math.PI*2); c.fill();
+  // fileiras de escamas (arcos)
+  c.strokeStyle = SCALE; c.lineWidth = Math.max(1, S*0.025);
+  for(let r=0;r<3;r++) for(let i=-2;i<=2;i++){
+    c.beginPath(); c.arc(i*S*0.24, -S*0.05 + r*S*0.18, S*0.11, 0.15*Math.PI, 0.85*Math.PI); c.stroke();
+  }
+  // RACHADURAS de magma no corpo (o núcleo vivo)
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.5 + 0.45*pulse;
+  c.strokeStyle = MAG; c.lineWidth = Math.max(1.6, S*0.045); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.45, -S*0.1); c.lineTo(-S*0.2, S*0.12); c.lineTo(-S*0.35, S*0.4); c.stroke();
+  c.beginPath(); c.moveTo(S*0.15, -S*0.2); c.lineTo(S*0.35, S*0.05); c.lineTo(S*0.2, S*0.35); c.stroke();
+  c.restore();
+  // espinhos dorsais
+  c.fillStyle = HORN;
+  for(let i=-2;i<=2;i++){
+    c.beginPath(); c.moveTo(i*S*0.2 - S*0.05, -S*0.3);
+    c.lineTo(i*S*0.2, -S*0.52 - Math.abs(i)*S*0.02); c.lineTo(i*S*0.2 + S*0.05, -S*0.3); c.closePath(); c.fill();
+  }
+  // ---- PESCOÇO + CABEÇA ----
+  c.strokeStyle = SCALE2; c.lineWidth = Math.max(6, S*0.24);
+  c.beginPath(); c.moveTo(S*0.3, -S*0.15); c.quadraticCurveTo(S*0.62, -S*0.55, S*0.72, -S*0.85); c.stroke();
+  const hx = S*0.74, hy = -S*0.95;
+  c.fillStyle = SCALE2; c.beginPath();
+  c.moveTo(hx - S*0.26, hy - S*0.05); c.lineTo(hx + S*0.38, hy - S*0.12);
+  c.lineTo(hx + S*0.52, hy + S*0.05); c.lineTo(hx + S*0.3, hy + S*0.16);
+  c.lineTo(hx - S*0.2, hy + S*0.18); c.closePath(); c.fill();
+  c.strokeStyle = '#0c080a'; c.lineWidth = 1.4; c.stroke();
+  // chifres duplos
+  c.strokeStyle = HORN; c.lineWidth = Math.max(2.4, S*0.07); c.lineCap='round';
+  c.beginPath(); c.moveTo(hx - S*0.12, hy - S*0.08); c.quadraticCurveTo(hx - S*0.4, hy - S*0.42, hx - S*0.6, hy - S*0.4); c.stroke();
+  c.beginPath(); c.moveTo(hx - S*0.02, hy - S*0.12); c.quadraticCurveTo(hx - S*0.22, hy - S*0.5, hx - S*0.42, hy - S*0.55); c.stroke();
+  // olho incandescente
+  c.save(); c.globalCompositeOperation='lighter';
+  c.globalAlpha = 0.95; c.fillStyle = enr ? '#ff2a00' : '#ffb040';
+  c.beginPath(); c.ellipse(hx + S*0.08, hy - S*0.01, S*0.07, S*0.045, -0.2, 0, Math.PI*2); c.fill();
+  c.globalAlpha = 0.5; c.beginPath(); c.arc(hx + S*0.08, hy - S*0.01, S*0.14, 0, Math.PI*2); c.fill();
+  c.restore();
+  // narina fumegando (brasas subindo)
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=0;i<3;i++){
+    const ph = ((t/14 + i*45) % 90) / 90;
+    c.globalAlpha = (1-ph) * 0.55;
+    c.fillStyle = i%2 ? '#ffd070' : MAG;
+    c.beginPath(); c.arc(hx + S*0.45 + Math.sin(t/300+i)*S*0.04, hy + S*0.02 - ph*S*0.5, 1.8*(1-ph*0.5), 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+  // égide: Escamas de Obsidiana ativas (metade do dano)
+  if((p._status && p._status.escamas_krezath) || (p._emberAura && t < p._emberAura)){
+    c.save(); c.globalCompositeOperation='lighter';
+    const eg = c.createRadialGradient(0, -S*0.1, 0, 0, -S*0.1, S*1.5);
+    eg.addColorStop(0,'rgba(255,140,50,0.5)'); eg.addColorStop(0.6,'rgba(255,90,20,0.28)'); eg.addColorStop(1,'rgba(0,0,0,0)');
+    c.globalAlpha = 0.6 + 0.3*Math.sin(t/200); c.fillStyle = eg;
+    c.beginPath(); c.arc(0, -S*0.1, S*1.5, 0, Math.PI*2); c.fill();
+    c.globalAlpha = 0.85; c.strokeStyle = '#ffd090'; c.lineWidth = Math.max(2, S*0.04);
+    for(let i=0;i<9;i++){ const a = t/560 + i*Math.PI*2/9;
+      c.beginPath(); c.arc(Math.cos(a)*S*1.1, -S*0.1 + Math.sin(a)*S*1.1, S*0.05, 0, Math.PI*2); c.stroke(); }
+    c.restore();
+  }
+  c.restore();
+  // título flutuante
+  c.save(); c.font = '800 10px Cinzel, serif'; c.textAlign='center'; c.textBaseline='bottom';
+  const lbl = '🔥 O DEVORADOR SOTERRADO', tw2 = c.measureText(lbl).width + 12, tagY = sy - 16;
+  c.fillStyle = 'rgba(26,8,2,0.94)'; roundRect(c, cx - tw2/2, tagY-13, tw2, 13, 3); c.fill();
+  c.fillStyle = '#ff9a40'; c.fillText(lbl, cx, tagY-2.5); c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+// ---------- VFX do Brasal ----------
+function spawnMagmaStorm(atId){            // Tempestade de Magma: erupção em camadas + rochas
+  const e=players.get(atId); if(!e) return;
+  const now=performance.now();
+  vfx.push({kind:'blast',       x1:e.x, y1:e.y, color:'#ff6a18', radius:3.2, t0:now,      life:920});
+  vfx.push({kind:'shadowblast', x1:e.x, y1:e.y, color:'#7a1e08', radius:2.6, t0:now+140,  life:860});
+  vfx.push({kind:'blast',       x1:e.x, y1:e.y, color:'#ffd070', radius:2.0, t0:now+300,  life:760});
+  vfx.push({kind:'ring',        x1:e.x, y1:e.y, color:'#ff9a40', radius:3.4, t0:now+120,  life:560});
+  vfx.push({kind:'sparks',      x1:e.x, y1:e.y, color:'#ffb060', n:12, ph:Math.random()*6.283, t0:now+180, life:640});
+}
+function spawnDragonfire(atId){            // HÁLITO DO FIM: o fogo de antes do sol
+  const e=players.get(atId); if(!e) return;
+  const now=performance.now();
+  vfx.push({kind:'blast',       x1:e.x, y1:e.y, color:'#ffffff', radius:2.2, t0:now,      life:700});
+  vfx.push({kind:'blast',       x1:e.x, y1:e.y, color:'#ffd070', radius:3.2, t0:now+120,  life:880});
+  vfx.push({kind:'blast',       x1:e.x, y1:e.y, color:'#ff6a18', radius:4.0, t0:now+260,  life:940});
+  vfx.push({kind:'shadowblast', x1:e.x, y1:e.y, color:'#8a1e04', radius:3.0, t0:now+420,  life:860});
+  vfx.push({kind:'ring',        x1:e.x, y1:e.y, color:'#ffd090', radius:4.2, t0:now+200,  life:640});
+  vfx.push({kind:'ring',        x1:e.x, y1:e.y, color:'#ff7a20', radius:3.0, t0:now+380,  life:560});
+  vfx.push({kind:'sparks',      x1:e.x, y1:e.y, color:'#ffd070', n:14, ph:Math.random()*6.283, t0:now+240, life:720});
 }

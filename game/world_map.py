@@ -609,6 +609,15 @@ def _build_descampado():
 
 
 DESCAMPADO_ROWS = _build_descampado()
+
+# abre a passagem LESTE do Descampado -> Brasal (a Ferida do Mundo)
+def _open_descampado_east():
+    for y in range(48, 53):
+        row = list(DESCAMPADO_ROWS[y])
+        for x in range(93, 97): row[x] = "."
+        for x in range(97, 100): row[x] = "+"
+        DESCAMPADO_ROWS[y] = "".join(row)
+_open_descampado_east()
 DESCAMPADO_SPAWN = [(50, 6), (49, 6), (51, 6), (50, 7)]   # logo abaixo da entrada norte
 
 
@@ -1469,6 +1478,191 @@ BOSQUE_ATALECH_ROWS = _build_bosque_atalech()
 BOSQUE_ATALECH_SPAWN = [(100, 197), (99, 197), (101, 197), (100, 196)]   # logo dentro da entrada sul
 
 
+# ===========================================================================
+#  BRASAL, A FERIDA DO MUNDO + GOELA DE KREZATH (leste do Descampado)
+#  Tiles (interpretados pelo cliente em drawBrasalTile/drawGoelaTile):
+#   . cinza   , brasas no chao   d terra rachada de magma   + passagem
+#   l LAVA(S)   B obsidiana(S)   Y arvore carbonizada(S)   k ossada(S)   G geiser(S)
+#   # parede de basalto(S)   v veio de magma na parede(S)
+# ===========================================================================
+def _build_brasal():
+    import random as _rd
+    R = _rd.Random(4242)
+    W = H = 150
+    rows = [["." for _ in range(W)] for _ in range(H)]
+    for x in range(W): rows[0][x] = "~"; rows[H-1][x] = "~"
+    for y in range(H): rows[y][0] = "~"; rows[y][W-1] = "~"
+    # ruído de chão: brasas e terra rachada
+    for y in range(1, H-1):
+        for x in range(1, W-1):
+            r = R.random()
+            if r < 0.10: rows[y][x] = ","
+            elif r < 0.17: rows[y][x] = "d"
+    # RIO DE LAVA serpenteando norte-sul no meio, com 3 pontes de basalto
+    import math as _m
+    pontes = {(40, 43), (74, 77), (108, 111)}
+    for y in range(1, H-1):
+        cx = int(75 + 22 * _m.sin(y / 13.0))
+        w = 2 if (y % 7) else 3
+        em_ponte = any(a <= y <= b for (a, b) in pontes)
+        for x in range(cx - w, cx + w + 1):
+            if 1 <= x < W-1:
+                rows[y][x] = "d" if em_ponte else "l"
+    # lagos de lava
+    for (lx, ly, rx, ry) in ((30, 110, 9, 6), (115, 40, 10, 7), (50, 24, 7, 5)):
+        for y in range(ly - ry, ly + ry + 1):
+            for x in range(lx - rx, lx + rx + 1):
+                if 1 <= x < W-1 and 1 <= y < H-1 and ((x-lx)/rx)**2 + ((y-ly)/ry)**2 <= 1:
+                    rows[y][x] = "l"
+    # obsidianas, árvores carbonizadas, ossadas, gêiseres
+    def scatter(ch, n, keep=2):
+        placed = 0
+        while placed < n:
+            x, y = R.randint(3, W-4), R.randint(3, H-4)
+            if rows[y][x] == "." or rows[y][x] == ",":
+                for dy in range(keep):
+                    for dx in range(keep):
+                        if rows[y+dy][x+dx] in ".,d":
+                            rows[y+dy][x+dx] = ch
+                placed += 1
+    scatter("B", 46, 2); scatter("Y", 110, 1); scatter("k", 14, 2); scatter("G", 16, 1)
+    # paredão de obsidiana no LESTE (boca da Goela) 
+    for y in range(1, H-1):
+        for x in range(W-6, W-1):
+            if R.random() < 0.5: rows[y][x] = "B"
+    # ENTRADAS: oeste (vindo do Descampado) e leste (boca da Goela), corredores limpos
+    for y in range(47, 54):
+        for x in range(1, 10): rows[y][x] = "."
+        for x in range(0, 3): rows[y][x] = "+"
+    for y in range(72, 79):
+        for x in range(W-10, W-1): rows[y][x] = "."
+        for x in range(W-3, W): rows[y][x] = "+"
+    return ["".join(r) for r in rows]
+
+
+def _carve_cave(seed, W, H, way_in, way_out):
+    """Caverna: paredes '#' escavadas com corredor principal GARANTIDO entrada->saída,
+    salas laterais, bolsões de lava e veios de magma. way_in/way_out: (x, y)."""
+    import random as _rd, math as _m
+    R = _rd.Random(seed)
+    rows = [["#" for _ in range(W)] for _ in range(H)]
+    def carve(x, y, r):
+        for dy in range(-r, r+1):
+            for dx in range(-r, r+1):
+                if dx*dx + dy*dy <= r*r and 1 <= x+dx < W-1 and 1 <= y+dy < H-1:
+                    rows[y+dy][x+dx] = "."
+    # corredor principal serpenteante
+    (x0, y0), (x1, y1) = way_in, way_out
+    steps = max(abs(x1-x0), abs(y1-y0)) * 2
+    path = []
+    for i in range(steps + 1):
+        t = i / steps
+        env = _m.sin(t * _m.pi)                       # envelope: desvio ZERA nas pontas
+        px = int(x0 + (x1-x0)*t + 7*_m.sin(t*6.0 + seed) * env)
+        py = int(y0 + (y1-y0)*t + 5*_m.sin(t*9.0 + seed*2) * env)
+        px = max(2, min(W-3, px)); py = max(2, min(H-3, py))
+        carve(px, py, 2); path.append((px, py))
+    # salas laterais conectadas ao corredor
+    for _ in range(7):
+        sx, sy = R.randint(8, W-9), R.randint(8, H-9)
+        rx, ry = R.randint(4, 7), R.randint(3, 6)
+        for yy in range(sy-ry, sy+ry+1):
+            for xx in range(sx-rx, sx+rx+1):
+                if 1 <= xx < W-1 and 1 <= yy < H-1 and ((xx-sx)/rx)**2 + ((yy-sy)/ry)**2 <= 1:
+                    rows[yy][xx] = "."
+        ax, ay = min(path, key=lambda p: abs(p[0]-sx) + abs(p[1]-sy))
+        x, y = sx, sy
+        while x != ax: x += 1 if ax > x else -1; carve(x, y, 1)
+        while y != ay: y += 1 if ay > y else -1; carve(x, y, 1)
+        # bolsão de lava no fundo da sala + estalagmites
+        if R.random() < 0.75:
+            for yy in range(sy-1, sy+2):
+                for xx in range(sx-2, sx+3):
+                    if rows[yy][xx] == "." and (xx, yy) not in path and R.random() < 0.7:
+                        rows[yy][xx] = "l"
+        for _ in range(3):
+            bx, by = sx + R.randint(-rx+1, rx-1), sy + R.randint(-ry+1, ry-1)
+            if rows[by][bx] == ".": rows[by][bx] = "B"
+    # corredor principal SEMPRE limpo (remove lava/pedra que caiu nele)
+    for (px, py) in path:
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if rows[py+dy][px+dx] in ("l", "B"): rows[py+dy][px+dx] = "."
+    # cascalho + veios de magma nas paredes que tocam o chão
+    for y in range(1, H-1):
+        for x in range(1, W-1):
+            if rows[y][x] == "." and R.random() < 0.14: rows[y][x] = ","
+            if rows[y][x] == "#":
+                viz = any(rows[y+dy][x+dx] in ".," for dy in (-1,0,1) for dx in (-1,0,1))
+                if viz and R.random() < 0.10: rows[y][x] = "v"
+    # aberturas de entrada e saída
+    for (ex, ey) in (way_in, way_out):
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                if 0 <= ex+dx < W and 0 <= ey+dy < H and (abs(dx) <= 1 or abs(dy) <= 1):
+                    if ex+dx in (0, W-1) or ey+dy in (0, H-1):
+                        rows[ey+dy][ex+dx] = "+"
+                    elif rows[ey+dy][ex+dx] in ("#", "v", "l", "B"):
+                        rows[ey+dy][ex+dx] = "."
+    return ["".join(r) for r in rows]
+
+
+def _build_goela_1():
+    return _carve_cave(7, 70, 70, (2, 35), (35, 2))       # entra OESTE, sobe NORTE
+
+def _build_goela_2():
+    return _carve_cave(13, 70, 70, (35, 67), (35, 2))     # entra SUL, sobe NORTE (Vulkar na porta)
+
+
+def _build_covil():
+    W, H = 60, 50
+    rows = [["#" for _ in range(W)] for _ in range(H)]
+    cx, cy, rx, ry = 30, 24, 25, 19
+    for y in range(1, H-1):
+        for x in range(1, W-1):
+            if ((x-cx)/rx)**2 + ((y-cy)/ry)**2 <= 1:
+                rows[y][x] = "."
+    # LAGO DE MAGMA no norte (o trono líquido do Devorador)
+    for y in range(4, 15):
+        for x in range(1, W-1):
+            if rows[y][x] == "." and ((x-30)/20.0)**2 + ((y-8)/7.0)**2 <= 1:
+                rows[y][x] = "l"
+    # plataforma de basalto no meio do lago (onde ELE dorme)
+    for y in range(9, 15):
+        for x in range(25, 36):
+            rows[y][x] = "."
+    # colunas de obsidiana simétricas
+    for (bx, by) in ((14, 18), (46, 18), (12, 30), (48, 30), (20, 38), (40, 38)):
+        rows[by][bx] = "B"; rows[by][bx+1] = "B"; rows[by+1][bx] = "B"; rows[by+1][bx+1] = "B"
+    # cascalho e veios
+    import random as _rd
+    R = _rd.Random(99)
+    for y in range(1, H-1):
+        for x in range(1, W-1):
+            if rows[y][x] == "." and R.random() < 0.12: rows[y][x] = ","
+            if rows[y][x] == "#":
+                viz = any(0 <= y+dy < H and 0 <= x+dx < W and rows[y+dy][x+dx] in ".," for dy in (-1,0,1) for dx in (-1,0,1))
+                if viz and R.random() < 0.14: rows[y][x] = "v"
+    # entrada SUL
+    for y in range(H-3, H):
+        for x in range(28, 33): rows[y][x] = "+"
+    for y in range(cy+ry-2, H-3):
+        for x in range(28, 33):
+            if rows[y][x] in ("#", "v"): rows[y][x] = "."
+    return ["".join(r) for r in rows]
+
+
+BRASAL_ROWS = _build_brasal()
+GOELA_1_ROWS = _build_goela_1()
+GOELA_2_ROWS = _build_goela_2()
+COVIL_KREZATH_ROWS = _build_covil()
+BRASAL_SPAWN = [(4, 50), (4, 49), (4, 51), (5, 50)]
+GOELA_1_SPAWN = [(4, 35), (4, 34), (4, 36)]
+GOELA_2_SPAWN = [(35, 65), (34, 65), (36, 65)]
+COVIL_SPAWN = [(30, 45), (29, 45), (31, 45)]
+
+
+
 MAPS = {
     "ermo":             {"rows": MAP_ROWS,             "spawns": SPAWN_POINTS},
     "salao":            {"rows": SALAO_ROWS,           "spawns": SALAO_SPAWN},
@@ -1492,6 +1686,10 @@ MAPS = {
     "camara_varth":     {"rows": CAMARA_VARTH_ROWS,     "spawns": CAMARA_VARTH_SPAWN},
     "planaltos_ermais": {"rows": PLANALTOS_ROWS,        "spawns": PLANALTOS_SPAWN},
     "floresta_ermo":    {"rows": FLORESTA_ROWS,         "spawns": FLORESTA_SPAWN},
+    "brasal":           {"rows": BRASAL_ROWS,           "spawns": BRASAL_SPAWN},
+    "goela_1":          {"rows": GOELA_1_ROWS,          "spawns": GOELA_1_SPAWN},
+    "goela_2":          {"rows": GOELA_2_ROWS,          "spawns": GOELA_2_SPAWN},
+    "covil_krezath":    {"rows": COVIL_KREZATH_ROWS,    "spawns": COVIL_SPAWN},
     "bosque_atalech":   {"rows": BOSQUE_ATALECH_ROWS,   "spawns": BOSQUE_ATALECH_SPAWN},
 }
 
@@ -1523,6 +1721,8 @@ for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba:
     DOOR_INTERIORS[(_d[0] + OX, _d[1] + OY)] = "LOCKED"
 
 
+
+
 # ---- motor de passagem por borda: (mapa, borda) -> (mapa destino, x, y, facing) ----
 # Voce anda ate a faixa de '+' numa borda e cai no mapa vizinho, virado pra dentro.
 EDGE_LINKS = {
@@ -1534,8 +1734,16 @@ EDGE_LINKS = {
     "floresta_ermo":    {"south": ("planaltos_ermais", 60,  2, "down"),
                          "north": ("bosque_atalech",   100, 197, "up")},
     "bosque_atalech":   {"south": ("floresta_ermo",    75,  2, "down")},
+    "brasal":           {"west":  ("descampado",       95, 50, "left"),
+                         "east":  ("goela_1",            4, 35, "right")},
+    "goela_1":          {"west":  ("brasal",           145, 75, "left"),
+                         "north": ("goela_2",           35, 64, "up")},
+    "goela_2":          {"south": ("goela_1",           35,  4, "down"),
+                         "north": ("covil_krezath",     30, 44, "up")},
+    "covil_krezath":    {"south": ("goela_2",           35,  4, "down")},
     "descampado":       {"north": ("ermo",       OX + 19, ERMO_H - 3, "up"),
-                         "south": ("avasham",          49,  4, "down")},
+                         "south": ("avasham",          49,  4, "down"),
+                         "east":  ("brasal",            4, 50, "right")},
     "repouso_dama":     {"west":  ("ermo",       ERMO_W - 3, OY + 15, "left"),
                          "east":  ("valdarkram",         4, 50, "right")},
     "avasham":          {"north": ("descampado",       49, 96, "up"),

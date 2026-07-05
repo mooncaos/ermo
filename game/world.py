@@ -479,6 +479,14 @@ class World:
             _spawn(type_id, x, y, "camara_varth")
         for (type_id, x, y) in monsters_def.FLORESTA_ERMO_SPAWNS:
             _spawn(type_id, x, y, "floresta_ermo")
+        for (type_id, x, y) in monsters_def.BRASAL_SPAWNS:
+            _spawn(type_id, x, y, "brasal")
+        for (type_id, x, y) in monsters_def.GOELA_1_SPAWNS:
+            _spawn(type_id, x, y, "goela_1")
+        for (type_id, x, y) in monsters_def.GOELA_2_SPAWNS:
+            _spawn(type_id, x, y, "goela_2")
+        for (type_id, x, y) in monsters_def.COVIL_KREZATH_SPAWNS:
+            _spawn(type_id, x, y, "covil_krezath")
         return self.monsters
 
     def monster_at(self, mp, x, y):
