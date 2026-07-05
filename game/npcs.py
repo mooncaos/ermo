@@ -1253,7 +1253,7 @@ ROSTER.extend([
         "look": {"skin": "#b08a68", "cloak": "#e8e0d0", "hood": "up",
                  "hat": "none", "hair": "#d8d0c0", "staff": True},
         "sex": "F",
-        "map": "ermo", "home": (58, 10), "radius": 1, "wanders": True,
+        "map": "ermo", "home": (58, 12), "radius": 1, "wanders": True,
         "step_every": 2.0, "solid": True, "kind": "person",
         "murmurs": [
             "Doze nomes, um só silêncio...",
@@ -1269,7 +1269,7 @@ ROSTER.extend([
         "id": "npc:cronista", "name": "Cronista Fabiano",
         "look": {"skin": "#9a6a48", "cloak": "#4a5a7a", "hood": "down",
                  "hat": "none", "hair": "#c8c0b8", "staff": False},
-        "map": "ermo", "home": (62, 10), "radius": 1, "wanders": True,
+        "map": "ermo", "home": (62, 12), "radius": 1, "wanders": True,
         "step_every": 2.2, "solid": True, "kind": "person",
         "murmurs": [
             "Toda lenda começa com um nome numa página...",

@@ -1274,55 +1274,51 @@ for _yy in range(5):
 _tav[_TVY + 4][_TVX + 3] = "D"                  # porta -> (83, 49)
 MAP_ROWS = ["".join(r) for r in _tav]
 
-# a RUA DOS OFÍCIOS: 7 casas no ESTILO NATIVO das construções do Ermo
-# (toldo m com placa, parede M com janelas iluminadas, entrada E, calçada p)
+# a RUA DOS OFÍCIOS: casas nativas COM INTERIOR (entra pela porta E)
 def _build_prof_houses():
-    def casa(cx, cy):                       # fachada 7x3 + calçada na frente
-        linhas = ("mmmmmmm", "MMMMMMM", "MMMEMMM")
+    def casa(cx, cy):
+        linhas = ("mmmmmmm", "MpppppM", "MMMEMMM", "ppppppp")
         for i, ln in enumerate(linhas):
             row = list(MAP_ROWS[cy + i])
             for j, ch in enumerate(ln):
                 row[cx + j] = ch
             MAP_ROWS[cy + i] = "".join(row)
-        row = list(MAP_ROWS[cy + 3])        # calçada de paralelepípedo
-        for j in range(7):
-            row[cx + j] = "p"
-        MAP_ROWS[cy + 3] = "".join(row)
-    for cy in (14, 19, 24, 29):             # lado OESTE da estrada
+    for cy in (14, 19, 24, 29):
         casa(41, cy)
-    for cy in (16, 22, 28):                 # lado LESTE
+    for cy in (16, 22, 28):
         casa(51, cy)
 _build_prof_houses()
 
 
-# O TEMPLO DOS DOZE: fachada monumental no alto da estrada
+# O TEMPLO DOS DOZE: nave interna com colunatas, altar e portal triplo
 def _build_templo():
-    x0, y0 = 52, 4
+    x0, y0 = 52, 3
     linhas = ("mmmmmmmmmmmmmmm",
-              "MMMMMMMMMMMMMMM",
-              "MMMMMMMMMMMMMMM",
-              "MMMMMMEEEMMMMMM")
+              "MpppppppppppppM",
+              "Mpp^ppp^ppp^ppM",
+              "MpppppppppppppM",
+              "Mpp^ppp^ppp^ppM",
+              "MpppppppppppppM",
+              "MpppppppppppppM",
+              "MMMMMMEEEMMMMMM",
+              "ppppppppppppppp")
     for i, ln in enumerate(linhas):
         row = list(MAP_ROWS[y0 + i])
         for j, ch in enumerate(ln):
             row[x0 + j] = ch
         MAP_ROWS[y0 + i] = "".join(row)
-    row = list(MAP_ROWS[y0 + 4])            # adro de paralelepípedo
-    for j in range(15):
-        row[x0 + j] = "p"
-    MAP_ROWS[y0 + 4] = "".join(row)
-    row = list(MAP_ROWS[y0 + 5])            # lampiões guardando o adro
+    row = list(MAP_ROWS[y0 + 9])            # lampiões guardando o adro
     row[x0 + 2] = "L"; row[x0 + 12] = "L"
     for j in range(6, 9):
         row[x0 + j] = "p"
-    MAP_ROWS[y0 + 5] = "".join(row)
+    MAP_ROWS[y0 + 9] = "".join(row)
 _build_templo()
 
 
 # calçadas de paralelepípedo ligando cada porta à estrada principal (x=49)
 def _build_calcadas():
-    ligas = [(44, 17, 1), (44, 22, 1), (44, 27, 1), (44, 32, 1),   # oeste -> leste
-             (54, 19, -1), (54, 25, -1), (54, 31, -1)]             # leste -> oeste
+    ligas = [(44, 17, 1), (44, 22, 1), (44, 27, 1), (44, 32, 1),
+             (54, 19, -1), (54, 25, -1), (54, 31, -1)]
     for (px, py, sentido) in ligas:
         x = px
         while 41 <= x <= 58:
@@ -1333,18 +1329,17 @@ def _build_calcadas():
             if (sentido > 0 and x >= 48) or (sentido < 0 and x <= 50):
                 break
             x += sentido
-    # braço do templo até a estrada (a rua sobe direto pro portal)
-    for y in range(9, 14):
+    for y in range(12, 15):                  # braço do templo até a rua
         row = list(MAP_ROWS[y])
         for x in (58, 59, 60):
             if row[x] in (".", ",", ":", "T", "^", "Y", "d"):
                 row[x] = "p"
         MAP_ROWS[y] = "".join(row)
-    row = list(MAP_ROWS[13])
+    row = list(MAP_ROWS[14])
     for x in range(49, 59):
         if row[x] in (".", ",", ":", "T", "^", "Y", "d"):
             row[x] = "p"
-    MAP_ROWS[13] = "".join(row)
+    MAP_ROWS[14] = "".join(row)
 _build_calcadas()
 
 
