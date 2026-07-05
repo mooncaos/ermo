@@ -1626,3 +1626,25 @@ for _mid, _extra in _TOWER_EXTRA.items():
 def abilities_for(type_id):
     """Lista de habilidades especiais do tipo de monstro (vazia se nao tiver)."""
     return MONSTER_ABILITIES.get(type_id, [])
+
+
+# ---- habilidades pros que ficaram de fora (atribuição temática) ----
+for _t in ['coelho', 'lebre', 'veado', 'cervo', 'capivara', 'antilope', 'enxame_morcegos']:
+    _n = (MONSTERS.get(_t, {}).get("name", "") + _t).lower()
+    if any(w in _n for w in ("lobo", "javali", "urso", "hiena", "onca", "fera", "capivara")):
+        _ab = {"id": "investida_%s" % _t, "name": "Investida", "type": "heavy",
+               "mult": 2, "chance": 0.3, "cd": 3}
+    elif any(w in _n for w in ("fantasma", "espectro", "sombra", "vulto", "alma")):
+        _ab = {"id": "uivo_%s" % _t, "name": "Uivo Gélido", "type": "fear",
+               "dc": 13, "turns": 2, "chance": 0.25, "cd": 5}
+    elif any(w in _n for w in ("aranha", "serpente", "cobra", "escorp", "slime", "gosma")):
+        _ab = {"id": "peconha_%s" % _t, "name": "Peçonha", "type": "inflict",
+               "status": "poison", "turns": 3, "dot": {"n": 1, "d": 4},
+               "chance": 0.35, "cd": 3}
+    elif any(w in _n for w in ("mago", "bruxo", "cultista", "xama", "lich", "arcan")):
+        _ab = {"id": "raio_%s" % _t, "name": "Raio Arcano", "type": "blast",
+               "dmg": {"n": 2, "d": 8}, "chance": 0.3, "cd": 3}
+    else:
+        _ab = {"id": "golpe_%s" % _t, "name": "Golpe Brutal", "type": "heavy",
+               "mult": 2, "chance": 0.25, "cd": 4}
+    MONSTER_ABILITIES.setdefault(_t, []).append(_ab)

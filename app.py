@@ -801,6 +801,7 @@ def on_rt_cast(data):
                              "fx": [player["x"], player["y"], m["x"], m["y"]],
                              "hp": m["hp"], "hp_max": m["hp_max"]},
                   room=player["map"])
+    _mob_aggro(m, sid)
     _ar = int(sp.get("area", 0))
     if _ar > 0:
         socketio.emit("rt_aoe", {"x": m["x"], "y": m["y"], "r": _ar,
@@ -1088,6 +1089,7 @@ def on_rune_use(data):
             if max(abs(mm["x"] - m["x"]), abs(mm["y"] - m["y"])) <= area:
                 alvos.append(mm)
     for mm in alvos:
+        _mob_aggro(mm, request.sid)
         dmg = skills.magic_roll(lvl, _ml, *skills.SPELL_FORMULAS.get(tier, skills.SPELL_FORMULAS[2]))
         if mm.get("_rt_aegis_until", 0) > time.time():
             dmg = max(1, dmg // 2)
@@ -1886,7 +1888,7 @@ def _duel_end(win_sid, lose_sid, wo=False):
 #  CÉREBRO DE CHEFE (tempo real): falas, invocação e perseguição.
 # ===========================================================================
 BOSS_LINES = {
-    "velho_bob":       ["GRUNF! Minha praia, minhas regras!", "Os filhos da mata ouvem o velho... VEM, CRIANÇADA!", "Você tem cheiro de almoço."],
+    "velho_bob":       ["GRUNF! Minha praia, minhas regras!", "Os filhos da mata ouvem o velho... VEM, CRIANÇADA!", "Você tem cheiro de almoço.", "Tem os ovão bem grandão, o nome dele é BOB."],
     "maraja":          ["CURVE-SE. A savana inteira já se curvou.", "Minha juba já viu cem como você virarem poeira.", "RUGIDO é aviso. Só dou UM."],
     "lorde_varth":     ["A Torre não recebe visitas. Recebe SÚDITOS.", "Atalech sussurra seu nome... e ri.", "Eu já morri uma vez. Foi TÉDIO."],
     "krezath":         ["FOME. Sempre a FOME.", "Você não é inimigo. É PRATO.", "O Devorador agradece a entrega."],
@@ -1898,6 +1900,24 @@ BOSS_LINES = {
     "maurao":          ["Ô, chegou o corajoso. SEGURA ESSA.", "Aqui embaixo quem manda é o MAURÃO.", "Vou te ensinar a nadar. No chão."],
     "_":               ["Você OUSA?!", "Mais um pro monte.", "GRRRAAAH!"],
 }
+
+
+
+def _mob_aggro(m, sid, prop=True):
+    """O bicho memoriza quem o feriu (20s) e o bando escuta o chamado."""
+    if not m or not sid:
+        return
+    m["_aggro_sid"] = sid
+    m["_aggro_until"] = time.time() + 20
+    if not prop:
+        return
+    for x in world.monsters.values():
+        if x is m or not x.get("alive") or x.get("passive"):
+            continue
+        if x.get("type") != m.get("type") or x.get("map") != m.get("map"):
+            continue
+        if max(abs(x["x"] - m["x"]), abs(x["y"] - m["y"])) <= 4:
+            _mob_aggro(x, sid, prop=False)
 
 
 def _rt_boss_summon(m, spec, n):
@@ -2414,6 +2434,7 @@ def _rt_combat_loop():
                     dmg *= 2                              # Luz da Criação: dano radiante dobrado
                 elif post == "combatente":
                     dmg += sum(random.randint(1, 8) for _ in range(2))   # +2 Castigos Divinos
+                _mob_aggro(m, sid)
                 if m.get("_rt_aegis_until", 0) > now:
                     dmg = max(1, dmg // 2)                # forma de névoa / escamas: 50%%
                 m["hp"] = max(0, int(m["hp"]) - dmg)
@@ -2560,18 +2581,65 @@ def _rt_combat_loop():
                 alvo_sid = None
                 alvo_pl = None
                 alvo_d = 999
-                for sid, pl in world.players.items():
-                    if pl.get("map") != m.get("map") or pl.get("invisible"):
-                        continue
-                    fp = pl.get("ficha") or {}
-                    if int(fp.get("hp", 0)) <= 0:
-                        continue
-                    dd = max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"]))
-                    if dd <= aggro and dd < alvo_d:
-                        alvo_sid, alvo_pl, alvo_d = sid, pl, dd
+                _ag = m.get("_aggro_sid")
+                if _ag and m.get("_aggro_until", 0) > now:
+                    _p3 = world.players.get(_ag)
+                    _f3 = (_p3 or {}).get("ficha") or {}
+                    if _p3 and _p3.get("map") == m.get("map") and int(_f3.get("hp", 0)) > 0 and \
+                       not _p3.get("invisible") and \
+                       max(abs(m["x"] - _p3["x"]), abs(m["y"] - _p3["y"])) <= 14:
+                        alvo_sid, alvo_pl = _ag, _p3
+                        alvo_d = max(abs(m["x"] - _p3["x"]), abs(m["y"] - _p3["y"]))
                 if not alvo_sid:
+                    for sid, pl in world.players.items():
+                        if pl.get("map") != m.get("map") or pl.get("invisible"):
+                            continue
+                        fp = pl.get("ficha") or {}
+                        if int(fp.get("hp", 0)) <= 0:
+                            continue
+                        dd = max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"]))
+                        if dd <= aggro and dd < alvo_d:
+                            alvo_sid, alvo_pl, alvo_d = sid, pl, dd
+                if not alvo_sid:
+                    # sem alvo: machucado ou perdido volta pro ponto de origem (e sara)
+                    sp0 = m.get("_spawn")
+                    if sp0 and len(sp0) >= 3:
+                        _hx, _hy = int(sp0[1]), int(sp0[2])
+                        _dh = max(abs(m["x"] - _hx), abs(m["y"] - _hy))
+                        if _dh <= 2:
+                            if int(m["hp"]) < int(m["hp_max"]):
+                                m["hp"] = int(m["hp_max"])
+                                m.pop("_aggro_sid", None)
+                                m.pop("_enraged", None)
+                                socketio.emit("rt_mheal", {"id": mid, "amount": 0, "hp": m["hp"],
+                                              "hp_max": m["hp_max"]}, room=m.get("map"))
+                        elif (int(m["hp"]) < int(m["hp_max"]) or _dh > 10) and \
+                                m.get("_rt_step", 0) <= now:
+                            m["_rt_step"] = now + max(0.28, 4.2 / max(1, int(spec.get("speed", 5))))
+                            dx = (1 if _hx > m["x"] else (-1 if _hx < m["x"] else 0))
+                            dy = (1 if _hy > m["y"] else (-1 if _hy < m["y"] else 0))
+                            tent = []
+                            if dx:
+                                tent.append((m["x"] + dx, m["y"], "right" if dx > 0 else "left"))
+                            if dy:
+                                tent.append((m["x"], m["y"] + dy, "down" if dy > 0 else "up"))
+                            random.shuffle(tent)
+                            for (tx, ty, fc) in tent:
+                                if not rules.is_walkable(tx, ty, m.get("map")):
+                                    continue
+                                m["x"], m["y"], m["facing"] = tx, ty, fc
+                                socketio.emit("monsters_moved", {"map": m.get("map"),
+                                              "moves": [{"id": mid, "x": tx, "y": ty, "facing": fc}]},
+                                              room=m.get("map"))
+                                break
                     continue
                 if eh_boss:
+                    if int(m["hp"]) < int(m["hp_max"]) * 0.3 and not m.get("_enraged"):
+                        m["_enraged"] = True
+                        socketio.emit("toast", {"text": "🩸 %s entra em FÚRIA!" % m.get("name", "?")},
+                                      room=m.get("map"))
+                        socketio.emit("speech", {"id": mid, "text": "AGORA VOCÊ ME IRRITOU."},
+                                      room=m.get("map"))
                     if m.get("_rt_say", 0) <= now:
                         m["_rt_say"] = now + 8
                         if random.random() < 0.45:
@@ -2683,6 +2751,8 @@ def _rt_combat_loop():
                                               "hp": f.get("hp"), "hp_max": f.get("hp_max")}, to=alvo_sid)
                     continue
                 dmg = _rt_roll_dmg(spec.get("dmg") or {"n": 1, "d": 4}, crit)
+                if m.get("_enraged"):
+                    dmg = int(dmg * 1.5)                  # a FÚRIA morde mais fundo
                 if usada and usada["type"] in ("heavy", "inflict", "drain", "blast", "trueblast"):
                     bx = usada.get("dmg_bonus") or usada.get("dmg") or {"n": 2, "d": 8}
                     extra = sum(random.randint(1, bx.get("d", 8)) for _ in range(bx.get("n", 2)))
@@ -2757,6 +2827,12 @@ def _rt_combat_loop():
                 alvo_pl["ficha"] = f
                 socketio.emit("rt_phit", {"dmg": dmg, "crit": crit, "by": m.get("name", "?"),
                                           "hp": f["hp"], "hp_max": f.get("hp_max")}, to=alvo_sid)
+                if reach_m > 1:
+                    socketio.emit("rt_hit", {"id": alvo_sid, "dmg": dmg, "magic": True, "by": mid,
+                                             "dtype": spec.get("dtype", "energia"),
+                                             "fx": [m["x"], m["y"], alvo_pl["x"], alvo_pl["y"]],
+                                             "hp": f["hp"], "hp_max": f.get("hp_max")},
+                                  room=m.get("map"), skip_sid=alvo_sid)
                 socketio.emit("xp", {"xp": f.get("xp", 0), "level": f.get("level", 1),
                                      "hp": f["hp"], "hp_max": f.get("hp_max"),
                                      "prof": f.get("prof"), "gained": 0,

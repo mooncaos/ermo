@@ -2164,6 +2164,47 @@ def _ossuario_int():
 MAPS["ossuario"] = {"rows": _ossuario_int(), "spawns": [(9, 10), (8, 10), (10, 10)]}
 
 
+def _gotico_vespera():
+    """O entorno do castelo de Varth vira um cemitério gótico: lápides, árvores
+    mortas e braseiros no anel externo, entrada cerimonial com tapete de pedra."""
+    rows = [list(r) for r in MAPS["vespera"]["rows"]]
+    H, W = len(rows), len(rows[0])
+    rng = _random_mod.Random(1408)
+
+    def walk(x, y):
+        return 0 <= x < W and 0 <= y < H and rows[y][x] in ".,d"
+
+    def viz_livres(x, y):
+        return sum(1 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)) if walk(x + dx, y + dy))
+
+    # anel do cemitério em volta da massa do castelo (x55-99, y10-31)
+    for y in range(7, 35):
+        for x in range(51, 104):
+            if not walk(x, y):
+                continue
+            dentro = 55 <= x <= 99 and 10 <= y <= 31
+            if dentro:
+                continue                       # o pátio interno fica como está
+            if rng.random() < 0.07 and viz_livres(x, y) >= 3:
+                r = rng.random()
+                rows[y][x] = "Y" if r < 0.5 else ("T" if r < 0.8 else ";")
+
+    # entrada cerimonial ao sul: braseiros flanqueando + tapete de pedra
+    for bx in (56, 67):
+        if walk(bx, 31):
+            rows[31][bx] = ";"
+    for ty in range(32, 36):
+        for tx in range(59, 64):
+            if walk(tx, ty):
+                rows[ty][tx] = "p"
+
+    MAPS["vespera"]["rows"] = ["".join(r) for r in rows]
+
+
+import random as _random_mod
+_gotico_vespera()
+
+
 # A ARENA DO ERMO: fachada no sudeste + o ringue interior
 def _build_arena():
     x0, y0 = 71, 39
