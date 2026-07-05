@@ -6192,7 +6192,7 @@ function npcOnTile(tx, ty){
   return null;
 }
 function meNearNpc(){ return !!nearestNpcWithin(1); }
-function tryInteract(){ if(meNearNpc() && socket) socket.emit('interact'); }
+function tryInteract(){ if(socket) socket.emit('interact'); }  // o SERVIDOR decide o que há por perto (alçapão, bigorna, altar, portal, mastro, NPC, node...)
 
 // um vizinho passavel e livre do tile (tx,ty), o mais perto de quem chamou
 function nearestFreeNeighbor(tx, ty, fromX, fromY){
