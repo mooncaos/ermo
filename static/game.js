@@ -11569,7 +11569,8 @@ function buildHotbar(){
       '<div class="rtCd" style="position:absolute;inset:0;border-radius:9px;background:rgba(6,8,14,0.75);display:none;"></div></div>';
   });
   slots += '</div>';
-  el.innerHTML = mana + slots;
+  el.innerHTML = mana + slots +
+    '<div style="font:600 9px Inter;color:#7a86a8;text-shadow:0 1px 3px #000;">1-5 conjurar · Tab alvo · Esc soltar · M mapa</div>';
   document.body.appendChild(el);
   el.querySelectorAll('.rtSlot').forEach(s=>{
     s.addEventListener('pointerdown', ev=>{ ev.preventDefault(); rtCast(s.getAttribute('data-sp')); });
@@ -11596,12 +11597,20 @@ window.addEventListener('keydown', e=>{
   if(n != null && rtSpells[n]){ e.preventDefault(); rtCast(rtSpells[n].id); }
 });
 
+var _gotGrimoire = false;
 var bindArcano = setInterval(()=>{
-  if(typeof socket === 'undefined' || !socket || socket._arcBound) return;
+  if(typeof socket === 'undefined' || !socket) return;
+  // pede o grimório em loop até o servidor responder (só depois do login)
+  if(socket._arcBound){
+    if(!_gotGrimoire && typeof started !== 'undefined' && started) socket.emit('grimoire_get');
+    return;
+  }
   socket._arcBound = true;
   socket.on('mana', d=>{ if(d){ rtMana = {mana: d.mana, max: d.max}; updateManaBar(); } });
   socket.on('grimoire', g=>{
-    if(!g || !g.caster || !g.chosen) return;
+    if(!g) return;
+    _gotGrimoire = true;
+    if(!g.caster || !g.chosen) return;              // classe sem magia: sem hotbar mesmo
     const CUSTO = lv => lv === 0 ? 0 : 8 + 6*lv;
     const det = id => {
       let sp = null;
@@ -11616,8 +11625,13 @@ var bindArcano = setInterval(()=>{
         usaveis.push({id: sp.id, name: sp.name, cost: CUSTO(sp.level||0), kind: sp.kind});
     });
     usaveis.sort((a,b)=> a.cost - b.cost);
+    const antes = rtSpells.length;
     rtSpells = usaveis.slice(0, 5);
     buildHotbar();
+    if(rtSpells.length && !antes)
+      toastMsg('✨ Hotbar arcana ativa! Teclas 1-5 conjuram · Tab mira o alvo');
+    else if(!rtSpells.length)
+      toastMsg('Suas magias preparadas são de suporte. Escolha ataques/curas no Grimório (Ficha) pra hotbar.', true);
   });
   socket.on('rt_selfheal', d=>{
     if(!d) return;
