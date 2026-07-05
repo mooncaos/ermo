@@ -551,7 +551,7 @@ class World:
         occ = {(m["x"], m["y"]) for m in self.monsters.values()
                if m.get("alive", True) and m.get("map") == mp}
         for m in self.monsters.values():
-            if not m.get("alive", True) or m.get("map") != mp or m.get("in_combat") or m.get("boss"):
+            if not m.get("alive", True) or m.get("map") != mp or m.get("in_combat"):
                 continue
             # bicho PASSIVO (caça): foge do jogador mais perto (ignora a coleira pra escapar)
             if m.get("passive"):

@@ -801,6 +801,24 @@ def on_rt_cast(data):
                              "fx": [player["x"], player["y"], m["x"], m["y"]],
                              "hp": m["hp"], "hp_max": m["hp_max"]},
                   room=player["map"])
+    _ar = int(sp.get("area", 0))
+    if _ar > 0:
+        socketio.emit("rt_aoe", {"x": m["x"], "y": m["y"], "r": _ar,
+                                 "dtype": sp.get("dtype", "energia")}, room=player["map"])
+        for mm in list(world.monsters.values()):
+            if mm is m or not mm.get("alive") or mm.get("map") != player.get("map"):
+                continue
+            if max(abs(mm["x"] - m["x"]), abs(mm["y"] - m["y"])) > _ar:
+                continue
+            d2 = skills.magic_roll(lvl, _ml, *skills.SPELL_FORMULAS.get(_tier, skills.SPELL_FORMULAS[1]))
+            if mm.get("_rt_aegis_until", 0) > time.time():
+                d2 = max(1, d2 // 2)
+            mm["hp"] = max(0, int(mm["hp"]) - d2)
+            socketio.emit("rt_hit", {"id": mm["id"], "dmg": d2, "magic": True, "by": sid,
+                                     "dtype": sp.get("dtype", "energia"),
+                                     "hp": mm["hp"], "hp_max": mm["hp_max"]}, room=player["map"])
+            if mm["hp"] <= 0:
+                _rt_kill(sid, player, mm)
     if m["hp"] <= 0:
         _rt_kill(sid, player, m)
 
@@ -1059,6 +1077,9 @@ def on_rune_use(data):
     _persist_loadout(player)
     emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
     area = int(rn.get("area", 0))
+    if area > 0:
+        socketio.emit("rt_aoe", {"x": m["x"], "y": m["y"], "r": area,
+                                 "dtype": rn.get("dtype", "energia")}, room=player["map"])
     alvos = [m]
     if area > 0:
         for mm in world.monsters.values():
@@ -1860,6 +1881,61 @@ def _duel_end(win_sid, lose_sid, wo=False):
         socketio.emit("duel_end", {"win": False}, to=lose_sid)
 
 
+
+# ===========================================================================
+#  CÉREBRO DE CHEFE (tempo real): falas, invocação e perseguição.
+# ===========================================================================
+BOSS_LINES = {
+    "velho_bob":       ["GRUNF! Minha praia, minhas regras!", "Os filhos da mata ouvem o velho... VEM, CRIANÇADA!", "Você tem cheiro de almoço."],
+    "maraja":          ["CURVE-SE. A savana inteira já se curvou.", "Minha juba já viu cem como você virarem poeira.", "RUGIDO é aviso. Só dou UM."],
+    "lorde_varth":     ["A Torre não recebe visitas. Recebe SÚDITOS.", "Atalech sussurra seu nome... e ri.", "Eu já morri uma vez. Foi TÉDIO."],
+    "krezath":         ["FOME. Sempre a FOME.", "Você não é inimigo. É PRATO.", "O Devorador agradece a entrega."],
+    "farao_avhur":     ["Mil anos de areia, e VOCÊ me acorda?", "Meus mineiros cavam até no além.", "A eternidade é MINHA por direito."],
+    "colosso_avasham": ["A MONTANHA. ANDA.", "Pequeno. Tão... pequeno.", "Avasham lembra. Avasham ESMAGA."],
+    "urso_rei":        ["O bosque tem UM rei. Ajoelhe.", "Minhas garras escreveram a lei daqui.", "GRRRAAAH! Fora do meu reino!"],
+    "vulkar":          ["O Brasal arde em MIM.", "Cinzas. É o que sobra de heróis.", "Sinta o calor da Ferida."],
+    "dama_noite":      ["Shhh... a noite é um veludo, e eu sou a costureira.", "Que olhos lindos. Serão meus.", "Dance comigo. A última dança."],
+    "maurao":          ["Ô, chegou o corajoso. SEGURA ESSA.", "Aqui embaixo quem manda é o MAURÃO.", "Vou te ensinar a nadar. No chão."],
+    "_":               ["Você OUSA?!", "Mais um pro monte.", "GRRRAAAH!"],
+}
+
+
+def _rt_boss_summon(m, spec, n):
+    """O chefe chama reforço em tempo real (lacaios temporários marcados)."""
+    import uuid
+    stype = spec.get("summon_type") or "capanga"
+    types = stype if isinstance(stype, list) else [stype]
+    novos = 0
+    for _ in range(n * 4):
+        if novos >= n:
+            break
+        t = random.choice(types)
+        s2 = monsters_def.MONSTERS.get(t)
+        if not s2:
+            continue
+        tx = m["x"] + random.randint(-2, 2)
+        ty = m["y"] + random.randint(-2, 2)
+        if not rules.is_walkable(tx, ty, m.get("map")):
+            continue
+        nid = "smn:" + uuid.uuid4().hex[:8]
+        world.monsters[nid] = {"id": nid, "type": t, "name": s2.get("name", t),
+            "map": m.get("map"), "x": tx, "y": ty,
+            "hp": int(s2.get("hp", 20)), "hp_max": int(s2.get("hp", 20)),
+            "ac": int(s2.get("ac", 12)), "size": int(s2.get("size", 1)),
+            "glyph": s2.get("glyph"), "alive": True, "in_combat": False,
+            "temp": True, "_minion_of": m.get("id"),
+            "_spawn": (t, tx, ty), "_rt_next": 0, "_rt_next_f": 0}
+        novos += 1
+    if novos:
+        socketio.emit("speech", {"id": m.get("id"),
+                      "text": "%s chama reforços!" % m.get("name", "O chefe")},
+                      room=m.get("map"))
+        try:
+            _world_refresh(m.get("map"))
+        except Exception:
+            pass
+
+
 def _rt_party_allies(sid, pl):
     """Membros do grupo no MESMO mapa a até 10 tiles (inclui o próprio jogador)."""
     pid = _player_party.get(sid)
@@ -2473,26 +2549,71 @@ def _rt_combat_loop():
                     socketio.emit("rt_dead", {"id": rival["id"]}, room=m.get("map"))
                     _MONSTER_RESPAWNS.append((rival["id"], time.time() + 90))
 
-            # -------- monstros revidam em quem estiver no alcance --------
+            # -------- monstros CAÇAM: aggro, perseguição, invocação e falas --------
             for mid, m in list(world.monsters.items()):
                 if not m.get("alive") or m.get("passive") or m.get("in_combat"):
                     continue
-                if m.get("_rt_next", 0) > now:
-                    continue
                 spec = monsters_def.MONSTERS.get(m.get("type"), {}) or {}
+                eh_boss = bool(spec.get("boss"))
                 reach_m = max(1, int(spec.get("reach", 1)))
+                aggro = 8 if eh_boss else 5
                 alvo_sid = None
                 alvo_pl = None
+                alvo_d = 999
                 for sid, pl in world.players.items():
                     if pl.get("map") != m.get("map") or pl.get("invisible"):
                         continue
                     fp = pl.get("ficha") or {}
                     if int(fp.get("hp", 0)) <= 0:
                         continue
-                    if max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"])) <= reach_m:
-                        alvo_sid, alvo_pl = sid, pl
-                        break
+                    dd = max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"]))
+                    if dd <= aggro and dd < alvo_d:
+                        alvo_sid, alvo_pl, alvo_d = sid, pl, dd
                 if not alvo_sid:
+                    continue
+                if eh_boss:
+                    if m.get("_rt_say", 0) <= now:
+                        m["_rt_say"] = now + 8
+                        if random.random() < 0.45:
+                            _ln = BOSS_LINES.get(m.get("type")) or BOSS_LINES["_"]
+                            socketio.emit("speech", {"id": mid, "text": random.choice(_ln)},
+                                          room=m.get("map"))
+                    if spec.get("summon_type") and m.get("_rt_summon", 0) <= now:
+                        m["_rt_summon"] = now + 12
+                        _viv = sum(1 for x in world.monsters.values()
+                                   if x.get("alive") and x.get("_minion_of") == mid)
+                        _maxs = int(spec.get("summons", 2))
+                        if _viv < _maxs:
+                            _rt_boss_summon(m, spec, min(2, _maxs - _viv))
+                if alvo_d > reach_m:
+                    # longe: PERSEGUE (um passo por vez, na velocidade do bicho)
+                    if m.get("_rt_step", 0) <= now:
+                        m["_rt_step"] = now + max(0.28, 4.2 / max(1, int(spec.get("speed", 5))))
+                        dx = (1 if alvo_pl["x"] > m["x"] else (-1 if alvo_pl["x"] < m["x"] else 0))
+                        dy = (1 if alvo_pl["y"] > m["y"] else (-1 if alvo_pl["y"] < m["y"] else 0))
+                        tent = []
+                        if dx:
+                            tent.append((m["x"] + dx, m["y"], "right" if dx > 0 else "left"))
+                        if dy:
+                            tent.append((m["x"], m["y"] + dy, "down" if dy > 0 else "up"))
+                        random.shuffle(tent)
+                        for (tx, ty, fc) in tent:
+                            if not rules.is_walkable(tx, ty, m.get("map")):
+                                continue
+                            if any(x.get("alive") and x.get("map") == m.get("map")
+                                   and x["x"] == tx and x["y"] == ty
+                                   for x in world.monsters.values()):
+                                continue
+                            if any(p.get("map") == m.get("map") and p["x"] == tx and p["y"] == ty
+                                   for p in world.players.values()):
+                                continue
+                            m["x"], m["y"], m["facing"] = tx, ty, fc
+                            socketio.emit("monsters_moved", {"map": m.get("map"),
+                                          "moves": [{"id": mid, "x": tx, "y": ty, "facing": fc}]},
+                                          room=m.get("map"))
+                            break
+                    continue
+                if m.get("_rt_next", 0) > now:
                     continue
                 m["_rt_next"] = now + RT_ATK_CD
                 f = alvo_pl.get("ficha") or {}

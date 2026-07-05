@@ -11068,6 +11068,7 @@ function drawWorldOverlays(c, now){
     drawStepDust(c, now);
     drawWeather(c, now);
     drawQuestMarks(c, now);
+    drawRtAoes(c, now);
     drawRtCombat(c, now);
     drawExitArrows(c, now);
     drawVignette(c, now);
@@ -11831,6 +11832,12 @@ var bindArcano = setInterval(()=>{
   socket.on('duel_start', d=>{ if(d){ showDuelBanner(d.foe, d.bet); startMusic('boss'); } });
   socket.on('duel_end', d=>{ hideDuelBanner(); stopMusic(); sfx(d && d.win ? 'legend' : 'mydeath'); });
   socket.on('fenda_open', d=>{ _fendaOpen = true; if(d && d.floor) _fendaFloor = d.floor; sfx('event'); });
+  socket.on('rt_aoe', d=>{
+    if(!d) return;
+    rtAoes.push({x: d.x, y: d.y, r: d.r || 1, dtype: d.dtype || 'energia', t0: performance.now()});
+    spellSfx(d.dtype || 'energia');
+    if(_sfxOn && _audio()){ _noise(0.3, {freq: 320, vol: 0.2}); _tone(52, 0.32, {type: 'sine', vol: 0.18}); }
+  });
   socket.on('codex', d=>{ if(d){ _codexData = d; if(_codexEl) renderCodex(); } });
   socket.on('market_open', d=>{ if(d) openMarket(d); });
   socket.on('market_update', d=>{ if(d && _mktEl){ _mktData = d; renderMarket(); } });
@@ -13077,3 +13084,86 @@ window.addEventListener('keydown', e=>{
     c.restore(); c.restore();
   };
 })();
+
+// ===========================================================================
+//  EXPLOSÕES DE ÁREA (rt_aoe): flash, núcleo, anéis de choque e fagulhas,
+//  com personalidade por elemento. O glamour de volta.
+// ===========================================================================
+var rtAoes = [];
+var _AOE_PAL = {
+  fogo:      ['#ff9a3c', '#ff5a2c', '#ffd9a0'],
+  gelo:      ['#8ad8f0', '#4a9ad0', '#e8faff'],
+  frio:      ['#8ad8f0', '#4a9ad0', '#e8faff'],
+  raio:      ['#ffe66a', '#a0d8ff', '#fffbe0'],
+  trovao:    ['#ffe66a', '#a0d8ff', '#fffbe0'],
+  eletrico:  ['#ffe66a', '#a0d8ff', '#fffbe0'],
+  acido:     ['#a0e05a', '#4a8a2a', '#e0ffb0'],
+  veneno:    ['#7ac04a', '#2a6a1a', '#c9f0a0'],
+  necrotico: ['#8a5adf', '#3a2a58', '#d0b8ff'],
+  radiante:  ['#ffd97a', '#e0a030', '#fff4d0'],
+  psiquico:  ['#df7ad0', '#7a3a9a', '#ffd0f8'],
+  cortante:  ['#c9d0da', '#7a8494', '#f0f4fa'],
+  energia:   ['#7ab0ff', '#3a5adf', '#d0e4ff'],
+};
+function drawRtAoes(c, now){
+  if(!rtAoes.length) return;
+  for(let i = rtAoes.length - 1; i >= 0; i--){
+    const a = rtAoes[i];
+    const t = (now - a.t0) / 750;
+    if(t >= 1){ rtAoes.splice(i, 1); continue; }
+    const cx2 = (a.x + 0.5) * TS - camX, cy2 = (a.y + 0.5) * TS - camY;
+    const R = (a.r + 0.6) * TS;
+    if(cx2 < -R*2 || cy2 < -R*2 || cx2 > canvas.width + R*2 || cy2 > canvas.height + R*2) continue;
+    const pal = _AOE_PAL[a.dtype] || _AOE_PAL.energia;
+    const raio = (a.dtype === 'raio' || a.dtype === 'trovao' || a.dtype === 'eletrico');
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    if(t < 0.16){                                             // o FLASH
+      c.globalAlpha = (1 - t/0.16) * 0.85;
+      const fg = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, R*1.15);
+      fg.addColorStop(0, pal[2]); fg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = fg;
+      c.beginPath(); c.arc(cx2, cy2, R*1.15, 0, Math.PI*2); c.fill();
+    }
+    const nR = R * (0.35 + t*0.75);                           // o NÚCLEO crescendo
+    c.globalAlpha = Math.max(0, 0.8 - t*0.9);
+    const ng = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, nR);
+    ng.addColorStop(0, pal[2]); ng.addColorStop(0.45, pal[0]); ng.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = ng;
+    c.beginPath(); c.arc(cx2, cy2, nR, 0, Math.PI*2); c.fill();
+    for(const [k0, w0] of [[0.35, 3.2], [0.12, 1.8]]){        // ANÉIS de choque
+      const rr = R * (0.35 + t*1.55) * (1 - k0*0.4);
+      c.globalAlpha = Math.max(0, (1 - t) * 0.75);
+      c.strokeStyle = pal[0]; c.lineWidth = Math.max(0.8, w0 * (1 - t));
+      c.beginPath(); c.arc(cx2, cy2, rr, 0, Math.PI*2); c.stroke();
+    }
+    for(let p = 0; p < 16; p++){                              // as FAGULHAS radiais
+      const ang = (p / 16) * Math.PI * 2 + (a.t0 % 7) + p*0.13;
+      const dist = t * R * 1.45 * (0.7 + ((p*37) % 10) / 18);
+      const px2 = cx2 + Math.cos(ang) * dist, py2 = cy2 + Math.sin(ang) * dist;
+      c.globalAlpha = Math.max(0, 1 - t*1.15);
+      c.fillStyle = pal[p % 2];
+      const sz = Math.max(1, 3.4 * (1 - t));
+      if(raio){                                               // raio: zigue-zague
+        c.strokeStyle = pal[p % 2]; c.lineWidth = Math.max(0.8, 1.8*(1 - t));
+        c.beginPath(); c.moveTo(cx2, cy2);
+        c.lineTo(cx2 + Math.cos(ang + 0.14)*dist*0.55, cy2 + Math.sin(ang + 0.14)*dist*0.55);
+        c.lineTo(px2, py2); c.stroke();
+      } else {
+        c.fillRect(px2 - sz/2, py2 - sz/2, sz, sz);
+      }
+    }
+    if(a.dtype === 'fogo' && t > 0.35){                       // fumaça sobe
+      c.globalCompositeOperation = 'source-over';
+      for(let s2 = 0; s2 < 4; s2++){
+        c.globalAlpha = Math.max(0, (t - 0.35) * 0.35 * (1 - t));
+        c.fillStyle = '#5a5a62';
+        const sx2 = cx2 + ((s2*53) % 40) - 20;
+        c.beginPath();
+        c.arc(sx2, cy2 - (t - 0.35) * 60 - s2*7, 7 + s2*2.5, 0, Math.PI*2);
+        c.fill();
+      }
+    }
+    c.restore();
+  }
+}
