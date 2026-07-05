@@ -11823,6 +11823,8 @@ var bindArcano = setInterval(()=>{
   socket.on('party_hp', d=>{ if(d) renderPartyHud(d.members || []); });
   socket.on('player_title', d=>{ const p = players.get(d && d.id); if(p) p.title = (d && d.title) || ''; });
   socket.on('forge_open', d=>{ if(d) openForge(d); });
+  socket.on('skills', d=>{ if(d){ _skillsData = d; if(_skillsEl) renderSkills(); if(d.mode) updateFightBtns(d.mode); } });
+  socket.on('fight_mode', d=>{ if(d && d.mode) updateFightBtns(d.mode); });
   socket.on('arena_open', d=>{ if(d) openArena(d); });
   socket.on('duel_offer', d=>{ if(d) showDuelOffer(d); });
   socket.on('duel_start', d=>{ if(d){ showDuelBanner(d.foe, d.bet); startMusic('boss'); } });
@@ -12427,6 +12429,8 @@ var bindSound = setInterval(()=>{
     else if(t0.indexOf('🔨✨') === 0 || t0.indexOf('🔨🌟') === 0) sfx('quest_done');
     else if(t0.indexOf('🗝️') === 0) sfx('coin');
     else if(t0.indexOf('🏟️') === 0) sfx('event');
+    else if(t0.indexOf('📈') === 0) sfx('levelup');
+    else if(t0.indexOf('🔮') === 0) sfx('quest_new');
   });
 }, 850);
 
@@ -12869,3 +12873,106 @@ function showDuelBanner(foe, bet){
   document.body.appendChild(el);
 }
 function hideDuelBanner(){ const el = document.getElementById('duelBanner'); if(el) el.remove(); }
+
+// ===========================================================================
+//  SKILLS (tecla L) + MODOS DE LUTA + BOLSA DE RUNAS (tecla R)
+// ===========================================================================
+var _skillsEl = null, _skillsData = null;
+function openSkills(){
+  if(_skillsEl){ closeSkills(); return; }
+  _skillsEl = document.createElement('div');
+  _skillsEl.id = 'skillsPanel';
+  _skillsEl.style.cssText = 'position:fixed;inset:0;z-index:233;display:flex;align-items:center;justify-content:center;background:rgba(6,8,14,0.66);';
+  _skillsEl.addEventListener('click', ev=>{ if(ev.target === _skillsEl) closeSkills(); });
+  document.body.appendChild(_skillsEl);
+  renderSkills();
+  socket.emit('skills_get');
+}
+function closeSkills(){ if(_skillsEl){ _skillsEl.remove(); _skillsEl = null; } }
+function renderSkills(){
+  if(!_skillsEl) return;
+  const d = _skillsData || {skills: [], mode: 'bal'};
+  const IC = {fist:'👊', sword:'🗡️', axe:'🪓', club:'🔨', distance:'🏹', shielding:'🛡️', magic:'🔮'};
+  let h = '<div style="width:min(380px,94vw);max-height:76vh;overflow:auto;background:#101828;border:1px solid #3a5a8a;border-radius:14px;padding:14px;">'+
+    '<div style="font:800 15px Cinzel,serif;color:#8ac0f0;margin-bottom:3px;">⚔️ Skills</div>'+
+    '<div style="font:500 10.5px Inter;color:#7a86a8;margin-bottom:10px;">Skill sobe COM USO: golpeie, bloqueie, gaste mana. A arma na mão decide qual treina.</div>';
+  for(const s of (d.skills||[])){
+    h += '<div style="margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;">'+
+      '<span style="font:700 12px Inter;color:#c9d8ff;">'+(IC[s.id]||'')+' '+s.name+'</span>'+
+      '<span style="font:800 13px Inter;color:#e0c98a;">'+s.lvl+'</span></div>'+
+      '<div style="height:6px;background:#0a1220;border-radius:3px;overflow:hidden;margin-top:3px;">'+
+      '<div style="height:100%;width:'+s.pct+'%;background:linear-gradient(90deg,#3a6aaa,#8ac0f0);"></div></div>'+
+      '<div style="font:500 9px Inter;color:#5a6a88;text-align:right;">'+s.pct+'% pro próximo</div></div>';
+  }
+  h += '<div style="font:600 11px Inter;color:#8a86a0;margin:10px 0 5px;">MODO DE LUTA</div>'+
+    '<div style="display:flex;gap:6px;">'+
+    [['off','⚔️ Ofensivo'],['bal','⚖️ Equilíbrio'],['def','🛡️ Defensivo']].map(mm=>
+      '<button data-fm="'+mm[0]+'" style="flex:1;padding:8px 4px;background:'+(d.mode===mm[0]?'#2a3a5a':'#141c2e')+';'+
+      'border:1px solid '+(d.mode===mm[0]?'#8ac0f0':'#2a3a5a')+';border-radius:8px;color:#c9d8ff;font:700 10.5px Inter;cursor:pointer;">'+mm[1]+'</button>').join('')+'</div>'+
+    '<div style="font:500 9.5px Inter;color:#5a6a88;margin-top:6px;">Ofensivo: dano cheio, defesa fraca. Defensivo: o contrário. Teclas L abre/fecha.</div></div>';
+  _skillsEl.innerHTML = h;
+  _skillsEl.querySelectorAll('[data-fm]').forEach(b=> b.addEventListener('click', ()=>{
+    socket.emit('fight_mode', {mode: b.getAttribute('data-fm')});
+    if(_skillsData) _skillsData.mode = b.getAttribute('data-fm');
+    renderSkills();
+  }));
+}
+
+// os 3 botõezinhos fixos de modo (abaixo do som)
+(function(){
+  const wrap = document.createElement('div');
+  wrap.id = 'fightBtns';
+  wrap.style.cssText = 'position:fixed;top:50px;right:10px;z-index:120;display:flex;flex-direction:column;gap:4px;';
+  wrap.innerHTML = [['off','⚔️'],['bal','⚖️'],['def','🛡️']].map(mm=>
+    '<div class="fmB" data-fm2="'+mm[0]+'" style="width:34px;height:30px;display:flex;align-items:center;justify-content:center;'+
+    'background:rgba(10,14,26,0.8);border:1px solid #3a4a7a;border-radius:8px;cursor:pointer;font-size:14px;user-select:none;">'+mm[1]+'</div>').join('');
+  document.body.appendChild(wrap);
+  wrap.querySelectorAll('[data-fm2]').forEach(b=> b.addEventListener('pointerdown', ev=>{
+    ev.stopPropagation();
+    socket.emit('fight_mode', {mode: b.getAttribute('data-fm2')});
+  }));
+})();
+function updateFightBtns(mode){
+  document.querySelectorAll('#fightBtns [data-fm2]').forEach(b=>{
+    b.style.border = '1px solid ' + (b.getAttribute('data-fm2') === mode ? '#8ac0f0' : '#3a4a7a');
+    b.style.background = b.getAttribute('data-fm2') === mode ? 'rgba(42,58,90,0.92)' : 'rgba(10,14,26,0.8)';
+  });
+}
+
+// ---------- BOLSA DE RUNAS (tecla R): quebra no alvo marcado ----------
+var _runesEl = null;
+function openRunes(){
+  if(_runesEl){ closeRunes(); return; }
+  const runas = (typeof inventory !== 'undefined' ? inventory : []).filter(s=> s.item && s.item.indexOf('runa_') === 0 && s.item !== 'runa_em_branco');
+  _runesEl = document.createElement('div');
+  _runesEl.id = 'runesPanel';
+  _runesEl.style.cssText = 'position:fixed;inset:0;z-index:234;display:flex;align-items:flex-end;justify-content:center;background:rgba(6,8,14,0.5);padding-bottom:96px;';
+  _runesEl.addEventListener('click', ev=>{ if(ev.target === _runesEl) closeRunes(); });
+  let h = '<div style="width:min(330px,92vw);max-height:52vh;overflow:auto;background:#181228;border:1px solid #6a4adf;border-radius:12px;padding:12px;">'+
+    '<div style="font:800 13px Inter;color:#c9a0ff;margin-bottom:3px;">🪨 Bolsa de Runas</div>'+
+    '<div style="font:500 10px Inter;color:#8a86a0;margin-bottom:8px;">Marque o alvo (Tab) e quebre a runa. Curas são em você. Tecla R abre/fecha.</div>';
+  if(!runas.length) h += '<div style="font:500 11px Inter;color:#6f6a86;padding:6px 0;">Nenhuma runa. O alquimista grava, os monstros arcanos derrubam.</div>';
+  for(const s of runas){
+    const nm = s.item.replace('runa_','').replace(/_/g,' ').replace(/\b\w/g, c=> c.toUpperCase());
+    h += '<div data-rune="'+s.item+'" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;'+
+      'margin-bottom:5px;background:#221a38;border:1px solid #3a2e58;border-radius:8px;cursor:pointer;">'+
+      '<span style="font:700 12px Inter;color:#d8c9ff;">🪨 '+nm+'</span>'+
+      '<span style="font:800 11px Inter;color:#8a86a0;">x'+(s.qty||1)+'</span></div>';
+  }
+  h += '</div>';
+  _runesEl.innerHTML = h;
+  document.body.appendChild(_runesEl);
+  _runesEl.querySelectorAll('[data-rune]').forEach(b=> b.addEventListener('click', ()=>{
+    socket.emit('rune_use', {item: b.getAttribute('data-rune'), target: rtTargetId});
+    sfx('posture');
+    closeRunes();
+  }));
+}
+function closeRunes(){ if(_runesEl){ _runesEl.remove(); _runesEl = null; } }
+
+window.addEventListener('keydown', e=>{
+  if(typeof started === 'undefined' || !started || typingInField(e)) return;
+  if(e.code === 'KeyL'){ e.preventDefault(); openSkills(); }
+  if(e.code === 'KeyR'){ e.preventDefault(); openRunes(); }
+});

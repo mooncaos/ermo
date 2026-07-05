@@ -242,6 +242,52 @@ ITEMS = {
     "anzol_do_velho_bob":   {"name": "Anzol do Velho Bob",    "kind": "trinket", "stackable": False, "color": "#b8c0c8", "slot": "ring", "visual": "ring", "rarity": "lendario", "atk": 5, "ward": 3, "value": 22000, "desc": "PRIMEIRA KILL do servidor. O Bob pescava ALMAS com isso. Só existe UM."},
     "soco_ingles_do_maurao":{"name": "Soco-Inglês do Maurão", "kind": "trinket", "stackable": False, "color": "#9a9aa4", "slot": "ring", "visual": "ring", "rarity": "lendario", "atk": 4, "dmg_flat": 3, "value": 20000, "desc": "PRIMEIRA KILL do servidor. O argumento final do Maurão. Só existe UM."},
 
+    # ================== MACHADOS (skill: Machado) ==================
+    "machadinha":           {"name": "Machadinha",            "kind": "weapon", "stackable": False, "color": "#9a8a7a", "slot": "hand", "visual": "sword", "wclass": "axe", "atk": 12, "def": 6, "dmg": {"n": 1, "d": 8, "flat": 1}, "value": 320, "desc": "Curta, honesta, corta lenha e canela."},
+    "machado_lenhador":     {"name": "Machado de Lenhador",   "kind": "weapon", "stackable": False, "color": "#8a7a5a", "slot": "hand", "visual": "sword", "wclass": "axe", "atk": 16, "def": 8, "dmg": {"n": 1, "d": 10, "flat": 2}, "value": 780, "desc": "O cabo tem marcas de dez invernos."},
+    "machado_de_batalha":   {"name": "Machado de Batalha",    "kind": "weapon", "stackable": False, "color": "#8a929a", "slot": "hand", "visual": "sword", "wclass": "axe", "atk": 24, "def": 11, "dmg": {"n": 2, "d": 8, "flat": 4}, "value": 2400, "desc": "Duas mãos, um arco de aço, silêncio depois."},
+    "machado_umbrio":       {"name": "Machado Umbrío",        "kind": "weapon", "stackable": False, "color": "#5a5a7a", "slot": "hand", "visual": "sword", "wclass": "axe", "atk": 32, "def": 14, "rarity": "raro", "dmg": {"n": 3, "d": 8, "flat": 6}, "value": 6200, "desc": "Forjado com ferro do Umbraval: morde até sombra."},
+    "machado_do_carrasco":  {"name": "Machado do Carrasco",   "kind": "weapon", "stackable": False, "color": "#7a3040", "slot": "hand", "visual": "sword", "wclass": "axe", "atk": 40, "def": 16, "rarity": "epico", "dmg": {"n": 4, "d": 10, "flat": 8}, "value": 14000, "desc": "Nunca precisou de segundo golpe. Nunca."},
+    "lamina_da_ferida":     {"name": "Lâmina da Ferida",      "kind": "weapon", "stackable": False, "color": "#e05828", "slot": "hand", "visual": "sword", "wclass": "axe", "atk": 50, "def": 18, "rarity": "lendario", "dmg": {"n": 6, "d": 10, "flat": 12}, "value": 36000, "desc": "Lascada do próprio Brasal: o corte cauteriza chorando fagulhas."},
+
+    # ================== MAÇAS (skill: Maça) ==================
+    "porrete_de_ipe":       {"name": "Porrete de Ipê",        "kind": "weapon", "stackable": False, "color": "#7a5a3a", "slot": "hand", "visual": "hammer", "wclass": "club", "atk": 11, "def": 7, "dmg": {"n": 1, "d": 6, "flat": 2}, "value": 260, "desc": "Madeira de lei: argumento de peso."},
+    "maca_cravejada":       {"name": "Maça Cravejada",        "kind": "weapon", "stackable": False, "color": "#8a8a92", "slot": "hand", "visual": "hammer", "wclass": "club", "atk": 17, "def": 9, "dmg": {"n": 1, "d": 12, "flat": 2}, "value": 900, "desc": "Cada cravo tem um nome. Nenhum é carinhoso."},
+    "martelo_de_guerra":    {"name": "Martelo de Guerra",     "kind": "weapon", "stackable": False, "color": "#9aa2aa", "slot": "hand", "visual": "hammer", "wclass": "club", "atk": 25, "def": 12, "dmg": {"n": 2, "d": 10, "flat": 4}, "value": 2700, "desc": "Não corta. RESOLVE."},
+    "maca_umbria":          {"name": "Maça Umbría",           "kind": "weapon", "stackable": False, "color": "#5a5a7a", "slot": "hand", "visual": "hammer", "wclass": "club", "atk": 33, "def": 15, "rarity": "raro", "dmg": {"n": 3, "d": 10, "flat": 6}, "value": 6800, "desc": "Pesa como culpa e desce como sentença."},
+    "estrela_dalva_negra":  {"name": "Estrela-d'Alva Negra",  "kind": "weapon", "stackable": False, "color": "#3a2a58", "slot": "hand", "visual": "hammer", "wclass": "club", "atk": 41, "def": 17, "rarity": "epico", "dmg": {"n": 4, "d": 12, "flat": 8}, "value": 15000, "desc": "Uma esfera de espinhos que engole a luz do amanhecer."},
+    "quebra_montanha":      {"name": "Quebra-Montanha",       "kind": "weapon", "stackable": False, "color": "#8a9ab0", "slot": "hand", "visual": "hammer", "wclass": "club", "atk": 52, "def": 20, "rarity": "lendario", "dmg": {"n": 6, "d": 12, "flat": 14}, "value": 38000, "desc": "Dizem que o Colosso caiu de joelhos só de OUVIR o nome."},
+
+    # ================== LANÇAS (skill: Distância, sem munição) ==================
+    "lanca_de_pesca":       {"name": "Lança de Pesca",        "kind": "weapon", "stackable": False, "color": "#8a7a5a", "slot": "hand", "visual": "staff", "wclass": "distance", "range": 4, "atk": 14, "def": 5, "dmg": {"n": 1, "d": 8, "flat": 2}, "value": 420, "desc": "Da Vila Caiçara: fisga peixe, fisga problema."},
+    "azagaia":              {"name": "Azagaia",               "kind": "weapon", "stackable": False, "color": "#9a8a6a", "slot": "hand", "visual": "staff", "wclass": "distance", "range": 4, "atk": 20, "def": 6, "dmg": {"n": 1, "d": 10, "flat": 3}, "value": 1100, "desc": "Leve no braço, funda na carne."},
+    "lanca_serrilhada":     {"name": "Lança Serrilhada",      "kind": "weapon", "stackable": False, "color": "#8a929a", "slot": "hand", "visual": "staff", "wclass": "distance", "range": 4, "atk": 28, "def": 8, "rarity": "raro", "dmg": {"n": 2, "d": 10, "flat": 4}, "value": 4800, "desc": "Entra fácil. Sair é que é o espetáculo."},
+    "tridente_abissal":     {"name": "Tridente Abissal",      "kind": "weapon", "stackable": False, "color": "#2a6a8a", "slot": "hand", "visual": "staff", "wclass": "distance", "range": 4, "atk": 38, "def": 10, "rarity": "epico", "dmg": {"n": 3, "d": 12, "flat": 6}, "value": 13000, "desc": "Subiu de um lugar do mar que não tem nome nos mapas."},
+    "lanca_do_leviata":     {"name": "Lança do Leviatã",      "kind": "weapon", "stackable": False, "color": "#4a8aaa", "slot": "hand", "visual": "staff", "wclass": "distance", "range": 4, "atk": 48, "def": 12, "rarity": "lendario", "dmg": {"n": 5, "d": 12, "flat": 10}, "value": 34000, "desc": "A farpa que o mar guardou pra cobrar a dívida da terra."},
+
+    # ================== CROSSBOWS (skill: Distância, usam virote) ==================
+    "besta_simples":        {"name": "Besta Simples",         "kind": "weapon", "stackable": False, "color": "#7a6a4a", "slot": "hand", "visual": "bow", "wclass": "distance", "range": 5, "ammo": "virote", "atk": 16, "def": 3, "dmg": {"n": 1, "d": 10, "flat": 2}, "value": 950, "desc": "Arma o gatilho, aponta, e a física resolve."},
+    "besta_de_caca":        {"name": "Besta de Caça",         "kind": "weapon", "stackable": False, "color": "#8a7a5a", "slot": "hand", "visual": "bow", "wclass": "distance", "range": 5, "ammo": "virote", "atk": 24, "def": 4, "dmg": {"n": 2, "d": 8, "flat": 3}, "value": 2900, "desc": "O javali nem ouviu o clique."},
+    "besta_pesada":         {"name": "Besta Pesada",          "kind": "weapon", "stackable": False, "color": "#6a6a72", "slot": "hand", "visual": "bow", "wclass": "distance", "range": 5, "ammo": "virote", "atk": 33, "def": 5, "rarity": "raro", "dmg": {"n": 3, "d": 10, "flat": 5}, "value": 7200, "desc": "Atravessa porta, escudo e a desculpa de quem tava atrás."},
+    "besta_do_juizo":       {"name": "Besta do Juízo",        "kind": "weapon", "stackable": False, "color": "#7a3040", "slot": "hand", "visual": "bow", "wclass": "distance", "range": 5, "ammo": "virote", "atk": 46, "def": 6, "rarity": "epico", "dmg": {"n": 4, "d": 12, "flat": 8}, "value": 16000, "desc": "Cada virote sai com uma sentença gravada."},
+
+    # ================== MUNIÇÃO ==================
+    "flecha":               {"name": "Flecha",                "kind": "municao", "stackable": True, "color": "#9a8a6a", "atk_bonus": 0, "value": 3, "desc": "Pena, haste, ponta. O resto é pulso."},
+    "flecha_de_ferro":      {"name": "Flecha de Ferro",       "kind": "municao", "stackable": True, "color": "#8a929a", "atk_bonus": 4, "value": 9, "desc": "Ponta forjada: morde mais fundo."},
+    "virote":               {"name": "Virote",                "kind": "municao", "stackable": True, "color": "#7a6a4a", "atk_bonus": 0, "value": 4, "desc": "Curto, grosso, direto ao assunto."},
+    "virote_perfurante":    {"name": "Virote Perfurante",     "kind": "municao", "stackable": True, "color": "#6a6a72", "atk_bonus": 5, "value": 12, "desc": "Feito pra conversar com armadura."},
+
+    # ================== RUNAS MÁGICAS (usam Nível Mágico) ==================
+    "runa_em_branco":       {"name": "Runa em Branco",        "kind": "trofeu", "stackable": True, "color": "#c9c2b8", "value": 60, "desc": "Pedra lisa esperando um destino. Os alquimistas sabem gravar."},
+    "runa_missil_pesado":   {"name": "Runa: Míssil Pesado",   "kind": "runa", "stackable": True, "color": "#6a8adf", "rune": {"tier": 2, "dtype": "energia"}, "ml_req": 4, "value": 220, "desc": "Um trovão de bolso apontável."},
+    "runa_bola_de_fogo":    {"name": "Runa: Grande Bola de Fogo", "kind": "runa", "stackable": True, "color": "#e06828", "rune": {"tier": 2, "dtype": "fogo", "area": 2}, "ml_req": 6, "value": 340, "desc": "Quebra a runa, vira o quarteirão em brasa. ÁREA."},
+    "runa_lanca_gelida":    {"name": "Runa: Lança Gélida",    "kind": "runa", "stackable": True, "color": "#8ad8f0", "rune": {"tier": 2, "dtype": "gelo"}, "ml_req": 5, "value": 260, "desc": "Um inverno inteiro comprimido num traço."},
+    "runa_explosao":        {"name": "Runa: Explosão",        "kind": "runa", "stackable": True, "color": "#e0a028", "rune": {"tier": 3, "dtype": "fogo", "area": 1}, "ml_req": 9, "value": 520, "desc": "Física aplicada com raiva. ÁREA curta."},
+    "runa_pesadelo":        {"name": "Runa: Pesadelo",        "kind": "runa", "stackable": True, "color": "#9a5adf", "rune": {"tier": 3, "dtype": "psiquico"}, "ml_req": 10, "value": 560, "desc": "O alvo lembra de tudo que tentou esquecer. De uma vez."},
+    "runa_morte_subita":    {"name": "Runa: Morte Súbita",    "kind": "runa", "stackable": True, "color": "#3a3a4a", "rune": {"tier": 5, "dtype": "necrotico"}, "ml_req": 16, "value": 1400, "desc": "A caveira gravada sorri. Ela sabe o que vem."},
+    "runa_cura_intensa":    {"name": "Runa: Cura Intensa",    "kind": "runa", "stackable": True, "color": "#8ae0a0", "rune": {"tier": 2, "heal": True}, "ml_req": 3, "value": 240, "desc": "Costura carne como quem remenda rede."},
+    "runa_cura_suprema":    {"name": "Runa: Cura Suprema",    "kind": "runa", "stackable": True, "color": "#c0f0c9", "rune": {"tier": 4, "heal": True}, "ml_req": 11, "value": 900, "desc": "A vida volta correndo, envergonhada de ter saído."},
+
     "chave_da_fenda":      {"name": "Chave da Fenda",       "kind": "trofeu", "stackable": True, "color": "#8a5adf", "value": 4000, "desc": "Uma chave que vibra e sussurra. Abre o portal da Fenda do Caos, no leste do Ermo. Consumida ao entrar: e lá embaixo, só a profundidade manda."},
     "fragmento_estelar":   {"name": "Fragmento Estelar",     "kind": "trofeu", "stackable": True, "color": "#e8e0ff", "rarity": "raro", "value": 8000, "desc": "Um caco de algo que caiu do céu antes dos Doze. O Bragan jura que só ISSO aguenta uma forja +3."},
 
@@ -1060,6 +1106,53 @@ _gen_necrotico_set()
 ALL_TIER_ITEMS = set().union(*TIER_ITEMS.values())
 
 
+
+
+# ===========================================================================
+#  CONVERSÃO TIBIA: toda arma do catálogo ganha classe de skill (wclass),
+#  Atk e Def no padrão Tibia, derivados dos dados antigos. Arcos passam a
+#  usar flechas. Escudos ganham Def alto (defendem no lugar da arma).
+# ===========================================================================
+def _guess_wclass(iid, i):
+    nome = (i.get("name", "") + " " + iid).lower()
+    vis = i.get("visual", "")
+    if any(t in nome for t in ("machado",)):
+        return "axe"
+    if vis == "hammer" or any(t in nome for t in ("martelo", "maça", "maca_", "clava",
+                                                  "porrete", "mangual", "marreta")):
+        return "club"
+    if vis == "staff" or any(t in nome for t in ("cajado", "báculo", "baculo", "bastão", "bastao")):
+        return "club"
+    if vis == "bow" or any(t in nome for t in ("arco", "besta")):
+        return "distance"
+    if any(t in nome for t in ("lança", "lanca", "azagaia", "tridente", "arpão", "arpao")):
+        return "distance"
+    if any(t in nome for t in ("soco", "manopla", "punho")):
+        return "fist"
+    return "sword"
+
+
+for _iid, _i in list(ITEMS.items()):
+    if _i.get("kind") != "weapon":
+        if "escudo" in (_i.get("name", "") + _iid).lower() and not _i.get("def"):
+            _i["def"] = max(14, min(38, int(_i.get("value", 1000)) // 400 + 12))
+            _i["wclass"] = "shield"
+            _i["atk"] = 0
+        continue
+    if _i.get("wclass"):
+        continue                       # as novas já vêm prontas
+    d = _i.get("dmg") or {"n": 1, "d": 6, "flat": 0}
+    avg = d.get("n", 1) * (d.get("d", 6) + 1) / 2.0 + d.get("flat", 0)
+    _i["wclass"] = _guess_wclass(_iid, _i)
+    _i["atk"] = max(7, min(60, int(round(7 + avg * 0.75))))
+    _i["def"] = max(4, int(_i["atk"] * 0.6)) if _i["wclass"] != "distance" else max(2, int(_i["atk"] * 0.15))
+    if _i["wclass"] == "distance" and _i.get("visual") == "bow" and not _i.get("ammo"):
+        _i["ammo"] = "flecha"
+        _i["range"] = _i.get("range", 5)
+    elif _i["wclass"] == "distance" and not _i.get("range"):
+        _i["range"] = 4
+
+
 # ===========================================================================
 #  FORJA DO BRAGAN: variantes +1/+2/+3 geradas do catálogo (nunca dropam:
 #  só nascem na bigorna). Stats sobem 15%% / 30%% / 50%% com ganho mínimo.
@@ -1082,10 +1175,40 @@ def _forge_variants():
                 d = dict(i["dmg"])
                 d["flat"] = int(round(d.get("flat", 0) * mult)) + n * 2
                 v["dmg"] = d
-            for st in ("atk", "armor", "ward", "spell_pow", "dmg_flat"):
+            for st in ("atk", "armor", "ward", "spell_pow", "dmg_flat", "def"):
                 if i.get(st):
                     v[st] = max(int(round(int(i[st]) * mult)), int(i[st]) + n)
             yield "%s_p%d" % (iid, n), v
 
 
 ITEMS.update(dict(_forge_variants()))
+
+
+# ===========================================================================
+#  DESCRIÇÕES TÉCNICAS AUTOGERADAS: toda arma/munição/runa carrega a ficha.
+# ===========================================================================
+_WCLASS_PT = {"sword": "Espada", "axe": "Machado", "club": "Maça",
+              "distance": "Distância", "fist": "Punhos", "shield": "Escudo"}
+for _iid, _i in ITEMS.items():
+    if _i.get("kind") == "weapon" and _i.get("wclass"):
+        extra = " [Atk %d · Def %d · %s" % (int(_i.get("atk", 0)), int(_i.get("def", 0)),
+                                            _WCLASS_PT.get(_i["wclass"], _i["wclass"]))
+        if _i.get("ammo"):
+            extra += " · usa %s" % (ITEMS.get(_i["ammo"], {}).get("name", _i["ammo"]))
+        if _i.get("range"):
+            extra += " · alcance %d" % int(_i["range"])
+        extra += "]"
+        if extra not in (_i.get("desc") or ""):
+            _i["desc"] = (_i.get("desc") or "").rstrip() + extra
+    elif _i.get("kind") == "municao":
+        extra = " [Munição · Atk +%d]" % int(_i.get("atk_bonus", 0))
+        if extra not in (_i.get("desc") or ""):
+            _i["desc"] = (_i.get("desc") or "").rstrip() + extra
+    elif _i.get("kind") == "runa":
+        extra = " [Runa · exige Nível Mágico %d]" % int(_i.get("ml_req", 0))
+        if extra not in (_i.get("desc") or ""):
+            _i["desc"] = (_i.get("desc") or "").rstrip() + extra
+    elif _i.get("wclass") == "shield":
+        extra = " [Def %d · Escudo]" % int(_i.get("def", 0))
+        if extra not in (_i.get("desc") or ""):
+            _i["desc"] = (_i.get("desc") or "").rstrip() + extra

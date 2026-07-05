@@ -188,3 +188,39 @@ RECIPES = {
         {"out": "banquete_dos_reis",    "need": {"carne_caca": 5, "presa_vampirica": 2, "peixe_dourado": 1, "essencia_solar": 1}, "lvl": 4, "xp": 140},
     ],
 }
+
+
+# ===========================================================================
+#  O ARSENAL TIBIA: machados e maças na forja, lanças e bestas na marcenaria,
+#  munição em lote barato, e as RUNAS gravadas pelo alquimista.
+# ===========================================================================
+RECIPES["ferreiro"].extend([
+    {"out": "machadinha",         "need": {"barra_de_ferro": 1, "madeira_carvalho": 1},  "lvl": 1, "xp": 16},
+    {"out": "machado_lenhador",   "need": {"barra_de_ferro": 2, "madeira_carvalho": 1},  "lvl": 2, "xp": 26},
+    {"out": "machado_de_batalha", "need": {"barra_de_prata": 2, "couro_curtido": 1},   "lvl": 3, "xp": 44},
+    {"out": "machado_umbrio",     "need": {"barra_umbria": 2, "essencia_lunar": 1},  "lvl": 4, "xp": 70},
+    {"out": "porrete_de_ipe",     "need": {"madeira_carvalho": 2},                        "lvl": 1, "xp": 14},
+    {"out": "maca_cravejada",     "need": {"barra_de_ferro": 1, "madeira_carvalho": 2},  "lvl": 2, "xp": 26},
+    {"out": "martelo_de_guerra",  "need": {"barra_de_prata": 2, "madeira_carvalho": 1},    "lvl": 3, "xp": 44},
+    {"out": "maca_umbria",        "need": {"barra_umbria": 2, "gema_bruta": 1},      "lvl": 4, "xp": 70},
+])
+RECIPES["carpinteiro"].extend([
+    {"out": "lanca_de_pesca",     "need": {"madeira_carvalho": 2, "fibra_capim": 1},  "lvl": 1, "xp": 16},
+    {"out": "azagaia",            "need": {"madeira_carvalho": 2, "barra_de_ferro": 1},  "lvl": 2, "xp": 28},
+    {"out": "lanca_serrilhada",   "need": {"madeira_rubra": 2, "barra_de_prata": 1},   "lvl": 3, "xp": 48},
+    {"out": "besta_simples",      "need": {"madeira_carvalho": 2, "fibra_capim": 2},  "lvl": 2, "xp": 30},
+    {"out": "besta_de_caca",      "need": {"madeira_rubra": 2, "couro_curtido": 1},  "lvl": 3, "xp": 50},
+    {"out": "besta_pesada",       "need": {"madeira_rubra": 3, "barra_de_prata": 2},   "lvl": 4, "xp": 76},
+    {"out": "flecha",             "need": {"madeira_carvalho": 1},                        "lvl": 1, "xp": 3},
+    {"out": "virote",             "need": {"madeira_carvalho": 1},                        "lvl": 1, "xp": 3},
+])
+RECIPES["alquimista"].extend([
+    {"out": "runa_missil_pesado", "need": {"runa_em_branco": 1, "essencia_lunar": 1},               "lvl": 2, "xp": 30},
+    {"out": "runa_lanca_gelida",  "need": {"runa_em_branco": 1, "essencia_lunar": 1},                "lvl": 2, "xp": 32},
+    {"out": "runa_cura_intensa",  "need": {"runa_em_branco": 1, "erva_solar": 2},                    "lvl": 2, "xp": 30},
+    {"out": "runa_bola_de_fogo",  "need": {"runa_em_branco": 1, "essencia_solar": 1},                "lvl": 3, "xp": 46},
+    {"out": "runa_explosao",      "need": {"runa_em_branco": 1, "essencia_solar": 2},                "lvl": 3, "xp": 52},
+    {"out": "runa_pesadelo",      "need": {"runa_em_branco": 1, "essencia_sombria": 1},              "lvl": 3, "xp": 52},
+    {"out": "runa_cura_suprema",  "need": {"runa_em_branco": 1, "erva_solar": 2, "essencia_lunar": 1}, "lvl": 4, "xp": 72},
+    {"out": "runa_morte_subita",  "need": {"runa_em_branco": 1, "essencia_sombria": 2, "gema_lapidada": 1}, "lvl": 5, "xp": 110},
+])

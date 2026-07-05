@@ -51,6 +51,7 @@ from game import (db, accounts, items, npcs, rules, valdris, classes, races, pro
                   spells as spells_def, abilities as abilities_def, gm)
 from game import secret_worlds, world_map as wm
 from game import quests as quests_def
+from game import skills
 from game.world import World, public
 from game.world_map import (MAP_ROWS, map_rows, EDGE_LINKS,
                             DOOR_INTERIORS, INTERIOR_MAPS, INTERIOR_SPAWN)
@@ -735,34 +736,17 @@ def on_rt_cast(data):
                 player["_rt_cast_next"] = now
                 return
             f["mana"] = mana - custo
+            _mup = skills.add_tries(f, "magic", custo)
             player["ficha"] = f
             emit("mana", {"mana": f["mana"], "max": mana_max})
+            if _mup:
+                _skill_up_toast(request.sid, "Nível Mágico", _mup)
             lvl = int(f.get("level", 1))
-            cmod = _cast_mod(f)
-            d = dict(sp.get("dmg") or {"n": 1, "d": 8})
-            if int(sp.get("level", 0)) == 0:
-                d["n"] = d.get("n", 1) * _cantrip_mult(lvl)
-            prof_b = 2 + (lvl - 1) // 4
-            dmg = sum(random.randint(1, d.get("d", 8)) for _ in range(d.get("n", 1))) + max(0, cmod)
-            try:
-                fc = combat.make_player_combatant(foe_sid, foe, ff)
-            except Exception:
-                return
+            _ml = skills.get_lvl(f, "magic")
+            dmg = skills.magic_roll(lvl, _ml, *skills.SPELL_FORMULAS.get(int(sp.get("level", 0)),
+                                                                         skills.SPELL_FORMULAS[1]))
+            dmg = max(0, dmg - skills.armor_reduce(_player_armor(foe)))
             crit = False
-            if kind == "attack":
-                roll = random.randint(1, 20)
-                crit = (roll == 20)
-                if not (crit or (roll != 1 and roll + cmod + prof_b >= int(fc.get("ac", 10)))):
-                    socketio.emit("rt_hit", {"id": foe_sid, "dmg": 0, "miss": True, "magic": True,
-                                             "by": request.sid, "hp": ff.get("hp"),
-                                             "hp_max": ff.get("hp_max")}, room="arena")
-                    return
-                if crit:
-                    dmg += sum(random.randint(1, d.get("d", 8)) for _ in range(d.get("n", 1)))
-            elif kind == "save":
-                dc = 8 + cmod + prof_b
-                if random.randint(1, 20) + 2 >= dc:
-                    dmg = max(1, dmg // 2)
             _pf = _posture_of(ff)
             if _pf == "soldado":
                 dmg = max(1, dmg // 4)
@@ -797,33 +781,17 @@ def on_rt_cast(data):
         player["_rt_cast_next"] = now
         return
     f["mana"] = mana - custo
+    _mup = skills.add_tries(f, "magic", custo)       # mana gasta TREINA o Nível Mágico
     player["ficha"] = f
     emit("mana", {"mana": f["mana"], "max": mana_max})
+    if _mup:
+        _skill_up_toast(request.sid, "Nível Mágico", _mup)
     player["rt_target"] = tid
 
-    d = dict(sp.get("dmg") or {"n": 1, "d": 8})
-    if int(sp.get("level", 0)) == 0:
-        d["n"] = d.get("n", 1) * _cantrip_mult(lvl)
-    prof_b = 2 + (lvl - 1) // 4
-    dmg = sum(random.randint(1, d.get("d", 8)) for _ in range(d.get("n", 1))) + max(0, cmod)
-
-    if kind == "attack":                      # rolagem de ataque mágico vs CA
-        roll = random.randint(1, 20)
-        crit = (roll == 20)
-        hit = crit or (roll != 1 and roll + cmod + prof_b >= int(m.get("ac", 12)))
-        if not hit:
-            socketio.emit("rt_hit", {"id": tid, "dmg": 0, "miss": True, "magic": True, "by": sid,
-                                     "hp": m["hp"], "hp_max": m["hp_max"]}, room=player["map"])
-            return
-        if crit:
-            dmg += sum(random.randint(1, d.get("d", 8)) for _ in range(d.get("n", 1)))
-    elif kind == "save":                      # o monstro tenta resistir (metade no sucesso)
-        dc = 8 + cmod + prof_b
-        if random.randint(1, 20) + int((monsters_def.MONSTERS.get(m.get("type"), {}) or {}).get("dex", 2)) >= dc:
-            dmg = max(1, dmg // 2)
-        crit = False
-    else:                                     # auto (mísseis): acerta sempre
-        crit = False
+    _ml = skills.get_lvl(f, "magic")
+    _tier = int(sp.get("level", 0))
+    dmg = skills.magic_roll(lvl, _ml, *skills.SPELL_FORMULAS.get(_tier, skills.SPELL_FORMULAS[1]))
+    crit = False                              # magia no padrão Tibia: não erra, não crita
 
     if m.get("_rt_aegis_until", 0) > time.time():
         dmg = max(1, dmg // 2)
@@ -842,6 +810,31 @@ def on_rt_cast(data):
 # ===========================================================================
 #  MISSÕES: NPCs com histórias, objetivos rastreados e relíquias exclusivas.
 # ===========================================================================
+
+def _player_armor(pl):
+    """Soma a armadura de tudo equipado (padrão Tibia)."""
+    tot = 0
+    for iid in (pl.get("equipment") or {}).values():
+        tot += int((items.get(iid) or {}).get("armor", 0))
+    return tot
+
+
+def _skill_up_toast(sid, nome, novo):
+    socketio.emit("toast", {"text": "📈 %s avançou para %d!" % (nome, novo)}, to=sid)
+
+
+def _find_ammo(pl, fam):
+    """Melhor munição da família (ex: 'virote' pega Virote e Virote Perfurante)."""
+    melhor = None
+    for s in (pl.get("inventory") or []):
+        cat = items.get(s.get("item")) or {}
+        if cat.get("kind") != "municao" or not s.get("item", "").startswith(fam):
+            continue
+        if melhor is None or int(cat.get("atk_bonus", 0)) > int((items.get(melhor) or {}).get("atk_bonus", 0)):
+            melhor = s.get("item")
+    return melhor
+
+
 def _npc_display_name(npc_id):
     if npc_id == valdris.NPC_ID:
         return "Valdris"
@@ -1018,6 +1011,107 @@ def _quest_deliver(sid, player, qid):
     return True
 
 
+
+@socketio.on("rune_use")
+def on_rune_use(data):
+    """Runas mágicas: quebra a pedra, o Nível Mágico faz o resto (área inclusa)."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    f = player.get("ficha") or {}
+    if not f.get("class_id") or int(f.get("hp", 0)) <= 0:
+        return
+    iid = (data or {}).get("item")
+    cat = items.get(iid) or {}
+    rn = cat.get("rune")
+    if not rn or _bag_count(player, iid) < 1:
+        return
+    _ml = skills.get_lvl(f, "magic")
+    if _ml < int(cat.get("ml_req", 0)):
+        emit("toast", {"text": "🔮 Essa runa exige Nível Mágico %d (você: %d)." %
+                       (int(cat.get("ml_req", 0)), _ml)})
+        return
+    lvl = int(f.get("level", 1))
+    tier = int(rn.get("tier", 1))
+    if rn.get("heal"):
+        items.remove_from_bag(player["inventory"], iid, 1)
+        cura = skills.magic_roll(lvl, _ml, *skills.HEAL_FORMULAS.get(tier, skills.HEAL_FORMULAS[2]))
+        hp0 = int(f.get("hp", 1))
+        f["hp"] = min(int(f.get("hp_max", 1)), hp0 + cura)
+        player["ficha"] = f
+        _persist_loadout(player)
+        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        socketio.emit("rt_selfheal", {"amount": f["hp"] - hp0, "hp": f["hp"],
+                                      "hp_max": f.get("hp_max")}, to=request.sid)
+        socketio.emit("xp", {"xp": f.get("xp", 0), "level": lvl, "hp": f["hp"],
+                             "hp_max": f.get("hp_max"), "prof": f.get("prof"), "gained": 0,
+                             "pending_asi": f.get("pending_asi", [])}, to=request.sid)
+        return
+    tid = (data or {}).get("target") or player.get("rt_target")
+    m = world.monsters.get(tid)
+    if not m or not m.get("alive") or m.get("map") != player.get("map"):
+        emit("toast", {"text": "Sem alvo pra runa. Aperte Tab num monstro."})
+        return
+    if max(abs(m["x"] - player["x"]), abs(m["y"] - player["y"])) > 6:
+        emit("toast", {"text": "Alvo fora do alcance da runa."})
+        return
+    items.remove_from_bag(player["inventory"], iid, 1)
+    _persist_loadout(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    area = int(rn.get("area", 0))
+    alvos = [m]
+    if area > 0:
+        for mm in world.monsters.values():
+            if mm is m or not mm.get("alive") or mm.get("map") != player.get("map"):
+                continue
+            if max(abs(mm["x"] - m["x"]), abs(mm["y"] - m["y"])) <= area:
+                alvos.append(mm)
+    for mm in alvos:
+        dmg = skills.magic_roll(lvl, _ml, *skills.SPELL_FORMULAS.get(tier, skills.SPELL_FORMULAS[2]))
+        if mm.get("_rt_aegis_until", 0) > time.time():
+            dmg = max(1, dmg // 2)
+        mm["hp"] = max(0, int(mm["hp"]) - dmg)
+        socketio.emit("rt_hit", {"id": mm["id"], "dmg": dmg, "crit": False, "magic": True,
+                                 "by": request.sid, "spell": cat.get("name"), "sid": iid,
+                                 "dtype": rn.get("dtype", "energia"),
+                                 "fx": [player["x"], player["y"], mm["x"], mm["y"]],
+                                 "hp": mm["hp"], "hp_max": mm["hp_max"]}, room=player["map"])
+        if mm["hp"] <= 0:
+            _rt_kill(request.sid, player, mm)
+
+
+@socketio.on("fight_mode")
+def on_fight_mode(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    md = (data or {}).get("mode")
+    if md not in ("off", "bal", "def"):
+        return
+    f = player.get("ficha") or {}
+    f["fight_mode"] = md
+    player["ficha"] = f
+    _quest_save(player)
+    emit("fight_mode", {"mode": md})
+
+
+@socketio.on("skills_get")
+def on_skills_get(_data=None):
+    player = world.players.get(request.sid)
+    f = (player or {}).get("ficha") or {}
+    if not player or not f.get("class_id"):
+        return
+    sk = skills.ensure(f)
+    out = []
+    for s in list(skills.SKILLS) + ["magic"]:
+        st = sk.get(s) or {}
+        lvl0 = int(st.get("lvl", 0))
+        need = skills.tries_needed(f.get("class_id"), s, lvl0)
+        out.append({"id": s, "name": skills.SKILL_NAMES.get(s, s), "lvl": lvl0,
+                    "pct": min(99, int(100 * int(st.get("t", 0)) / max(1, need)))})
+    emit("skills", {"skills": out, "mode": f.get("fight_mode", "bal")})
+
+
 @socketio.on("quests_get")
 def on_quests_get(_data=None):
     """O cliente pede o Diário: garante o Chamado do Valdris na primeira vez."""
@@ -1025,6 +1119,9 @@ def on_quests_get(_data=None):
     if not player or not (player.get("ficha") or {}).get("class_id"):
         return
     _market_payout(request.sid, player)
+    if not ((player.get("ficha") or {}).get("skills") or {}).get("magic"):
+        skills.ensure(player.get("ficha") or {})
+        _quest_save(player)
     _ft = (player.get("ficha") or {}).get("title")
     if _ft and player.get("title") != _ft:
         player["title"] = _ft
@@ -2168,23 +2265,53 @@ def _rt_combat_loop():
                     pc = combat.make_player_combatant(sid, pl, f)
                 except Exception:
                     continue
-                reach = max(1, int(pc.get("reach", 1)))
+                # ===== TIBIA: a arma na mão define a skill, o Atk e o alcance =====
+                _wit = items.get((pl.get("equipment") or {}).get("hand")) or {}
+                _wcl = _wit.get("wclass") or "fist"
+                _watk = int(_wit.get("atk", 4))
+                _mode = f.get("fight_mode", "bal")
+                _lv = int(f.get("level", 1))
+                if _wcl == "shield":
+                    _wcl, _watk = "fist", 4           # escudo na mão: soca com o punho
+                reach = int(_wit.get("range", 4)) if _wcl == "distance" else max(1, int(pc.get("reach", 1)))
                 if max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"])) > reach:
                     continue                      # fora de alcance: aproxima que o golpe sai
                 pl["_rt_next"] = now + RT_ATK_CD
                 post = _posture_of(f)
                 if post == "mao":
                     continue                          # A Mão de Valíria não fere: protege e cura
-                roll = random.randint(1, 20)
-                crit = (roll == 20)
-                hit = crit or (roll != 1 and roll + int(pc.get("atk", 0)) >= int(m.get("ac", 12)))
-                if post == "combatente":
-                    hit = True                        # fúria sagrada: todo golpe básico ACERTA
-                if not hit:
+                if _wcl == "distance":
+                    _fam = _wit.get("ammo")
+                    _ab = 0
+                    if _fam:
+                        _mun = _find_ammo(pl, _fam)
+                        if not _mun:
+                            if pl.get("_rt_noammo", 0) < now:
+                                pl["_rt_noammo"] = now + 3
+                                socketio.emit("toast", {"text": "🏹 Sem %s! Compre no armeiro." %
+                                                        (items.get(_fam) or {}).get("name", _fam)}, to=sid)
+                            continue
+                        items.remove_from_bag(pl["inventory"], _mun, 1)
+                        _ab = int((items.get(_mun) or {}).get("atk_bonus", 0))
+                    _skl = skills.get_lvl(f, "distance")
+                    _maxd = skills.dist_max(_watk + _ab, _skl, _lv, _mode)
+                    _sk_used = "distance"
+                else:
+                    _skl = skills.get_lvl(f, _wcl)
+                    _maxd = skills.melee_max(_watk, _skl, _lv, _mode)
+                    _sk_used = _wcl
+                _up = skills.add_tries(f, _sk_used, 1)
+                pl["ficha"] = f
+                if _up:
+                    _skill_up_toast(sid, skills.SKILL_NAMES.get(_sk_used, _sk_used), _up)
+                dmg = skills.roll_hit(_maxd)
+                crit = dmg > 0 and dmg >= int(_maxd * 0.92)
+                if post == "combatente" and dmg == 0:
+                    dmg = max(1, int(_maxd * 0.3))    # fúria sagrada: nunca erra de verdade
+                if dmg == 0:
                     socketio.emit("rt_hit", {"id": tid, "dmg": 0, "miss": True, "by": sid,
                                              "hp": m["hp"], "hp_max": m["hp_max"]}, room=pl["map"])
                     continue
-                dmg = _rt_roll_dmg(pc.get("dmg") or {"n": 1, "d": 4}, crit)
                 if post == "soldado":
                     dmg = max(1, dmg // 4)                # o muro de Valíria fere pouco
                 elif post == "martir":
@@ -2223,12 +2350,12 @@ def _rt_combat_loop():
                 ff = foe.get("ficha") or {}
                 if int(f.get("hp", 0)) <= 0 or pl.get("_rt_next", 0) > now:
                     continue
-                try:
-                    pc = combat.make_player_combatant(sid, pl, f)
-                    fc = combat.make_player_combatant(foe_sid, foe, ff)
-                except Exception:
-                    continue
-                reach = max(1, int(pc.get("reach", 1)))
+                _wit = items.get((pl.get("equipment") or {}).get("hand")) or {}
+                _wcl = _wit.get("wclass") or "fist"
+                _watk = int(_wit.get("atk", 4))
+                if _wcl == "shield":
+                    _wcl, _watk = "fist", 4
+                reach = int(_wit.get("range", 4)) if _wcl == "distance" else 1
                 if max(abs(foe["x"] - pl["x"]), abs(foe["y"] - pl["y"])) > reach:
                     continue
                 pl["_rt_next"] = now + RT_ATK_CD
@@ -2236,22 +2363,35 @@ def _rt_combat_loop():
                 post_f = _posture_of(ff)
                 if post == "mao":
                     continue
-                roll = random.randint(1, 20)
-                crit = (roll == 20)
-                ac_f = int(fc.get("ac", 10))
-                if post_f == "martir":
-                    ac_f = 0
-                elif post_f == "combatente":
-                    ac_f = max(0, ac_f - 4)
-                hit = crit or (roll != 1 and roll + int(pc.get("atk", 0)) >= ac_f)
-                if post == "combatente":
-                    hit = True
-                if not hit:
+                _lv = int(f.get("level", 1))
+                _mode = f.get("fight_mode", "bal")
+                _skname = "distance" if _wcl == "distance" else _wcl
+                _skl = skills.get_lvl(f, _skname)
+                _maxd = (skills.dist_max if _wcl == "distance" else skills.melee_max)(_watk, _skl, _lv, _mode)
+                _up = skills.add_tries(f, _skname, 1)
+                pl["ficha"] = f
+                if _up:
+                    _skill_up_toast(sid, skills.SKILL_NAMES.get(_skname, _skname), _up)
+                dmg = skills.roll_hit(_maxd)
+                crit = dmg > 0 and dmg >= int(_maxd * 0.92)
+                if post == "combatente" and dmg == 0:
+                    dmg = max(1, int(_maxd * 0.3))
+                # a defesa do oponente: bloqueio + armadura (padrão Tibia)
+                _dit = items.get((foe.get("equipment") or {}).get("hand")) or {}
+                if int(_dit.get("def", 0)) > 0 and post_f != "martir":
+                    dmg = max(0, dmg - skills.block_value(int(_dit["def"]),
+                                                          skills.get_lvl(ff, "shielding"),
+                                                          ff.get("fight_mode", "bal")))
+                    _sup = skills.add_tries(ff, "shielding", 1)
+                    foe["ficha"] = ff
+                    if _sup:
+                        _skill_up_toast(foe_sid, "Escudo", _sup)
+                dmg = max(0, dmg - skills.armor_reduce(_player_armor(foe)))
+                if dmg <= 0:
                     socketio.emit("rt_hit", {"id": foe_sid, "dmg": 0, "miss": True, "by": sid,
                                              "hp": ff.get("hp"), "hp_max": ff.get("hp_max")},
                                   room="arena")
                     continue
-                dmg = _rt_roll_dmg(pc.get("dmg") or {"n": 1, "d": 4}, crit)
                 if post == "soldado":
                     dmg = max(1, dmg // 4)
                 elif post == "martir":
@@ -2415,6 +2555,23 @@ def _rt_combat_loop():
                                               "nome": usada.get("name", "ferida")}
                     socketio.emit("toast", {"text": "⚠️ %s usa %s!" % (m.get("name", "?"),
                                             usada.get("name", "?"))}, to=alvo_sid)
+                # ===== TIBIA: escudo/arma bloqueia + armadura amortece =====
+                _dit = items.get((alvo_pl.get("equipment") or {}).get("hand")) or {}
+                _defv = int(_dit.get("def", 0))
+                if _defv > 0:
+                    _shl = skills.get_lvl(f, "shielding")
+                    _dmode = f.get("fight_mode", "bal")
+                    dmg = max(0, dmg - skills.block_value(_defv, _shl, _dmode))
+                    _sup = skills.add_tries(f, "shielding", 1)
+                    if _sup:
+                        _skill_up_toast(alvo_sid, "Escudo", _sup)
+                dmg = max(0, dmg - skills.armor_reduce(_player_armor(alvo_pl)))
+                alvo_pl["ficha"] = f
+                if dmg <= 0:
+                    socketio.emit("rt_phit", {"dmg": 0, "block": True, "by": m.get("name", "?"),
+                                              "hp": f.get("hp"), "hp_max": f.get("hp_max")},
+                                  to=alvo_sid)
+                    continue
                 # POSTURA DE GRUPO: o Mártir toma o golpe no lugar do aliado
                 _mrt = None
                 if post_alvo != "martir":
@@ -3514,7 +3671,9 @@ def on_interact(_data=None):
 
     # Cigana Vidente (Itatinga): vende Pocao de Vida por 10 pratas (1000 bronze)
     if npc.get("_spec", {}).get("sells_potion"):
-        _open_shop(player, npc, "Cigana Vidente", [], 0, potions=[("pocao_vida", 1000)])
+        _open_shop(player, npc, "Cigana Vidente", [], 0,
+                   potions=[("pocao_vida", 1000), ("flecha", 5), ("flecha_de_ferro", 12),
+                            ("virote", 6), ("virote_perfurante", 16), ("runa_em_branco", 80)])
         return
 
     # Xamã Miranda (Descampado): troca drops de chefe por proteção contra a morte
