@@ -1412,6 +1412,16 @@ ROSTER.append({
     "greetings": ["..."], "party_table": True,
 })
 
+# A Mesa de Negócios: a irmã comerciante da Mesa de Confraternizações.
+# Clicar nela abre o Mercado (vendas assíncronas, taxa de 5%) e as ofertas diretas.
+ROSTER.append({
+    "id": "npc:mesa_negocios", "name": "Mesa de Negócios",
+    "look": {"skin": "#caa06a", "cloak": "#3a5a3a"},
+    "map": "taverna", "home": (5, 8), "radius": 0, "wanders": False,
+    "step_every": 999, "solid": True, "kind": "mesa",
+    "greetings": ["..."], "business_table": True,
+})
+
 # A Goblin do Cofre: roubou o cofre de Lorde Varth e se escondeu no canto sudeste
 # da câmara. Vende o set Necrótico (épico, melhor que o do Coveiro) por bronze +
 # Símbolos de Varth.

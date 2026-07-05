@@ -2137,6 +2137,50 @@ for _nm, _rows in OFICINAS_INT.items():
     MAPS[_nm] = {"rows": _rows, "spawns": [(7, 8), (6, 8), (8, 8)]}
 MAPS["templo_doze"] = {"rows": _templo_int(), "spawns": [(10, 12), (9, 12), (11, 12)]}
 
+
+def _fenda_int():
+    """A sala da Fenda do Caos: uma câmara de pedra viva, 17x13."""
+    g = [list("F" + "1" * 15 + "F") for _ in range(13)]
+    g[0] = list("F" * 17)
+    g[12] = list("F" * 17)
+    for (bx, by) in ((3, 2), (13, 2), (3, 10), (13, 10)):
+        g[by][bx] = ";"
+    return ["".join(r) for r in g]
+
+
+MAPS["fenda"] = {"rows": _fenda_int(), "spawns": [(8, 10), (7, 10), (9, 10)]}
+
+
+# A ARENA DO ERMO: fachada no sudeste + o ringue interior
+def _build_arena():
+    x0, y0 = 71, 39
+    linhas = ("mmmmmmmmmmm",
+              "MMMMMMMMMMM",
+              "MMMMMDMMMMM",
+              "ppppppppppp")
+    for i, ln in enumerate(linhas):
+        row = list(MAP_ROWS[y0 + i])
+        for j, ch in enumerate(ln):
+            row[x0 + j] = ch
+        MAP_ROWS[y0 + i] = "".join(row)
+_build_arena()
+
+
+def _arena_int():
+    """O coliseu: 21x15, arquibancadas nas bordas, o ringue no centro."""
+    g = [list("F" + "1" * 19 + "F") for _ in range(15)]
+    g[0] = list("F" * 21)
+    g[14] = list("F" * 10 + "D" + "F" * 10)
+    g[1] = list("F1" + "/" * 17 + "1F")
+    for (bx, by) in ((2, 3), (18, 3), (2, 11), (18, 11)):
+        g[by][bx] = ";"
+    return ["".join(r) for r in g]
+
+
+MAPS["arena"] = {"rows": _arena_int(), "spawns": [(10, 12), (9, 12), (11, 12)]}
+INTERIOR_MAPS.add("arena")
+DOOR_INTERIORS[(76, 41)] = "arena"
+
 INTERIOR_MAPS |= set(OFICINAS_INT) | {"templo_doze"}
 # as portas D da Rua dos Ofícios e o portal triplo do Templo
 DOOR_INTERIORS[(44, 16)] = "oficina_ferreiro"

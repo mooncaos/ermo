@@ -50,6 +50,7 @@ from game import (db, accounts, items, npcs, rules, valdris, classes, races, pro
                   leveling, feats, class_features, monsters as monsters_def, combat,
                   spells as spells_def, abilities as abilities_def, gm)
 from game import secret_worlds, world_map as wm
+from game import quests as quests_def
 from game.world import World, public
 from game.world_map import (MAP_ROWS, map_rows, EDGE_LINKS,
                             DOOR_INTERIORS, INTERIOR_MAPS, INTERIOR_SPAWN)
@@ -84,12 +85,36 @@ _RARITY_POOLS = {}
 def _rarity_pool(r):
     if r not in _RARITY_POOLS:
         _RARITY_POOLS[r] = [iid for iid, it in items.ITEMS.items()
-                            if it.get("rarity") == r and it.get("kind") in ("weapon", "armor", "trinket")]
+                            if it.get("rarity") == r and not it.get("forged")
+                            and it.get("kind") in ("weapon", "armor", "trinket")]
     return _RARITY_POOLS[r]
 
 FACTIONS = {"cria_vampirica": "vampiro", "vampiro_nobre": "vampiro", "vampiro_anciao": "vampiro",
             "enxame_morcegos": "vampiro", "lobisomem_ferino": "lobisomem",
             "lobisomem_uivador": "lobisomem", "lobisomem_ancestral": "lobisomem"}
+
+
+# -------- GLÓRIA: janela de bosses, despertar anunciado e primeira-kill --------
+BOSS_RESPAWN_MIN = 3600      # bosses grandes renascem entre 1 e 2 horas REAIS
+BOSS_RESPAWN_MAX = 7200
+MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Costa de Maravaí",
+              "umbraval": "Umbraval", "vespera": "Véspera", "brasal": "Brasal",
+              "floresta_ermo": "Floresta do Ermo", "repouso_dama": "Repouso da Dama",
+              "avasham": "Avasham", "cova_colosso": "Cova do Colosso",
+              "valdarkram": "Valdarkram", "mina_avhur": "Mina de Avhur",
+              "camara_avhur": "Câmara de Avhur", "torre_varth": "Torre de Varth"}
+FIRST_KILL = {
+    "maraja":          {"item": "juba_do_maraja",        "title": "Domador do Marajá"},
+    "lorde_varth":     {"item": "cetro_de_varth",        "title": "Carrasco da Torre"},
+    "krezath":         {"item": "presa_de_krezath",      "title": "Devorador do Devorador"},
+    "farao_avhur":     {"item": "ankh_do_farao",         "title": "Quebra-Faraó"},
+    "colosso_avasham": {"item": "nucleo_do_colosso",     "title": "Derrubador do Colosso"},
+    "urso_rei":        {"item": "garra_do_urso_rei",     "title": "Regicida do Bosque"},
+    "vulkar":          {"item": "coracao_de_vulkar",     "title": "Apagador do Brasal"},
+    "dama_noite":      {"item": "veu_da_dama",           "title": "Viúvo da Dama"},
+    "velho_bob":       {"item": "anzol_do_velho_bob",    "title": "Pioneiro: Velho Bob"},
+    "maurao":          {"item": "soco_ingles_do_maurao", "title": "Pioneiro: Maurão"},
+}
 
 BOSS_RECORDS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "boss_records.json")
 try:
@@ -374,6 +399,21 @@ def _go_to(sid, target_map, x, y, facing=None):
     if not player:
         return
     old_map = player.get("map", "ermo")
+    if target_map != old_map:
+        if old_map == "arena" and player.get("duel_foe"):
+            _duel_end(player.get("duel_foe"), sid, wo=True)
+        _quest_bump(sid, player, "visit", target_map)
+        _fx = player.get("ficha") or {}
+        if _fx.get("class_id"):
+            _cod = _fx.setdefault("codex", {"m": {}, "i": {}, "l": {}})
+            if target_map not in _cod.setdefault("l", {}):
+                _cod["l"][target_map] = 1
+                player["ficha"] = _fx
+                socketio.emit("toast", {"text": "📖 Codex: %s registrado no seu mapa-múndi!" %
+                                        MAP_TITLES.get(target_map, target_map.replace("_", " ").title())},
+                              to=sid)
+                _check_titles(sid, player)
+                _quest_save(player)
     _party_remove(sid)              # trocou de mapa: sai do lobby da Mesa
     socketio.emit("player_left", {"id": sid}, room=old_map, skip_sid=sid)
     try:
@@ -683,6 +723,69 @@ def on_rt_cast(data):
 
     # ---- OFENSIVAS: precisa de alvo vivo no alcance ----
     tid = (data or {}).get("target") or player.get("rt_target")
+    # MAGIA DE DUELO: o alvo é o oponente da Arena
+    foe_sid = player.get("duel_foe")
+    if foe_sid:
+        foe = world.players.get(foe_sid)
+        if foe and foe.get("map") == "arena":
+            ff = foe.get("ficha") or {}
+            alcance = 6 if sp.get("range") == "ranged" else 1
+            if max(abs(foe["x"] - player["x"]), abs(foe["y"] - player["y"])) > alcance:
+                emit("toast", {"text": "Oponente fora do alcance da magia."})
+                player["_rt_cast_next"] = now
+                return
+            f["mana"] = mana - custo
+            player["ficha"] = f
+            emit("mana", {"mana": f["mana"], "max": mana_max})
+            lvl = int(f.get("level", 1))
+            cmod = _cast_mod(f)
+            d = dict(sp.get("dmg") or {"n": 1, "d": 8})
+            if int(sp.get("level", 0)) == 0:
+                d["n"] = d.get("n", 1) * _cantrip_mult(lvl)
+            prof_b = 2 + (lvl - 1) // 4
+            dmg = sum(random.randint(1, d.get("d", 8)) for _ in range(d.get("n", 1))) + max(0, cmod)
+            try:
+                fc = combat.make_player_combatant(foe_sid, foe, ff)
+            except Exception:
+                return
+            crit = False
+            if kind == "attack":
+                roll = random.randint(1, 20)
+                crit = (roll == 20)
+                if not (crit or (roll != 1 and roll + cmod + prof_b >= int(fc.get("ac", 10)))):
+                    socketio.emit("rt_hit", {"id": foe_sid, "dmg": 0, "miss": True, "magic": True,
+                                             "by": request.sid, "hp": ff.get("hp"),
+                                             "hp_max": ff.get("hp_max")}, room="arena")
+                    return
+                if crit:
+                    dmg += sum(random.randint(1, d.get("d", 8)) for _ in range(d.get("n", 1)))
+            elif kind == "save":
+                dc = 8 + cmod + prof_b
+                if random.randint(1, 20) + 2 >= dc:
+                    dmg = max(1, dmg // 2)
+            _pf = _posture_of(ff)
+            if _pf == "soldado":
+                dmg = max(1, dmg // 4)
+            elif _pf == "mao":
+                dmg = max(1, int(dmg * 0.8))
+            novo_hp = int(ff.get("hp", 1)) - dmg
+            fim = novo_hp <= 0
+            ff["hp"] = max(1, novo_hp) if fim else novo_hp
+            foe["ficha"] = ff
+            socketio.emit("rt_hit", {"id": foe_sid, "dmg": dmg, "crit": crit, "magic": True,
+                                     "by": request.sid, "spell": sp.get("name"), "sid": spell_id,
+                                     "dtype": sp.get("dtype", "energia"),
+                                     "fx": [player["x"], player["y"], foe["x"], foe["y"]],
+                                     "hp": ff["hp"], "hp_max": ff.get("hp_max")}, room="arena")
+            socketio.emit("rt_phit", {"dmg": dmg, "crit": crit, "by": player.get("name", "?"),
+                                      "hp": ff["hp"], "hp_max": ff.get("hp_max")}, to=foe_sid)
+            socketio.emit("xp", {"xp": ff.get("xp", 0), "level": ff.get("level", 1),
+                                 "hp": ff["hp"], "hp_max": ff.get("hp_max"),
+                                 "prof": ff.get("prof"), "gained": 0,
+                                 "pending_asi": ff.get("pending_asi", [])}, to=foe_sid)
+            if fim:
+                _duel_end(request.sid, foe_sid)
+            return
     m = world.monsters.get(tid)
     if not m or not m.get("alive") or m.get("map") != player.get("map"):
         emit("toast", {"text": "Sem alvo. Clique num monstro ou aperte Tab."})
@@ -726,12 +829,973 @@ def on_rt_cast(data):
         dmg = max(1, dmg // 2)
     m["hp"] = max(0, int(m["hp"]) - dmg)
     socketio.emit("rt_hit", {"id": tid, "dmg": dmg, "crit": crit, "magic": True, "by": sid,
-                             "spell": sp.get("name"), "dtype": sp.get("dtype", "energia"),
+                             "spell": sp.get("name"), "sid": spell_id, "dtype": sp.get("dtype", "energia"),
                              "fx": [player["x"], player["y"], m["x"], m["y"]],
                              "hp": m["hp"], "hp_max": m["hp_max"]},
                   room=player["map"])
     if m["hp"] <= 0:
         _rt_kill(sid, player, m)
+
+
+
+
+# ===========================================================================
+#  MISSÕES: NPCs com histórias, objetivos rastreados e relíquias exclusivas.
+# ===========================================================================
+def _npc_display_name(npc_id):
+    if npc_id == valdris.NPC_ID:
+        return "Valdris"
+    for spec in npcs.ROSTER:
+        if spec.get("id") == npc_id:
+            return spec.get("name", npc_id)
+    return npc_id
+
+
+def _bag_count(player, iid):
+    return sum(int(s.get("qty", 1)) for s in (player.get("inventory") or [])
+               if s.get("item") == iid)
+
+
+def _quest_ready(player, qid, q):
+    st = ((player.get("ficha") or {}).get("quests") or {}).get(qid)
+    if not st or st.get("done"):
+        return False
+    if int(st.get("s", 0)) < len(q.get("steps") or []):
+        return False
+    for iid, need in (q.get("collect") or {}).items():
+        if _bag_count(player, iid) < int(need):
+            return False
+    return True
+
+
+def _quest_payload(player):
+    f = player.get("ficha") or {}
+    qs = f.get("quests") or {}
+    active, done = [], 0
+    for qid, st in qs.items():
+        q = quests_def.get(qid)
+        if not q:
+            continue
+        if st.get("done"):
+            done += 1
+            continue
+        s = int(st.get("s", 0))
+        steps = []
+        for i, sp in enumerate(q.get("steps") or []):
+            steps.append({"text": sp.get("text", ""), "done": s > i,
+                          "n": (int(sp.get("count", 1)) if s > i
+                                else (int(st.get("n", 0)) if s == i else 0)),
+                          "count": int(sp.get("count", 1))})
+        coll = [{"name": (items.get(iid) or {}).get("name", iid),
+                 "have": min(_bag_count(player, iid), int(need)), "need": int(need)}
+                for iid, need in (q.get("collect") or {}).items()]
+        active.append({"id": qid, "name": q["name"], "npc": _npc_display_name(q["npc"]),
+                       "story": q["story"], "steps": steps, "collect": coll,
+                       "ready": _quest_ready(player, qid, q)})
+    return {"active": active, "done": done}
+
+
+def _quest_marks(player):
+    qs = (player.get("ficha") or {}).get("quests") or {}
+    marks = {}
+    for qid, q in quests_def.QUESTS.items():
+        st = qs.get(qid)
+        if st and st.get("done"):
+            continue
+        if st:
+            if _quest_ready(player, qid, q):
+                marks[q["npc"]] = "?"
+        elif not q.get("auto") and marks.get(q["npc"]) != "?":
+            marks[q["npc"]] = "!"
+    return marks
+
+
+def _emit_quests(sid, player):
+    try:
+        socketio.emit("quests", _quest_payload(player), to=sid)
+        socketio.emit("quest_marks", {"marks": _quest_marks(player)}, to=sid)
+    except Exception:
+        pass
+
+
+def _quest_save(player):
+    try:
+        db.save_ficha(player["player_id"], player.get("ficha") or {})
+    except Exception:
+        pass
+
+
+def _quest_bump(sid, player, kind, target=None):
+    """Um evento do mundo (kill/gather/equip/visit) avança as missões ativas."""
+    f = player.get("ficha") or {}
+    qs = f.get("quests") or {}
+    mudou = False
+    for qid, st in qs.items():
+        if st.get("done"):
+            continue
+        q = quests_def.get(qid)
+        if not q:
+            continue
+        s = int(st.get("s", 0))
+        steps = q.get("steps") or []
+        if s >= len(steps):
+            continue
+        sp = steps[s]
+        if sp.get("type") != kind:
+            continue
+        if kind == "kill" and sp.get("target") not in (None, "any") and sp.get("target") != target:
+            continue
+        if kind == "visit" and sp.get("target") != target:
+            continue
+        st["n"] = int(st.get("n", 0)) + 1
+        mudou = True
+        if st["n"] >= int(sp.get("count", 1)):
+            st["s"] = s + 1
+            st["n"] = 0
+            if st["s"] >= len(steps) and not (q.get("collect") or {}):
+                socketio.emit("toast", {"text": "📜 %s: objetivos completos! Fale com %s." %
+                                        (q["name"], _npc_display_name(q["npc"]))}, to=sid)
+            elif st["s"] < len(steps):
+                socketio.emit("toast", {"text": "📜 %s: %s" %
+                                        (q["name"], steps[st["s"]].get("text", ""))}, to=sid)
+    if mudou:
+        player["ficha"] = f
+        _quest_save(player)
+        _emit_quests(sid, player)
+
+
+def _quest_start(sid, player, qid, silent=False):
+    f = player.get("ficha") or {}
+    qs = f.setdefault("quests", {})
+    q = quests_def.get(qid)
+    if not q or qid in qs:
+        return False
+    qs[qid] = {"s": 0, "n": 0}
+    player["ficha"] = f
+    _quest_save(player)
+    if not silent:
+        socketio.emit("speech", {"id": q["npc"], "text": q["story"]},
+                      room=player.get("map", "ermo"))
+        socketio.emit("toast", {"text": "📜 Nova missão: %s (Diário: tecla J)" % q["name"]}, to=sid)
+    _emit_quests(sid, player)
+    return True
+
+
+def _quest_deliver(sid, player, qid):
+    q = quests_def.get(qid)
+    if not q or not _quest_ready(player, qid, q):
+        return False
+    f = player.get("ficha") or {}
+    st = f["quests"][qid]
+    bag = player.setdefault("inventory", [])
+    for iid, need in (q.get("collect") or {}).items():
+        items.remove_from_bag(bag, iid, int(need))
+    rw = q.get("reward") or {}
+    if rw.get("bronze"):
+        player["wallet"] = int(player.get("wallet", 0)) + int(rw["bronze"])
+    if rw.get("xp"):
+        f["xp"] = int(f.get("xp", 0)) + int(rw["xp"])
+        leveling.recompute(f)
+    it = rw.get("item")
+    if it:
+        items.add_to_bag(bag, it[0], int(it[1]))
+    st["done"] = True
+    player["ficha"] = f
+    _persist_loadout(player)
+    _quest_save(player)
+    socketio.emit("speech", {"id": q["npc"], "text": q.get("done_text", "Obrigado, viajante.")},
+                  room=player.get("map", "ermo"))
+    nome_it = ((" + " + ((items.get(it[0]) or {}).get("name", it[0]))) if it else "")
+    socketio.emit("toast", {"text": "✅ Missão concluída: %s! (+%d bronze, +%d XP%s)" %
+                            (q["name"], int(rw.get("bronze", 0)), int(rw.get("xp", 0)), nome_it)}, to=sid)
+    socketio.emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]}, to=sid)
+    socketio.emit("wallet", {"bronze": player.get("wallet", 0)}, to=sid)
+    socketio.emit("xp", {"xp": f.get("xp", 0), "level": f.get("level", 1), "hp": f.get("hp"),
+                         "hp_max": f.get("hp_max"), "prof": f.get("prof"),
+                         "gained": int(rw.get("xp", 0)), "reason": "missão",
+                         "pending_asi": f.get("pending_asi", [])}, to=sid)
+    _emit_quests(sid, player)
+    return True
+
+
+@socketio.on("quests_get")
+def on_quests_get(_data=None):
+    """O cliente pede o Diário: garante o Chamado do Valdris na primeira vez."""
+    player = world.players.get(request.sid)
+    if not player or not (player.get("ficha") or {}).get("class_id"):
+        return
+    _market_payout(request.sid, player)
+    _ft = (player.get("ficha") or {}).get("title")
+    if _ft and player.get("title") != _ft:
+        player["title"] = _ft
+        socketio.emit("player_title", {"id": request.sid, "title": _ft},
+                      room=player.get("map", "ermo"))
+    f = player.get("ficha") or {}
+    if "chamado_valdris" not in (f.get("quests") or {}):
+        _quest_start(request.sid, player, "chamado_valdris", silent=True)
+        socketio.emit("toast", {"text": "📜 Nova missão: O Chamado do Feiticeiro (Diário: tecla J)"},
+                      to=request.sid)
+    _emit_quests(request.sid, player)
+
+
+
+
+# ===========================================================================
+#  MESA DE NEGÓCIOS (taverna): Mercado assíncrono (taxa de 5%% pro Cofre da
+#  Cidade) + ofertas diretas cara a cara (sem taxa). Itens listados ficam em
+#  ESCROW: saem da mochila ao listar e voltam se cancelar.
+# ===========================================================================
+MARKET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "market.json")
+try:
+    with open(MARKET_PATH) as _mf:
+        MARKET = json.load(_mf)
+except Exception:
+    MARKET = {"seq": 0, "listings": [], "payouts": {}, "chest": 0}
+
+
+def _market_save():
+    try:
+        os.makedirs(os.path.dirname(MARKET_PATH), exist_ok=True)
+        with open(MARKET_PATH, "w") as _mf:
+            json.dump(MARKET, _mf)
+    except Exception as exc:
+        print("erro salvando mercado:", exc)
+
+
+def _market_payload(sid, player):
+    pid = player.get("player_id")
+    listings = []
+    for l in MARKET["listings"]:
+        listings.append({"id": l["id"], "item": l["item"],
+                         "name": (items.get(l["item"]) or {}).get("name", l["item"]),
+                         "qty": l["qty"], "price": l["price"], "seller": l["seller"],
+                         "mine": (l.get("pid") == pid)})
+    bag_sale = []
+    for s in (player.get("inventory") or []):
+        cat = items.get(s.get("item")) or {}
+        if cat.get("kind") == "currency":
+            continue
+        bag_sale.append({"item": s["item"], "name": cat.get("name", s["item"]),
+                         "qty": int(s.get("qty", 1))})
+    near = []
+    for s2, p2 in world.players.items():
+        if s2 == sid or not p2.get("player_id"):
+            continue
+        if p2.get("map") != player.get("map"):
+            continue
+        near.append({"id": s2, "name": p2.get("name", "?")})
+    return {"listings": listings, "bag": bag_sale, "near": near,
+            "chest": int(MARKET.get("chest", 0)), "wallet": int(player.get("wallet", 0))}
+
+
+def _market_refresh_room():
+    for s2, p2 in list(world.players.items()):
+        if p2.get("map") == "taverna" and p2.get("player_id"):
+            socketio.emit("market_update", _market_payload(s2, p2), to=s2)
+
+
+def _market_payout(sid, player):
+    """Vendas feitas enquanto você estava fora: paga na entrada."""
+    pid = str(player.get("player_id") or "")
+    devido = int((MARKET.get("payouts") or {}).get(pid, 0))
+    if not devido:
+        return
+    MARKET["payouts"].pop(pid, None)
+    player["wallet"] = int(player.get("wallet", 0)) + devido
+    _market_save()
+    socketio.emit("wallet", {"bronze": player.get("wallet", 0)}, to=sid)
+    socketio.emit("toast", {"text": "💰 Suas vendas no Mercado renderam %d de bronze!" % devido}, to=sid)
+
+
+@socketio.on("market_list")
+def on_market_list(data):
+    player = world.players.get(request.sid)
+    if not player or player.get("map") != "taverna" or not player.get("player_id"):
+        return
+    iid = (data or {}).get("item")
+    qty = max(1, int((data or {}).get("qty") or 1))
+    price = int((data or {}).get("price") or 0)
+    cat = items.get(iid)
+    if not cat or cat.get("kind") == "currency" or price < 1 or price > 9999999:
+        emit("toast", {"text": "Anúncio inválido."})
+        return
+    if _bag_count(player, iid) < qty:
+        emit("toast", {"text": "Você não tem tudo isso na mochila."})
+        return
+    items.remove_from_bag(player["inventory"], iid, qty)     # ESCROW
+    _persist_loadout(player)
+    MARKET["seq"] = int(MARKET.get("seq", 0)) + 1
+    MARKET["listings"].append({"id": MARKET["seq"], "pid": player["player_id"],
+                               "seller": player.get("name", "?"), "item": iid,
+                               "qty": qty, "price": price})
+    _market_save()
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    emit("toast", {"text": "📋 Anunciado: %dx %s por %d de bronze." %
+                   (qty, cat.get("name", iid), price)})
+    _market_refresh_room()
+
+
+@socketio.on("market_cancel")
+def on_market_cancel(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    lid = int((data or {}).get("id") or 0)
+    for l in list(MARKET["listings"]):
+        if l["id"] == lid and l.get("pid") == player.get("player_id"):
+            MARKET["listings"].remove(l)
+            items.add_to_bag(player.setdefault("inventory", []), l["item"], l["qty"])
+            _persist_loadout(player)
+            _market_save()
+            emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+            emit("toast", {"text": "Anúncio cancelado: os itens voltaram pra mochila."})
+            _market_refresh_room()
+            return
+
+
+@socketio.on("market_buy")
+def on_market_buy(data):
+    player = world.players.get(request.sid)
+    if not player or player.get("map") != "taverna":
+        return
+    lid = int((data or {}).get("id") or 0)
+    l = next((x for x in MARKET["listings"] if x["id"] == lid), None)
+    if not l:
+        emit("toast", {"text": "Esse anúncio já foi vendido."})
+        _market_refresh_room()
+        return
+    if l.get("pid") == player.get("player_id"):
+        emit("toast", {"text": "É o seu próprio anúncio: cancele pra reaver os itens."})
+        return
+    price = int(l["price"])
+    if int(player.get("wallet", 0)) < price:
+        emit("toast", {"text": "Bronze insuficiente (%d)." % price})
+        return
+    MARKET["listings"].remove(l)
+    player["wallet"] = int(player.get("wallet", 0)) - price
+    items.add_to_bag(player.setdefault("inventory", []), l["item"], l["qty"])
+    _persist_loadout(player)
+    taxa = price * 5 // 100
+    liquido = price - taxa
+    MARKET["chest"] = int(MARKET.get("chest", 0)) + taxa
+    vendedor_online = None
+    for s2, p2 in world.players.items():
+        if p2.get("player_id") == l.get("pid"):
+            vendedor_online = (s2, p2)
+            break
+    nome_item = (items.get(l["item"]) or {}).get("name", l["item"])
+    if vendedor_online:
+        s2, p2 = vendedor_online
+        p2["wallet"] = int(p2.get("wallet", 0)) + liquido
+        socketio.emit("wallet", {"bronze": p2.get("wallet", 0)}, to=s2)
+        socketio.emit("toast", {"text": "💰 %s comprou %dx %s: +%d de bronze (taxa 5%%%%)." %
+                                (player.get("name", "?"), l["qty"], nome_item, liquido)}, to=s2)
+    else:
+        pk = str(l.get("pid"))
+        MARKET.setdefault("payouts", {})[pk] = int(MARKET["payouts"].get(pk, 0)) + liquido
+    _market_save()
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    emit("wallet", {"bronze": player.get("wallet", 0)})
+    emit("toast", {"text": "✅ Comprado: %dx %s por %d de bronze." % (l["qty"], nome_item, price)})
+    _market_refresh_room()
+
+
+# ---------- OFERTA DIRETA (cara a cara, sem taxa) ----------
+_offers = {}
+_offer_seq = [0]
+
+
+@socketio.on("offer_send")
+def on_offer_send(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    alvo_sid = (data or {}).get("to")
+    alvo = world.players.get(alvo_sid)
+    iid = (data or {}).get("item")
+    qty = max(1, int((data or {}).get("qty") or 1))
+    price = max(0, int((data or {}).get("price") or 0))
+    cat = items.get(iid)
+    if not alvo or alvo_sid == request.sid or not alvo.get("player_id") or \
+       alvo.get("map") != player.get("map") or not cat or cat.get("kind") == "currency":
+        emit("toast", {"text": "Oferta inválida."})
+        return
+    if _bag_count(player, iid) < qty:
+        emit("toast", {"text": "Você não tem tudo isso na mochila."})
+        return
+    _offer_seq[0] += 1
+    oid = _offer_seq[0]
+    _offers[oid] = {"from": request.sid, "to": alvo_sid, "item": iid, "qty": qty,
+                    "price": price, "ts": time.time()}
+    socketio.emit("trade_offer", {"id": oid, "from_name": player.get("name", "?"),
+                                  "item_name": cat.get("name", iid), "qty": qty,
+                                  "price": price}, to=alvo_sid)
+    emit("toast", {"text": "🤝 Oferta enviada pra %s. Aguardando..." % alvo.get("name", "?")})
+
+
+@socketio.on("offer_answer")
+def on_offer_answer(data):
+    oid = int((data or {}).get("id") or 0)
+    aceitar = bool((data or {}).get("accept"))
+    of = _offers.pop(oid, None)
+    if not of or of.get("to") != request.sid or time.time() - of.get("ts", 0) > 90:
+        emit("toast", {"text": "Essa oferta expirou."})
+        return
+    de = world.players.get(of["from"])
+    para = world.players.get(of["to"])
+    if not de or not para:
+        return
+    if not aceitar:
+        socketio.emit("toast", {"text": "%s recusou a oferta." % para.get("name", "?")},
+                      to=of["from"])
+        return
+    if _bag_count(de, of["item"]) < of["qty"]:
+        socketio.emit("toast", {"text": "A oferta caducou: o vendedor não tem mais os itens."},
+                      to=of["to"])
+        return
+    if int(para.get("wallet", 0)) < of["price"]:
+        emit("toast", {"text": "Bronze insuficiente pra aceitar."})
+        return
+    items.remove_from_bag(de["inventory"], of["item"], of["qty"])
+    items.add_to_bag(para.setdefault("inventory", []), of["item"], of["qty"])
+    para["wallet"] = int(para.get("wallet", 0)) - of["price"]
+    de["wallet"] = int(de.get("wallet", 0)) + of["price"]
+    _persist_loadout(de)
+    _persist_loadout(para)
+    nome_item = (items.get(of["item"]) or {}).get("name", of["item"])
+    for s3, p3 in ((of["from"], de), (of["to"], para)):
+        socketio.emit("loadout", {"bag": p3["inventory"], "equipment": p3["equipment"]}, to=s3)
+        socketio.emit("wallet", {"bronze": p3.get("wallet", 0)}, to=s3)
+    socketio.emit("toast", {"text": "🤝 Negócio fechado: %dx %s por %d de bronze com %s!" %
+                            (of["qty"], nome_item, of["price"], para.get("name", "?"))}, to=of["from"])
+    socketio.emit("toast", {"text": "🤝 Negócio fechado: %dx %s por %d de bronze!" %
+                            (of["qty"], nome_item, of["price"])}, to=of["to"])
+
+
+
+# ===========================================================================
+#  CODEX: a memória da jornada (monstros, itens, lugares) + TÍTULOS por feito.
+# ===========================================================================
+_TITLE_MARCOS = [
+    ("kills", 100,  "Caçador"), ("kills", 500, "Matador"), ("kills", 2000, "Lenda Viva"),
+    ("lugares", 15, "Andarilho"), ("lugares", 35, "Cartógrafo"),
+    ("itens", 100, "Colecionador"), ("itens", 300, "Curador do Ermo"),
+]
+
+
+def _check_titles(sid, player):
+    """Confere os marcos do Codex e concede títulos novos. True se ganhou algum."""
+    f = player.get("ficha") or {}
+    cod = f.get("codex") or {}
+    stats = {"kills": sum((cod.get("m") or {}).values()),
+             "lugares": len(cod.get("l") or {}),
+             "itens": len(cod.get("i") or {})}
+    titles = f.setdefault("titles", [])
+    ganhou = False
+    for (chave, minimo, titulo) in _TITLE_MARCOS:
+        if stats.get(chave, 0) >= minimo and titulo not in titles:
+            titles.append(titulo)
+            ganhou = True
+            socketio.emit("toast", {"text": "🏅 Novo título conquistado: %s! "
+                                    "(escolha no Codex: tecla K)" % titulo}, to=sid)
+    if ganhou:
+        player["ficha"] = f
+    return ganhou
+
+
+@socketio.on("codex_get")
+def on_codex_get(_data=None):
+    player = world.players.get(request.sid)
+    f = (player or {}).get("ficha") or {}
+    if not player or not f.get("class_id"):
+        return
+    cod = f.get("codex") or {"m": {}, "i": {}, "l": {}}
+    ms = sorted([{"name": (monsters_def.MONSTERS.get(t) or {}).get("name", t), "kills": int(k)}
+                 for t, k in (cod.get("m") or {}).items()], key=lambda x: -x["kills"])
+    its = sorted([{"name": (items.get(i) or {}).get("name", i),
+                   "rarity": (items.get(i) or {}).get("rarity") or "comum"}
+                  for i in (cod.get("i") or {})], key=lambda x: x["name"])
+    ls = sorted([MAP_TITLES.get(l, l.replace("_", " ").title()) for l in (cod.get("l") or {})])
+    emit("codex", {"m": ms, "tot_m": len(monsters_def.MONSTERS),
+                   "i": its, "tot_i": len(items.ITEMS),
+                   "l": ls, "tot_l": len(wm.MAPS),
+                   "titles": f.get("titles") or [], "title": f.get("title") or ""})
+
+
+@socketio.on("set_title")
+def on_set_title(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    f = player.get("ficha") or {}
+    t = ((data or {}).get("title") or "").strip()
+    if t and t not in (f.get("titles") or []):
+        emit("toast", {"text": "Você não conquistou esse título."})
+        return
+    f["title"] = t
+    player["ficha"] = f
+    player["title"] = t
+    _quest_save(player)
+    socketio.emit("player_title", {"id": request.sid, "title": t},
+                  room=player.get("map", "ermo"))
+    emit("toast", {"text": ("🏅 Título ativo: %s" % t) if t else "Título removido."})
+
+
+
+# ===========================================================================
+#  A FENDA DO CAOS: chave abre, andares infinitos, ranking de profundidade.
+#  A BIGORNA DO BRAGAN: +1/+2/+3 com risco real. O ALTAR: fortuna paga.
+# ===========================================================================
+FENDA_POS = (72, 20)          # o portal, no leste do Ermo
+FENDA_POCO = (8, 2)           # o poço de descida, no fundo da câmara
+FENDA = {"floor": 0, "open": False}
+FENDA_RECORDS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "data", "fenda_records.json")
+try:
+    with open(FENDA_RECORDS_PATH) as _ff:
+        FENDA_RECORDS = json.load(_ff)
+except Exception:
+    FENDA_RECORDS = {}
+
+
+def _save_fenda_records():
+    try:
+        os.makedirs(os.path.dirname(FENDA_RECORDS_PATH), exist_ok=True)
+        with open(FENDA_RECORDS_PATH, "w") as _ff:
+            json.dump(FENDA_RECORDS, _ff)
+    except Exception as exc:
+        print("erro salvando recordes da fenda:", exc)
+
+
+def _fenda_players():
+    return [(s, p) for s, p in world.players.items()
+            if p.get("map") == "fenda" and p.get("player_id")]
+
+
+def _fenda_reset():
+    FENDA["floor"] = 0
+    FENDA["open"] = False
+    for mid in [k for k, mm in list(world.monsters.items()) if mm.get("fenda")]:
+        world.monsters.pop(mid, None)
+
+
+def _fenda_spawn_floor(n):
+    """Popula o andar n: pack escalado pela profundidade (+ Eco de chefe a cada 5)."""
+    import uuid
+    FENDA["floor"] = n
+    FENDA["open"] = False
+    for mid in [k for k, mm in list(world.monsters.items()) if mm.get("fenda")]:
+        world.monsters.pop(mid, None)
+    alvo = 60 * (1.32 ** n)
+    pool = [t for t, s in monsters_def.MONSTERS.items()
+            if not s.get("passive") and not s.get("boss")
+            and alvo * 0.45 <= int(s.get("hp", 0)) <= alvo * 2.2]
+    if not pool:
+        forte = sorted(monsters_def.MONSTERS,
+                       key=lambda t: -int(monsters_def.MONSTERS[t].get("hp", 0)))
+        pool = [t for t in forte if not monsters_def.MONSTERS[t].get("passive")
+                and not monsters_def.MONSTERS[t].get("boss")][:6]
+    count = min(3 + n // 2, 8)
+    for _ in range(count):
+        t = random.choice(pool)
+        s = monsters_def.MONSTERS[t]
+        nid = "fnd:" + uuid.uuid4().hex[:8]
+        world.monsters[nid] = {"id": nid, "type": t, "name": s.get("name", t),
+            "map": "fenda", "x": random.randint(3, 13), "y": random.randint(3, 8),
+            "hp": int(s.get("hp", 50)), "hp_max": int(s.get("hp", 50)),
+            "ac": int(s.get("ac", 12)), "size": int(s.get("size", 1)),
+            "atk": int(s.get("atk", 3)), "dmg": dict(s.get("dmg") or {"n": 1, "d": 6}),
+            "xp": int(s.get("xp", 0)), "speed": int(s.get("speed", 5)),
+            "reach": int(s.get("reach", 1)), "boss": False,
+            "glyph": s.get("glyph"), "alive": True, "in_combat": False,
+            "temp": True, "fenda": True, "_spawn": (t, 8, 5), "_rt_next": 0, "_rt_next_f": 0}
+    if n % 5 == 0:
+        bosses = [t for t, s in monsters_def.MONSTERS.items() if s.get("boss")]
+        t = random.choice(bosses)
+        s = monsters_def.MONSTERS[t]
+        nid = "fnd:" + uuid.uuid4().hex[:8]
+        world.monsters[nid] = {"id": nid, "type": t, "name": "Eco de %s" % s.get("name", t),
+            "map": "fenda", "x": 8, "y": 4,
+            "hp": int(int(s.get("hp", 500)) * 0.7), "hp_max": int(int(s.get("hp", 500)) * 0.7),
+            "ac": int(s.get("ac", 14)), "size": int(s.get("size", 2)),
+            "atk": int(s.get("atk", 6)), "dmg": dict(s.get("dmg") or {"n": 2, "d": 8}),
+            "xp": int(int(s.get("xp", 0)) * 0.7), "speed": int(s.get("speed", 5)),
+            "reach": int(s.get("reach", 1)), "boss": False,
+            "glyph": s.get("glyph"), "alive": True, "in_combat": False,
+            "temp": True, "fenda": True, "_spawn": (t, 8, 4), "_rt_next": 0, "_rt_next_f": 0}
+    try:
+        _world_refresh("fenda")
+    except Exception:
+        pass
+    socketio.emit("toast", {"text": "🌀 Fenda: andar %d. Limpe a câmara pra abrir o poço." % n},
+                  room="fenda")
+
+
+def _try_fenda(player):
+    """No Ermo, perto do portal: consome uma Chave e mergulha."""
+    if player.get("map") != "ermo":
+        return False
+    if max(abs(player["x"] - FENDA_POS[0]), abs(player["y"] - FENDA_POS[1])) > 2:
+        return False
+    if FENDA["floor"] > 0 and not _fenda_players():
+        _fenda_reset()                       # a fenda esfriou: recomeça do 1
+    if _bag_count(player, "chave_da_fenda") < 1:
+        emit("toast", {"text": "🌀 O portal exige uma CHAVE DA FENDA (o joalheiro forja; os chefes carregam)."})
+        return True
+    items.remove_from_bag(player["inventory"], "chave_da_fenda", 1)
+    _persist_loadout(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    if FENDA["floor"] == 0:
+        _fenda_spawn_floor(1)
+    _go_to(request.sid, "fenda", 8, 10)
+    emit("toast", {"text": "🌀 Você mergulhou na Fenda do Caos (andar %d)." % FENDA["floor"]})
+    return True
+
+
+def _try_fenda_inside(player):
+    """Dentro da Fenda: o poço desce (se aberto); a borda de baixo emerge."""
+    if player.get("map") != "fenda":
+        return False
+    px, py = player["x"], player["y"]
+    if max(abs(px - FENDA_POCO[0]), abs(py - FENDA_POCO[1])) <= 2:
+        if not FENDA["open"]:
+            emit("toast", {"text": "O poço está selado. Limpe a câmara primeiro."})
+            return True
+        prox = FENDA["floor"] + 1
+        _fenda_spawn_floor(prox)
+        for (s2, _p2) in _fenda_players():
+            _go_to(s2, "fenda", 8, 10)
+        return True
+    if py >= 9:
+        best = int((player.get("ficha") or {}).get("fenda_best", 0))
+        _go_to(request.sid, "ermo", FENDA_POS[0], FENDA_POS[1] + 1)
+        socketio.emit("toast", {"text": "🌀 Você emergiu da Fenda. Seu recorde: andar %d." % best},
+                      to=request.sid)
+        if not _fenda_players():
+            _fenda_reset()
+        return True
+    return False
+
+
+# ---------- A BIGORNA DO BRAGAN: forja +1/+2/+3 ----------
+FORGE_LEVELS = {
+    1: {"bronze": 2000,  "mats": {"gema_lapidada": 1}, "chance": 1.0,  "quebra": False},
+    2: {"bronze": 6000,  "mats": {"gema_lapidada": 1, "essencia_lunar": 1}, "chance": 0.75, "quebra": False},
+    3: {"bronze": 15000, "mats": {"fragmento_estelar": 1}, "chance": 0.5,  "quebra": True},
+}
+
+
+def _forge_payload(player):
+    lista = []
+    vistos = set()
+    for s in (player.get("inventory") or []):
+        iid = s.get("item")
+        cat = items.get(iid) or {}
+        if cat.get("forged"):
+            plus, base = int(cat["forged"]), cat.get("base", iid)
+        elif cat.get("kind") in ("weapon", "armor", "trinket") and                 int(cat.get("value", 0)) >= 500 and not cat.get("stackable"):
+            plus, base = 0, iid
+        else:
+            continue
+        if plus >= 3 or iid in vistos:
+            continue
+        vistos.add(iid)
+        nx = FORGE_LEVELS[plus + 1]
+        lista.append({"item": iid, "name": cat.get("name", iid), "plus": plus,
+                      "next": plus + 1, "bronze": nx["bronze"],
+                      "chance": int(nx["chance"] * 100), "quebra": nx["quebra"],
+                      "mats": [{"name": (items.get(mi) or {}).get("name", mi),
+                                "have": _bag_count(player, mi), "need": mq}
+                               for mi, mq in nx["mats"].items()]})
+    return {"items": lista, "wallet": int(player.get("wallet", 0))}
+
+
+def _try_bigorna(player):
+    if player.get("map") != "oficina_ferreiro":
+        return False
+    if max(abs(player["x"] - 5), abs(player["y"] - 3)) > 2:
+        return False
+    emit("forge_open", _forge_payload(player))
+    return True
+
+
+@socketio.on("forge_try")
+def on_forge_try(data):
+    player = world.players.get(request.sid)
+    if not player or player.get("map") != "oficina_ferreiro":
+        return
+    iid = (data or {}).get("item")
+    cat = items.get(iid) or {}
+    if not cat or _bag_count(player, iid) < 1:
+        return
+    plus = int(cat.get("forged", 0))
+    base = cat.get("base", iid)
+    if plus >= 3:
+        return
+    nx = FORGE_LEVELS[plus + 1]
+    if int(player.get("wallet", 0)) < nx["bronze"]:
+        emit("toast", {"text": "Bronze insuficiente (%d)." % nx["bronze"]})
+        return
+    for mi, mq in nx["mats"].items():
+        if _bag_count(player, mi) < mq:
+            emit("toast", {"text": "Falta material: %s." % (items.get(mi) or {}).get("name", mi)})
+            return
+    player["wallet"] = int(player.get("wallet", 0)) - nx["bronze"]
+    for mi, mq in nx["mats"].items():
+        items.remove_from_bag(player["inventory"], mi, mq)
+    sucesso = random.random() < nx["chance"]
+    nome = cat.get("name", iid)
+    if sucesso:
+        items.remove_from_bag(player["inventory"], iid, 1)
+        novo = "%s_p%d" % (base, plus + 1)
+        items.add_to_bag(player["inventory"], novo, 1)
+        emit("toast", {"text": "🔨✨ A bigorna canta: %s!" %
+                       (items.get(novo) or {}).get("name", novo)})
+        if plus + 1 == 3:
+            socketio.emit("toast", {"text": "🔨🌟 %s forjou %s na bigorna do Bragan!" %
+                                    (player.get("name", "Alguém"),
+                                     (items.get(novo) or {}).get("name", novo))})
+    elif nx["quebra"]:
+        items.remove_from_bag(player["inventory"], iid, 1)
+        emit("toast", {"text": "💔 A bigorna range... %s SE PARTIU. O Bragan desvia o olhar." % nome})
+        socketio.emit("toast", {"text": "💔 %s viu %s se partir na bigorna. Um minuto de silêncio." %
+                                (player.get("name", "Alguém"), nome)})
+    else:
+        emit("toast", {"text": "🔨 A forja falhou: %s resistiu, mas os materiais viraram fumaça." % nome})
+    _persist_loadout(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    emit("wallet", {"bronze": player.get("wallet", 0)})
+    emit("forge_open", _forge_payload(player))
+
+
+def _try_altar(player):
+    """No Templo, diante do altar: a Oferenda de Fortuna (1000 de bronze)."""
+    if player.get("map") != "templo_doze":
+        return False
+    if max(abs(player["x"] - 10), abs(player["y"] - 3)) > 2:
+        return False
+    emit("confirm", {
+        "action": "altar_fortuna",
+        "title": "Oferenda de Fortuna aos Doze? (1000 de bronze)",
+        "body": "A chama aceita seu bronze e devolve SORTE: +50%% de chance de "
+                "drops raros por 30 minutos. Os Doze gostam de quem arrisca.",
+        "ok": "Ofertar 1000", "cancel": "Hoje não",
+    })
+    return True
+
+
+
+# ===========================================================================
+#  A ARENA DO ERMO: duelos consensuais no ringue (amistoso ou aposta),
+#  ranking eterno e o prêmio pago pelo Cofre da Cidade (as taxas do Mercado).
+# ===========================================================================
+ARENA_MASTRO = (10, 7)
+ARENA_CANTOS = ((6, 7), (14, 7))
+ARENA_RECORDS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "data", "arena_records.json")
+try:
+    with open(ARENA_RECORDS_PATH) as _af:
+        ARENA_RECORDS = json.load(_af)
+except Exception:
+    ARENA_RECORDS = {}
+_duels = {}
+_duel_seq = [0]
+
+
+def _save_arena_records():
+    try:
+        os.makedirs(os.path.dirname(ARENA_RECORDS_PATH), exist_ok=True)
+        with open(ARENA_RECORDS_PATH, "w") as _af:
+            json.dump(ARENA_RECORDS, _af)
+    except Exception as exc:
+        print("erro salvando ranking da arena:", exc)
+
+
+def _arena_payload(sid, player):
+    near = [{"id": s2, "name": p2.get("name", "?")}
+            for s2, p2 in world.players.items()
+            if s2 != sid and p2.get("player_id") and p2.get("map") == "arena"
+            and not p2.get("duel_foe")]
+    rank = sorted(([n, r.get("w", 0), r.get("l", 0)] for n, r in ARENA_RECORDS.items()),
+                  key=lambda x: -x[1])[:10]
+    me = ARENA_RECORDS.get(player.get("name", ""), {})
+    return {"near": near, "ranking": rank, "chest": int(MARKET.get("chest", 0)),
+            "me": {"w": me.get("w", 0), "l": me.get("l", 0)},
+            "wallet": int(player.get("wallet", 0))}
+
+
+def _try_mastro(player):
+    if player.get("map") != "arena":
+        return False
+    if max(abs(player["x"] - ARENA_MASTRO[0]), abs(player["y"] - ARENA_MASTRO[1])) > 2:
+        return False
+    if player.get("duel_foe"):
+        emit("toast", {"text": "Você está DUELANDO. Resolve isso primeiro."})
+        return True
+    emit("arena_open", _arena_payload(request.sid, player))
+    return True
+
+
+@socketio.on("duel_send")
+def on_duel_send(data):
+    player = world.players.get(request.sid)
+    if not player or player.get("map") != "arena" or player.get("duel_foe"):
+        return
+    alvo_sid = (data or {}).get("to")
+    bet = max(0, int((data or {}).get("bet") or 0))
+    alvo = world.players.get(alvo_sid)
+    if not alvo or alvo.get("map") != "arena" or alvo.get("duel_foe") or alvo_sid == request.sid:
+        emit("toast", {"text": "Esse oponente não está disponível."})
+        return
+    if bet and (int(player.get("wallet", 0)) < bet or int(alvo.get("wallet", 0)) < bet):
+        emit("toast", {"text": "Um dos dois não cobre essa aposta."})
+        return
+    _duel_seq[0] += 1
+    did = _duel_seq[0]
+    _duels[did] = {"a": request.sid, "b": alvo_sid, "bet": bet, "ts": time.time(), "on": False}
+    socketio.emit("duel_offer", {"id": did, "from_name": player.get("name", "?"), "bet": bet},
+                  to=alvo_sid)
+    emit("toast", {"text": "⚔️ Desafio enviado pra %s%s." %
+                   (alvo.get("name", "?"), (" (aposta: %d)" % bet) if bet else " (amistoso)")})
+
+
+@socketio.on("duel_answer")
+def on_duel_answer(data):
+    did = int((data or {}).get("id") or 0)
+    d = _duels.get(did)
+    if not d or d.get("b") != request.sid or d.get("on") or time.time() - d.get("ts", 0) > 90:
+        _duels.pop(did, None)
+        emit("toast", {"text": "Esse desafio expirou."})
+        return
+    if not (data or {}).get("accept"):
+        _duels.pop(did, None)
+        socketio.emit("toast", {"text": "O desafio foi recusado."}, to=d["a"])
+        return
+    pa, pb = world.players.get(d["a"]), world.players.get(d["b"])
+    if not pa or not pb or pa.get("map") != "arena" or pb.get("map") != "arena":
+        _duels.pop(did, None)
+        return
+    bet = int(d.get("bet", 0))
+    if bet and (int(pa.get("wallet", 0)) < bet or int(pb.get("wallet", 0)) < bet):
+        _duels.pop(did, None)
+        socketio.emit("toast", {"text": "A aposta não fecha mais. Duelo cancelado."}, to=d["a"])
+        return
+    if bet:
+        pa["wallet"] = int(pa.get("wallet", 0)) - bet
+        pb["wallet"] = int(pb.get("wallet", 0)) - bet
+        for s3, p3 in ((d["a"], pa), (d["b"], pb)):
+            socketio.emit("wallet", {"bronze": p3.get("wallet", 0)}, to=s3)
+    d["on"] = True
+    pa["duel_foe"] = d["b"]
+    pb["duel_foe"] = d["a"]
+    pa["_duel_id"] = did
+    pb["_duel_id"] = did
+    _go_to(d["a"], "arena", ARENA_CANTOS[0][0], ARENA_CANTOS[0][1])
+    _go_to(d["b"], "arena", ARENA_CANTOS[1][0], ARENA_CANTOS[1][1])
+    socketio.emit("toast", {"text": "🏟️ DUELO: %s vs %s%s! Que vença o melhor." %
+                            (pa.get("name", "?"), pb.get("name", "?"),
+                             (" (pote: %d)" % (bet * 2)) if bet else "")}, room="arena")
+    socketio.emit("duel_start", {"foe": pb.get("name", "?"), "bet": bet}, to=d["a"])
+    socketio.emit("duel_start", {"foe": pa.get("name", "?"), "bet": bet}, to=d["b"])
+
+
+def _duel_end(win_sid, lose_sid, wo=False):
+    pw, pl2 = world.players.get(win_sid), world.players.get(lose_sid)
+    did = (pw or pl2 or {}).get("_duel_id")
+    d = _duels.pop(did, None) or {}
+    bet = int(d.get("bet", 0))
+    for p3 in (pw, pl2):
+        if p3:
+            p3.pop("duel_foe", None)
+            p3.pop("_duel_id", None)
+    if not pw:
+        return
+    ganho = []
+    if bet:
+        pw["wallet"] = int(pw.get("wallet", 0)) + bet * 2
+        ganho.append("%d do pote" % (bet * 2))
+    premio = int(MARKET.get("chest", 0)) // 5
+    if premio > 0:
+        MARKET["chest"] = int(MARKET.get("chest", 0)) - premio
+        pw["wallet"] = int(pw.get("wallet", 0)) + premio
+        _market_save()
+        ganho.append("%d do Cofre da Cidade" % premio)
+    socketio.emit("wallet", {"bronze": pw.get("wallet", 0)}, to=win_sid)
+    nw, nl = pw.get("name", "?"), (pl2 or {}).get("name", "?")
+    rw = ARENA_RECORDS.setdefault(nw, {"w": 0, "l": 0})
+    rw["w"] = int(rw.get("w", 0)) + 1
+    rl = ARENA_RECORDS.setdefault(nl, {"w": 0, "l": 0})
+    rl["l"] = int(rl.get("l", 0)) + 1
+    _save_arena_records()
+    fw = pw.get("ficha") or {}
+    fw.setdefault("titles", [])
+    for (minimo, titulo) in ((10, "Gladiador do Ermo"), (50, "Campeão da Arena")):
+        if rw["w"] >= minimo and titulo not in fw["titles"]:
+            fw["titles"].append(titulo)
+            socketio.emit("toast", {"text": "🏅 Novo título conquistado: %s!" % titulo}, to=win_sid)
+    pw["ficha"] = fw
+    _quest_save(pw)
+    socketio.emit("toast", {"text": "🏟️ %s venceu %s na Arena%s%s!" %
+                            (nw, nl, " por W.O." if wo else "",
+                             (" e leva " + " + ".join(ganho)) if ganho else "")})
+    socketio.emit("duel_end", {"win": True}, to=win_sid)
+    if pl2:
+        socketio.emit("duel_end", {"win": False}, to=lose_sid)
+
+
+def _rt_party_allies(sid, pl):
+    """Membros do grupo no MESMO mapa a até 10 tiles (inclui o próprio jogador)."""
+    pid = _player_party.get(sid)
+    if not pid:
+        return [sid]
+    out = []
+    for s in _parties.get(pid, []):
+        p2 = world.players.get(s)
+        if not p2 or p2.get("map") != pl.get("map"):
+            continue
+        if max(abs(p2.get("x", 0) - pl.get("x", 0)), abs(p2.get("y", 0) - pl.get("y", 0))) > 10:
+            continue
+        out.append(s)
+    return out or [sid]
+
+
+def _posture_of(f):
+    """Postura ativa do Paladino: passiva FIXA aplicada no combate em tempo real."""
+    if (f or {}).get("class_id") != "paladino":
+        return None
+    return f.get("posture") or None
+
+
+@socketio.on("set_posture")
+def on_set_posture(data=None):
+    """Paladino assume uma postura de Valíria FIXA (mesmo padrão da Forma Selvagem):
+    fica gravada na ficha, vale como passiva em todo combate e troca quando quiser."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    f = player.get("ficha") or {}
+    if f.get("class_id") != "paladino":
+        emit("toast", {"text": "Só os paladinos de Valíria dominam as posturas."})
+        return
+    pid = (data or {}).get("posture")
+    post = classes.get_posture("paladino", pid) if pid else None
+    if pid and not post:
+        emit("toast", {"text": "Essa postura não existe."})
+        return
+    f["posture"] = (pid if post else None)
+    player["ficha"] = f
+    try:
+        db.save_ficha(player["player_id"], f)
+    except Exception:
+        pass
+    emit("posture_set", {"posture": f.get("posture"),
+                         "name": (post["name"] if post else None),
+                         "icon": (post.get("icon") if post else None)})
+    if post:
+        emit("toast", {"text": "Postura assumida: %s %s (fica FIXA até você trocar)" %
+                       (post.get("icon", ""), post["name"])})
+    else:
+        emit("toast", {"text": "Você voltou à postura neutra."})
 
 
 def _rt_engage(sid, monster_list):
@@ -741,7 +1805,7 @@ def _rt_engage(sid, monster_list):
         return
     alvo = monster_list[0]
     player["rt_target"] = alvo.get("id")
-    socketio.emit("rt_engage", {"target": alvo.get("id")}, to=sid)
+    socketio.emit("rt_engage", {"target": alvo.get("id"), "boss": bool((monsters_def.MONSTERS.get(alvo.get("type"), {}) or {}).get("boss"))}, to=sid)
 
 
 @socketio.on("rt_target")
@@ -757,7 +1821,7 @@ def on_rt_target(data):
     m = world.monsters.get(tid)
     if m and m.get("alive") and m.get("map") == player.get("map"):
         player["rt_target"] = tid
-        emit("rt_engage", {"target": tid})
+        emit("rt_engage", {"target": tid, "boss": bool((monsters_def.MONSTERS.get((world.monsters.get(tid) or {}).get("type"), {}) or {}).get("boss"))})
 
 
 def _rt_roll_dmg(dmg, crit):
@@ -803,11 +1867,49 @@ def _rt_kill(sid, pl, m):
     socketio.emit("rt_dead", {"id": m["id"]}, room=m.get("map"))
     if m.get("temp"):
         world.monsters.pop(m["id"], None)     # invocado: some pra sempre
+        if m.get("fenda") and not any(mm.get("fenda") and mm.get("alive")
+                                      for mm in world.monsters.values()):
+            FENDA["open"] = True
+            _flr = int(FENDA.get("floor", 1))
+            socketio.emit("toast", {"text": "🌀 Andar %d LIMPO! O poço se abriu." % _flr},
+                          room="fenda")
+            socketio.emit("fenda_open", {"floor": _flr}, room="fenda")
+            for (_fs, _fp) in _fenda_players():
+                _fp["wallet"] = int(_fp.get("wallet", 0)) + 50 * _flr
+                socketio.emit("wallet", {"bronze": _fp.get("wallet", 0)}, to=_fs)
+                _ffi = _fp.get("ficha") or {}
+                if _flr > int(_ffi.get("fenda_best", 0)):
+                    _ffi["fenda_best"] = _flr
+                    _fp["ficha"] = _ffi
+                    _quest_save(_fp)
+                    _nm = _fp.get("name", "Alguém")
+                    if _flr > int(FENDA_RECORDS.get(_nm, 0)):
+                        FENDA_RECORDS[_nm] = _flr
+                        _save_fenda_records()
+                _rmf = 1.0 + _flr / 3.0
+                for (_rar, _ch) in RARE_CHANCES:
+                    if random.random() < _ch * _rmf:
+                        _pool = _rarity_pool(_rar)
+                        if _pool:
+                            _rid = random.choice(_pool)
+                            items.add_to_bag(_fp.setdefault("inventory", []), _rid, 1)
+                            socketio.emit("rare_drop", {"rarity": _rar, "item": _rid,
+                                "name": (items.get(_rid) or {}).get("name", _rid),
+                                "color": RARE_COLORS.get(_rar)}, to=_fs)
+                            socketio.emit("loadout", {"bag": _fp["inventory"],
+                                "equipment": _fp["equipment"]}, to=_fs)
+                        break
+    elif (monsters_def.MONSTERS.get(m.get("type"), {}) or {}).get("boss"):
+        _MONSTER_RESPAWNS.append((m["id"], time.time() +
+                                  random.randint(BOSS_RESPAWN_MIN, BOSS_RESPAWN_MAX)))
     else:
         _MONSTER_RESPAWNS.append((m["id"], time.time() + 90))
     spec = monsters_def.MONSTERS.get(m.get("type"), {}) or {}
     f = pl.get("ficha") or {}
     ganho = int(spec.get("xp", 0))
+    _aliados = _rt_party_allies(sid, pl)
+    if len(_aliados) > 1:
+        ganho = int(ganho * (1 + 0.10 * (len(_aliados) - 1)))   # caçar junto rende mais
     lvl_antes = int(f.get("level", 1))
     f["xp"] = int(f.get("xp", 0)) + ganho
     leveling.recompute(f)
@@ -849,6 +1951,8 @@ def _rt_kill(sid, pl, m):
 
     # LOOT DE RARIDADE: chance universal escalada pela força do monstro
     _rmult = 1.0 + int(spec.get("xp", 0)) / 4000.0
+    if float(f.get("fortune_until", 0)) > time.time():
+        _rmult *= 1.5                          # a Fortuna dos Doze sorri
     for (_rar, _ch) in RARE_CHANCES:
         if random.random() < _ch * _rmult:
             _pool = _rarity_pool(_rar)
@@ -863,8 +1967,62 @@ def _rt_kill(sid, pl, m):
                                             (pl.get("name", "Alguém"), _rnome)})
             break
 
+    _cod = f.setdefault("codex", {"m": {}, "i": {}, "l": {}})
+    _cod.setdefault("m", {})[m.get("type")] = int(_cod["m"].get(m.get("type"), 0)) + 1
+    _check_titles(sid, pl)
+    _quest_bump(sid, pl, "kill", m.get("type"))
+
+    # XP DE GRUPO: quem caçou junto leva o mesmo ganho (e a missão conta pra todos)
+    for _al in _aliados:
+        if _al == sid:
+            continue
+        _p2 = world.players.get(_al)
+        if not _p2:
+            continue
+        _f2 = _p2.get("ficha") or {}
+        if int(_f2.get("hp", 0)) <= 0:
+            continue
+        _f2["xp"] = int(_f2.get("xp", 0)) + ganho
+        leveling.recompute(_f2)
+        _p2["ficha"] = _f2
+        socketio.emit("xp", {"xp": _f2.get("xp", 0), "level": _f2.get("level", 1),
+                             "hp": _f2.get("hp"), "hp_max": _f2.get("hp_max"),
+                             "prof": _f2.get("prof"), "gained": ganho, "reason": "caça em grupo",
+                             "pending_asi": _f2.get("pending_asi", [])}, to=_al)
+        _quest_bump(_al, _p2, "kill", m.get("type"))
+
     # RECORDES DE BOSS: o mundo inteiro fica sabendo
     if spec.get("boss"):
+        if random.random() < 0.25:
+            items.add_to_bag(bag, "chave_da_fenda", 1)
+            socketio.emit("toast", {"text": "🗝️ O chefe carregava uma CHAVE DA FENDA!"}, to=sid)
+        if random.random() < 0.15:
+            items.add_to_bag(bag, "fragmento_estelar", 1)
+            socketio.emit("toast", {"text": "🌟 Um FRAGMENTO ESTELAR caiu do chefe!"}, to=sid)
+        if m.get("type") not in BOSS_RECORDS:          # PRIMEIRA KILL DO SERVIDOR!
+            fk = FIRST_KILL.get(m.get("type")) or {}
+            partes = []
+            if fk.get("item") and items.exists(fk["item"]):
+                items.add_to_bag(bag, fk["item"], 1)
+                partes.append("a relíquia %s" % (items.get(fk["item"]) or {}).get("name", fk["item"]))
+            else:
+                pl["wallet"] = int(pl.get("wallet", 0)) + 5000
+                partes.append("5000 de bronze")
+            titulo = fk.get("title") or ("Pioneiro: %s" % m.get("name", "?"))
+            f.setdefault("titles", [])
+            if titulo not in f["titles"]:
+                f["titles"].append(titulo)
+                partes.append("o título '%s'" % titulo)
+            if not f.get("primeira_lenda"):
+                f["primeira_lenda"] = True             # a MARCA do pioneiro
+                partes.append("a marca Pioneiro das Lendas")
+            pl["ficha"] = f
+            _persist_loadout(pl)
+            _quest_save(pl)
+            socketio.emit("toast", {"text": "🏆🥇 PRIMEIRA KILL DO SERVIDOR: %s derrubou %s "
+                                    "e leva %s! Isso NUNCA vai se repetir." %
+                                    (pl.get("name", "Alguém"), m.get("name", "?"),
+                                     " + ".join(partes))})
         BOSS_RECORDS[m.get("type")] = {"player": pl.get("name", "Alguém"),
                                        "boss": m.get("name", "?"), "when": int(time.time()),
                                        "count": int((BOSS_RECORDS.get(m.get("type")) or {}).get("count", 0)) + 1}
@@ -899,6 +2057,42 @@ def _rt_combat_loop():
                 if pl.get("_rt_sec", 0) > now:
                     continue
                 pl["_rt_sec"] = now + 1.0
+                _ppid = _player_party.get(sid)
+                if _ppid:
+                    _snap = []
+                    for _s2 in _parties.get(_ppid, []):
+                        _p2 = world.players.get(_s2)
+                        if not _p2:
+                            continue
+                        _f2 = _p2.get("ficha") or {}
+                        _snap.append({"id": _s2, "name": _p2.get("name", "?"),
+                                      "hp": _f2.get("hp"), "hp_max": _f2.get("hp_max"),
+                                      "map": _p2.get("map")})
+                    if len(_snap) > 1:
+                        socketio.emit("party_hp", {"members": _snap}, to=sid)
+                _cf = pl.get("ficha") or {}
+                if _cf.get("class_id"):
+                    _cod = _cf.setdefault("codex", {"m": {}, "i": {}, "l": {}})
+                    _ci = _cod.setdefault("i", {})
+                    _novos = []
+                    for _slot in (pl.get("inventory") or []):
+                        _ii = _slot.get("item")
+                        if _ii and _ii not in _ci:
+                            _ci[_ii] = 1
+                            _novos.append(_ii)
+                    for _ii in (pl.get("equipment") or {}).values():
+                        if _ii and _ii not in _ci:
+                            _ci[_ii] = 1
+                            _novos.append(_ii)
+                    if _novos:
+                        pl["ficha"] = _cf
+                        for _ii in _novos:
+                            _cat = items.get(_ii) or {}
+                            if _cat.get("rarity") in ("epico", "lendario"):
+                                socketio.emit("toast", {"text": "📖 Codex: %s registrado!" %
+                                                        _cat.get("name", _ii)}, to=sid)
+                        _check_titles(sid, pl)
+                        _quest_save(pl)
                 f = pl.get("ficha") or {}
                 mm = _mana_max(f)
                 if mm:
@@ -907,10 +2101,38 @@ def _rt_combat_loop():
                         f["mana"] = min(mm, atual + max(1, mm // 50))
                         pl["ficha"] = f
                         socketio.emit("mana", {"mana": f["mana"], "max": mm}, to=sid)
+                if _posture_of(f) == "mao":               # a Mão de Valíria cura o GRUPO
+                    for _hs in _rt_party_allies(sid, pl):
+                        _hp2 = world.players.get(_hs)
+                        if not _hp2:
+                            continue
+                        _hf = _hp2.get("ficha") or {}
+                        hp0 = int(_hf.get("hp", 0))
+                        if not (0 < hp0 < int(_hf.get("hp_max", 1))):
+                            continue
+                        cura_mao = max(1, int(_hf.get("hp_max", 1)) * 3 // 100)
+                        _hf["hp"] = min(int(_hf.get("hp_max", 1)), hp0 + cura_mao)
+                        _hp2["ficha"] = _hf
+                        socketio.emit("rt_selfheal", {"amount": _hf["hp"] - hp0, "hp": _hf["hp"],
+                                                      "hp_max": _hf.get("hp_max")}, to=_hs)
+                        if _hs != sid:
+                            socketio.emit("xp", {"xp": _hf.get("xp", 0), "level": _hf.get("level", 1),
+                                                 "hp": _hf["hp"], "hp_max": _hf.get("hp_max"),
+                                                 "prof": _hf.get("prof"), "gained": 0,
+                                                 "pending_asi": _hf.get("pending_asi", [])}, to=_hs)
+                    hp0 = int(f.get("hp", 0))
+                    if False:
+                        pass
+                        socketio.emit("xp", {"xp": f.get("xp", 0), "level": f.get("level", 1),
+                                             "hp": f["hp"], "hp_max": f.get("hp_max"),
+                                             "prof": f.get("prof"), "gained": 0,
+                                             "pending_asi": f.get("pending_asi", [])}, to=sid)
                 dot = pl.get("_rt_dot")
                 if dot and int(f.get("hp", 0)) > 0:
                     dd = dot.get("dmg") or {"n": 1, "d": 4}
                     dano = sum(random.randint(1, dd.get("d", 4)) for _ in range(dd.get("n", 1)))
+                    if _posture_of(f) == "soldado":
+                        dano = max(1, dano // 4)          # até os debuffs minguam na fortaleza
                     f["hp"] = max(0, int(f.get("hp", 1)) - dano)
                     pl["ficha"] = f
                     dot["ticks"] = int(dot.get("ticks", 1)) - 1
@@ -950,21 +2172,116 @@ def _rt_combat_loop():
                 if max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"])) > reach:
                     continue                      # fora de alcance: aproxima que o golpe sai
                 pl["_rt_next"] = now + RT_ATK_CD
+                post = _posture_of(f)
+                if post == "mao":
+                    continue                          # A Mão de Valíria não fere: protege e cura
                 roll = random.randint(1, 20)
                 crit = (roll == 20)
                 hit = crit or (roll != 1 and roll + int(pc.get("atk", 0)) >= int(m.get("ac", 12)))
+                if post == "combatente":
+                    hit = True                        # fúria sagrada: todo golpe básico ACERTA
                 if not hit:
                     socketio.emit("rt_hit", {"id": tid, "dmg": 0, "miss": True, "by": sid,
                                              "hp": m["hp"], "hp_max": m["hp_max"]}, room=pl["map"])
                     continue
                 dmg = _rt_roll_dmg(pc.get("dmg") or {"n": 1, "d": 4}, crit)
+                if post == "soldado":
+                    dmg = max(1, dmg // 4)                # o muro de Valíria fere pouco
+                elif post == "martir":
+                    dmg *= 2                              # Luz da Criação: dano radiante dobrado
+                elif post == "combatente":
+                    dmg += sum(random.randint(1, 8) for _ in range(2))   # +2 Castigos Divinos
                 if m.get("_rt_aegis_until", 0) > now:
                     dmg = max(1, dmg // 2)                # forma de névoa / escamas: 50%%
                 m["hp"] = max(0, int(m["hp"]) - dmg)
+                if post in ("martir", "combatente") and int(f.get("hp", 0)) > 0:
+                    cura = (dmg // 2) if post == "martir" else max(2, int(f.get("hp_max", 1)) // 20)
+                    if cura > 0 and int(f.get("hp", 0)) < int(f.get("hp_max", 1)):
+                        f["hp"] = min(int(f.get("hp_max", 1)), int(f.get("hp", 1)) + cura)
+                        pl["ficha"] = f
+                        socketio.emit("rt_selfheal", {"amount": cura, "hp": f["hp"],
+                                                      "hp_max": f.get("hp_max")}, to=sid)
+                        socketio.emit("xp", {"xp": f.get("xp", 0), "level": f.get("level", 1),
+                                             "hp": f["hp"], "hp_max": f.get("hp_max"),
+                                             "prof": f.get("prof"), "gained": 0,
+                                             "pending_asi": f.get("pending_asi", [])}, to=sid)
                 socketio.emit("rt_hit", {"id": tid, "dmg": dmg, "crit": crit, "by": sid,
                                          "hp": m["hp"], "hp_max": m["hp_max"]}, room=pl["map"])
                 if m["hp"] <= 0:
                     _rt_kill(sid, pl, m)
+
+            # -------- DUELOS DA ARENA: os golpes entre duelistas --------
+            for sid, pl in list(world.players.items()):
+                foe_sid = pl.get("duel_foe")
+                if not foe_sid:
+                    continue
+                foe = world.players.get(foe_sid)
+                if not foe or foe.get("map") != "arena" or pl.get("map") != "arena":
+                    _duel_end(sid, foe_sid, wo=True)      # oponente sumiu: W.O.
+                    continue
+                f = pl.get("ficha") or {}
+                ff = foe.get("ficha") or {}
+                if int(f.get("hp", 0)) <= 0 or pl.get("_rt_next", 0) > now:
+                    continue
+                try:
+                    pc = combat.make_player_combatant(sid, pl, f)
+                    fc = combat.make_player_combatant(foe_sid, foe, ff)
+                except Exception:
+                    continue
+                reach = max(1, int(pc.get("reach", 1)))
+                if max(abs(foe["x"] - pl["x"]), abs(foe["y"] - pl["y"])) > reach:
+                    continue
+                pl["_rt_next"] = now + RT_ATK_CD
+                post = _posture_of(f)
+                post_f = _posture_of(ff)
+                if post == "mao":
+                    continue
+                roll = random.randint(1, 20)
+                crit = (roll == 20)
+                ac_f = int(fc.get("ac", 10))
+                if post_f == "martir":
+                    ac_f = 0
+                elif post_f == "combatente":
+                    ac_f = max(0, ac_f - 4)
+                hit = crit or (roll != 1 and roll + int(pc.get("atk", 0)) >= ac_f)
+                if post == "combatente":
+                    hit = True
+                if not hit:
+                    socketio.emit("rt_hit", {"id": foe_sid, "dmg": 0, "miss": True, "by": sid,
+                                             "hp": ff.get("hp"), "hp_max": ff.get("hp_max")},
+                                  room="arena")
+                    continue
+                dmg = _rt_roll_dmg(pc.get("dmg") or {"n": 1, "d": 4}, crit)
+                if post == "soldado":
+                    dmg = max(1, dmg // 4)
+                elif post == "martir":
+                    dmg *= 2
+                elif post == "combatente":
+                    dmg += sum(random.randint(1, 8) for _ in range(2))
+                if post_f == "soldado":
+                    dmg = max(1, dmg // 4)
+                elif post_f == "mao":
+                    dmg = max(1, int(dmg * 0.8))
+                novo_hp = int(ff.get("hp", 1)) - dmg
+                fim = novo_hp <= 0
+                ff["hp"] = max(1, novo_hp) if fim else novo_hp
+                foe["ficha"] = ff
+                if post in ("martir", "combatente") and int(f.get("hp", 0)) > 0:
+                    cura = (dmg // 2) if post == "martir" else max(2, int(f.get("hp_max", 1)) // 20)
+                    f["hp"] = min(int(f.get("hp_max", 1)), int(f.get("hp", 1)) + cura)
+                    pl["ficha"] = f
+                    socketio.emit("rt_selfheal", {"amount": cura, "hp": f["hp"],
+                                                  "hp_max": f.get("hp_max")}, to=sid)
+                socketio.emit("rt_hit", {"id": foe_sid, "dmg": dmg, "crit": crit, "by": sid,
+                                         "hp": ff["hp"], "hp_max": ff.get("hp_max")}, room="arena")
+                socketio.emit("rt_phit", {"dmg": dmg, "crit": crit, "by": pl.get("name", "?"),
+                                          "hp": ff["hp"], "hp_max": ff.get("hp_max")}, to=foe_sid)
+                socketio.emit("xp", {"xp": ff.get("xp", 0), "level": ff.get("level", 1),
+                                     "hp": ff["hp"], "hp_max": ff.get("hp_max"),
+                                     "prof": ff.get("prof"), "gained": 0,
+                                     "pending_asi": ff.get("pending_asi", [])}, to=foe_sid)
+                if fim:
+                    _duel_end(sid, foe_sid)
 
             # -------- GUERRA ETERNA: vampiros x lobisomens se enfrentam --------
             for mid, m in list(world.monsters.items()):
@@ -1071,9 +2388,15 @@ def _rt_combat_loop():
                                                "hp_max": m["hp_max"], "ab": usada.get("name")},
                                   room=m.get("map"))
                     continue
+                post_alvo = _posture_of(f)
                 roll = random.randint(1, 20)
                 crit = (roll == 20)
-                hit = crit or (roll != 1 and roll + int(spec.get("atk", 3)) >= int(pc.get("ac", 10)))
+                ac_alvo = int(pc.get("ac", 10))
+                if post_alvo == "martir":
+                    ac_alvo = 0                           # o Mártir não se defende de nada
+                elif post_alvo == "combatente":
+                    ac_alvo = max(0, ac_alvo - 4)         # largou o escudo
+                hit = crit or (roll != 1 and roll + int(spec.get("atk", 3)) >= ac_alvo)
                 if not hit:
                     socketio.emit("rt_phit", {"dmg": 0, "miss": True, "by": m.get("name", "?"),
                                               "hp": f.get("hp"), "hp_max": f.get("hp_max")}, to=alvo_sid)
@@ -1092,6 +2415,46 @@ def _rt_combat_loop():
                                               "nome": usada.get("name", "ferida")}
                     socketio.emit("toast", {"text": "⚠️ %s usa %s!" % (m.get("name", "?"),
                                             usada.get("name", "?"))}, to=alvo_sid)
+                # POSTURA DE GRUPO: o Mártir toma o golpe no lugar do aliado
+                _mrt = None
+                if post_alvo != "martir":
+                    for _s2 in _rt_party_allies(alvo_sid, alvo_pl):
+                        if _s2 == alvo_sid:
+                            continue
+                        _p2 = world.players.get(_s2)
+                        _f2 = (_p2 or {}).get("ficha") or {}
+                        if _p2 and int(_f2.get("hp", 0)) > 0 and _posture_of(_f2) == "martir":
+                            _mrt = (_s2, _p2, _f2)
+                            break
+                if _mrt:
+                    _ms, _mp2, _mf = _mrt
+                    _mf["hp"] = max(0, int(_mf.get("hp", 1)) - dmg)
+                    _mp2["ficha"] = _mf
+                    socketio.emit("rt_phit", {"dmg": dmg, "crit": crit, "by": m.get("name", "?"),
+                                              "hp": _mf["hp"], "hp_max": _mf.get("hp_max")}, to=_ms)
+                    socketio.emit("toast", {"text": "✨ %s absorveu o golpe no seu lugar!" %
+                                            _mp2.get("name", "o Mártir")}, to=alvo_sid)
+                    socketio.emit("xp", {"xp": _mf.get("xp", 0), "level": _mf.get("level", 1),
+                                         "hp": _mf["hp"], "hp_max": _mf.get("hp_max"),
+                                         "prof": _mf.get("prof"), "gained": 0,
+                                         "pending_asi": _mf.get("pending_asi", [])}, to=_ms)
+                    if _mf["hp"] <= 0:
+                        _mp2.pop("rt_target", None)
+                        _player_death(_ms)
+                    continue
+                # a Mão de um aliado por perto protege o grupo (20%% a menos)
+                if post_alvo != "mao":
+                    for _s2 in _rt_party_allies(alvo_sid, alvo_pl):
+                        if _s2 == alvo_sid:
+                            continue
+                        _f2 = ((world.players.get(_s2) or {}).get("ficha") or {})
+                        if int(_f2.get("hp", 0)) > 0 and _posture_of(_f2) == "mao":
+                            dmg = max(1, int(dmg * 0.8))
+                            break
+                if post_alvo == "soldado":
+                    dmg = max(1, dmg // 4)                # a fortaleza de Valíria: 75%% a menos
+                elif post_alvo == "mao":
+                    dmg = max(1, int(dmg * 0.8))          # a proteção da Mão: 20%% a menos
                 f["hp"] = max(0, int(f.get("hp", 1)) - dmg)
                 alvo_pl["ficha"] = f
                 socketio.emit("rt_phit", {"dmg": dmg, "crit": crit, "by": m.get("name", "?"),
@@ -1390,6 +2753,10 @@ def _monster_respawn_loop():
             if m and not m.get("alive"):
                 _reset_monster(m)
                 _world_refresh(m["map"])
+                if (monsters_def.MONSTERS.get(m.get("type"), {}) or {}).get("boss"):
+                    socketio.emit("toast", {"text": "👑 %s DESPERTOU! (%s)" %
+                                            (m.get("name", "?"),
+                                             MAP_TITLES.get(m.get("map"), m.get("map", "?")))})
 
 
 def _monster_wander_loop():
@@ -1913,6 +3280,7 @@ def on_equip(data):
     item_id = (data or {}).get("item")
     if world.equip(player, item_id):
         _persist_loadout(player)
+        _quest_bump(request.sid, player, "equip")
         emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
         emit("player_look", {"id": player["id"], "look": player["look"]},
              room=player.get("map", "ermo"))
@@ -2031,11 +3399,36 @@ def on_interact(_data=None):
     player = world.players.get(request.sid)
     if not player:
         return
+    # O CHAMADO DO VALDRIS: entregar ao encontrá-lo vagando pelo mundo
+    _val = world.players.get(valdris.NPC_ID)
+    if _val and _val.get("map") == player.get("map") and \
+       max(abs(_val.get("x", 0) - player["x"]), abs(_val.get("y", 0) - player["y"])) <= TALK_RADIUS:
+        if _quest_deliver(request.sid, player, "chamado_valdris"):
+            return
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
-        if not _try_fish(player):        # no píer? joga a linha!
+        if not _try_fenda(player) and not _try_fenda_inside(player) and \
+           not _try_mastro(player) and \
+           not _try_bigorna(player) and not _try_altar(player) and \
+           not _try_fish(player):        # no píer? joga a linha!
             _try_gather(player)          # senão, talvez haja um node de coleta
         return
+    # MISSÕES DO NPC: entregar > aceitar nova > lembrar em andamento
+    _nid = npc.get("id") or npc.get("_spec", {}).get("id")
+    _qf = (player.get("ficha") or {}).get("quests") or {}
+    for _qid, _q in quests_def.for_npc(_nid):
+        if _qid in _qf and not _qf[_qid].get("done") and _quest_ready(player, _qid, _q):
+            if _quest_deliver(request.sid, player, _qid):
+                return
+    for _qid, _q in quests_def.for_npc(_nid):
+        if _qid not in _qf and not _q.get("auto"):
+            _quest_start(request.sid, player, _qid)
+            return
+    for _qid, _q in quests_def.for_npc(_nid):
+        if _qid in _qf and not _qf[_qid].get("done"):
+            socketio.emit("toast", {"text": "📜 %s em andamento (Diário: J)" % _q["name"]},
+                          to=request.sid)
+            break
     mp = player.get("map", "ermo")
     npc["facing"] = _face_to(npc, player)   # ele te olha
     socketio.emit("player_moved", _npc_moved_payload(npc), room=mp)
@@ -2187,6 +3580,10 @@ def on_interact(_data=None):
         for rec in sorted(BOSS_RECORDS.values(), key=lambda r: -r.get("when", 0))[:6]:
             linhas.append("%s caiu diante de %s (%dx)" % (rec.get("boss", "?"),
                           rec.get("player", "?"), rec.get("count", 1)))
+        if FENDA_RECORDS:
+            top = sorted(FENDA_RECORDS.items(), key=lambda kv: -kv[1])[:3]
+            linhas.append("🌀 Mais fundo na Fenda: " + ", ".join(
+                "%s (andar %d)" % (n, v) for n, v in top))
         socketio.emit("speech", {"id": npc["id"],
             "text": "📜 MEMORIAL DOS HERÓIS: " + " · ".join(linhas)}, room=mp)
         return
@@ -2221,6 +3618,11 @@ def on_interact(_data=None):
     if npc.get("_spec", {}).get("buys_avhur"):
         greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
         emit("couraria_open", _marion_payload(player, greet))
+        return
+
+    # Mesa de Negócios (taverna): Mercado + ofertas diretas
+    if npc.get("_spec", {}).get("business_table"):
+        emit("market_open", _market_payload(request.sid, player))
         return
 
     # Mesa de Confraternizações (taverna): entra no lobby e abre a interface da party
@@ -2597,6 +3999,7 @@ def _try_gather(player):
                         player["equipment"], player.get("look"))
     emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
     emit("toast", {"text": "⛏️ Você conseguiu %s ao %s." % (ganho, spec["verb"])})
+    _quest_bump(request.sid, player, "gather")
     socketio.emit("node_update", {"id": alvo["id"], "depleted": True,
                                   "cd": spec["cd"]}, room=mp)
 
@@ -2786,7 +4189,20 @@ def on_confirm_ok(data):
         return
 
     # Oferenda no Templo dos Doze: 100 de bronze -> vida cheia
-    if action == "templo_doar" and player.get("map") == "ermo":
+    if action == "altar_fortuna" and player.get("map") == "templo_doze":
+        if int(player.get("wallet", 0)) < 1000:
+            emit("toast", {"text": "A Fortuna custa 1000 de bronze. Os Doze esperam."})
+            return
+        player["wallet"] = int(player.get("wallet", 0)) - 1000
+        f = player.get("ficha") or {}
+        f["fortune_until"] = time.time() + 1800
+        player["ficha"] = f
+        _quest_save(player)
+        emit("wallet", {"bronze": player.get("wallet", 0)})
+        emit("toast", {"text": "✨ A Fortuna dos Doze te acompanha: +50%% de sorte nos drops raros por 30 minutos!"})
+        return
+
+    if action == "templo_doar" and player.get("map") in ("ermo", "templo_doze"):
         preco = 100
         if int(player.get("wallet", 0)) < preco:
             socketio.emit("speech", {"id": "npc:irma_solene",

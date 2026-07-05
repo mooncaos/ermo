@@ -223,6 +223,30 @@ ITEMS = {
     "ombros_da_meia_noite":   {"name": "Ombreiras da Meia-Noite","kind": "armor", "stackable": False, "color": "#2a1a40", "slot": "shoulder", "visual": "cloth",   "rarity": "lendario", "armor": 4, "spell_pow": 4,  "ward": 8,  "value": 38000, "desc": "O peso da noite, leve nos ombros. +4 mágico, 8 de barreira."},
     "tunica_da_meia_noite":   {"name": "Túnica da Meia-Noite",   "kind": "armor", "stackable": False, "color": "#2a1a40", "slot": "chest",    "visual": "cloth",   "rarity": "lendario", "armor": 10, "spell_pow": 6, "ward": 14, "value": 78000, "desc": "Pano nobre banhado em essência lunar. 10 de mitigação, +6 mágico e 14 de barreira."},
     "calcas_da_meia_noite":   {"name": "Calças da Meia-Noite",   "kind": "armor", "stackable": False, "color": "#2a1a40", "slot": "legs",     "visual": "pants",   "rarity": "lendario", "armor": 7, "spell_pow": 3,  "ward": 9,  "value": 42000, "desc": "Anda entre mundos. 7 de mitigação, +3 mágico, 9 de barreira."},
+    # ============ RELÍQUIAS DE MISSÃO (exclusivas, não dropam de nada) ============
+    "fagulha_de_valdris":    {"name": "Fagulha de Valdris",     "kind": "trinket", "stackable": False, "color": "#e8a040", "slot": "ring",  "visual": "ring",  "rarity": "raro", "atk": 2, "spell_pow": 2, "value": 1500, "desc": "Um estilhaço do âmbar partido de Valdris, ainda morno. 'Todo poder já foi, um dia, apenas um começo.' +2 para acertar e +2 de poder mágico."},
+    "colar_de_buzios":       {"name": "Colar de Búzios",        "kind": "trinket", "stackable": False, "color": "#e8d8b8", "slot": "neck",  "visual": "necklace", "rarity": "raro", "ward": 5, "value": 1200, "desc": "A Maricota enfiou búzio por búzio cantarolando pro mar. Guarda 5 de barreira e o cheiro da maré boa."},
+    "martelo_do_bragan":     {"name": "Martelo do Bragan",      "kind": "weapon",  "stackable": False, "color": "#9a8a7a", "slot": "hand",  "visual": "hammer", "rarity": "raro", "dmg": {"n": 3, "d": 8, "flat": 4}, "atk": 6, "value": 2200, "desc": "O martelo com que o Bragan aprendeu o ofício. 3d8+4 e +6 para acertar. 'Cuida dele melhor do que eu cuidei.'"},
+    "tempero_secreto_bartolo": {"name": "Tempero Secreto do Bartolo", "kind": "consumivel", "stackable": True, "color": "#e0a040", "visual": "potion", "heal": 0.6, "value": 700, "desc": "Uma pitada disso e qualquer rango vira festa. Restaura 60% da vida e o Bartolo jura que não tem presa vampírica. Jura."},
+    "broche_da_alvorada":    {"name": "Broche da Alvorada",     "kind": "trinket", "stackable": False, "color": "#f0d888", "slot": "neck",  "visual": "necklace", "rarity": "raro", "ward": 4, "armor": 2, "value": 1400, "desc": "Abençoado pela Irmã Solene diante da chama dos Doze. 4 de barreira, 2 de mitigação e uma paz estranha no peito."},
+    "faca_do_lazaro":        {"name": "Facão do Lázaro",        "kind": "weapon",  "stackable": False, "color": "#b8c0c8", "slot": "hand",  "visual": "sword", "rarity": "raro", "dmg": {"n": 2, "d": 6, "flat": 5}, "atk": 8, "value": 1900, "desc": "O facão que limpou o matagal de Sapopemba. 2d6+5, +8 para acertar, e um fio que o Lázaro afiava toda quinta."},
+    # ===== RELÍQUIAS DE PRIMEIRA-KILL: só o PRIMEIRO do servidor leva =====
+    "juba_do_maraja":       {"name": "Juba do Marajá",        "kind": "armor",   "stackable": False, "color": "#e0a030", "slot": "back", "visual": "cloak", "rarity": "lendario", "armor": 7, "ward": 8, "speed": 1, "value": 30000, "desc": "PRIMEIRA KILL do servidor. A juba do rei da savana, tosquiada do trono. Só existe UMA."},
+    "cetro_de_varth":       {"name": "Cetro de Lorde Varth",  "kind": "weapon",  "stackable": False, "color": "#7a4ad0", "slot": "hand", "visual": "staff", "rarity": "lendario", "dmg": {"n": 8, "d": 10, "flat": 20}, "atk": 20, "spell_pow": 10, "value": 45000, "desc": "PRIMEIRA KILL do servidor. O cetro que comandava a Torre inteira. Só existe UM."},
+    "presa_de_krezath":     {"name": "Presa de Krezath",      "kind": "trinket", "stackable": False, "color": "#a03040", "slot": "ring", "visual": "ring", "rarity": "lendario", "atk": 6, "dmg_flat": 4, "value": 32000, "desc": "PRIMEIRA KILL do servidor. Um dente do Devorador, ainda com fome. Só existe UMA."},
+    "ankh_do_farao":        {"name": "Ankh do Faraó",         "kind": "trinket", "stackable": False, "color": "#e0c040", "slot": "neck", "visual": "necklace", "rarity": "lendario", "ward": 12, "spell_pow": 6, "value": 34000, "desc": "PRIMEIRA KILL do servidor. A vida eterna do Faraó, agora no seu pescoço. Só existe UM."},
+    "nucleo_do_colosso":    {"name": "Núcleo do Colosso",     "kind": "trinket", "stackable": False, "color": "#8a9ab0", "slot": "ring", "visual": "ring", "rarity": "lendario", "armor": 8, "ward": 6, "value": 30000, "desc": "PRIMEIRA KILL do servidor. A pedra que fazia a montanha andar. Só existe UMA."},
+    "garra_do_urso_rei":    {"name": "Garra do Urso Rei",     "kind": "weapon",  "stackable": False, "color": "#8a6a4a", "slot": "hand", "visual": "sword", "rarity": "lendario", "dmg": {"n": 10, "d": 8, "flat": 18}, "atk": 22, "value": 38000, "desc": "PRIMEIRA KILL do servidor. A garra que governava o bosque. Só existe UMA."},
+    "coracao_de_vulkar":    {"name": "Coração de Vulkar",     "kind": "trinket", "stackable": False, "color": "#e05828", "slot": "neck", "visual": "necklace", "rarity": "lendario", "armor": 5, "ward": 5, "spell_pow": 8, "value": 33000, "desc": "PRIMEIRA KILL do servidor. Ainda pulsa quente como o Brasal. Só existe UM."},
+    "veu_da_dama":          {"name": "Véu da Dama da Noite",  "kind": "armor",   "stackable": False, "color": "#3a2a58", "slot": "back", "visual": "cloak", "rarity": "lendario", "ward": 10, "mres": 0.08, "value": 31000, "desc": "PRIMEIRA KILL do servidor. A noite tecida em pano. Só existe UM."},
+    "anzol_do_velho_bob":   {"name": "Anzol do Velho Bob",    "kind": "trinket", "stackable": False, "color": "#b8c0c8", "slot": "ring", "visual": "ring", "rarity": "lendario", "atk": 5, "ward": 3, "value": 22000, "desc": "PRIMEIRA KILL do servidor. O Bob pescava ALMAS com isso. Só existe UM."},
+    "soco_ingles_do_maurao":{"name": "Soco-Inglês do Maurão", "kind": "trinket", "stackable": False, "color": "#9a9aa4", "slot": "ring", "visual": "ring", "rarity": "lendario", "atk": 4, "dmg_flat": 3, "value": 20000, "desc": "PRIMEIRA KILL do servidor. O argumento final do Maurão. Só existe UM."},
+
+    "chave_da_fenda":      {"name": "Chave da Fenda",       "kind": "trofeu", "stackable": True, "color": "#8a5adf", "value": 4000, "desc": "Uma chave que vibra e sussurra. Abre o portal da Fenda do Caos, no leste do Ermo. Consumida ao entrar: e lá embaixo, só a profundidade manda."},
+    "fragmento_estelar":   {"name": "Fragmento Estelar",     "kind": "trofeu", "stackable": True, "color": "#e8e0ff", "rarity": "raro", "value": 8000, "desc": "Um caco de algo que caiu do céu antes dos Doze. O Bragan jura que só ISSO aguenta uma forja +3."},
+
+    "luneta_do_cronista":    {"name": "Luneta do Cronista",     "kind": "trinket", "stackable": False, "color": "#c9a860", "slot": "ring",  "visual": "ring", "rarity": "epico", "atk": 4, "ward": 4, "value": 3500, "desc": "Fabiano viu o mundo inteiro por esta lente antes de escrever sobre ele. +4 para acertar e 4 de barreira: quem enxerga longe, erra pouco."},
+
     "sapatos_da_meia_noite":  {"name": "Sapatos da Meia-Noite",  "kind": "armor", "stackable": False, "color": "#2a1a40", "slot": "feet",     "visual": "boots",   "rarity": "lendario", "armor": 4, "spell_pow": 3,  "ward": 6, "speed": 1, "value": 38000, "desc": "Pisadas que nem o silêncio ouve. +3 mágico, 6 de barreira e um passo a mais."},
 
     # trofeus do Cemitério Antigo de Valdarkram (vendiveis na Armas Peteco)
@@ -1034,3 +1058,34 @@ _gen_necrotico_set()
 
 # todos os ids vendidos pelos mercadores (pra validar compra)
 ALL_TIER_ITEMS = set().union(*TIER_ITEMS.values())
+
+
+# ===========================================================================
+#  FORJA DO BRAGAN: variantes +1/+2/+3 geradas do catálogo (nunca dropam:
+#  só nascem na bigorna). Stats sobem 15%% / 30%% / 50%% com ganho mínimo.
+# ===========================================================================
+_FORGE_MULT = {1: 1.15, 2: 1.30, 3: 1.50}
+
+
+def _forge_variants():
+    base = [(iid, i) for iid, i in list(ITEMS.items())
+            if i.get("kind") in ("weapon", "armor", "trinket")
+            and int(i.get("value", 0)) >= 500 and not i.get("stackable")]
+    for iid, i in base:
+        for n, mult in _FORGE_MULT.items():
+            v = dict(i)
+            v["name"] = "%s +%d" % (i.get("name", iid), n)
+            v["value"] = int(int(i.get("value", 0)) * (1 + 0.4 * n))
+            v["forged"] = n
+            v["base"] = iid
+            if isinstance(i.get("dmg"), dict):
+                d = dict(i["dmg"])
+                d["flat"] = int(round(d.get("flat", 0) * mult)) + n * 2
+                v["dmg"] = d
+            for st in ("atk", "armor", "ward", "spell_pow", "dmg_flat"):
+                if i.get(st):
+                    v[st] = max(int(round(int(i[st]) * mult)), int(i[st]) + n)
+            yield "%s_p%d" % (iid, n), v
+
+
+ITEMS.update(dict(_forge_variants()))

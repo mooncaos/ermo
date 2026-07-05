@@ -99,6 +99,8 @@ def public(p):
         "name": p["name"],
         "look": p["look"],
     }
+    if p.get("title"):
+        out["title"] = p["title"]
     if p.get("wild_form"):
         out["wild_form"] = p["wild_form"]              # forma selvagem (lobo/urso/aguia/mainecoon)
     if (p.get("equipment") or {}).get("feet") == "botas_vargo":

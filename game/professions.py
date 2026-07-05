@@ -175,6 +175,7 @@ RECIPES = {
         {"out": "gema_lapidada",        "need": {"gema_bruta": 1},                                 "lvl": 2, "xp": 18},
         {"out": "colar_de_gema",        "need": {"gema_lapidada": 1, "barra_de_prata": 1},         "lvl": 2, "xp": 35},
         {"out": "anel_lunar",           "need": {"barra_umbria": 1, "perola": 1},                  "lvl": 3, "xp": 55},
+        {"out": "chave_da_fenda",       "need": {"gema_lapidada": 1, "barra_umbria": 1, "essencia_lunar": 1}, "lvl": 3, "xp": 60},
         {"out": "diadema_umbrio",       "need": {"gema_lapidada": 2, "barra_umbria": 2},           "lvl": 4, "xp": 80},
         {"out": "coroa_do_alvorecer",   "need": {"gema_lapidada": 3, "barra_de_prata": 3, "perola": 2}, "lvl": 4, "xp": 140},
     ],
