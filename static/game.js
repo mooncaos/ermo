@@ -11230,10 +11230,10 @@ function drawRtCombat(c, now){
 //  ERMO REFORMADO: exteriores temáticos das oficinas + o Templo dos Doze
 // ===========================================================================
 const ERMO_DECOR = [
-  {x:42, y:14, t:'forja',    icon:'⚒️'},
-  {x:42, y:19, t:'couraria', icon:'🟤'},
-  {x:42, y:24, t:'serraria', icon:'🪵'},
-  {x:42, y:29, t:'alquimia', icon:'⚗️'},
+  {x:41, y:14, t:'forja',    icon:'⚒️'},
+  {x:41, y:19, t:'couraria', icon:'🟤'},
+  {x:41, y:24, t:'serraria', icon:'🪵'},
+  {x:41, y:29, t:'alquimia', icon:'⚗️'},
   {x:51, y:16, t:'costura',  icon:'🧵'},
   {x:51, y:22, t:'joalheria',icon:'💎'},
   {x:51, y:28, t:'cozinha',  icon:'🍲'},
@@ -11241,70 +11241,65 @@ const ERMO_DECOR = [
 function drawErmoDecor(c, now){
   for(const d of ERMO_DECOR){
     const bx = d.x*TS - camX, by = d.y*TS - camY;
-    if(bx < -TS*8 || by < -TS*6 || bx > canvas.width+TS*2 || by > canvas.height+TS*2) continue;
-    // PLACA sobre a porta (ícone do ofício)
-    const px = bx + 2.5*TS, py = by + 3*TS;
+    if(bx < -TS*8 || by < -TS*5 || bx > canvas.width+TS*2 || by > canvas.height+TS*2) continue;
+    // ÍCONE do ofício sobre a faixa dourada do toldo
     c.save();
-    c.fillStyle = '#6a4a2c'; c.fillRect(px - 9, py - TS*0.62, 18, 13);
-    c.strokeStyle = '#3a2814'; c.lineWidth = 1; c.strokeRect(px - 9, py - TS*0.62, 18, 13);
-    c.font = '10px serif'; c.textAlign = 'center';
-    c.fillText(d.icon, px, py - TS*0.62 + 10);
+    c.font = Math.round(TS*0.6) + 'px serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(d.icon, bx + 3.5*TS, by + TS*0.66);
     c.restore();
+    // detalhe vivo por ofício
     if(d.t === 'forja'){
-      const k = (now/70) % 40;
       c.save();
       for(let i=0;i<3;i++){
-        const ph = (k + i*13) % 40;
+        const ph = ((now/70) + i*13) % 40;
         c.globalAlpha = 0.35 * (1 - ph/40);
-        c.fillStyle = '#a8a0a0';
-        c.beginPath(); c.arc(bx + 4.6*TS + Math.sin((now/600)+i)*3, by - 4 - ph*0.8, 3 + ph*0.14, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#b8b0ae';
+        c.beginPath(); c.arc(bx + 5.8*TS + Math.sin((now/600)+i)*3, by - 3 - ph*0.8, 3 + ph*0.14, 0, Math.PI*2); c.fill();
       }
-      c.globalAlpha = 0.5 + 0.3*Math.sin(now/180);
-      c.fillStyle = '#ff8a30'; c.fillRect(bx + TS*1.1, by + TS*1.5, TS*0.7, TS*0.6);
       c.restore();
     } else if(d.t === 'alquimia'){
       const bub = Math.sin(now/300);
       c.save();
-      c.fillStyle = '#2a2a30'; c.beginPath();
-      c.ellipse(bx - TS*0.6, by + TS*3.4, TS*0.38, TS*0.26, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#22261e'; c.beginPath();
+      c.ellipse(bx - TS*0.55, by + TS*3.3, TS*0.36, TS*0.24, 0, 0, Math.PI*2); c.fill();
       c.fillStyle = '#5ad86a'; c.globalAlpha = 0.85;
-      c.beginPath(); c.ellipse(bx - TS*0.6, by + TS*3.28, TS*0.28, TS*0.09, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(bx - TS*0.55, by + TS*3.18, TS*0.26, TS*0.09, 0, 0, Math.PI*2); c.fill();
       if(bub > 0.4){ c.globalAlpha = 0.7;
-        c.beginPath(); c.arc(bx - TS*0.6 + bub*4, by + TS*3.1, 2, 0, Math.PI*2); c.fill(); }
+        c.beginPath(); c.arc(bx - TS*0.55 + bub*4, by + TS*3.0, 2, 0, Math.PI*2); c.fill(); }
       c.restore();
     } else if(d.t === 'couraria'){
       c.save();
       c.strokeStyle = '#4a3820'; c.lineWidth = 1.4;
-      c.beginPath(); c.moveTo(bx + 6.3*TS, by + TS*0.9); c.lineTo(bx + 7.5*TS, by + TS*0.9); c.stroke();
+      c.beginPath(); c.moveTo(bx + 7.3*TS, by + TS*1.7); c.lineTo(bx + 8.5*TS, by + TS*1.7); c.stroke();
       const sw = Math.sin(now/800)*2;
       for(let i=0;i<2;i++){
         c.fillStyle = i ? '#8a5a34' : '#a8703c';
-        c.fillRect(bx + (6.5 + i*0.55)*TS + sw*(i?1:-1)*0.4, by + TS*0.95, TS*0.4, TS*0.72);
+        c.fillRect(bx + (7.5 + i*0.55)*TS + sw*(i?1:-1)*0.4, by + TS*1.75, TS*0.4, TS*0.72);
       }
       c.restore();
     } else if(d.t === 'serraria'){
       c.save();
       for(const [ox, oy] of [[0,0],[0.55,0],[0.27,-0.4]]){
         c.fillStyle = '#8a6438';
-        c.beginPath(); c.ellipse(bx + 6.6*TS + ox*TS, by + 3.4*TS + oy*TS, TS*0.26, TS*0.2, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(bx + 7.7*TS + ox*TS, by + 2.9*TS + oy*TS, TS*0.26, TS*0.2, 0, 0, Math.PI*2); c.fill();
         c.fillStyle = '#c9a464';
-        c.beginPath(); c.ellipse(bx + 6.6*TS + ox*TS, by + 3.4*TS + oy*TS, TS*0.15, TS*0.11, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(bx + 7.7*TS + ox*TS, by + 2.9*TS + oy*TS, TS*0.15, TS*0.11, 0, 0, Math.PI*2); c.fill();
       }
       c.restore();
     } else if(d.t === 'costura'){
       c.save();
-      const cores = ['#c05870', '#5878c0', '#c0a858'];
+      const cores = ['#e089a8', '#89a8e0', '#e0cf89'];
       for(let i=0;i<3;i++){
         c.fillStyle = cores[i];
-        c.fillRect(bx + TS*(1.1 + i*0.75), by + TS*1.4 + Math.sin(now/700+i)*1.5, TS*0.5, TS*0.85);
+        c.fillRect(bx + TS*(1.4 + i*1.5), by + TS*1.15 + Math.sin(now/700+i)*1.2, TS*0.5, TS*0.7);
       }
       c.restore();
     } else if(d.t === 'joalheria'){
       const sp = (now/450 + d.x) % 3;
       c.save(); c.globalCompositeOperation = 'lighter';
-      c.globalAlpha = 0.8;
+      c.globalAlpha = 0.85;
       c.fillStyle = '#fff0c0';
-      const spx = bx + TS*(1.3 + sp*1.3), spy = by + TS*1.7;
+      const spx = bx + TS*(1.6 + sp*1.6), spy = by + TS*1.45;
       c.beginPath();
       c.moveTo(spx, spy-4); c.lineTo(spx+1.6, spy); c.lineTo(spx, spy+4); c.lineTo(spx-1.6, spy);
       c.closePath(); c.fill();
@@ -11314,46 +11309,43 @@ function drawErmoDecor(c, now){
       for(let i=0;i<2;i++){
         const ph = ((now/90) + i*20) % 34;
         c.globalAlpha = 0.3 * (1 - ph/34);
-        c.fillStyle = '#e8e0d0';
-        c.beginPath(); c.arc(bx + 1.2*TS + Math.sin(now/500+i)*2, by - 2 - ph*0.7, 2.4 + ph*0.1, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#f0e8d8';
+        c.beginPath(); c.arc(bx + 1.3*TS + Math.sin(now/500+i)*2, by - 2 - ph*0.7, 2.4 + ph*0.1, 0, Math.PI*2); c.fill();
       }
       c.restore();
     }
   }
-  // ---- TEMPLO DOS DOZE (52,4 .. 66,13): altar, símbolo e as 12 chamas ----
+  // ---- TEMPLO DOS DOZE (fachada 52,4 .. 66,7): chamas na cornija + símbolo ----
   const tx = 52*TS - camX, ty = 4*TS - camY;
-  if(tx > -TS*16 && ty > -TS*11 && tx < canvas.width+TS*2 && ty < canvas.height+TS*2){
-    const ax = tx + 7.5*TS, ay = ty + 2.0*TS;
+  if(tx > -TS*16 && ty > -TS*7 && tx < canvas.width+TS*2 && ty < canvas.height+TS*2){
+    const ax = tx + 7.5*TS;
     c.save(); c.globalCompositeOperation = 'lighter';
-    const pl = 0.16 + 0.08*Math.sin(now/900);
-    const g = c.createRadialGradient(ax, ay, 0, ax, ay, TS*2.6);
-    g.addColorStop(0, 'rgba(244,216,150,'+pl+')'); g.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = g; c.beginPath(); c.arc(ax, ay, TS*2.6, 0, Math.PI*2); c.fill();
-    c.restore();
-    c.fillStyle = '#5a5464'; c.fillRect(ax - TS*0.8, ay - TS*0.3, TS*1.6, TS*0.7);
-    c.fillStyle = '#6c667a'; c.fillRect(ax - TS*0.95, ay - TS*0.45, TS*1.9, TS*0.22);
-    c.save();
-    c.strokeStyle = '#f0d8a0'; c.lineWidth = 1.6;
-    c.beginPath(); c.arc(ax, ay - TS*0.85, TS*0.42, 0, Math.PI*2); c.stroke();
-    for(let i=0;i<12;i++){
-      const a = i*Math.PI/6 + now/4000;
-      c.fillStyle = '#f0d8a0';
-      c.beginPath(); c.arc(ax + Math.cos(a)*TS*0.42, ay - TS*0.85 + Math.sin(a)*TS*0.42, 1.4, 0, Math.PI*2); c.fill();
-    }
-    c.restore();
-    c.save(); c.globalCompositeOperation = 'lighter';
-    for(let i=0;i<12;i++){
-      const lado = i < 6 ? 0 : 1;
-      const vx = tx + (lado ? 13.4 : 1.6)*TS;
-      const vy = ty + (1.8 + (i%6)*1.35)*TS;
+    for(let i=0;i<12;i++){                          // 12 chamas dançando na cornija
+      const vx = tx + (1.1 + i*1.16)*TS;
+      const vy = ty + TS*0.12;
       const fl = 0.55 + 0.45*Math.sin(now/160 + i*1.7);
       c.globalAlpha = 0.85*fl;
       c.fillStyle = i%2 ? '#ffd070' : '#ffb040';
       c.beginPath();
-      c.moveTo(vx - 2.4, vy);
-      c.quadraticCurveTo(vx + Math.sin(now/110+i)*1.5, vy - 7 - fl*3, vx + 2.4, vy);
+      c.moveTo(vx - 2.2, vy);
+      c.quadraticCurveTo(vx + Math.sin(now/110+i)*1.4, vy - 6 - fl*3, vx + 2.2, vy);
       c.closePath(); c.fill();
     }
+    const pl = 0.5 + 0.3*Math.sin(now/700);         // símbolo dos Doze sobre o portal
+    c.globalAlpha = pl;
+    c.strokeStyle = '#f6dfa0'; c.lineWidth = 1.8;
+    c.beginPath(); c.arc(ax, ty + TS*2.2, TS*0.5, 0, Math.PI*2); c.stroke();
+    for(let i=0;i<12;i++){
+      const a = i*Math.PI/6 + now/4000;
+      c.fillStyle = '#f6dfa0';
+      c.beginPath(); c.arc(ax + Math.cos(a)*TS*0.5, ty + TS*2.2 + Math.sin(a)*TS*0.5, 1.5, 0, Math.PI*2); c.fill();
+    }
+    c.restore();
+    // aura quente saindo do portal
+    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 + 0.07*Math.sin(now/900);
+    const g = c.createRadialGradient(ax, ty + TS*3.6, 0, ax, ty + TS*3.6, TS*2.2);
+    g.addColorStop(0, '#f6dfa0'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(ax, ty + TS*3.6, TS*2.2, 0, Math.PI*2); c.fill();
     c.restore();
   }
 }
@@ -11363,7 +11355,7 @@ function drawErmoDecor(c, now){
   const orig = drawErmoDecor;
   drawErmoDecor = function(c, now){
     orig(c, now);
-    const mx = 63.5*TS - camX, my = 14.6*TS - camY;
+    const mx = 61.5*TS - camX, my = 10.2*TS - camY;
     if(mx < -TS*3 || my < -TS*3 || mx > canvas.width+TS || my > canvas.height+TS) return;
     c.save();
     c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(mx, my + TS*0.5, TS*0.5, TS*0.14, 0, 0, Math.PI*2); c.fill();

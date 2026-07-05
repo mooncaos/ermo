@@ -2363,15 +2363,15 @@ def on_fish_hit(data):
 
 # ROTINA DOS NPCs: certos moradores mudam de lugar entre dia e noite
 _NPC_ROUTINE = {
-    "npc:seu_milton":     {"day": (272, 220), "night": (262, 226)},   # a banca só abre à noite
-    "npc:maricota":       {"day": (232, 208), "night": (251, 243)},   # de noite, fogueira da vila
-    "npc:mestre_bragan":  {"day": (44, 18),  "night": (44, 16)},      # mestres recolhem pra oficina
-    "npc:mestra_iolanda": {"day": (44, 23),  "night": (44, 21)},
-    "npc:mestre_justo":   {"day": (44, 28),  "night": (44, 26)},
-    "npc:mestre_vidal":   {"day": (44, 33),  "night": (44, 31)},
-    "npc:mestra_linah":   {"day": (53, 20),  "night": (53, 18)},
-    "npc:mestra_petra":   {"day": (53, 26),  "night": (53, 24)},
-    "npc:mestre_bartolo": {"day": (53, 32),  "night": (53, 30)},
+    "npc:seu_milton":     {"day": (272, 220), "night": (262, 226)},
+    "npc:maricota":       {"day": (232, 208), "night": (251, 243)},
+    "npc:mestre_bragan":  {"day": (44, 17),  "night": (44, 16)},
+    "npc:mestra_iolanda": {"day": (44, 22),  "night": (44, 21)},
+    "npc:mestre_justo":   {"day": (44, 27),  "night": (44, 26)},
+    "npc:mestre_vidal":   {"day": (44, 32),  "night": (44, 31)},
+    "npc:mestra_linah":   {"day": (54, 19),  "night": (54, 18)},
+    "npc:mestra_petra":   {"day": (54, 25),  "night": (54, 24)},
+    "npc:mestre_bartolo": {"day": (54, 31),  "night": (54, 30)},
 }
 def _npc_routine_loop():
     while True:

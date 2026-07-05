@@ -1274,67 +1274,77 @@ for _yy in range(5):
 _tav[_TVY + 4][_TVX + 3] = "D"                  # porta -> (83, 49)
 MAP_ROWS = ["".join(r) for r in _tav]
 
-# a RUA DOS OFÍCIOS: 7 casas no estilo nativo do Ermo (paredes H, porta D),
-# ladeando a estrada principal (x=49) que sobe pro norte. Elegante e integrado.
+# a RUA DOS OFÍCIOS: 7 casas no ESTILO NATIVO das construções do Ermo
+# (toldo m com placa, parede M com janelas iluminadas, entrada E, calçada p)
 def _build_prof_houses():
-    def casa(cx, cy):                     # casa 6x4, porta ao sul no meio
-        for y in range(cy, cy + 4):
-            row = list(MAP_ROWS[y])
-            for x in range(cx, cx + 6):
-                borda = y in (cy, cy + 3) or x in (cx, cx + 5)
-                row[x] = "H" if borda else "."
-            MAP_ROWS[y] = "".join(row)
-        row = list(MAP_ROWS[cy + 3]); row[cx + 2] = "D"; MAP_ROWS[cy + 3] = "".join(row)
-    # lado OESTE da estrada (4 casas) + lado LESTE (3 casas)
-    for cy in (14, 19, 24, 29):
-        casa(42, cy)
-    for cy in (16, 22, 28):
+    def casa(cx, cy):                       # fachada 7x3 + calçada na frente
+        linhas = ("mmmmmmm", "MMMMMMM", "MMMEMMM")
+        for i, ln in enumerate(linhas):
+            row = list(MAP_ROWS[cy + i])
+            for j, ch in enumerate(ln):
+                row[cx + j] = ch
+            MAP_ROWS[cy + i] = "".join(row)
+        row = list(MAP_ROWS[cy + 3])        # calçada de paralelepípedo
+        for j in range(7):
+            row[cx + j] = "p"
+        MAP_ROWS[cy + 3] = "".join(row)
+    for cy in (14, 19, 24, 29):             # lado OESTE da estrada
+        casa(41, cy)
+    for cy in (16, 22, 28):                 # lado LESTE
         casa(51, cy)
 _build_prof_houses()
 
 
-# O TEMPLO DOS DOZE: no alto da estrada, ao lado do caminho pro norte.
-# Paredes nativas H, colunas ^ e um portal D triplo voltado pro sul.
+# O TEMPLO DOS DOZE: fachada monumental no alto da estrada
 def _build_templo():
-    x0, y0, w, h = 52, 4, 15, 10
-    for y in range(y0, y0 + h):
-        row = list(MAP_ROWS[y])
-        for x in range(x0, x0 + w):
-            borda = y in (y0, y0 + h - 1) or x in (x0, x0 + w - 1)
-            row[x] = "H" if borda else "."
-        MAP_ROWS[y] = "".join(row)
-    for cy in (y0 + 3, y0 + 6):                      # colunatas internas
-        row = list(MAP_ROWS[cy])
-        for cx in (x0 + 3, x0 + 7, x0 + 11):
-            row[cx] = "^"
-        MAP_ROWS[cy] = "".join(row)
-    row = list(MAP_ROWS[y0 + h - 1])                 # portal sul (3 portas)
-    for x in range(x0 + 6, x0 + 9):
-        row[x] = "D"
-    MAP_ROWS[y0 + h - 1] = "".join(row)
-    for ay in range(y0 + h, y0 + h + 3):             # adro de terra até a rua
-        row = list(MAP_ROWS[ay])
-        for x in range(x0 + 5, x0 + 10):
-            if row[x] in (".", ",", ":", "T", "^", "Y"):
-                row[x] = "d"
-        MAP_ROWS[ay] = "".join(row)
+    x0, y0 = 52, 4
+    linhas = ("mmmmmmmmmmmmmmm",
+              "MMMMMMMMMMMMMMM",
+              "MMMMMMMMMMMMMMM",
+              "MMMMMMEEEMMMMMM")
+    for i, ln in enumerate(linhas):
+        row = list(MAP_ROWS[y0 + i])
+        for j, ch in enumerate(ln):
+            row[x0 + j] = ch
+        MAP_ROWS[y0 + i] = "".join(row)
+    row = list(MAP_ROWS[y0 + 4])            # adro de paralelepípedo
+    for j in range(15):
+        row[x0 + j] = "p"
+    MAP_ROWS[y0 + 4] = "".join(row)
+    row = list(MAP_ROWS[y0 + 5])            # lampiões guardando o adro
+    row[x0 + 2] = "L"; row[x0 + 12] = "L"
+    for j in range(6, 9):
+        row[x0 + j] = "p"
+    MAP_ROWS[y0 + 5] = "".join(row)
 _build_templo()
 
 
-# calçadas: da porta de cada oficina até a estrada principal
+# calçadas de paralelepípedo ligando cada porta à estrada principal (x=49)
 def _build_calcadas():
-    ligas = [(44, 18, 1), (44, 23, 1), (44, 28, 1), (44, 33, 1),    # oeste -> leste
-             (53, 20, -1), (53, 26, -1), (53, 32, -1)]              # leste -> oeste
+    ligas = [(44, 17, 1), (44, 22, 1), (44, 27, 1), (44, 32, 1),   # oeste -> leste
+             (54, 19, -1), (54, 25, -1), (54, 31, -1)]             # leste -> oeste
     for (px, py, sentido) in ligas:
         x = px
-        while 42 <= x <= 57:
+        while 41 <= x <= 58:
             row = list(MAP_ROWS[py])
-            if row[x] in (".", ",", ":", "T", "^", "Y"):
-                row[x] = "d"
+            if row[x] in (".", ",", ":", "T", "^", "Y", "d"):
+                row[x] = "p"
             MAP_ROWS[py] = "".join(row)
             if (sentido > 0 and x >= 48) or (sentido < 0 and x <= 50):
                 break
             x += sentido
+    # braço do templo até a estrada (a rua sobe direto pro portal)
+    for y in range(9, 14):
+        row = list(MAP_ROWS[y])
+        for x in (58, 59, 60):
+            if row[x] in (".", ",", ":", "T", "^", "Y", "d"):
+                row[x] = "p"
+        MAP_ROWS[y] = "".join(row)
+    row = list(MAP_ROWS[13])
+    for x in range(49, 59):
+        if row[x] in (".", ",", ":", "T", "^", "Y", "d"):
+            row[x] = "p"
+    MAP_ROWS[13] = "".join(row)
 _build_calcadas()
 
 
