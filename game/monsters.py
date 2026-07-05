@@ -521,6 +521,141 @@ MONSTERS = {
         "drops": [("presa_do_devorador", 1.0, 1, 1), ("coracao_de_krezath", 1.0, 1, 1), ("manto_de_escamas", 1.0, 1, 1), ("anel_da_fornalha", 1.0, 1, 1), ("garra_krezath", 1.0, 2, 3), ("coin_gold", 1.0, 8, 14)],
         "bronze": (2500, 4000),
     },
+
+    # ===================== COSTA DE MARAVAI (savana + praia) =====================
+    "capivara": {
+        "name": "Capivara", "hp": 60, "ac": 12, "atk": 3,
+        "dmg": {"n": 1, "d": 4}, "reach": 1, "speed": 5, "passive": True,
+        "xp": 40, "dex": 2, "glyph": "\U0001f9ab", "kind": "besta", "size": 2,
+        "atk_name": "mordidinha",
+        "drops": [("pele_macia", 0.9, 1, 2), ("carne_caca", 0.8, 1, 2)], "bronze": (10, 30),
+    },
+    "antilope": {
+        "name": "Antílope da Savana", "hp": 55, "ac": 14, "atk": 3,
+        "dmg": {"n": 1, "d": 6}, "reach": 1, "speed": 9, "passive": True,
+        "xp": 45, "dex": 5, "glyph": "\U0001f98c", "kind": "besta", "size": 2,
+        "atk_name": "coice",
+        "drops": [("couro_selvagem", 0.8, 1, 2), ("carne_caca", 0.9, 1, 2), ("galhada", 0.4, 1, 1)], "bronze": (12, 35),
+    },
+    "avestruz_brava": {
+        "name": "Avestruz Brava", "hp": 700, "ac": 17, "atk": 17,
+        "dmg": {"n": 4, "d": 8, "flat": 12}, "reach": 1, "speed": 9,
+        "xp": 1200, "dex": 6, "glyph": "\U0001f9a4", "kind": "besta", "size": 2,
+        "atk_name": "bicada furiosa",
+        "drops": [("pluma_vistosa", 0.8, 1, 2), ("carne_caca", 0.6, 1, 2)], "bronze": (250, 450),
+    },
+    "hiena_rubra": {
+        "name": "Hiena Rubra", "hp": 820, "ac": 17, "atk": 18,
+        "dmg": {"n": 4, "d": 8, "flat": 14}, "reach": 1, "speed": 8,
+        "xp": 1350, "dex": 4, "glyph": "\U0001f436", "kind": "besta", "size": 1,
+        "atk_name": "mordida de matilha",
+        "drops": [("couro_rubro", 0.7, 1, 2), ("presa_lobo", 0.4, 1, 1)], "bronze": (280, 500),
+    },
+    "leao_ermal": {
+        "name": "Leão Ermal", "hp": 1250, "ac": 19, "atk": 20,
+        "dmg": {"n": 5, "d": 10, "flat": 16}, "reach": 1, "speed": 7,
+        "xp": 2100, "dex": 4, "glyph": "\U0001f981", "kind": "besta", "size": 2,
+        "atk_name": "patada real",
+        "drops": [("couro_de_leao", 0.8, 1, 1), ("presa_lobo", 0.5, 1, 2)], "bronze": (450, 800),
+    },
+    "bufalo_ermal": {
+        "name": "Búfalo Ermal", "hp": 1450, "ac": 21, "atk": 19,
+        "dmg": {"n": 5, "d": 10, "flat": 20}, "reach": 1, "speed": 5,
+        "xp": 2300, "dex": 2, "glyph": "\U0001f403", "kind": "besta", "size": 3,
+        "atk_name": "chifrada",
+        "drops": [("chifre_de_bufalo", 0.8, 1, 2), ("couro_selvagem", 0.7, 1, 2), ("carne_caca", 0.8, 1, 3)], "bronze": (500, 900),
+    },
+    "caranguejo_gigante": {
+        "name": "Caranguejo Gigante", "hp": 950, "ac": 23, "atk": 18,
+        "dmg": {"n": 4, "d": 10, "flat": 14}, "reach": 1, "speed": 3,
+        "xp": 1600, "dex": 1, "glyph": "\U0001f980", "kind": "besta", "size": 2,
+        "atk_name": "pincada",
+        "drops": [("concha_rara", 0.8, 1, 2), ("perola", 0.08, 1, 1), ("carne_caca", 0.5, 1, 1)], "bronze": (320, 600),
+    },
+    "medusa_de_areia": {
+        "name": "Medusa de Areia", "hp": 700, "ac": 15, "atk": 17,
+        "dmg": {"n": 3, "d": 8, "flat": 10}, "reach": 2, "speed": 2,
+        "xp": 1100, "dex": 1, "glyph": "\U0001fab8", "kind": "besta", "size": 1,
+        "atk_name": "tentáculo urticante",
+        "drops": [("concha_rara", 0.4, 1, 1)], "bronze": (200, 380),
+    },
+    "maraja": {
+        "name": "Marajá, o Leão Branco", "hp": 3200, "ac": 22, "atk": 22,
+        "dmg": {"n": 7, "d": 10, "flat": 26}, "reach": 2, "speed": 7,
+        "xp": 5000, "dex": 4, "glyph": "\U0001f981", "kind": "besta", "size": 4, "boss": True,
+        "atk_name": "garras do marajá",
+        "drops": [("juba_maraja", 1.0, 1, 1), ("manto_do_leao_branco", 1.0, 1, 1), ("couro_de_leao", 1.0, 2, 3), ("coin_gold", 1.0, 5, 9)],
+        "bronze": (1400, 2200),
+    },
+
+    # ===================== UMBRAVAL, A NOITE ETERNA =====================
+    "lobo_umbrio": {
+        "name": "Lobo Umbrío", "hp": 1600, "ac": 20, "atk": 21,
+        "dmg": {"n": 6, "d": 10, "flat": 20}, "reach": 1, "speed": 8,
+        "xp": 2700, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "presas da noite",
+        "drops": [("couro_lobo_negro", 0.7, 1, 2), ("presa_lobo", 0.5, 1, 2)], "bronze": (600, 1000),
+    },
+    "vulto_noturno": {
+        "name": "Vulto Noturno", "hp": 2000, "ac": 21, "atk": 22,
+        "dmg": {"n": 6, "d": 10, "flat": 24}, "reach": 2, "speed": 6,
+        "xp": 3300, "dex": 4, "glyph": "\U0001f47b", "kind": "espectro", "size": 2, "smoke": True,
+        "atk_name": "toque gélido",
+        "drops": [("essencia_sombria", 0.7, 1, 2), ("ectoplasma", 0.5, 1, 2)], "bronze": (750, 1200),
+    },
+
+    # ============ VÉSPERA: os VAMPIROS (o topo da cadeia, hoje) ============
+    "enxame_morcegos": {
+        "name": "Enxame de Morcegos", "hp": 600, "ac": 17, "atk": 19,
+        "dmg": {"n": 3, "d": 8, "flat": 10}, "reach": 1, "speed": 9,
+        "xp": 900, "dex": 7, "glyph": "\U0001f987", "kind": "besta", "size": 1, "smoke": True,
+        "atk_name": "nuvem de presas",
+        "drops": [], "bronze": (120, 260),
+    },
+    "cria_vampirica": {
+        "name": "Cria Vampírica", "hp": 3400, "ac": 22, "atk": 23,
+        "dmg": {"n": 7, "d": 10, "flat": 24}, "reach": 1, "speed": 8,
+        "xp": 5200, "dex": 6, "glyph": "\U0001f9db", "kind": "morto-vivo", "size": 2,
+        "atk_name": "garras famintas",
+        "drops": [("presa_vampirica", 0.5, 1, 1), ("tecido_nobre", 0.25, 1, 1)], "bronze": (700, 1200),
+    },
+    "vampiro_nobre": {
+        "name": "Vampiro Nobre", "hp": 4300, "ac": 24, "atk": 24,
+        "dmg": {"n": 7, "d": 12, "flat": 28}, "reach": 1, "speed": 8,
+        "xp": 6800, "dex": 6, "glyph": "\U0001f9db", "kind": "morto-vivo", "size": 2,
+        "atk_name": "estocada carmesim",
+        "drops": [("presa_vampirica", 0.7, 1, 1), ("tecido_nobre", 0.8, 1, 2), ("gema_bruta", 0.1, 1, 1)], "bronze": (1000, 1700),
+    },
+    "vampiro_anciao": {
+        "name": "Vampiro Ancião", "hp": 5600, "ac": 25, "atk": 26,
+        "dmg": {"n": 8, "d": 12, "flat": 32}, "reach": 2, "speed": 7,
+        "xp": 9000, "dex": 5, "glyph": "\U0001f9db", "kind": "morto-vivo", "size": 3,
+        "atk_name": "lâmina de sangue",
+        "drops": [("presa_vampirica", 1.0, 2, 2), ("tecido_nobre", 1.0, 2, 3), ("gema_bruta", 0.3, 1, 1), ("coin_gold", 0.6, 1, 3)], "bronze": (1500, 2500),
+    },
+
+    # ==== UMBRAVAL: os LOBISOMENS (5%% atrás dos vampiros, e com raiva disso) ====
+    "lobisomem_ferino": {
+        "name": "Lobisomem Ferino", "hp": 3230, "ac": 21, "atk": 22,
+        "dmg": {"n": 7, "d": 10, "flat": 22}, "reach": 1, "speed": 9,
+        "xp": 4900, "dex": 6, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "garras dilacerantes",
+        "drops": [("pelagem_lupina", 0.7, 1, 1), ("presa_lobo", 0.5, 1, 2)], "bronze": (650, 1100),
+    },
+    "lobisomem_uivador": {
+        "name": "Lobisomem Uivador", "hp": 4085, "ac": 23, "atk": 23,
+        "dmg": {"n": 7, "d": 12, "flat": 26}, "reach": 1, "speed": 8,
+        "xp": 6400, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 2,
+        "atk_name": "mordida lupina",
+        "drops": [("pelagem_lupina", 0.9, 1, 2), ("couro_lobo_negro", 0.5, 1, 1)], "bronze": (900, 1500),
+    },
+    "lobisomem_ancestral": {
+        "name": "Lobisomem Ancestral", "hp": 5320, "ac": 24, "atk": 25,
+        "dmg": {"n": 8, "d": 12, "flat": 30}, "reach": 2, "speed": 8,
+        "xp": 8500, "dex": 5, "glyph": "\U0001f43a", "kind": "besta", "size": 3,
+        "atk_name": "fúria ancestral",
+        "drops": [("pelagem_lupina", 1.0, 2, 2), ("couro_lobo_negro", 1.0, 1, 2), ("presa_lobo", 0.8, 1, 2)], "bronze": (1300, 2200),
+    },
 }
 
 
@@ -682,6 +817,26 @@ BOSS_BARKS = {
         ],
         "win": [
             "O Brasal engole mais uma leva de tolos. Voltem quando forem lendas... se conseguirem.",
+        ],
+    },
+    "maraja": {
+        "intro": [
+            "A savana inteira é meu tapete, forasteiro. E você está pisando nele.",
+            "Branco como osso, quieto como o meio-dia. Eu sou o Marajá. Ajoelha ou corre.",
+        ],
+        "taunt": [
+            "O sol nasce quando EU abro os olhos.",
+            "Já comi caçadores mais gordos e mais corajosos que você.",
+            "Corre pro mar. Talvez os caranguejos tenham pena.",
+        ],
+        "enrage": [
+            "AGORA a juba levanta. Reze pros seus deuses de cidade.",
+        ],
+        "hurt": [
+            "Sangue na juba branca... isso vai custar caro, verme.",
+        ],
+        "win": [
+            "A savana volta ao silêncio. O Marajá volta ao trono de capim.",
         ],
     },
 }
@@ -853,18 +1008,21 @@ VALDARKRAM_SPAWNS = [
 
 # ===================== TORRE DO LORDE NECROTICO =====================
 TORRE_ANDAR1_SPAWNS = [
+    ("tumular_torre", 22, 16), ("carniceiro_torre", 34, 40), ("tumular_torre", 40, 12), ("carniceiro_torre", 14, 44),
     ("tumular_torre", 6, 34), ("carniceiro_torre", 9, 22), ("tumular_torre", 15, 28), ("carniceiro_torre", 15, 31),
     ("tumular_torre", 21, 19), ("carniceiro_torre", 24, 13), ("tumular_torre", 24, 16), ("carniceiro_torre", 24, 28),
     ("tumular_torre", 27, 28), ("carniceiro_torre", 30, 10), ("tumular_torre", 30, 43), ("carniceiro_torre", 33, 28),
     ("tumular_torre", 36, 10), ("carniceiro_torre", 36, 16),
 ]
 TORRE_ANDAR2_SPAWNS = [
+    ("cavaleiro_torre", 22, 16), ("algoz_torre", 34, 40), ("cavaleiro_torre", 40, 12), ("algoz_torre", 14, 44),
     ("cavaleiro_torre", 6, 34), ("algoz_torre", 9, 22), ("cavaleiro_torre", 15, 28), ("algoz_torre", 15, 31),
     ("cavaleiro_torre", 21, 19), ("algoz_torre", 24, 13), ("cavaleiro_torre", 24, 16), ("algoz_torre", 24, 28),
     ("cavaleiro_torre", 27, 28), ("algoz_torre", 30, 10), ("cavaleiro_torre", 30, 43), ("algoz_torre", 33, 28),
     ("cavaleiro_torre", 36, 10), ("algoz_torre", 36, 16),
 ]
 TORRE_ANDAR3_SPAWNS = [
+    ("necromante_torre", 22, 16), ("profanador_torre", 34, 40), ("necromante_torre", 40, 12), ("profanador_torre", 14, 44),
     ("necromante_torre", 6, 34), ("profanador_torre", 9, 22), ("necromante_torre", 15, 28), ("profanador_torre", 15, 31),
     ("necromante_torre", 21, 19), ("profanador_torre", 24, 13), ("necromante_torre", 24, 16), ("profanador_torre", 24, 28),
     ("necromante_torre", 27, 28), ("profanador_torre", 30, 10), ("necromante_torre", 30, 43), ("profanador_torre", 33, 28),
@@ -875,24 +1033,29 @@ CAMARA_VARTH_SPAWNS = [
 ]
 
 
-# FLORESTA DO ERMO (150x150, entrada ao SUL em y~147): santuário em 3 faixas.
-# Faixa 1 (sul, y 100-145): bichos passivos | Faixa 2 (meio, y 50-98): lobos | Faixa 3 (norte, y 8-48): ursos + REI.
-FLORESTA_ERMO_SPAWNS = [
-    # --- FAIXA 1: caça passiva (perto da entrada) ---
-    ("coelho", 60, 138), ("coelho", 88, 142), ("coelho", 44, 128), ("coelho", 104, 132),
-    ("lebre", 72, 134), ("lebre", 52, 120), ("lebre", 96, 124),
-    ("veado", 38, 130), ("veado", 110, 136), ("veado", 66, 116), ("veado", 84, 122),
-    ("cervo", 50, 108), ("cervo", 100, 112), ("cervo", 75, 104),
-    # --- FAIXA 2: lobos cinzentos dos ermos ---
-    ("lobo_cinzento_ermo", 40, 90), ("lobo_cinzento_ermo", 62, 84), ("lobo_cinzento_ermo", 88, 88),
-    ("lobo_cinzento_ermo", 110, 80), ("lobo_cinzento_ermo", 30, 72), ("lobo_cinzento_ermo", 55, 66),
-    ("lobo_cinzento_ermo", 80, 70), ("lobo_cinzento_ermo", 100, 60), ("lobo_cinzento_ermo", 70, 56),
-    ("lobo_cinzento_ermo", 45, 52),
-    # --- FAIXA 3: ursos (pardo + negro) e o REI no topo ---
-    ("urso_pardo", 40, 44), ("urso_pardo", 100, 42), ("urso_pardo", 62, 38),
-    ("urso_negro", 80, 34), ("urso_negro", 50, 28), ("urso_negro", 95, 26),
-    ("urso_pardo", 30, 30),
-    ("urso_rei", 75, 14),           # REI DO PLANALTO: chefe no topo da floresta
+# FLORESTA DO ERMO (150x150): a mata profunda segue quieta... por enquanto.
+# A fauna foi realocada pros PLANALTOS ERMAIS (o mapa do Rei do Planalto).
+FLORESTA_ERMO_SPAWNS = []
+
+
+# PLANALTOS ERMAIS (120x120): 3 terraços de muralhas + o TOPO do Rei.
+# De baixo pra cima: caça passiva -> lobos cinzentos -> ursos -> REI DO PLANALTO.
+PLANALTOS_ERMAIS_SPAWNS = [
+    # --- TERRAÇO SUL (entrada, y 92-116): caça passiva ---
+    ("coelho", 30, 112), ("coelho", 84, 108), ("coelho", 44, 98), ("coelho", 90, 96),
+    ("lebre", 22, 104), ("lebre", 72, 114),
+    ("veado", 38, 106), ("veado", 80, 100), ("veado", 50, 92),
+    ("cervo", 26, 94), ("cervo", 88, 112),
+    # --- TERRAÇO DO MEIO (y 62-85): lobos cinzentos dos ermos ---
+    ("lobo_cinzento_ermo", 30, 80), ("lobo_cinzento_ermo", 82, 76), ("lobo_cinzento_ermo", 46, 70),
+    ("lobo_cinzento_ermo", 92, 66), ("lobo_cinzento_ermo", 24, 66), ("lobo_cinzento_ermo", 70, 82),
+    ("lobo_cinzento_ermo", 54, 63),
+    # --- TERRAÇO ALTO (y 32-55): ursos pardos e negros ---
+    ("urso_pardo", 31, 53), ("urso_pardo", 86, 46), ("urso_pardo", 44, 38), ("urso_pardo", 93, 32),
+    ("urso_negro", 34, 34), ("urso_negro", 76, 52), ("urso_negro", 52, 44),
+    # --- O TOPO (y 6-24): o trono a céu aberto do REI, com dois negros de escolta ---
+    ("urso_negro", 40, 20), ("urso_negro", 82, 18),
+    ("urso_rei", 60, 10),           # REI DO PLANALTO: o senhor do topo
 ]
 
 
@@ -907,6 +1070,11 @@ BRASAL_SPAWNS = [
     ("serpe_magma", 70, 90), ("serpe_magma", 96, 60), ("serpe_magma", 112, 110), ("serpe_magma", 124, 52),
     ("golem_obsidiana", 88, 74), ("golem_obsidiana", 116, 80), ("golem_obsidiana", 130, 100),
     ("golem_obsidiana", 134, 62),
+    # reforço: a Ferida fervilha
+    ("cinzal", 100, 120), ("cinzal", 46, 30), ("salamandra_brasal", 76, 26),
+    ("salamandra_brasal", 120, 130), ("imp_brasal", 56, 90), ("imp_brasal", 96, 96),
+    ("imp_brasal", 128, 40), ("serpe_magma", 50, 66), ("serpe_magma", 86, 116),
+    ("golem_obsidiana", 62, 118), ("cinzal", 138, 86), ("salamandra_brasal", 30, 60),
 ]
 
 # GOELA DE KREZATH nível 1 (70x70; entrada OESTE, escada NORTE)
@@ -915,6 +1083,8 @@ GOELA_1_SPAWNS = [
     ("forjado_krezath", 24, 30), ("forjado_krezath", 38, 40), ("forjado_krezath", 50, 30),
     ("forjado_krezath", 34, 14), ("serpe_magma", 46, 52), ("serpe_magma", 20, 16),
     ("devoto_krezath", 40, 26), ("devoto_krezath", 28, 56),
+    ("imp_brasal", 52, 44), ("forjado_krezath", 18, 48), ("serpe_magma", 36, 30),
+    ("devoto_krezath", 48, 14), ("imp_brasal", 26, 20),
 ]
 
 # GOELA DE KREZATH nível 2 (70x70; entrada SUL, escada NORTE guardada por VULKAR)
@@ -923,12 +1093,85 @@ GOELA_2_SPAWNS = [
     ("templario_magma", 24, 40), ("templario_magma", 44, 30), ("templario_magma", 34, 20),
     ("devoto_krezath", 28, 28), ("devoto_krezath", 44, 54), ("devoto_krezath", 38, 12),
     ("serpe_magma", 20, 56),
+    ("forjado_krezath", 22, 16), ("templario_magma", 48, 40), ("devoto_krezath", 20, 34),
+    ("serpe_magma", 44, 60),
     ("vulkar", 35, 10),             # GUARDIÃO da porta pro covil
 ]
 
 # COVIL DE KREZATH (60x50; o DEVORADOR no norte, sobre o lago de magma)
 COVIL_KREZATH_SPAWNS = [
     ("krezath", 30, 12),
+]
+
+
+# COSTA DE MARAVAI (300x300): savana viva ao norte, praia mansa ao sul
+COSTA_MARAVAI_SPAWNS = [
+    # capivaras na lagoa + antílopes pastando (passivos)
+    ("capivara", 62, 92), ("capivara", 80, 90), ("capivara", 70, 72),
+    ("antilope", 40, 60), ("antilope", 110, 48), ("antilope", 150, 90), ("antilope", 220, 70),
+    # avestruzes bravas e hienas em matilha
+    ("avestruz_brava", 130, 60), ("avestruz_brava", 180, 110), ("avestruz_brava", 90, 130),
+    ("hiena_rubra", 160, 40), ("hiena_rubra", 166, 44), ("hiena_rubra", 172, 40),
+    ("hiena_rubra", 240, 120), ("hiena_rubra", 246, 124), ("hiena_rubra", 60, 140),
+    # leões e búfalos
+    ("leao_ermal", 200, 90), ("leao_ermal", 120, 100), ("leao_ermal", 260, 60), ("leao_ermal", 40, 110),
+    ("bufalo_ermal", 100, 40), ("bufalo_ermal", 230, 140), ("bufalo_ermal", 170, 140),
+    # o TRONO DE CAPIM: Marajá no coração da savana
+    ("maraja", 150, 24),
+    # praia: caranguejos nas pedras, medusas encalhadas (longe da vila)
+    ("caranguejo_gigante", 40, 240), ("caranguejo_gigante", 90, 250), ("caranguejo_gigante", 140, 244),
+    ("caranguejo_gigante", 180, 252),
+    ("medusa_de_areia", 60, 254), ("medusa_de_areia", 120, 256), ("medusa_de_areia", 160, 250),
+]
+
+# VÉSPERA, A CIDADE MORTA (150x150): os vampiros reinam
+VESPERA_SPAWNS = [
+    # a CATEDRAL: o Ancião e sua corte
+    ("vampiro_anciao", 75, 20),
+    ("vampiro_nobre", 68, 26), ("vampiro_nobre", 82, 26),
+    # nobres patrulhando as ruas
+    ("vampiro_nobre", 30, 65), ("vampiro_nobre", 90, 90), ("vampiro_nobre", 120, 40),
+    # crias famintas pelos quarteirões
+    ("cria_vampirica", 30, 40), ("cria_vampirica", 60, 40), ("cria_vampirica", 120, 65),
+    ("cria_vampirica", 30, 90), ("cria_vampirica", 60, 90), ("cria_vampirica", 120, 90),
+    ("cria_vampirica", 60, 115), ("cria_vampirica", 90, 115), ("cria_vampirica", 30, 115),
+    # praça da fonte seca
+    ("cria_vampirica", 62, 70), ("vampiro_nobre", 86, 76),
+    # enxames nos beirais
+    ("enxame_morcegos", 45, 52), ("enxame_morcegos", 100, 78), ("enxame_morcegos", 75, 100),
+    ("enxame_morcegos", 110, 120),
+]
+
+# UMBRAVAL (300x300): a mata onde o sol nunca entrou
+UMBRAVAL_SPAWNS = [
+    # os LOBISOMENS: donos da mata, rivais eternos de Véspera
+    ("lobisomem_ferino", 76, 270),
+    ("lobisomem_ferino", 139, 234),
+    ("lobisomem_uivador", 190, 206),
+    ("lobisomem_ferino", 267, 169),
+    ("lobisomem_uivador", 163, 124),
+    ("lobisomem_ferino", 147, 107),
+    ("lobisomem_uivador", 125, 75),
+    ("lobisomem_ferino", 105, 34),
+    ("lobisomem_ancestral", 113, 13),
+    ("lobo_umbrio", 145, 272),
+    ("vulto_noturno", 188, 271),
+    ("vulto_noturno", 110, 222),
+    ("lobo_umbrio", 112, 238),
+    ("lobo_umbrio", 76, 197),
+    ("vulto_noturno", 89, 207),
+    ("vulto_noturno", 21, 168),
+    ("lobo_umbrio", 239, 174),
+    ("lobo_umbrio", 167, 140),
+    ("vulto_noturno", 263, 120),
+    ("vulto_noturno", 114, 117),
+    ("lobo_umbrio", 132, 104),
+    ("lobo_umbrio", 113, 77),
+    ("vulto_noturno", 122, 76),
+    ("vulto_noturno", 108, 51),
+    ("lobo_umbrio", 111, 60),
+    ("lobo_umbrio", 107, 39),
+    ("vulto_noturno", 109, 42),
 ]
 
 
@@ -1242,6 +1485,77 @@ MONSTER_ABILITIES = {
                       {"id": "cauda_sismica", "name": "Cauda Sísmica", "type": "heavy",
                        "dmg_bonus": {"n": 8, "d": 12}, "chance": 0.55, "cd": 1},
                       {"id": "garras_do_devorador", "name": "Garras do Devorador", "type": "inflict",
+                       "dmg_bonus": {"n": 4, "d": 12}, "status": "bleeding", "turns": 3, "dot": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2}],
+
+    # --- COSTA DE MARAVAI ---
+    "avestruz_brava": [{"id": "coice_duplo", "name": "Coice Duplo", "type": "heavy",
+                       "dmg_bonus": {"n": 3, "d": 8}, "chance": 0.5, "cd": 2}],
+    "hiena_rubra": [{"id": "mordida_rasgante", "name": "Mordida Rasgante", "type": "inflict",
+                       "status": "bleeding", "turns": 2, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2}],
+    "leao_ermal": [{"id": "bote_do_leao", "name": "Bote do Leão", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "rugido_ermal", "name": "Rugido", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "bufalo_ermal": [{"id": "investida", "name": "Investida", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 10}, "chance": 0.5, "cd": 2}],
+    "caranguejo_gigante": [{"id": "pinça_esmagadora", "name": "Pinça Esmagadora", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "carapaça", "name": "Carapaça", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.25, "cd": 6}],
+    "medusa_de_areia": [{"id": "ferroada_urticante", "name": "Ferroada Urticante", "type": "inflict",
+                       "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.55, "cd": 2}],
+    "maraja": [{"id": "bote_real_maraja", "name": "Bote Real", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.55, "cd": 1},
+                      {"id": "rugido_do_maraja", "name": "Rugido do Marajá", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "sol_da_savana", "name": "Sol da Savana", "type": "heal",
+                       "heal": {"n": 6, "d": 10}, "chance": 0.3, "cd": 4},
+                      {"id": "dilacerar_alvo", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.4, "cd": 2}],
+    # --- UMBRAVAL ---
+    "lobo_umbrio": [{"id": "bote_umbrio", "name": "Bote Umbrío", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "uivo_da_noite", "name": "Uivo da Noite", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "vulto_noturno": [{"id": "abraco_gelido", "name": "Abraço Gélido", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "slowed", "turns": 2, "chance": 0.45, "cd": 2},
+                      {"id": "sussurro_umbrio", "name": "Sussurro Umbrío", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
+    # --- VÉSPERA: vampiros ---
+    "cria_vampirica": [{"id": "mordida_voraz", "name": "Mordida Voraz", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "sede_de_sangue", "name": "Sede de Sangue", "type": "heal",
+                       "heal": {"n": 4, "d": 10}, "chance": 0.35, "cd": 3}],
+    "vampiro_nobre": [{"id": "estocada_carmesim", "name": "Estocada Carmesim", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 2},
+                      {"id": "forma_de_nevoa", "name": "Forma de Névoa", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.3, "cd": 6},
+                      {"id": "beber_sangue", "name": "Beber Sangue", "type": "heal",
+                       "heal": {"n": 6, "d": 10}, "chance": 0.35, "cd": 3}],
+    "vampiro_anciao": [{"id": "olhar_hipnotico", "name": "Olhar Hipnótico", "type": "fear",
+                       "save": "SAB", "dc": 18, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "banquete_de_sangue", "name": "Banquete de Sangue", "type": "heal",
+                       "heal": {"n": 8, "d": 10}, "chance": 0.35, "cd": 3},
+                      {"id": "convocar_a_noite", "name": "Convocar a Noite", "type": "summon",
+                       "minion": "enxame_morcegos", "count": 2, "chance": 0.4, "cd": 5},
+                      {"id": "lamina_de_sangue", "name": "Lâmina de Sangue", "type": "heavy",
+                       "dmg_bonus": {"n": 6, "d": 12}, "chance": 0.5, "cd": 2}],
+    # --- UMBRAVAL: lobisomens ---
+    "lobisomem_ferino": [{"id": "garras_dilacerantes", "name": "Garras Dilacerantes", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.5, "cd": 2},
+                      {"id": "bote_lupino", "name": "Bote Lupino", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2}],
+    "lobisomem_uivador": [{"id": "uivo_aterrador", "name": "Uivo Aterrador", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "bote_lupino_u", "name": "Bote Lupino", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 2},
+                      {"id": "frenesi", "name": "Frenesi", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 2, "chance": 0.25, "cd": 6}],
+    "lobisomem_ancestral": [{"id": "uivo_ancestral", "name": "Uivo Ancestral", "type": "fear",
+                       "save": "SAB", "dc": 18, "status": "frightened", "turns": 2, "chance": 0.4, "cd": 3},
+                      {"id": "furia_da_lua", "name": "Fúria da Lua", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
+                       "status": "escamas_krezath", "turns": 3, "chance": 0.3, "cd": 6},
+                      {"id": "dilacerar_ancestral", "name": "Dilacerar", "type": "inflict",
                        "dmg_bonus": {"n": 4, "d": 12}, "status": "bleeding", "turns": 3, "dot": {"n": 4, "d": 10}, "chance": 0.45, "cd": 2}],
 }
 

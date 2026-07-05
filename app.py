@@ -45,7 +45,7 @@ import time
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-from game import (db, accounts, items, npcs, rules, valdris, classes, races,
+from game import (db, accounts, items, npcs, rules, valdris, classes, races, professions,
                   leveling, feats, class_features, monsters as monsters_def, combat,
                   spells as spells_def, abilities as abilities_def, gm)
 from game import secret_worlds, world_map as wm
@@ -338,6 +338,7 @@ def _go_to(sid, target_map, x, y, facing=None):
         "map": world.map_payload(target_map),
         "players": world.entities_in(target_map),
         "ground": world.ground_snapshot() if target_map == "ermo" else [],
+        "nodes": world.nodes_in(target_map),
         "you": {"id": sid, "x": player["x"], "y": player["y"],
                 "facing": player["facing"]},
     }, to=sid)
@@ -818,8 +819,8 @@ def _monster_wander_loop():
     while True:
         socketio.sleep(1.2)
         for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram", "mina_avhur", "camara_avhur",
-                   "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth", "floresta_ermo",
-                   "brasal", "goela_1", "goela_2", "covil_krezath"):
+                   "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth", "floresta_ermo", "planaltos_ermais",
+                   "brasal", "goela_1", "goela_2", "covil_krezath", "costa_maravai", "umbraval", "vespera"):
             moved = world.wander_monsters(mp)
             if moved:
                 socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)
@@ -1453,6 +1454,7 @@ def on_interact(_data=None):
         return
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
+        _try_gather(player)              # sem NPC por perto? talvez haja um node de coleta
         return
     mp = player.get("map", "ermo")
     npc["facing"] = _face_to(npc, player)   # ele te olha
@@ -1546,6 +1548,57 @@ def on_interact(_data=None):
     if npc.get("_spec", {}).get("xama"):
         greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
         emit("xama_open", _xama_payload(player, greet))
+        return
+
+    # ===== VILA CAIÇARA (Costa de Maravai): os novos comércios =====
+    # Peixaria da Dona Maricota: comida fresca do mar (cura barata e gostosa)
+    if npc.get("_spec", {}).get("peixaria"):
+        _open_shop(player, npc, "Peixaria da Maricota", [], 0,
+                   potions=[("peixe_assado", 80), ("espetinho_camarao", 110),
+                            ("caldo_de_sururu", 150), ("agua_de_coco", 50),
+                            ("moqueca_capixaba", 260)])
+        return
+
+    # Zé do Remo, o BARQUEIRO: viagem paga de barco pro Ermo (transporte rápido)
+    if npc.get("_spec", {}).get("barqueiro"):
+        socketio.emit("speech", {"id": npc["id"],
+            "text": "Quer carona pro Ermo? Quinhentos de bronze e a maré faz o resto."},
+            room=mp)
+        emit("confirm", {
+            "action": "barco_ermo",
+            "title": "Viajar de barco para o Ermo?",
+            "body": "O Zé do Remo cobra 500 de bronze pela travessia. O barco "
+                    "te deixa direto na cidade do Ermo.",
+            "ok": "Pagar e embarcar", "cancel": "Fico por aqui",
+        })
+        return
+
+    # Seu Milton e o JOGO DO BÚZIO: aposta 200 de bronze, o búzio decide (45%%)
+    if npc.get("_spec", {}).get("buzio"):
+        socketio.emit("speech", {"id": npc["id"],
+            "text": "Duzentos na mesa. Búzio aberto, tu dobra. Fechado... foi bom te ver."},
+            room=mp)
+        emit("confirm", {
+            "action": "buzio_play",
+            "title": "Jogar o Búzio? (aposta: 200 de bronze)",
+            "body": "Se o búzio cair ABERTO, você leva 400. Se cair fechado, "
+                    "perde a aposta. O mar decide.",
+            "ok": "Apostar 200", "cancel": "Hoje não",
+        })
+        return
+
+    # Mestra Conchinha: ESCAMBO caiçara (bronze + 8 Conchas Raras por peça)
+    if npc.get("_spec", {}).get("concha_shop"):
+        _open_shop(player, npc, "Ateliê da Mestra Conchinha", [], 0,
+                   potions=[("colar_de_conchas", 2500), ("anel_de_perola", 3200),
+                            ("tridente_do_caicara", 2800), ("chapeu_de_palha", 2200)],
+                   extra={"item": "concha_rara", "qty": 8, "name": "Conchas Raras"})
+        return
+
+    # MESTRES DE OFÍCIO (Ermo): abrem a bancada de criação da profissão deles
+    _prof = npc.get("_spec", {}).get("prof")
+    if _prof and _prof in professions.PROFESSIONS:
+        emit("craft_open", _craft_payload(player, _prof))
         return
 
     # Couraria do Valdir (Ermo, noroeste): compra couro de bicho por 5x o preço normal
@@ -1864,6 +1917,120 @@ def _persist_loadout_wallet(player):
             print("erro salvando loja:", exc)
 
 
+def _craft_payload(player, prof):
+    """Monta a tela da bancada: nível/xp do ofício + receitas com have/need."""
+    ficha = player.get("ficha") or {}
+    profs = ficha.get("profs") or {}
+    xp = int(profs.get(prof, 0))
+    lvl = professions.level_of(xp)
+    bag = player.setdefault("inventory", [])
+    meta = professions.PROFESSIONS[prof]
+    recs = []
+    for r in professions.RECIPES.get(prof, []):
+        cat = items.get(r["out"]) or {}
+        need = []
+        can = lvl >= r["lvl"]
+        for (iid, q) in r["need"].items():
+            have = items.count_in_bag(bag, iid)
+            need.append({"item": iid, "name": (items.get(iid) or {}).get("name", iid),
+                         "qty": q, "have": have})
+            if have < q:
+                can = False
+        recs.append({"out": r["out"], "name": cat.get("name", r["out"]),
+                     "rarity": cat.get("rarity", "comum"), "lvl": r["lvl"],
+                     "xp": r["xp"], "can": can, "need": need,
+                     "desc": items.describe(r["out"]) if hasattr(items, "describe") else ""})
+    return {"prof": prof, "name": meta["name"], "icon": meta["icon"],
+            "master": meta["master"], "level": lvl, "xp": xp,
+            "level_cap": professions.LEVEL_CAP,
+            "next_xp": professions.LEVEL_XP * lvl if lvl < professions.LEVEL_CAP else None,
+            "recipes": recs}
+
+
+def _try_gather(player):
+    """Interagiu sem NPC por perto: procura um node de coleta encostado e colhe."""
+    import time as _t
+    mp = player.get("map", "ermo")
+    px, py = player.get("x", 0), player.get("y", 0)
+    alvo = None
+    for nd in getattr(world, "nodes", {}).values():
+        if nd["map"] != mp:
+            continue
+        if abs(nd["x"] - px) <= 1 and abs(nd["y"] - py) <= 1:
+            alvo = nd
+            break
+    if not alvo:
+        return
+    spec = professions.NODES[alvo["type"]]
+    now = _t.time()
+    if alvo["until"] > now:
+        falta = int(alvo["until"] - now) + 1
+        emit("toast", {"text": "%s esgotado. Volta em ~%ds." % (spec["name"], falta)})
+        return
+    qmin, qmax = spec["gather"]
+    qty = random.randint(qmin, qmax)
+    bag = player.setdefault("inventory", [])
+    items.add_to_bag(bag, spec["item"], qty)
+    ganho = "+%d %s" % (qty, (items.get(spec["item"]) or {}).get("name", spec["item"]))
+    bonus = spec.get("bonus")
+    if bonus and random.random() < bonus[1]:
+        items.add_to_bag(bag, bonus[0], 1)
+        ganho += " (+1 %s!)" % (items.get(bonus[0]) or {}).get("name", bonus[0])
+    alvo["until"] = now + spec["cd"]
+    if player.get("player_id"):
+        db.save_loadout(player["player_id"], player["inventory"],
+                        player["equipment"], player.get("look"))
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    emit("toast", {"text": "⛏️ Você conseguiu %s ao %s." % (ganho, spec["verb"])})
+    socketio.emit("node_update", {"id": alvo["id"], "depleted": True,
+                                  "cd": spec["cd"]}, room=mp)
+
+
+@socketio.on("craft_make")
+def on_craft_make(data):
+    """Bancada: tenta criar uma receita (consome ingredientes, dá o produto + XP)."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    prof = (data or {}).get("prof")
+    out = (data or {}).get("out")
+    if prof not in professions.PROFESSIONS:
+        return
+    receita = next((r for r in professions.RECIPES.get(prof, []) if r["out"] == out), None)
+    if not receita:
+        return
+    ficha = player.get("ficha") or {}
+    profs = ficha.setdefault("profs", {})
+    xp = int(profs.get(prof, 0))
+    lvl = professions.level_of(xp)
+    if lvl < receita["lvl"]:
+        emit("toast", {"text": "Nível %d de %s necessário." % (receita["lvl"], professions.PROFESSIONS[prof]["name"])})
+        return
+    bag = player.setdefault("inventory", [])
+    for (iid, q) in receita["need"].items():
+        if items.count_in_bag(bag, iid) < q:
+            emit("toast", {"text": "Falta material: %s." % (items.get(iid) or {}).get("name", iid)})
+            return
+    for (iid, q) in receita["need"].items():
+        items.remove_from_bag(bag, iid, q)
+    items.add_to_bag(bag, out, 1)
+    novo_xp = xp + receita["xp"]
+    profs[prof] = novo_xp
+    player["ficha"] = ficha
+    novo_lvl = professions.level_of(novo_xp)
+    if player.get("player_id"):
+        db.save_ficha(player["player_id"], ficha)
+        db.save_loadout(player["player_id"], player["inventory"],
+                        player["equipment"], player.get("look"))
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    nome = (items.get(out) or {}).get("name", out)
+    if novo_lvl > lvl:
+        emit("toast", {"text": "✨ %s criado! %s subiu pro nível %d!" % (nome, professions.PROFESSIONS[prof]["name"], novo_lvl)})
+    else:
+        emit("toast", {"text": "✨ Você criou: %s (+%d XP de ofício)." % (nome, receita["xp"])})
+    emit("craft_open", _craft_payload(player, prof))
+
+
 @socketio.on("shop_buy")
 def on_shop_buy(data):
     """Compra uma peca da loja por SHOP_PRICE (3000) de bronze."""
@@ -1939,6 +2106,54 @@ def on_confirm_ok(data):
     if action == "go_salao" and player.get("map", "ermo") == "ermo":
         sx, sy = rules.pick_spawn(world, "salao")
         _go_to(request.sid, "salao", sx, sy)
+        return
+
+    # Barco do Zé do Remo: Vila Caiçara -> Ermo por 500 de bronze
+    if action == "barco_ermo" and player.get("map") == "costa_maravai":
+        preco = 500
+        if int(player.get("wallet", 0)) < preco:
+            socketio.emit("speech", {"id": "npc:ze_do_remo",
+                "text": "Sem bronze não tem maré, amigo. Volta quando o bolso pesar."},
+                room="costa_maravai")
+            return
+        player["wallet"] = int(player.get("wallet", 0)) - preco
+        try:
+            if player.get("player_id"):
+                db.save_wallet(player["player_id"], player["wallet"])
+        except Exception:
+            pass
+        emit("wallet", {"bronze": player["wallet"]})
+        sx, sy = rules.pick_spawn(world, "ermo")
+        _go_to(request.sid, "ermo", sx, sy)
+        emit("toast", {"text": "⛵ O barco do Zé corta a costa... e te deixa no Ermo."})
+        return
+
+    # Jogo do Búzio do Seu Milton: 200 de bronze, 45%% de dobrar
+    if action == "buzio_play" and player.get("map") == "costa_maravai":
+        aposta = 200
+        if int(player.get("wallet", 0)) < aposta:
+            socketio.emit("speech", {"id": "npc:seu_milton",
+                "text": "Mesa é pra quem tem bronze, meu chapa. O búzio não fia."},
+                room="costa_maravai")
+            return
+        player["wallet"] = int(player.get("wallet", 0)) - aposta
+        if random.random() < 0.45:
+            player["wallet"] += aposta * 2
+            socketio.emit("speech", {"id": "npc:seu_milton",
+                "text": "ABERTO! O mar te sorriu hoje. Leva teus 400 e some antes que eu chore."},
+                room="costa_maravai")
+            emit("toast", {"text": "🐚 O búzio caiu ABERTO! Você ganhou 400 de bronze."})
+        else:
+            socketio.emit("speech", {"id": "npc:seu_milton",
+                "text": "Fechado... o búzio é assim: honesto e cruel. Mais uma?"},
+                room="costa_maravai")
+            emit("toast", {"text": "🐚 O búzio caiu fechado. 200 de bronze pro mar."})
+        try:
+            if player.get("player_id"):
+                db.save_wallet(player["player_id"], player["wallet"])
+        except Exception:
+            pass
+        emit("wallet", {"bronze": player["wallet"]})
         return
 
     # mundos secretos: viagem confirmada

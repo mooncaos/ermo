@@ -1210,6 +1210,7 @@ for _y in (14, 15, 16):
 MAP_ROWS = ["".join(r) for r in _er]
 
 
+
 def _embed_ermo():
     g = _grid(ERMO_W, ERMO_H, ".")
     rng = _rnd.Random(2026)
@@ -1272,6 +1273,20 @@ for _yy in range(5):
         _tav[_TVY + _yy][_TVX + _xx] = "{" if _yy <= 1 else "}"
 _tav[_TVY + 4][_TVX + 3] = "D"                  # porta -> (83, 49)
 MAP_ROWS = ["".join(r) for r in _tav]
+
+# as 7 OFICINAS das profissões, erguidas nos espaços livres do Ermo
+# (casa 7x5 com porta ao sul; o mestre mora na frente da porta)
+def _build_prof_houses():
+    casas = [(32, 21), (18, 23), (56, 45), (6, 65), (32, 77), (8, 79), (50, 83)]
+    for (cx, cy) in casas:
+        for y in range(cy, cy + 5):
+            row = list(MAP_ROWS[y])
+            for x in range(cx, cx + 7):
+                borda = y in (cy, cy + 4) or x in (cx, cx + 6)
+                row[x] = "#" if borda else "."
+            MAP_ROWS[y] = "".join(row)
+        row = list(MAP_ROWS[cy + 4]); row[cx + 3] = "."; MAP_ROWS[cy + 4] = "".join(row)
+_build_prof_houses()
 
 # ===========================================================================
 #  MAPAS DO NORTE (vazios, foco em arte): Planaltos Ermais + Floresta do Ermo
@@ -1475,6 +1490,16 @@ FLORESTA_ROWS = _build_floresta_ermo()
 PLANALTOS_SPAWN = [(60, 117), (59, 117), (61, 117), (60, 116)]   # logo dentro da entrada sul
 FLORESTA_SPAWN = [(75, 147), (74, 147), (76, 147), (75, 146)]    # logo dentro da entrada sul
 BOSQUE_ATALECH_ROWS = _build_bosque_atalech()
+
+# abre a passagem NORTE do Bosque de Atalech -> Umbraval
+def _open_bosque_north():
+    for y in range(0, 4):
+        row = list(BOSQUE_ATALECH_ROWS[y])
+        for x in range(72, 79):
+            row[x] = "+" if y <= 1 else "."
+        BOSQUE_ATALECH_ROWS[y] = "".join(row)
+_open_bosque_north()
+
 BOSQUE_ATALECH_SPAWN = [(100, 197), (99, 197), (101, 197), (100, 196)]   # logo dentro da entrada sul
 
 
@@ -1661,6 +1686,279 @@ GOELA_1_SPAWN = [(4, 35), (4, 34), (4, 36)]
 GOELA_2_SPAWN = [(35, 65), (34, 65), (36, 65)]
 COVIL_SPAWN = [(30, 45), (29, 45), (31, 45)]
 
+# abre a passagem SUL do Brasal -> Costa de Maravai
+def _open_brasal_south():
+    for y in range(144, 150):
+        row = list(BRASAL_ROWS[y])
+        for x in range(72, 79):
+            row[x] = "+" if y >= 147 else "."
+        BRASAL_ROWS[y] = "".join(row)
+_open_brasal_south()
+
+
+
+
+
+
+# ===========================================================================
+#  COSTA DE MARAVAI (300x300, o MAIOR mapa do Ermo): savana ao norte,
+#  praia paradisiaca ao sul, VILA CAICARA a leste da praia.
+#  Tiles (drawCostaTile decide o bioma pela LINHA gy):
+#   . chao   , capim/areia-fofa   d terra/areia-molhada   : areia clara   + passagem
+#   T acacia/coqueiro(S)   ^ rochedo(S)   Y cupinzeiro(S)   W agua(S)
+#   # casa de pescador(S)   b barco(S)   j rede(S)   F fogueira(S)   = pier (passavel)
+# ===========================================================================
+def _build_costa_maravai():
+    import random as _rd, math as _m
+    R = _rd.Random(777)
+    W = H = 300
+    rows = [["." for _ in range(W)] for _ in range(H)]
+    for x in range(W): rows[0][x] = "~"; rows[H-1][x] = "~"
+    for y in range(H): rows[y][0] = "~"; rows[y][W-1] = "~"
+    # ---- SAVANA (y 1-158): capim, acacias, rochedos, cupinzeiros ----
+    for y in range(1, 159):
+        for x in range(1, W-1):
+            r = R.random()
+            if r < 0.16: rows[y][x] = ","
+            elif r < 0.21: rows[y][x] = "d"
+    def scatter(ch, n, y0, y1, keep=1):
+        placed = 0
+        while placed < n:
+            x, y = R.randint(3, W-4), R.randint(y0, y1)
+            if rows[y][x] in ".,d:":
+                for dy in range(keep):
+                    for dx in range(keep):
+                        if rows[y+dy][x+dx] in ".,d:": rows[y+dy][x+dx] = ch
+                placed += 1
+    scatter("T", 300, 3, 155, 1)          # acacias
+    scatter("^", 55, 3, 155, 1)           # rochedos
+    scatter("Y", 45, 3, 155, 1)           # cupinzeiros
+    # lagoa da savana (as capivaras agradecem)
+    for (lx, ly, rx, ry) in ((70, 82, 15, 9), (200, 50, 11, 7)):
+        for y in range(ly-ry, ly+ry+1):
+            for x in range(lx-rx, lx+rx+1):
+                if ((x-lx)/rx)**2 + ((y-ly)/ry)**2 <= 1: rows[y][x] = "W"
+    # ---- TRANSICAO (y 159-185): cerrado ralo virando duna ----
+    for y in range(159, 186):
+        for x in range(1, W-1):
+            rows[y][x] = ":" if R.random() < (y-158)/27.0*0.7 else ("," if R.random()<0.1 else ".")
+    scatter("T", 30, 160, 184, 1)
+    # ---- PRAIA (y 186+): areia clara, coqueiros, e o MAR ao sul ----
+    for y in range(186, H-1):
+        for x in range(1, W-1):
+            rows[y][x] = ":" if R.random() > 0.12 else ","
+    scatter("T", 90, 188, 248, 1)          # coqueiros
+    scatter("^", 18, 190, 250, 1)
+    # MAR: linha de costa ondulada (tudo abaixo vira agua)
+    for x in range(1, W-1):
+        costa = int(262 + 5*_m.sin(x/17.0) + 3*_m.sin(x/41.0))
+        for y in range(costa, H-1):
+            rows[y][x] = "W"
+        rows[costa-1][x] = "d"             # areia molhada na beira
+    # ---- VILA CAICARA (leste da praia: x 208-292, y 196-256) ----
+    for y in range(196, 257):              # limpa o terreno da vila
+        for x in range(208, 293):
+            if rows[y][x] in ("T", "^"): rows[y][x] = ":"
+    def casa(x0, y0, w, h):
+        for y in range(y0, y0+h):
+            for x in range(x0, x0+w):
+                rows[y][x] = "#"
+        rows[y0+h-1][x0+w//2] = ":"        # porta ao sul
+    casa(214, 200, 7, 5); casa(228, 198, 8, 5); casa(244, 202, 7, 5)
+    casa(260, 199, 8, 5); casa(274, 204, 7, 5)
+    casa(218, 226, 7, 5); casa(266, 228, 8, 5)
+    # ruas de terra batida ligando as casas
+    for x in range(212, 286): rows[212][x] = "d"; rows[236][x] = "d"
+    for y in range(200, 254): rows[y][250] = "d"
+    # PIER: tabuas '=' entrando no mar
+    for y in range(252, 288):
+        for x in range(249, 253): rows[y][x] = "="
+    # barcos, redes e fogueiras
+    for (bx, by) in ((222, 250), (238, 252), (270, 249), (284, 246), (230, 246)):
+        rows[by][bx] = "b"; rows[by][bx+1] = "b"
+    for (jx, jy) in ((226, 214), (256, 212), (278, 216), (240, 232)):
+        rows[jy][jx] = "j"
+    for (fx, fy) in ((234, 222), (262, 220), (250, 244)):
+        rows[fy][fx] = "F"
+    # ---- ENTRADA NORTE (vindo do Brasal) ----
+    for y in range(0, 3):
+        for x in range(72, 79): rows[y][x] = "+"
+    for y in range(3, 10):
+        for x in range(70, 81):
+            if rows[y][x] in ("T", "^", "Y", "W"): rows[y][x] = "."
+    return ["".join(r) for r in rows]
+
+
+# ===========================================================================
+#  UMBRAVAL, A NOITE ETERNA (300x300): a mata alem do Bosque de Atalech.
+#  Aqui o sol nunca entrou. Trilhas estreitas, clareiras raras e cogumelos
+#  que brilham no escuro. Tiles: . chao  , folhas  T arvore(S)  ^ pedra(S)
+#  c cogumelo luminoso (passavel)  + passagem
+# ===========================================================================
+def _build_umbraval():
+    import random as _rd, math as _m
+    R = _rd.Random(1313)
+    W = H = 300
+    rows = [["T" for _ in range(W)] for _ in range(H)]
+    def carve(x, y, r):
+        for dy in range(-r, r+1):
+            for dx in range(-r, r+1):
+                if dx*dx + dy*dy <= r*r and 1 <= x+dx < W-1 and 1 <= y+dy < H-1:
+                    rows[y+dy][x+dx] = "."
+    # trilha principal: sul -> norte, serpenteando
+    for i in range(0, 297):
+        t = i / 296.0
+        px = int(75 + 60*_m.sin(t*5.2) + 40*_m.sin(t*2.1) + 60*t)
+        px = max(4, min(W-5, px))
+        carve(px, H-3-i, 2)
+    # 2 trilhas transversais leste-oeste
+    for (ty, amp, ph) in ((100, 25, 1.3), (200, 30, 4.1)):
+        for x in range(3, W-3):
+            py = int(ty + amp*_m.sin(x/37.0 + ph))
+            carve(x, max(4, min(H-5, py)), 2)
+    # clareiras raras (cada uma ganha um corredor ate a trilha principal)
+    def _px_main(y):
+        t = (H-3-y) / 296.0
+        return max(4, min(W-5, int(75 + 60*_m.sin(t*5.2) + 40*_m.sin(t*2.1) + 60*t)))
+    for _ in range(9):
+        cxx, cyy = R.randint(25, W-26), R.randint(25, H-26)
+        rx, ry = R.randint(7, 13), R.randint(6, 10)
+        for y in range(cyy-ry, cyy+ry+1):
+            for x in range(cxx-rx, cxx+rx+1):
+                if ((x-cxx)/rx)**2 + ((y-cyy)/ry)**2 <= 1: rows[y][x] = "."
+        alvo = _px_main(cyy)
+        for x in range(min(cxx, alvo), max(cxx, alvo)+1):
+            carve(x, cyy, 1)
+    # moldura
+    for x in range(W): rows[0][x] = "~"; rows[H-1][x] = "~"
+    for y in range(H): rows[y][0] = "~"; rows[y][W-1] = "~"
+    # detalhes no chao: folhas mortas, pedras, COGUMELOS LUMINOSOS
+    for y in range(1, H-1):
+        for x in range(1, W-1):
+            if rows[y][x] == ".":
+                r = R.random()
+                if r < 0.16: rows[y][x] = ","
+                elif r < 0.175: rows[y][x] = "c"
+                elif r < 0.182: rows[y][x] = "^"
+    # ENTRADA SUL (vindo do Bosque de Atalech)
+    for y in range(H-3, H):
+        for x in range(72, 79): rows[y][x] = "+"
+    for y in range(H-14, H-3):
+        for x in range(70, 81):
+            if rows[y][x] in ("T", "^"): rows[y][x] = "."
+    # SAÍDA NORTE (para Véspera, a Cidade Morta)
+    for y in range(0, 3):
+        for x in range(112, 119): rows[y][x] = "+"
+    for y in range(3, 16):
+        for x in range(110, 121):
+            if rows[y][x] in ("T", "^"): rows[y][x] = "."
+    return ["".join(r) for r in rows]
+
+
+COSTA_MARAVAI_ROWS = _build_costa_maravai()
+UMBRAVAL_ROWS = _build_umbraval()
+COSTA_MARAVAI_SPAWN = [(75, 5), (74, 5), (76, 5), (75, 6)]
+UMBRAVAL_SPAWN = [(75, 294), (74, 294), (76, 294)]
+
+
+
+
+
+# ===========================================================================
+#  VÉSPERA, A CIDADE MORTA (150x150): a metrópole que a noite engoliu.
+#  Quarteirões em ruína, praça da fonte seca e a CATEDRAL onde o Ancião
+#  espera. Tiles: . calçamento  , entulho  d cinza  # parede arruinada(S)
+#  ^ escombro(S)  T árvore morta(S)  Y lampião apagado(S)  b carroça(S)
+#  W água parada(S)  + passagem
+# ===========================================================================
+def _build_vespera():
+    import random as _rd
+    R = _rd.Random(1888)
+    W = H = 150
+    rows = [["." for _ in range(W)] for _ in range(H)]
+    for x in range(W): rows[0][x] = "~"; rows[H-1][x] = "~"
+    for y in range(H): rows[y][0] = "~"; rows[y][W-1] = "~"
+    # calçamento rachado
+    for y in range(1, H-1):
+        for x in range(1, W-1):
+            r = R.random()
+            if r < 0.12: rows[y][x] = ","
+            elif r < 0.18: rows[y][x] = "d"
+    ruas_y = (40, 65, 90, 115)
+    ruas_x = (30, 60, 90, 120)
+    def rua_livre(x, y):
+        return any(abs(y-ry) <= 2 for ry in ruas_y) or any(abs(x-rx) <= 2 for rx in ruas_x)
+    # PRÉDIOS arruinados nos quarteirões (paredes com buracos)
+    def predio(x0, y0, w, h):
+        for y in range(y0, y0+h):
+            for x in range(x0, x0+w):
+                borda = (y in (y0, y0+h-1)) or (x in (x0, x0+w-1))
+                if borda:
+                    r = R.random()
+                    rows[y][x] = "." if r < 0.22 else ("^" if r < 0.34 else "#")
+                else:
+                    rows[y][x] = "," if R.random() < 0.3 else "."
+    celulas = [(6, 6), (36, 6), (96, 6), (126, 6),
+               (6, 46), (36, 46), (96, 46), (126, 46),
+               (6, 71), (36, 71), (66, 96), (96, 71), (126, 71),
+               (6, 96), (36, 96), (96, 96), (126, 96),
+               (6, 121), (36, 121), (66, 121), (96, 121)]
+    for (cx0, cy0) in celulas:
+        w = R.randint(10, 16); h = R.randint(9, 14)
+        predio(cx0 + R.randint(0, 4), cy0 + R.randint(0, 3), w, h)
+    # PRAÇA central com a fonte seca
+    for y in range(60, 85):
+        for x in range(55, 96):
+            if rows[y][x] in ("#", "^"): rows[y][x] = "."
+    for dy in range(-2, 3):
+        for dx in range(-2, 3):
+            if abs(dx) == 2 or abs(dy) == 2: rows[72+dy][75+dx] = "^"
+    rows[72][75] = "W"
+    # CATEDRAL do Ancião (norte): paredes duplas, colunas, entrada sul larga
+    for y in range(10, 35):
+        for x in range(55, 96):
+            borda = y in (10, 11, 33, 34) or x in (55, 56, 94, 95)
+            if borda:
+                rows[y][x] = "." if R.random() < 0.12 else "#"
+            else:
+                rows[y][x] = "."
+    for cy in (16, 22, 28):
+        for cx in (62, 70, 80, 88):
+            rows[cy][cx] = "^"
+    for x in range(72, 79):
+        rows[33][x] = "."; rows[34][x] = "."
+    # ruas garantidas (limpam o que caiu nelas)
+    for ry in ruas_y:
+        for y in range(ry-2, ry+3):
+            for x in range(1, W-1):
+                if rows[y][x] in ("#", "^", "T"): rows[y][x] = "."
+    for rx in ruas_x:
+        for x in range(rx-2, rx+3):
+            for y in range(1, H-1):
+                if rows[y][x] in ("#", "^", "T"): rows[y][x] = "."
+    # mobiliário urbano morto: lampiões nas ruas, árvores mortas, carroças, escombros
+    def scatter(ch, n, so_rua=False):
+        placed = 0
+        while placed < n:
+            x, y = R.randint(3, W-4), R.randint(3, H-4)
+            if rows[y][x] in (".", ",", "d") and (rua_livre(x, y) == so_rua or not so_rua):
+                rows[y][x] = ch; placed += 1
+    scatter("Y", 30, so_rua=True)
+    scatter("T", 40)
+    scatter("b", 10)
+    scatter("^", 90)
+    # ENTRADA SUL (vindo do Umbraval)
+    for y in range(H-3, H):
+        for x in range(112, 119): rows[y][x] = "+"
+    for y in range(H-14, H-3):
+        for x in range(110, 121):
+            if rows[y][x] in ("#", "^", "T", "Y", "b"): rows[y][x] = "."
+    return ["".join(r) for r in rows]
+
+
+VESPERA_ROWS = _build_vespera()
+VESPERA_SPAWN = [(115, 144), (114, 144), (116, 144)]
+
 
 
 MAPS = {
@@ -1690,6 +1988,9 @@ MAPS = {
     "goela_1":          {"rows": GOELA_1_ROWS,          "spawns": GOELA_1_SPAWN},
     "goela_2":          {"rows": GOELA_2_ROWS,          "spawns": GOELA_2_SPAWN},
     "covil_krezath":    {"rows": COVIL_KREZATH_ROWS,    "spawns": COVIL_SPAWN},
+    "costa_maravai":    {"rows": COSTA_MARAVAI_ROWS,    "spawns": COSTA_MARAVAI_SPAWN},
+    "umbraval":         {"rows": UMBRAVAL_ROWS,         "spawns": UMBRAVAL_SPAWN},
+    "vespera":          {"rows": VESPERA_ROWS,          "spawns": VESPERA_SPAWN},
     "bosque_atalech":   {"rows": BOSQUE_ATALECH_ROWS,   "spawns": BOSQUE_ATALECH_SPAWN},
 }
 
@@ -1733,9 +2034,15 @@ EDGE_LINKS = {
                          "north": ("floresta_ermo",   75, 147, "up")},
     "floresta_ermo":    {"south": ("planaltos_ermais", 60,  2, "down"),
                          "north": ("bosque_atalech",   100, 197, "up")},
-    "bosque_atalech":   {"south": ("floresta_ermo",    75,  2, "down")},
+    "bosque_atalech":   {"south": ("floresta_ermo",    75,  2, "down"),
+                         "north": ("umbraval",          75, 293, "up")},
+    "costa_maravai":    {"north": ("brasal",            75, 145, "up")},
+    "umbraval":         {"south": ("bosque_atalech",    75,   4, "down"),
+                         "north": ("vespera",          115, 145, "up")},
+    "vespera":          {"south": ("umbraval",         115,   4, "down")},
     "brasal":           {"west":  ("descampado",       95, 50, "left"),
-                         "east":  ("goela_1",            4, 35, "right")},
+                         "east":  ("goela_1",            4, 35, "right"),
+                         "south": ("costa_maravai",     75,  5, "down")},
     "goela_1":          {"west":  ("brasal",           145, 75, "left"),
                          "north": ("goela_2",           35, 64, "up")},
     "goela_2":          {"south": ("goela_1",           35,  4, "down"),

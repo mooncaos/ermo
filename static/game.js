@@ -192,15 +192,19 @@ const MAP_AMBIENT = {
   goela_1:          {r:120, g:45,  b:15,  a:0.32, part:'#ff9a50'},  // goela: penumbra de forja
   goela_2:          {r:135, g:45,  b:12,  a:0.36, part:'#ff8a40'},  // mais fundo, mais quente
   covil_krezath:    {r:255, g:70,  b:20,  a:0.34, part:'#ffab60'},  // o covil: calor do Devorador
+  costa_maravai:    {r:255, g:210, b:130, a:0.05, part:'#f6dfa8'},  // sol dourado da costa
+  umbraval:         {r:14,  g:18,  b:52,  a:0.44, part:'#9ad0ff'},  // NOITE ETERNA: azul profundo
+  vespera:          {r:110, g:16,  b:30,  a:0.30, part:'#c9a0b0'},  // a Cidade Morta: sangue velho
 };
 // mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
-const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth','goela_1','goela_2','covil_krezath']);
+const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth','goela_1','goela_2','covil_krezath','umbraval','vespera']);
 // TIPO de particula por bioma (rework visual): cada mapa tem a SUA vida no ar.
 // leaf=folhas caindo | ember=brasas/cinzas subindo | sand=areia soprando | mist=flocos de bruma | petal=palha dourada | spark=faisca eterea
 const MAP_PTYPE = {
   repouso_dama:'leaf', floresta_ermo:'leaf', bosque_atalech:'leaf', fadrakor_selva:'leaf',
   torre_andar1:'ember', torre_andar2:'ember', torre_andar3:'ember', camara_varth:'ember', fadrakor_vulcao:'ember',
   brasal:'ember', goela_1:'ember', goela_2:'ember', covil_krezath:'ember',
+  costa_maravai:'sand', umbraval:'firefly', vespera:'mist',
   avasham:'sand', cova_colosso:'sand', mina_avhur:'sand',
   valdarkram:'mist', planaltos_ermais:'mist',
   rasharan:'petal',
@@ -1202,6 +1206,9 @@ function drawTile(c, ch, px, py, ts, gx, gy){
   if(mapName === 'bosque_atalech' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'brasal' && drawBrasalTile(c, ch, px, py, ts, gx, gy)) return;
   if((mapName === 'goela_1' || mapName === 'goela_2' || mapName === 'covil_krezath') && drawGoelaTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'costa_maravai' && drawCostaTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'umbraval' && drawUmbravalTile(c, ch, px, py, ts, gx, gy)) return;
+  if(mapName === 'vespera' && drawVesperaTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'planaltos_ermais' && drawPlateauTile(c, ch, px, py, ts, gx, gy)) return;
   if((mapName === 'avasham' || mapName === 'cova_colosso') && drawDesertTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'valdarkram' && drawCemeteryTile(c, ch, px, py, ts, gx, gy)) return;
@@ -2755,8 +2762,18 @@ function drawMonster(c, sx, sy, ts, p){
   if(t === 'capanga' || t === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
   if(t === 'velho_bob' || t === 'rato_gigante' || t === 'lobo' || t === 'javali' || t === 'lobo_negro'){ drawBeast(c, sx, sy, ts, p); return; }
   if(t === 'coelho' || t === 'lebre' || t === 'veado' || t === 'cervo' || t === 'lobo_cinzento_ermo' || t === 'urso_pardo' || t === 'urso_negro' || t === 'urso_rei'){ drawBeast(c, sx, sy, ts, p); return; }
-  if(t === 'cinzal' || t === 'salamandra_brasal' || t === 'serpe_magma' || t === 'cria_krezath'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'cinzal'){ drawCinzal(c, sx, sy, ts, p); return; }
+  if(t === 'salamandra_brasal'){ drawSalamandra(c, sx, sy, ts, p); return; }
+  if(t === 'serpe_magma'){ drawSerpeMagma(c, sx, sy, ts, p); return; }
+  if(t === 'cria_krezath'){ drawDragonete(c, sx, sy, ts, p); return; }
   if(t === 'imp_brasal' || t === 'forjado_krezath' || t === 'templario_magma' || t === 'devoto_krezath'){ drawMagmaConstruct(c, sx, sy, ts, p); return; }
+  if(t === 'hiena_rubra' || t === 'bufalo_ermal' || t === 'capivara' || t === 'antilope' || t === 'lobo_umbrio'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'leao_ermal'){ drawLeao(c, sx, sy, ts, p); return; }
+  if(t === 'avestruz_brava'){ drawAvestruz(c, sx, sy, ts, p); return; }
+  if(t === 'caranguejo_gigante'){ drawCaranguejo(c, sx, sy, ts, p); return; }
+  if(t === 'medusa_de_areia'){ drawMedusa(c, sx, sy, ts, p); return; }
+  if(t === 'cria_vampirica' || t === 'vampiro_nobre' || t === 'vampiro_anciao'){ drawVampiro(c, sx, sy, ts, p); return; }
+  if(t === 'lobisomem_ferino' || t === 'lobisomem_uivador' || t === 'lobisomem_ancestral'){ drawLobisomem(c, sx, sy, ts, p); return; }
   if(t === 'harpia'){ drawHarpy(c, sx, sy, ts, p); return; }
   if(t === 'bruxa_louca'){ drawWitch(c, sx, sy, ts, p); return; }
   if(t === 'alma_errante' || t === 'assombracao' || t === 'espectro' || t === 'vulto' || t === 'alma_penada'){ drawSpirit(c, sx, sy, ts, p); return; }
@@ -3040,10 +3057,11 @@ const BEAST = {
   urso_pardo:   {body:'#6b4a30', belly:'#876848', size:2.60, ear:'round', tail:'tuft', snout:'#3a2a1c', tusk:false, bristle:false},
   urso_negro:   {body:'#221c20', belly:'#3a323a', size:2.80, ear:'round', tail:'tuft', snout:'#100c10', tusk:false, bristle:false},
   urso_rei:     {body:'#4a3424', belly:'#6a4e36', size:3.40, ear:'round', tail:'tuft', snout:'#281a10', tusk:false, bristle:true, crown:true},
-  cinzal:       {body:'#3c3a40', belly:'#5a565e', size:1.90, ear:'point', tail:'bush', snout:'#1e1c22', tusk:false, bristle:true},
-  salamandra_brasal: {body:'#a83a1e', belly:'#e07038', size:1.80, ear:'round', tail:'tuft', snout:'#6a1e0e', tusk:false, bristle:false},
-  serpe_magma:  {body:'#c04a14', belly:'#ff9a40', size:2.30, ear:'point', tail:'tuft', snout:'#7a2a0a', tusk:true, bristle:true},
-  cria_krezath: {body:'#5a1e1e', belly:'#a84028', size:1.60, ear:'point', tail:'tuft', snout:'#3a1010', tusk:false, bristle:true},
+  hiena_rubra:  {body:'#8a4838', belly:'#a86450', size:0.86, ear:'point', tail:'tuft', snout:'#4a2418', tusk:false, bristle:true},
+  bufalo_ermal: {body:'#3a3230', belly:'#544a44', size:2.60, ear:'round', tail:'tuft', snout:'#221c18', tusk:true, bristle:false},
+  capivara:     {body:'#8a6a44', belly:'#a8875c', size:1.30, ear:'round', tail:'tuft', snout:'#5a4228', tusk:false, bristle:false},
+  antilope:     {body:'#b08a58', belly:'#d8b888', size:1.20, ear:'point', tail:'tuft', snout:'#6a4a2a', tusk:false, bristle:false, antler:true},
+  lobo_umbrio:  {body:'#1c2030', belly:'#2e3448', size:1.80, ear:'point', tail:'bush', snout:'#10121e', tusk:false, bristle:true},
 };
 function _dirVec(f){ return f==='up'?[0,-1] : f==='down'?[0,1] : f==='left'?[-1,0] : [1,0]; }
 
@@ -5094,7 +5112,7 @@ function drawItemIcon(c, cx, cy, size, itemId, glow){
 //  + luz divina do Pofnir. Tudo desenhado por cima no frame(), sem mexer nos
 //  tiles ja assados nem na arte dos personagens.
 // ===========================================================================
-function isNightish(t){ return t < 0.24 || t > 0.72; }   // crepusculo/noite
+function isNightish(t){ if(typeof mapName !== 'undefined' && (mapName === 'umbraval' || mapName === 'vespera')) return true; return t < 0.24 || t > 0.72; }   // crepusculo/noite (Umbraval e Véspera: noite ETERNA)
 
 function entityShadow(c, sx, sy, ts, p){
   // personagens e monstros ja desenham sombra propria; aqui so os bichos que faltavam
@@ -5251,6 +5269,8 @@ const MAP_FOG = {
   mina_avhur:       {hue:'190,160,90',  a:0.045, n:3},   // pó dourado suspenso da tumba
   brasal:           {hue:'70,50,45',    a:0.075, n:5},   // fumaça da Ferida do Mundo
   covil_krezath:    {hue:'255,120,50',  a:0.055, n:4},   // ondas de calor do covil
+  umbraval:         {hue:'110,140,220', a:0.075, n:6},   // névoa fria da Noite Eterna
+  vespera:          {hue:'170,60,80',   a:0.075, n:5},   // bruma de sangue de Véspera
 };
 function drawGroundFog(c, now){
   const f = MAP_FOG[mapName]; if(!f) return;
@@ -5874,6 +5894,13 @@ function frame(now){
     }
   }
 
+  // pontos de coleta das profissões (veios, árvores nobres, ervas)
+  for(const nd of worldNodes){
+    const nsx = nd.x*TS - camX, nsy = nd.y*TS - camY;
+    if(nsx < -TS*2 || nsy < -TS*2 || nsx > canvas.width+TS*2 || nsy > canvas.height+TS*2) continue;
+    drawNode(ctx, nsx, nsy, TS, nd, now);
+  }
+
   const ordered = [...players.values()].sort((a,b)=> (a.ry - b.ry));
   for(const p of ordered){
     const sx = p.rx - camX, sy = p.ry - camY;
@@ -5885,7 +5912,7 @@ function frame(now){
     if(p.kind === 'monster' && p.boss && !p._dead){
       const BOSS_AURA = { urso_rei:'244,200,74', farao_avhur:'255,217,138', maurao:'255,138,90',
                           velho_bob:'192,176,144', colosso_avasham:'255,154,80', lorde_varth:'176,112,255',
-                          krezath:'255,90,30', vulkar:'255,150,60' };
+                          krezath:'255,90,30', vulkar:'255,150,60', maraja:'255,240,200' };
       const col = BOSS_AURA[p.mtype] || '232,184,96';
       const span = Math.max(1, p.size||1) * TS;
       const bx = sx + span/2, by = sy + span*0.82;
@@ -5926,6 +5953,7 @@ function frame(now){
       else if(p.mtype === 'lorde_varth') drawLordeVarthBoss(ctx, sx, sy, TS, p);
       else if(p.mtype === 'krezath') drawKrezath(ctx, sx, sy, TS, p);
       else if(p.mtype === 'vulkar' || p.mtype === 'golem_obsidiana') drawMagmaConstruct(ctx, sx, sy, TS, p);
+      else if(p.mtype === 'maraja') drawLeao(ctx, sx, sy, TS, p);
       else drawVarth(ctx, sx, sy, TS, p);
     }
     else if(p.kind === 'monster') drawMonster(ctx, sx, sy, TS, p);
@@ -6597,6 +6625,12 @@ function connectWithToken(token){
   // troca de mapa (entrar no Salao / voltar pro Ermo): troca o mapa, as
   // entidades e o chao, e recoloca a camera no jogador. Mochila/ficha/relogio
   // continuam como estao.
+  socket.on('map_change', d=>{ worldNodes = d.nodes || []; });
+  socket.on('node_update', d=>{
+    const nd = worldNodes.find(n=>n.id === d.id);
+    if(nd){ nd.depleted = true; setTimeout(()=>{ nd.depleted = false; }, (d.cd||90)*1000); }
+  });
+  socket.on('craft_open', openCraft);
   socket.on('map_change', data=>{
     if(_partyEl) closePartyTable(true);   // saiu da taverna: fecha o lobby (servidor já te tirou)
     BASE_TS = data.map.tilesize; mapRows = data.map.rows;
@@ -9413,111 +9447,262 @@ function drawMagmaConstruct(c, sx, sy, ts, p){
   drawMonsterBarName(c, sx, sy, ts, p);
 }
 
-// ---------- KREZATH, O DEVORADOR SOTERRADO: o dragão ancião de obsidiana ----------
+// ---------- KREZATH 2.0: O DEVORADOR SOTERRADO, agora digno do título ----------
 function drawKrezath(c, sx, sy, ts, p){
   const t = performance.now();
   const N = p.size || 5, S = ts * N * 0.5;
   const cx = sx + N*ts/2, cy = sy + N*ts/2;
   const breathe = Math.sin(t/900) * S*0.03;
   const pulse = 0.5 + 0.5*Math.sin(t/380);
+  const heart = 0.5 + 0.5*Math.sin(t/430);                       // batida do coração de magma
   const enr = p._enraged;
-  const SCALE='#1a1218', SCALE2='#2a1c24', MAG = enr ? '#ff3a08' : '#ff6a18', BELLY='#3a2830', HORN='#d8cbb4';
+  const MAG = enr ? '#ff3a08' : '#ff6a18';
+  const MAG2 = enr ? '#ff6a30' : '#ffab50';
+  const HORN='#d8cbb4', HORN2='#b8a888';
   c.save();
-  // sombra + brasa do lago sob ele
-  c.fillStyle='rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx, cy+S*0.8, S*1.05, S*0.3, 0, 0, Math.PI*2); c.fill();
-  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.2 + 0.15*pulse;
-  const ug = c.createRadialGradient(cx, cy+S*0.6, 0, cx, cy+S*0.6, S*1.2);
+  // sombra + brasa refletida do lago
+  c.fillStyle='rgba(0,0,0,.5)'; c.beginPath(); c.ellipse(cx, cy+S*0.82, S*1.1, S*0.3, 0, 0, Math.PI*2); c.fill();
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.22 + 0.15*pulse;
+  const ug = c.createRadialGradient(cx, cy+S*0.6, 0, cx, cy+S*0.6, S*1.3);
   ug.addColorStop(0, MAG); ug.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = ug; c.beginPath(); c.ellipse(cx, cy+S*0.6, S*1.2, S*0.4, 0, 0, Math.PI*2); c.fill(); c.restore();
+  c.fillStyle = ug; c.beginPath(); c.ellipse(cx, cy+S*0.6, S*1.3, S*0.42, 0, 0, Math.PI*2); c.fill(); c.restore();
   c.translate(cx, cy + breathe);
-  // ---- ASAS membranosas abertas (atrás do corpo) ----
+
+  // ==== ASAS 2.0: membranas com DEDOS, garra no polegar e brilho de magma ====
   for(const sgn of [-1, 1]){
-    const flap = Math.sin(t/1100 + (sgn>0?0:1.2)) * 0.08;
-    c.save(); c.rotate(sgn * (0.06 + flap));
-    c.fillStyle = 'rgba(26,16,22,0.92)';
-    c.beginPath();
-    c.moveTo(sgn*S*0.2, -S*0.25);
-    c.quadraticCurveTo(sgn*S*0.9, -S*1.05, sgn*S*1.45, -S*0.75);
-    c.quadraticCurveTo(sgn*S*1.2, -S*0.35, sgn*S*1.3, -S*0.05);
-    c.quadraticCurveTo(sgn*S*0.85, -S*0.15, sgn*S*0.75, S*0.05);
-    c.quadraticCurveTo(sgn*S*0.45, -S*0.02, sgn*S*0.2, S*0.1);
+    const flap = Math.sin(t/1100 + (sgn>0?0:1.2)) * 0.07;
+    c.save(); c.rotate(sgn * (0.05 + flap));
+    // pontos-chave da asa (ombro -> polegar -> 3 pontas de dedo -> base)
+    const sh = [sgn*S*0.18, -S*0.28];
+    const th = [sgn*S*1.0,  -S*1.15];
+    const f1 = [sgn*S*1.62, -S*0.85];
+    const f2 = [sgn*S*1.5,  -S*0.38];
+    const f3 = [sgn*S*1.18, -S*0.02];
+    const bs = [sgn*S*0.3,   S*0.12];
+    // membrana (gradiente translúcido escuro -> quente na borda)
+    const wg = c.createLinearGradient(sh[0], sh[1], f2[0], f2[1]);
+    wg.addColorStop(0, 'rgba(22,12,18,0.96)');
+    wg.addColorStop(0.7, 'rgba(46,20,22,0.94)');
+    wg.addColorStop(1, 'rgba(90,30,20,0.9)');
+    c.fillStyle = wg; c.beginPath();
+    c.moveTo(sh[0], sh[1]);
+    c.quadraticCurveTo(sgn*S*0.55, -S*0.95, th[0], th[1]);
+    c.quadraticCurveTo((th[0]+f1[0])/2, th[1] - S*0.06, f1[0], f1[1]);
+    c.quadraticCurveTo(sgn*S*1.28, -S*0.62, f2[0], f2[1]);
+    c.quadraticCurveTo(sgn*S*1.2, -S*0.18, f3[0], f3[1]);
+    c.quadraticCurveTo(sgn*S*0.7, -S*0.02, bs[0], bs[1]);
     c.closePath(); c.fill();
-    c.strokeStyle = '#3a2a34'; c.lineWidth = Math.max(1.5, S*0.03); c.stroke();
-    // veias de magma na membrana
-    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.4 + 0.3*pulse;
-    c.strokeStyle = MAG; c.lineWidth = Math.max(1, S*0.02);
-    c.beginPath(); c.moveTo(sgn*S*0.25, -S*0.2); c.quadraticCurveTo(sgn*S*0.8, -S*0.75, sgn*S*1.35, -S*0.7); c.stroke();
-    c.beginPath(); c.moveTo(sgn*S*0.3, -S*0.05); c.quadraticCurveTo(sgn*S*0.75, -S*0.35, sgn*S*1.22, -S*0.1); c.stroke();
-    c.restore(); c.restore();
+    c.strokeStyle = '#3a2226'; c.lineWidth = Math.max(1.5, S*0.028); c.stroke();
+    // DEDOS da asa (raios ósseos)
+    c.strokeStyle = '#5a4038'; c.lineWidth = Math.max(1.6, S*0.032); c.lineCap='round';
+    for(const f of [f1, f2, f3]){ c.beginPath(); c.moveTo(th[0], th[1]); c.lineTo(f[0], f[1]); c.stroke(); }
+    c.beginPath(); c.moveTo(sh[0], sh[1]); c.lineTo(th[0], th[1]); c.stroke();
+    // garra no polegar
+    c.fillStyle = HORN; c.save(); c.translate(th[0], th[1]); c.rotate(sgn*-0.5);
+    c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(sgn*S*0.06, -S*0.12, sgn*S*0.02, -S*0.16);
+    c.lineTo(sgn*S*-0.03, -S*0.03); c.closePath(); c.fill(); c.restore();
+    // veias de magma na membrana (pulsando)
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.35 + 0.3*pulse;
+    c.strokeStyle = MAG; c.lineWidth = Math.max(1, S*0.018);
+    c.beginPath(); c.moveTo(sh[0], sh[1]); c.quadraticCurveTo(sgn*S*0.9, -S*0.7, f1[0]*0.96, f1[1]*0.96); c.stroke();
+    c.beginPath(); c.moveTo(sgn*S*0.4, -S*0.2); c.quadraticCurveTo(sgn*S*0.95, -S*0.4, f2[0]*0.95, f2[1]*0.95); c.stroke();
+    c.restore();
+    c.restore();
   }
-  // ---- CAUDA serpenteando com espinho ----
-  c.strokeStyle = SCALE2; c.lineWidth = Math.max(4, S*0.16); c.lineCap='round';
-  const tw1 = Math.sin(t/700)*S*0.1;
-  c.beginPath(); c.moveTo(-S*0.35, S*0.35);
-  c.quadraticCurveTo(-S*0.95, S*0.55 + tw1, -S*1.25, S*0.15 + tw1*1.5); c.stroke();
-  c.fillStyle = HORN; c.save(); c.translate(-S*1.25, S*0.15 + tw1*1.5); c.rotate(-0.7);
-  c.beginPath(); c.moveTo(0, 0); c.lineTo(-S*0.16, S*0.05); c.lineTo(-S*0.02, -S*0.16); c.closePath(); c.fill(); c.restore();
-  // ---- CORPO: massa escamada ----
-  c.fillStyle = SCALE2; c.beginPath();
-  c.ellipse(0, S*0.12, S*0.72, S*0.5, 0, 0, Math.PI*2); c.fill();
-  c.strokeStyle = '#0c080a'; c.lineWidth = Math.max(1.5, S*0.03); c.stroke();
-  c.fillStyle = BELLY; c.beginPath();
-  c.ellipse(0, S*0.3, S*0.45, S*0.26, 0, 0, Math.PI*2); c.fill();
-  // fileiras de escamas (arcos)
-  c.strokeStyle = SCALE; c.lineWidth = Math.max(1, S*0.025);
-  for(let r=0;r<3;r++) for(let i=-2;i<=2;i++){
-    c.beginPath(); c.arc(i*S*0.24, -S*0.05 + r*S*0.18, S*0.11, 0.15*Math.PI, 0.85*Math.PI); c.stroke();
+
+  // ==== CAUDA longa com espinhos ao longo ====
+  const tw1 = Math.sin(t/700)*S*0.12;
+  const tg = c.createLinearGradient(-S*0.3, S*0.3, -S*1.45, S*0.05);
+  tg.addColorStop(0, '#2e2028'); tg.addColorStop(1, '#1a1218');
+  c.strokeStyle = '#241a20'; c.lineWidth = Math.max(5, S*0.18); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.35, S*0.32);
+  c.quadraticCurveTo(-S*1.0, S*0.58 + tw1, -S*1.45, S*0.12 + tw1*1.6); c.stroke();
+  c.strokeStyle = tg; c.lineWidth = Math.max(3.4, S*0.13);
+  c.beginPath(); c.moveTo(-S*0.35, S*0.32);
+  c.quadraticCurveTo(-S*1.0, S*0.58 + tw1, -S*1.45, S*0.12 + tw1*1.6); c.stroke();
+  // espinhos da cauda
+  c.fillStyle = HORN2;
+  for(let i=1;i<=3;i++){
+    const u = i/4;
+    const tx = -S*0.35 + (-S*1.1)*u, ty = S*0.32 + (S*0.26 + tw1)*Math.sin(u*Math.PI);
+    c.save(); c.translate(tx, ty); c.rotate(-0.5 - u*0.5);
+    c.beginPath(); c.moveTo(0,0); c.lineTo(-S*0.06, S*0.02); c.lineTo(-S*0.005, -S*(0.1 - u*0.02)); c.closePath(); c.fill();
+    c.restore();
   }
-  // RACHADURAS de magma no corpo (o núcleo vivo)
-  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.5 + 0.45*pulse;
-  c.strokeStyle = MAG; c.lineWidth = Math.max(1.6, S*0.045); c.lineCap='round';
-  c.beginPath(); c.moveTo(-S*0.45, -S*0.1); c.lineTo(-S*0.2, S*0.12); c.lineTo(-S*0.35, S*0.4); c.stroke();
-  c.beginPath(); c.moveTo(S*0.15, -S*0.2); c.lineTo(S*0.35, S*0.05); c.lineTo(S*0.2, S*0.35); c.stroke();
+  // ponta-lâmina
+  c.fillStyle = HORN; c.save(); c.translate(-S*1.45, S*0.12 + tw1*1.6); c.rotate(-0.75);
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(-S*0.2, S*0.06); c.lineTo(-S*0.03, -S*0.2); c.closePath(); c.fill(); c.restore();
+
+  // ==== CORPO: massa escamada com volume ====
+  const bodg = c.createRadialGradient(-S*0.1, -S*0.05, S*0.1, 0, S*0.15, S*0.85);
+  bodg.addColorStop(0, '#3a2a34'); bodg.addColorStop(0.55, '#241a22'); bodg.addColorStop(1, '#120c10');
+  c.fillStyle = bodg; c.beginPath();
+  c.ellipse(0, S*0.12, S*0.75, S*0.52, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#0a0608'; c.lineWidth = Math.max(1.5, S*0.03); c.stroke();
+  // rim light do magma por baixo (borda inferior quente)
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.35 + 0.2*pulse;
+  c.strokeStyle = MAG; c.lineWidth = Math.max(2, S*0.04);
+  c.beginPath(); c.ellipse(0, S*0.12, S*0.72, S*0.5, 0, Math.PI*0.15, Math.PI*0.85); c.stroke();
   c.restore();
-  // espinhos dorsais
+  // barriga com placas
+  c.fillStyle = '#3c2a30'; c.beginPath();
+  c.ellipse(0, S*0.32, S*0.46, S*0.26, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#241419'; c.lineWidth = Math.max(1, S*0.02);
+  for(let i=-2;i<=2;i++){ c.beginPath(); c.ellipse(0, S*0.32 + i*S*0.075, S*0.42, S*0.05, 0, Math.PI*0.15, Math.PI*0.85); c.stroke(); }
+  // GLOW DO CORAÇÃO DE MAGMA no peito (visível pelas rachaduras)
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.35 + 0.4*heart;
+  const hg = c.createRadialGradient(S*0.12, S*0.02, 0, S*0.12, S*0.02, S*0.34);
+  hg.addColorStop(0, MAG2); hg.addColorStop(0.5, MAG); hg.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = hg; c.beginPath(); c.arc(S*0.12, S*0.02, S*0.34, 0, Math.PI*2); c.fill(); c.restore();
+  // fileiras de escamas (arcos, mais densas)
+  c.strokeStyle = 'rgba(10,6,8,0.85)'; c.lineWidth = Math.max(1, S*0.02);
+  for(let r=0;r<4;r++) for(let i=-3;i<=3;i++){
+    c.beginPath(); c.arc(i*S*0.19, -S*0.12 + r*S*0.15, S*0.09, 0.12*Math.PI, 0.88*Math.PI); c.stroke();
+  }
+  // RACHADURAS de magma (o núcleo vazando)
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.55 + 0.4*pulse;
+  c.strokeStyle = MAG; c.lineWidth = Math.max(1.7, S*0.045); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.48, -S*0.08); c.lineTo(-S*0.22, S*0.14); c.lineTo(-S*0.36, S*0.42); c.stroke();
+  c.beginPath(); c.moveTo(S*0.02, -S*0.16); c.lineTo(S*0.2, S*0.08); c.lineTo(S*0.08, S*0.34); c.stroke();
+  c.beginPath(); c.moveTo(S*0.38, -S*0.02); c.lineTo(S*0.52, S*0.2); c.stroke();
+  c.lineWidth = Math.max(0.8, S*0.02); c.globalAlpha = 0.4 + 0.3*pulse;
+  c.beginPath(); c.moveTo(-S*0.32, S*0.02); c.lineTo(-S*0.44, S*0.22); c.stroke();
+  c.beginPath(); c.moveTo(S*0.14, -S*0.06); c.lineTo(S*0.32, -S*0.14); c.stroke();
+  c.restore();
+  // espinhos dorsais (fileira dupla, curvos)
+  for(let i=-3;i<=3;i++){
+    const bx = i*S*0.16, by = -S*0.36 - Math.cos(i*0.5)*S*0.06;
+    const hgt = S*(0.2 - Math.abs(i)*0.02);
+    const grd = c.createLinearGradient(bx, by, bx, by - hgt);
+    grd.addColorStop(0, HORN2); grd.addColorStop(1, HORN);
+    c.fillStyle = grd; c.beginPath();
+    c.moveTo(bx - S*0.045, by);
+    c.quadraticCurveTo(bx - S*0.01, by - hgt*0.7, bx + S*0.02, by - hgt);
+    c.quadraticCurveTo(bx + S*0.03, by - hgt*0.4, bx + S*0.045, by);
+    c.closePath(); c.fill();
+  }
+  // GARRAS dianteiras apoiadas (patas à mostra)
+  for(const sgn of [-1, 1]){
+    const gx = sgn*S*0.5, gy = S*0.56;
+    c.fillStyle = '#1c1218'; c.beginPath(); c.ellipse(gx, gy, S*0.16, S*0.1, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = HORN;
+    for(let f=-1; f<=1; f++){
+      c.save(); c.translate(gx + f*S*0.08, gy + S*0.05); c.rotate(f*0.2);
+      c.beginPath(); c.moveTo(-S*0.025, 0); c.quadraticCurveTo(0, S*0.1, S*0.015, S*0.11);
+      c.lineTo(S*0.03, 0); c.closePath(); c.fill(); c.restore();
+    }
+  }
+
+  // ==== PESCOÇO com placas ventrais + CABEÇA 2.0 ====
+  const ng = c.createLinearGradient(S*0.3, -S*0.15, S*0.78, -S*0.95);
+  ng.addColorStop(0, '#241a22'); ng.addColorStop(1, '#2e2028');
+  c.strokeStyle = ng; c.lineWidth = Math.max(7, S*0.26); c.lineCap='round';
+  c.beginPath(); c.moveTo(S*0.3, -S*0.12); c.quadraticCurveTo(S*0.6, -S*0.55, S*0.72, -S*0.88); c.stroke();
+  // placas ventrais no pescoço
+  c.strokeStyle = 'rgba(255,140,60,0.35)'; c.lineWidth = Math.max(1, S*0.02);
+  for(let i=0;i<5;i++){
+    const u = i/5;
+    const nx = S*0.3 + (S*0.42)*u + Math.sin(u*2)*S*0.06, ny = -S*0.12 - S*0.72*u;
+    c.beginPath(); c.arc(nx + S*0.06, ny, S*0.1, Math.PI*0.55, Math.PI*1.1); c.stroke();
+  }
+  const hx = S*0.76, hy = -S*1.0;
+  c.save(); c.translate(hx, hy);
+  // crânio com gradiente
+  const skg = c.createLinearGradient(-S*0.3, -S*0.15, S*0.55, S*0.12);
+  skg.addColorStop(0, '#2e2028'); skg.addColorStop(1, '#1a1216');
+  c.fillStyle = skg; c.beginPath();
+  c.moveTo(-S*0.3, -S*0.02);
+  c.quadraticCurveTo(-S*0.18, -S*0.2, S*0.08, -S*0.2);       // testa
+  c.quadraticCurveTo(S*0.32, -S*0.18, S*0.56, -S*0.05);      // topo do focinho
+  c.lineTo(S*0.6, 0);
+  c.quadraticCurveTo(S*0.42, S*0.05, S*0.18, S*0.06);        // maxilar superior
+  c.quadraticCurveTo(-S*0.1, S*0.12, -S*0.26, S*0.14);
+  c.closePath(); c.fill();
+  c.strokeStyle = '#0a0608'; c.lineWidth = Math.max(1.2, S*0.022); c.stroke();
+  // MANDÍBULA entreaberta com brilho de forno na garganta
+  const jaw = 0.06 + 0.04*Math.sin(t/620);
+  c.fillStyle = '#1a1014'; c.beginPath();
+  c.moveTo(-S*0.16, S*0.12);
+  c.quadraticCurveTo(S*0.14, S*(0.16 + jaw), S*0.5, S*(0.1 + jaw));
+  c.lineTo(S*0.46, S*(0.16 + jaw));
+  c.quadraticCurveTo(S*0.1, S*(0.24 + jaw), -S*0.16, S*0.18);
+  c.closePath(); c.fill();
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.5 + 0.3*pulse;
+  c.fillStyle = MAG; c.beginPath();
+  c.ellipse(S*0.14, S*(0.14 + jaw*0.5), S*0.22, S*0.045, 0, 0, Math.PI*2); c.fill(); c.restore();
+  // DENTES (superiores e inferiores)
   c.fillStyle = HORN;
-  for(let i=-2;i<=2;i++){
-    c.beginPath(); c.moveTo(i*S*0.2 - S*0.05, -S*0.3);
-    c.lineTo(i*S*0.2, -S*0.52 - Math.abs(i)*S*0.02); c.lineTo(i*S*0.2 + S*0.05, -S*0.3); c.closePath(); c.fill();
+  for(let i=0;i<5;i++){
+    const dx = S*(0.08 + i*0.1);
+    c.beginPath(); c.moveTo(dx - S*0.018, S*0.06); c.lineTo(dx, S*(0.13 + jaw*0.4)); c.lineTo(dx + S*0.018, S*0.06); c.closePath(); c.fill();
   }
-  // ---- PESCOÇO + CABEÇA ----
-  c.strokeStyle = SCALE2; c.lineWidth = Math.max(6, S*0.24);
-  c.beginPath(); c.moveTo(S*0.3, -S*0.15); c.quadraticCurveTo(S*0.62, -S*0.55, S*0.72, -S*0.85); c.stroke();
-  const hx = S*0.74, hy = -S*0.95;
-  c.fillStyle = SCALE2; c.beginPath();
-  c.moveTo(hx - S*0.26, hy - S*0.05); c.lineTo(hx + S*0.38, hy - S*0.12);
-  c.lineTo(hx + S*0.52, hy + S*0.05); c.lineTo(hx + S*0.3, hy + S*0.16);
-  c.lineTo(hx - S*0.2, hy + S*0.18); c.closePath(); c.fill();
-  c.strokeStyle = '#0c080a'; c.lineWidth = 1.4; c.stroke();
-  // chifres duplos
-  c.strokeStyle = HORN; c.lineWidth = Math.max(2.4, S*0.07); c.lineCap='round';
-  c.beginPath(); c.moveTo(hx - S*0.12, hy - S*0.08); c.quadraticCurveTo(hx - S*0.4, hy - S*0.42, hx - S*0.6, hy - S*0.4); c.stroke();
-  c.beginPath(); c.moveTo(hx - S*0.02, hy - S*0.12); c.quadraticCurveTo(hx - S*0.22, hy - S*0.5, hx - S*0.42, hy - S*0.55); c.stroke();
-  // olho incandescente
+  for(let i=0;i<4;i++){
+    const dx = S*(0.14 + i*0.1);
+    c.beginPath(); c.moveTo(dx - S*0.015, S*(0.17 + jaw)); c.lineTo(dx, S*(0.11 + jaw*0.6)); c.lineTo(dx + S*0.015, S*(0.17 + jaw)); c.closePath(); c.fill();
+  }
+  // narina fumegante
+  c.fillStyle = '#0c080a'; c.beginPath(); c.ellipse(S*0.48, -S*0.02, S*0.03, S*0.02, 0.3, 0, Math.PI*2); c.fill();
+  // OLHO de réptil: globo incandescente + pupila vertical
   c.save(); c.globalCompositeOperation='lighter';
-  c.globalAlpha = 0.95; c.fillStyle = enr ? '#ff2a00' : '#ffb040';
-  c.beginPath(); c.ellipse(hx + S*0.08, hy - S*0.01, S*0.07, S*0.045, -0.2, 0, Math.PI*2); c.fill();
-  c.globalAlpha = 0.5; c.beginPath(); c.arc(hx + S*0.08, hy - S*0.01, S*0.14, 0, Math.PI*2); c.fill();
+  const eg2 = c.createRadialGradient(-S*0.02, -S*0.07, 0, -S*0.02, -S*0.07, S*0.13);
+  eg2.addColorStop(0, enr ? '#ff4a10' : '#ffc860'); eg2.addColorStop(0.5, enr ? '#e02a00' : '#ff8a20'); eg2.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = eg2; c.beginPath(); c.arc(-S*0.02, -S*0.07, S*0.13, 0, Math.PI*2); c.fill();
+  c.globalAlpha = 1; c.fillStyle = enr ? '#ffd0a0' : '#fff0c0';
+  c.beginPath(); c.ellipse(-S*0.02, -S*0.07, S*0.055, S*0.04, -0.15, 0, Math.PI*2); c.fill();
   c.restore();
-  // narina fumegando (brasas subindo)
+  c.fillStyle = '#0a0608'; c.beginPath(); c.ellipse(-S*0.02, -S*0.07, S*0.012, S*0.038, -0.1, 0, Math.PI*2); c.fill();
+  // arcada da sobrancelha (placa)
+  c.strokeStyle = '#3c2c34'; c.lineWidth = Math.max(1.4, S*0.03);
+  c.beginPath(); c.moveTo(-S*0.14, -S*0.14); c.quadraticCurveTo(-S*0.02, -S*0.18, S*0.1, -S*0.13); c.stroke();
+  // CHIFRES principais curvos (gradiente) + coroa de chifres menores
+  for(const [ox, oy, len, rot] of [[-S*0.16, -S*0.12, 1.0, 0], [-S*0.05, -S*0.16, 0.85, 0.18]]){
+    const hgr = c.createLinearGradient(ox, oy, ox - S*0.55*len, oy - S*0.5*len);
+    hgr.addColorStop(0, HORN2); hgr.addColorStop(1, HORN);
+    c.strokeStyle = hgr; c.lineWidth = Math.max(2.6, S*0.075); c.lineCap='round';
+    c.beginPath(); c.moveTo(ox, oy);
+    c.quadraticCurveTo(ox - S*0.3*len, oy - S*(0.4+rot)*len, ox - S*0.62*len, oy - S*(0.36+rot)*len);
+    c.stroke();
+    c.lineWidth = Math.max(1.4, S*0.04);
+    c.beginPath(); c.moveTo(ox - S*0.45*len, oy - S*(0.41+rot)*len);
+    c.lineTo(ox - S*0.62*len, oy - S*(0.36+rot)*len); c.stroke();
+  }
+  c.fillStyle = HORN2;                                          // coroa: espículas na nuca
+  for(let i=0;i<3;i++){
+    const kx = -S*(0.22 + i*0.05), ky = -S*(0.02 + i*0.05);
+    c.save(); c.translate(kx, ky); c.rotate(-0.9 - i*0.15);
+    c.beginPath(); c.moveTo(0,0); c.lineTo(-S*0.035, S*0.015); c.lineTo(-S*0.005, -S*(0.1 + i*0.015)); c.closePath(); c.fill();
+    c.restore();
+  }
+  c.restore();
+  // fumaça das narinas (subindo da ponta do focinho)
   c.save(); c.globalCompositeOperation='lighter';
   for(let i=0;i<3;i++){
-    const ph = ((t/14 + i*45) % 90) / 90;
-    c.globalAlpha = (1-ph) * 0.55;
-    c.fillStyle = i%2 ? '#ffd070' : MAG;
-    c.beginPath(); c.arc(hx + S*0.45 + Math.sin(t/300+i)*S*0.04, hy + S*0.02 - ph*S*0.5, 1.8*(1-ph*0.5), 0, Math.PI*2); c.fill();
+    const ph = ((t/14 + i*45) % 100) / 100;
+    c.globalAlpha = (1-ph) * 0.5;
+    c.fillStyle = i%2 ? '#c9c0c8' : MAG2;
+    c.beginPath(); c.arc(hx + S*0.5 + Math.sin(t/300+i)*S*0.05, hy - S*0.02 - ph*S*0.55, (1.6 + ph*2.2), 0, Math.PI*2); c.fill();
   }
   c.restore();
-  // égide: Escamas de Obsidiana ativas (metade do dano)
+  // brasas subindo do corpo (o Devorador nunca esfria)
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=0;i<5;i++){
+    const ph = ((t/22 + i*53) % 190) / 190;
+    const bx = Math.sin(i*2.1 + t/900)*S*0.55;
+    c.globalAlpha = (1-ph)*0.55;
+    c.fillStyle = i%2 ? '#ffd070' : MAG;
+    c.beginPath(); c.arc(bx, S*0.1 - ph*S*1.1, 1.7*(1-ph*0.5), 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+  // égide: Escamas de Obsidiana (metade do dano)
   if((p._status && p._status.escamas_krezath) || (p._emberAura && t < p._emberAura)){
     c.save(); c.globalCompositeOperation='lighter';
-    const eg = c.createRadialGradient(0, -S*0.1, 0, 0, -S*0.1, S*1.5);
+    const eg = c.createRadialGradient(0, -S*0.1, 0, 0, -S*0.1, S*1.6);
     eg.addColorStop(0,'rgba(255,140,50,0.5)'); eg.addColorStop(0.6,'rgba(255,90,20,0.28)'); eg.addColorStop(1,'rgba(0,0,0,0)');
     c.globalAlpha = 0.6 + 0.3*Math.sin(t/200); c.fillStyle = eg;
-    c.beginPath(); c.arc(0, -S*0.1, S*1.5, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(0, -S*0.1, S*1.6, 0, Math.PI*2); c.fill();
     c.globalAlpha = 0.85; c.strokeStyle = '#ffd090'; c.lineWidth = Math.max(2, S*0.04);
     for(let i=0;i<9;i++){ const a = t/560 + i*Math.PI*2/9;
-      c.beginPath(); c.arc(Math.cos(a)*S*1.1, -S*0.1 + Math.sin(a)*S*1.1, S*0.05, 0, Math.PI*2); c.stroke(); }
+      c.beginPath(); c.arc(Math.cos(a)*S*1.15, -S*0.1 + Math.sin(a)*S*1.15, S*0.05, 0, Math.PI*2); c.stroke(); }
     c.restore();
   }
   c.restore();
@@ -9549,4 +9734,1092 @@ function spawnDragonfire(atId){            // HÁLITO DO FIM: o fogo de antes do
   vfx.push({kind:'ring',        x1:e.x, y1:e.y, color:'#ffd090', radius:4.2, t0:now+200,  life:640});
   vfx.push({kind:'ring',        x1:e.x, y1:e.y, color:'#ff7a20', radius:3.0, t0:now+380,  life:560});
   vfx.push({kind:'sparks',      x1:e.x, y1:e.y, color:'#ffd070', n:14, ph:Math.random()*6.283, t0:now+240, life:720});
+}
+
+// ===========================================================================
+//  FAUNA DO BRASAL 2.0: cada bicho com o corpo que merece (nada de urso pintado)
+// ===========================================================================
+function drawCinzal(c, sx, sy, ts, p){          // ESPREITADOR DE CINZAS: felino espectral
+  const t = performance.now();
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const d = _dirVec(p.facing || 'down'); const ang = Math.atan2(d[1], d[0]);
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.5 : Math.sin(t/650)*0.6;
+  c.save();
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy+S*0.55, S*0.75, S*0.2, 0, 0, Math.PI*2); c.fill();
+  // rastro de cinza atrás dele
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=0;i<4;i++){
+    const ph = ((t/18 + i*40) % 160) / 160;
+    c.globalAlpha = (1-ph)*0.28;
+    c.fillStyle = '#8a8490';
+    c.beginPath(); c.arc(cx - Math.cos(ang)*S*(0.5+ph*0.9), cy - Math.sin(ang)*S*(0.5+ph*0.9) - ph*S*0.25, S*0.09*(1-ph*0.4), 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+  c.translate(cx, cy + bob); c.rotate(ang);
+  // corpo esguio de felino em espreita (baixo, alongado)
+  const bg = c.createLinearGradient(-S*0.7, 0, S*0.7, 0);
+  bg.addColorStop(0, '#2c2a32'); bg.addColorStop(0.6, '#3c3a44'); bg.addColorStop(1, '#4a4754');
+  c.fillStyle = bg; c.beginPath();
+  c.ellipse(0, 0, S*0.68, S*0.26, 0, 0, Math.PI*2); c.fill();
+  // ancas + ombros
+  c.fillStyle = '#34323c';
+  c.beginPath(); c.ellipse(-S*0.45, 0, S*0.24, S*0.24, 0, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(S*0.38, 0, S*0.2, S*0.2, 0, 0, Math.PI*2); c.fill();
+  // patas (finas, felinas)
+  c.strokeStyle = '#221f28'; c.lineWidth = Math.max(2, S*0.07); c.lineCap='round';
+  const sw = moving ? Math.sin(cyc*Math.PI*2)*S*0.14 : 0;
+  c.beginPath(); c.moveTo(S*0.36, S*0.16); c.lineTo(S*0.42 + sw, S*0.36); c.stroke();
+  c.beginPath(); c.moveTo(S*0.36, -S*0.16); c.lineTo(S*0.42 - sw, -S*0.36); c.stroke();
+  c.beginPath(); c.moveTo(-S*0.44, S*0.16); c.lineTo(-S*0.5 - sw, S*0.36); c.stroke();
+  c.beginPath(); c.moveTo(-S*0.44, -S*0.16); c.lineTo(-S*0.5 + sw, -S*0.36); c.stroke();
+  // cauda LONGA com ponta de brasa
+  const tw1 = Math.sin(t/300)*S*0.16;
+  c.strokeStyle = '#2c2a32'; c.lineWidth = Math.max(2, S*0.06);
+  c.beginPath(); c.moveTo(-S*0.62, 0);
+  c.quadraticCurveTo(-S*1.05, tw1, -S*1.25, -S*0.18 + tw1); c.stroke();
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.6 + 0.35*Math.sin(t/240);
+  c.fillStyle = '#ff8a30'; c.beginPath(); c.arc(-S*1.25, -S*0.18 + tw1, S*0.06, 0, Math.PI*2); c.fill(); c.restore();
+  // listras de brasa fraca no dorso
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.3 + 0.2*Math.sin(t/500);
+  c.strokeStyle = '#c96a3a'; c.lineWidth = Math.max(1, S*0.03);
+  for(let i=-1;i<=1;i++){ c.beginPath(); c.moveTo(i*S*0.2, -S*0.2); c.quadraticCurveTo(i*S*0.2 + S*0.06, 0, i*S*0.2, S*0.2); c.stroke(); }
+  c.restore();
+  // cabeça felina: focinho curto, orelhas pontudas
+  c.fillStyle = '#3c3a44'; c.beginPath(); c.ellipse(S*0.62, 0, S*0.2, S*0.17, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#2c2a32';
+  c.beginPath(); c.moveTo(S*0.55, -S*0.14); c.lineTo(S*0.48, -S*0.32); c.lineTo(S*0.66, -S*0.2); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.55, S*0.14); c.lineTo(S*0.48, S*0.32); c.lineTo(S*0.66, S*0.2); c.closePath(); c.fill();
+  // olhos de brasa (espreita)
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.95;
+  c.fillStyle = '#ffb040';
+  c.beginPath(); c.ellipse(S*0.7, -S*0.06, S*0.035, S*0.05, 0, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(S*0.7, S*0.06, S*0.035, S*0.05, 0, 0, Math.PI*2); c.fill();
+  c.restore();
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawSalamandra(c, sx, sy, ts, p){      // SALAMANDRA DO BRASAL: lagarto de fogo
+  const t = performance.now();
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const d = _dirVec(p.facing || 'down'); const ang = Math.atan2(d[1], d[0]);
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const wig = moving ? Math.sin(cyc*Math.PI*2)*0.08 : Math.sin(t/800)*0.03;
+  c.save();
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy+S*0.45, S*0.85, S*0.22, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy); c.rotate(ang + wig);
+  // cauda grossa afinando (balança)
+  const tsw = Math.sin(t/280)*S*0.2;
+  c.fillStyle = '#7a2412'; c.beginPath();
+  c.moveTo(-S*0.5, -S*0.14);
+  c.quadraticCurveTo(-S*1.0, tsw*0.5, -S*1.3, tsw);
+  c.quadraticCurveTo(-S*1.0, tsw*0.5 + S*0.06, -S*0.5, S*0.14);
+  c.closePath(); c.fill();
+  // 4 patas curtas ABERTAS pros lados (lagarto de verdade)
+  c.strokeStyle = '#5a1c0e'; c.lineWidth = Math.max(2.4, S*0.09); c.lineCap='round';
+  const psw = moving ? Math.sin(cyc*Math.PI*2)*S*0.18 : 0;
+  c.beginPath(); c.moveTo(S*0.3, S*0.2); c.lineTo(S*0.42 + psw, S*0.48); c.stroke();
+  c.beginPath(); c.moveTo(S*0.3, -S*0.2); c.lineTo(S*0.42 - psw, -S*0.48); c.stroke();
+  c.beginPath(); c.moveTo(-S*0.32, S*0.2); c.lineTo(-S*0.44 - psw, S*0.48); c.stroke();
+  c.beginPath(); c.moveTo(-S*0.32, -S*0.2); c.lineTo(-S*0.44 + psw, -S*0.48); c.stroke();
+  // dedos
+  c.lineWidth = Math.max(1.2, S*0.035);
+  for(const [lx, ly] of [[S*0.42+psw, S*0.48],[S*0.42-psw,-S*0.48],[-S*0.44-psw,S*0.48],[-S*0.44+psw,-S*0.48]]){
+    for(let f=-1; f<=1; f++){ c.beginPath(); c.moveTo(lx, ly); c.lineTo(lx + S*0.07, ly + f*S*0.06 + Math.sign(ly)*S*0.05); c.stroke(); }
+  }
+  // corpo achatado alongado com gradiente (barriga clara nas bordas)
+  const bg = c.createLinearGradient(0, -S*0.3, 0, S*0.3);
+  bg.addColorStop(0, '#8a2c14'); bg.addColorStop(0.5, '#a83a1e'); bg.addColorStop(1, '#8a2c14');
+  c.fillStyle = bg; c.beginPath();
+  c.ellipse(0, 0, S*0.62, S*0.3, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#4a1408'; c.lineWidth = 1.2; c.stroke();
+  // manchas incandescentes na pele
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=0;i<5;i++){
+    const gl = 0.4 + 0.4*Math.sin(t/420 + i*1.7);
+    c.globalAlpha = gl;
+    c.fillStyle = i%2 ? '#ff8a30' : '#ffb050';
+    const mx = (i-2)*S*0.22, my = (i%2 ? 1 : -1)*S*0.12;
+    c.beginPath(); c.ellipse(mx, my, S*0.07, S*0.05, 0, 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+  // CRISTA dorsal de fogo (chamas ao longo da espinha)
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=0;i<5;i++){
+    const fx = S*(0.4 - i*0.22);
+    const fl = 0.7 + 0.3*Math.sin(t/160 + i*2);
+    c.globalAlpha = 0.75*fl;
+    c.fillStyle = i%2 ? '#ffd070' : '#ff7a20';
+    c.beginPath();
+    c.moveTo(fx - S*0.06, 0); c.quadraticCurveTo(fx + Math.sin(t/140+i)*S*0.04, -S*0.22*fl, fx + S*0.06, 0);
+    c.closePath(); c.fill();
+  }
+  c.restore();
+  // cabeça achatada, olhos no topo
+  c.fillStyle = '#a83a1e'; c.beginPath();
+  c.moveTo(S*0.5, -S*0.2); c.quadraticCurveTo(S*0.95, -S*0.14, S*1.0, 0);
+  c.quadraticCurveTo(S*0.95, S*0.14, S*0.5, S*0.2); c.closePath(); c.fill();
+  c.strokeStyle = '#4a1408'; c.lineWidth = 1.1; c.stroke();
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.95;
+  c.fillStyle = '#ffd050';
+  c.beginPath(); c.arc(S*0.72, -S*0.11, S*0.045, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(S*0.72, S*0.11, S*0.045, 0, Math.PI*2); c.fill();
+  c.restore();
+  // narinas soltando brasa
+  const ph = ((t/16) % 120) / 120;
+  if(ph < 0.5){ c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = (0.5-ph);
+    c.fillStyle = '#ff9a40'; c.beginPath(); c.arc(S*1.02, 0, 1.6, 0, Math.PI*2); c.fill(); c.restore(); }
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawSerpeMagma(c, sx, sy, ts, p){      // SERPE DE MAGMA: serpente ondulante
+  const t = performance.now();
+  const N = p.size || 3, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const d = _dirVec(p.facing || 'down'); const ang = Math.atan2(d[1], d[0]);
+  c.save();
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy+S*0.5, S*0.9, S*0.22, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy); c.rotate(ang);
+  // corpo em S: cadeia de segmentos ondulando (cabeça na frente, cauda atrás)
+  const SEG = 11;
+  const pts = [];
+  for(let i=0;i<SEG;i++){
+    const u = i/(SEG-1);                          // 0=cabeça 1=cauda
+    const x = S*(0.85 - u*1.9);
+    const y = Math.sin(u*4.4 + t/260) * S*0.24 * (0.35 + u*0.65);
+    pts.push([x, y]);
+  }
+  // corpo: passes de traço grosso->fino com gradiente de cor
+  for(let pass=0; pass<2; pass++){
+    for(let i=0;i<SEG-1;i++){
+      const u = i/(SEG-1);
+      const w = (S*0.24)*(1-u*0.75) * (pass? 0.55 : 1);
+      c.strokeStyle = pass ? '#ff8a30' : '#8a2810';
+      if(pass){ c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.35 + 0.25*Math.sin(t/300 + i); }
+      c.lineWidth = Math.max(2, w); c.lineCap='round';
+      c.beginPath(); c.moveTo(pts[i][0], pts[i][1]); c.lineTo(pts[i+1][0], pts[i+1][1]); c.stroke();
+      if(pass) c.restore();
+    }
+  }
+  // padrão de diamantes incandescentes ao longo do dorso
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=1;i<SEG-1;i+=2){
+    const gl = 0.5 + 0.4*Math.sin(t/380 + i*1.3);
+    c.globalAlpha = gl; c.fillStyle = '#ffd060';
+    const w = S*0.06*(1 - i/(SEG-1)*0.6);
+    c.save(); c.translate(pts[i][0], pts[i][1]); c.rotate(Math.PI/4);
+    c.fillRect(-w/2, -w/2, w, w); c.restore();
+  }
+  c.restore();
+  // cabeça triangular com mandíbula
+  const hx = pts[0][0], hy = pts[0][1];
+  c.save(); c.translate(hx, hy);
+  const hg = c.createLinearGradient(0, -S*0.16, 0, S*0.16);
+  hg.addColorStop(0, '#a8341a'); hg.addColorStop(1, '#7a2410');
+  c.fillStyle = hg; c.beginPath();
+  c.moveTo(-S*0.08, -S*0.16); c.lineTo(S*0.34, -S*0.05); c.lineTo(S*0.4, 0);
+  c.lineTo(S*0.34, S*0.05); c.lineTo(-S*0.08, S*0.16); c.closePath(); c.fill();
+  c.strokeStyle = '#3a1006'; c.lineWidth = 1.1; c.stroke();
+  // olhos de fenda
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.95; c.fillStyle = '#ffd050';
+  c.beginPath(); c.ellipse(S*0.1, -S*0.09, S*0.05, S*0.03, 0, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(S*0.1, S*0.09, S*0.05, S*0.03, 0, 0, Math.PI*2); c.fill();
+  c.restore();
+  // língua bífida (aparece em ciclos)
+  const lph = ((t/16) % 170) / 170;
+  if(lph < 0.25){
+    const lk = Math.sin(lph/0.25*Math.PI);
+    c.strokeStyle = '#ff4a5a'; c.lineWidth = Math.max(1, S*0.02); c.lineCap='round';
+    c.beginPath(); c.moveTo(S*0.4, 0); c.lineTo(S*0.4 + S*0.18*lk, 0); c.stroke();
+    c.beginPath(); c.moveTo(S*0.4 + S*0.18*lk, 0); c.lineTo(S*0.4 + S*0.26*lk, -S*0.045*lk); c.stroke();
+    c.beginPath(); c.moveTo(S*0.4 + S*0.18*lk, 0); c.lineTo(S*0.4 + S*0.26*lk, S*0.045*lk); c.stroke();
+  }
+  c.restore();
+  // brasas caindo do corpo
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=0;i<3;i++){
+    const ph = ((t/18 + i*55) % 150) / 150;
+    const seg = pts[2 + i*3] || pts[SEG-1];
+    c.globalAlpha = (1-ph)*0.5; c.fillStyle = '#ff9a40';
+    c.beginPath(); c.arc(seg[0], seg[1] + ph*S*0.3, 1.6*(1-ph*0.5), 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawDragonete(c, sx, sy, ts, p){       // CRIA DE KREZATH: dragonete bípede alado
+  const t = performance.now();
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const bob = Math.sin(t/380 + (p.x||0)) * S*0.06;    // paira quicando (filhote elétrico)
+  c.save();
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy+S*0.6, S*0.5, S*0.16, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy + bob);
+  // asinhas de morcego batendo RÁPIDO
+  const flap = Math.sin(t/130) * 0.45;
+  for(const sgn of [-1, 1]){
+    c.save(); c.rotate(sgn * (0.25 + flap * sgn * 0));
+    c.fillStyle = 'rgba(58,20,20,0.9)';
+    c.beginPath();
+    c.moveTo(sgn*S*0.14, -S*0.12);
+    c.quadraticCurveTo(sgn*S*0.62, -S*(0.55 + flap*0.25), sgn*S*0.88, -S*(0.3 + flap*0.3));
+    c.quadraticCurveTo(sgn*S*0.6, -S*0.08, sgn*S*0.3, S*0.04);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#2a0e0e'; c.lineWidth = 1; c.stroke();
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.4;
+    c.strokeStyle = '#ff7a30'; c.beginPath();
+    c.moveTo(sgn*S*0.18, -S*0.1); c.quadraticCurveTo(sgn*S*0.55, -S*(0.4 + flap*0.2), sgn*S*0.82, -S*(0.28 + flap*0.28)); c.stroke();
+    c.restore(); c.restore();
+  }
+  // cauda com pontinha
+  const tw2 = Math.sin(t/320)*S*0.12;
+  c.strokeStyle = '#5a1e1e'; c.lineWidth = Math.max(2, S*0.08); c.lineCap='round';
+  c.beginPath(); c.moveTo(0, S*0.3); c.quadraticCurveTo(-S*0.3, S*0.55 + tw2, -S*0.55, S*0.42 + tw2); c.stroke();
+  c.fillStyle = '#d8cbb4'; c.save(); c.translate(-S*0.55, S*0.42 + tw2); c.rotate(-0.6);
+  c.beginPath(); c.moveTo(0,0); c.lineTo(-S*0.1, S*0.04); c.lineTo(-S*0.02, -S*0.1); c.closePath(); c.fill(); c.restore();
+  // corpo pequeno ereto com gradiente + barriga
+  const bg = c.createRadialGradient(0, 0, 0, 0, 0, S*0.45);
+  bg.addColorStop(0, '#7a2c24'); bg.addColorStop(1, '#4a1616');
+  c.fillStyle = bg; c.beginPath(); c.ellipse(0, S*0.05, S*0.3, S*0.38, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#a85838'; c.beginPath(); c.ellipse(0, S*0.14, S*0.17, S*0.24, 0, 0, Math.PI*2); c.fill();
+  // patinhas
+  c.strokeStyle = '#3a1010'; c.lineWidth = Math.max(1.6, S*0.06); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.12, S*0.38); c.lineTo(-S*0.16, S*0.56); c.stroke();
+  c.beginPath(); c.moveTo(S*0.12, S*0.38); c.lineTo(S*0.16, S*0.56); c.stroke();
+  // cabecinha com focinho e mini chifres
+  c.fillStyle = '#6a2420'; c.beginPath(); c.ellipse(0, -S*0.38, S*0.22, S*0.19, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#7a2c24'; c.beginPath(); c.ellipse(S*0.14, -S*0.36, S*0.13, S*0.09, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#d8cbb4'; c.lineWidth = Math.max(1.2, S*0.04); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.08, -S*0.52); c.lineTo(-S*0.16, -S*0.66); c.stroke();
+  c.beginPath(); c.moveTo(S*0.02, -S*0.54); c.lineTo(-S*0.02, -S*0.7); c.stroke();
+  // olhão de filhote (brasa)
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.95;
+  c.fillStyle = '#ffb040'; c.beginPath(); c.arc(S*0.06, -S*0.4, S*0.055, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#fff'; c.globalAlpha = 0.8; c.beginPath(); c.arc(S*0.075, -S*0.415, S*0.018, 0, Math.PI*2); c.fill();
+  c.restore();
+  // baforadinha de brasa da boca (ciclo)
+  const ph = ((t/16 + (p.x||0)*31) % 140) / 140;
+  if(ph < 0.3){ c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = (0.3-ph)/0.3*0.8;
+    c.fillStyle = '#ff9a40'; c.beginPath(); c.arc(S*0.28 + ph*S*0.5, -S*0.36, 2.2*(1-ph), 0, Math.PI*2); c.fill(); c.restore(); }
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+// ===========================================================================
+//  COSTA DE MARAVAI: um mapa, dois mundos (a LINHA gy decide o bioma)
+// ===========================================================================
+function drawCostaTile(c, ch, px, py, ts, gx, gy){
+  const t = performance.now();
+  const praia = gy >= 186, trans = gy >= 159 && gy < 186;
+  const chao = () => {
+    if(praia || (trans && ch === ':')){                       // AREIA clara
+      c.fillStyle = rng(gx,gy,1) > 0.5 ? '#e8d8a8' : '#e0cf9c'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = 'rgba(200,180,130,0.5)';
+      for(let i=0;i<3;i++) c.fillRect(px + rng(gx,gy,i+3)*ts, py + rng(gx,gy,i+7)*ts, 1.6, 1.2);
+      if(rng(gx,gy,11) > 0.9){                                // conchinha na areia
+        c.fillStyle = rng(gx,gy,12) > 0.5 ? '#f0d8e8' : '#f6f0e0';
+        c.beginPath(); c.arc(px + rng(gx,gy,13)*ts, py + rng(gx,gy,14)*ts, 1.6, 0, Math.PI); c.fill();
+      }
+    } else {                                                  // CAPIM da savana
+      c.fillStyle = rng(gx,gy,1) > 0.5 ? '#b8a050' : '#ac9648'; c.fillRect(px, py, ts, ts);
+      c.strokeStyle = 'rgba(140,120,60,0.6)'; c.lineWidth = 1;
+      for(let i=0;i<3;i++){
+        const bx2 = px + rng(gx,gy,i+3)*ts, by2 = py + rng(gx,gy,i+7)*ts;
+        c.beginPath(); c.moveTo(bx2, by2); c.lineTo(bx2 + 1, by2 - 3); c.stroke();
+      }
+    }
+  };
+  switch(ch){
+    case '.': case ':': case '+': chao(); return true;
+    case ',': {
+      chao();
+      if(praia){ c.fillStyle = 'rgba(214,196,150,0.8)';       // areia fofa (montinhos)
+        c.beginPath(); c.ellipse(px+ts*0.5, py+ts*0.6, ts*0.3, ts*0.14, 0, 0, Math.PI*2); c.fill();
+      } else {                                                // capim ALTO balançando
+        c.strokeStyle = '#8a7a34'; c.lineWidth = 1.3;
+        const sw = Math.sin(t/900 + gx)*1.5;
+        for(let i=0;i<4;i++){
+          const bx2 = px + (0.2 + i*0.2)*ts;
+          c.beginPath(); c.moveTo(bx2, py+ts*0.9); c.quadraticCurveTo(bx2 + sw, py+ts*0.5, bx2 + sw*1.6, py+ts*0.25); c.stroke();
+        }
+      }
+      return true; }
+    case 'd': {                                               // terra batida / areia molhada
+      c.fillStyle = praia ? '#c9b088' : '#9a7a4a'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = praia ? 'rgba(170,150,110,0.6)' : 'rgba(120,95,58,0.6)';
+      for(let i=0;i<3;i++) c.fillRect(px + rng(gx,gy,i+2)*ts, py + rng(gx,gy,i+5)*ts, 2.4, 1.4);
+      return true; }
+    case 'W': {                                               // ÁGUA: lagoa ou MAR com ondas
+      const deep = Math.min(1, Math.max(0, (gy - 258) / 30));
+      const g1 = praia ? `rgb(${40+20*(1-deep)},${120+40*(1-deep)},${170+30*(1-deep)})` : '#3a7a9a';
+      c.fillStyle = g1; c.fillRect(px, py, ts, ts);
+      const w1 = Math.sin(t/800 + gx*0.9 + gy*1.4)*0.5 + 0.5;
+      c.save(); c.globalAlpha = 0.2 + 0.15*w1; c.strokeStyle = '#cfe8f0'; c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(px, py + ts*(0.3 + 0.2*w1));
+      c.quadraticCurveTo(px+ts/2, py + ts*(0.2 + 0.2*w1), px+ts, py + ts*(0.3 + 0.2*w1)); c.stroke();
+      c.restore();
+      if(praia && gy <= 264){                                 // espuma na linha da costa
+        const f = Math.sin(t/1100 + gx*0.7)*0.5 + 0.5;
+        c.save(); c.globalAlpha = 0.35 + 0.3*f; c.fillStyle = '#f0f6f8';
+        c.beginPath(); c.ellipse(px+ts/2, py + ts*0.25, ts*0.42, ts*0.1 + f*2, 0, 0, Math.PI*2); c.fill(); c.restore();
+      }
+      return true; }
+    case 'T': {                                               // acácia (savana) ou COQUEIRO (praia)
+      chao();
+      if(praia){
+        const lean = (rng(gx,gy,20) - 0.5) * 0.5;
+        c.strokeStyle = '#8a6a44'; c.lineWidth = Math.max(2, ts*0.1); c.lineCap='round';
+        c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.95);
+        c.quadraticCurveTo(px+ts*(0.5+lean*0.5), py+ts*0.5, px+ts*(0.5+lean), py+ts*0.18); c.stroke();
+        const tx = px+ts*(0.5+lean), ty = py+ts*0.18;
+        c.strokeStyle = '#3a7a3a'; c.lineWidth = Math.max(1.6, ts*0.06);
+        for(let i=0;i<5;i++){
+          const a = -Math.PI/2 + (i-2)*0.55 + Math.sin(t/1400+gx)*0.05;
+          c.beginPath(); c.moveTo(tx, ty);
+          c.quadraticCurveTo(tx + Math.cos(a)*ts*0.3, ty + Math.sin(a)*ts*0.3 - 2, tx + Math.cos(a)*ts*0.45, ty + Math.sin(a)*ts*0.42 + 3); c.stroke();
+        }
+        c.fillStyle = '#6a4a2a';                              // cocos
+        c.beginPath(); c.arc(tx-2, ty+3, 2, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(tx+2, ty+3.5, 2, 0, Math.PI*2); c.fill();
+      } else {                                                // acácia de copa CHATA
+        c.strokeStyle = '#5a4028'; c.lineWidth = Math.max(2, ts*0.09); c.lineCap='round';
+        c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.95); c.lineTo(px+ts*0.44, py+ts*0.4); c.stroke();
+        c.lineWidth = Math.max(1.2, ts*0.045);
+        c.beginPath(); c.moveTo(px+ts*0.45, py+ts*0.5); c.lineTo(px+ts*0.22, py+ts*0.32); c.stroke();
+        c.beginPath(); c.moveTo(px+ts*0.45, py+ts*0.46); c.lineTo(px+ts*0.72, py+ts*0.3); c.stroke();
+        c.fillStyle = '#6a7a30'; c.beginPath();                // copa achatada
+        c.ellipse(px+ts*0.48, py+ts*0.26, ts*0.42, ts*0.13, 0, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#7a8a3a'; c.beginPath();
+        c.ellipse(px+ts*0.44, py+ts*0.21, ts*0.32, ts*0.09, 0, 0, Math.PI*2); c.fill();
+      }
+      return true; }
+    case '^': {                                               // rochedo
+      chao();
+      c.fillStyle = praia ? '#a89a88' : '#8a7a68'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.15); c.lineTo(px+ts*0.88, py+ts*0.85);
+      c.lineTo(px+ts*0.12, py+ts*0.85); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.18)'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.15); c.lineTo(px+ts*0.64, py+ts*0.5); c.lineTo(px+ts*0.4, py+ts*0.5); c.closePath(); c.fill();
+      return true; }
+    case 'Y': {                                               // cupinzeiro da savana
+      chao();
+      c.fillStyle = '#9a6a3a'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.1);
+      c.quadraticCurveTo(px+ts*0.78, py+ts*0.5, px+ts*0.7, py+ts*0.9);
+      c.lineTo(px+ts*0.3, py+ts*0.9);
+      c.quadraticCurveTo(px+ts*0.22, py+ts*0.5, px+ts*0.5, py+ts*0.1); c.fill();
+      c.fillStyle = 'rgba(60,40,20,0.5)';
+      c.beginPath(); c.arc(px+ts*0.45, py+ts*0.45, 1.6, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(px+ts*0.55, py+ts*0.65, 1.4, 0, Math.PI*2); c.fill();
+      return true; }
+    case '#': {                                               // casa de pescador: madeira + palha
+      c.fillStyle = '#8a6a44'; c.fillRect(px, py, ts, ts);
+      c.strokeStyle = '#5a4228'; c.lineWidth = 1;
+      for(let i=1;i<4;i++){ c.beginPath(); c.moveTo(px, py+ts*i/4); c.lineTo(px+ts, py+ts*i/4); c.stroke(); }
+      c.fillStyle = '#c9a86a';                                 // beiral de palha no topo
+      c.fillRect(px, py, ts, ts*0.22);
+      c.strokeStyle = '#a8854a';
+      for(let i=0;i<5;i++){ c.beginPath(); c.moveTo(px+ts*i/5+2, py); c.lineTo(px+ts*i/5, py+ts*0.22); c.stroke(); }
+      return true; }
+    case '=': {                                               // PÍER: tábuas sobre o mar
+      c.fillStyle = '#3a7a9a'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = '#9a7a4e'; c.fillRect(px+1, py, ts-2, ts);
+      c.strokeStyle = '#6a5232'; c.lineWidth = 1;
+      for(let i=1;i<4;i++){ c.beginPath(); c.moveTo(px+1, py+ts*i/4); c.lineTo(px+ts-1, py+ts*i/4); c.stroke(); }
+      c.fillStyle = 'rgba(40,28,16,0.6)';
+      c.fillRect(px+2, py+2, 2, 2); c.fillRect(px+ts-5, py+ts-5, 2, 2);
+      return true; }
+    case 'b': {                                               // barco encalhado
+      chao();
+      c.fillStyle = '#7a5232'; c.beginPath();
+      c.moveTo(px+ts*0.08, py+ts*0.4);
+      c.quadraticCurveTo(px+ts*0.5, py+ts*0.85, px+ts*0.92, py+ts*0.4);
+      c.lineTo(px+ts*0.8, py+ts*0.35); c.lineTo(px+ts*0.2, py+ts*0.35); c.closePath(); c.fill();
+      c.strokeStyle = '#4a3018'; c.lineWidth = 1.2; c.stroke();
+      c.strokeStyle = '#5a4228';
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.35); c.lineTo(px+ts*0.5, py+ts*0.08); c.stroke();
+      return true; }
+    case 'j': {                                               // rede de pesca armada
+      chao();
+      c.strokeStyle = '#5a4a30'; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(px+ts*0.15, py+ts*0.85); c.lineTo(px+ts*0.15, py+ts*0.2); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.85, py+ts*0.85); c.lineTo(px+ts*0.85, py+ts*0.2); c.stroke();
+      c.strokeStyle = 'rgba(220,210,180,0.7)'; c.lineWidth = 0.8;
+      for(let i=0;i<4;i++){
+        c.beginPath(); c.moveTo(px+ts*0.15, py+ts*(0.25+i*0.15));
+        c.quadraticCurveTo(px+ts*0.5, py+ts*(0.3+i*0.15), px+ts*0.85, py+ts*(0.25+i*0.15)); c.stroke();
+      }
+      for(let i=1;i<4;i++){ c.beginPath(); c.moveTo(px+ts*(0.15+i*0.175), py+ts*0.25); c.lineTo(px+ts*(0.15+i*0.175), py+ts*0.72); c.stroke(); }
+      return true; }
+    case 'F': {                                               // fogueira da vila (viva!)
+      chao();
+      c.fillStyle = '#6a5a48';
+      for(let i=0;i<5;i++){ const a2 = i*Math.PI*2/5;
+        c.beginPath(); c.arc(px+ts*0.5 + Math.cos(a2)*ts*0.24, py+ts*0.62 + Math.sin(a2)*ts*0.12, 2, 0, Math.PI*2); c.fill(); }
+      c.save(); c.globalCompositeOperation='lighter';
+      for(let i=0;i<3;i++){
+        const fl = 0.6 + 0.4*Math.sin(t/150 + i*2.1);
+        c.globalAlpha = 0.8*fl;
+        c.fillStyle = i===0 ? '#ffd070' : (i===1 ? '#ff9a30' : '#ff6a18');
+        c.beginPath();
+        c.moveTo(px+ts*0.38, py+ts*0.6);
+        c.quadraticCurveTo(px+ts*0.5 + Math.sin(t/120+i)*2, py+ts*(0.18 + i*0.08), px+ts*0.62, py+ts*0.6);
+        c.closePath(); c.fill();
+      }
+      c.restore();
+      return true; }
+  }
+  return false;
+}
+
+// ===========================================================================
+//  UMBRAVAL: a mata da NOITE ETERNA (escura, fria, e os cogumelos são as estrelas)
+// ===========================================================================
+function drawUmbravalTile(c, ch, px, py, ts, gx, gy){
+  const t = performance.now();
+  const chao = () => {
+    c.fillStyle = rng(gx,gy,1) > 0.5 ? '#141824' : '#10141e'; c.fillRect(px, py, ts, ts);
+    c.fillStyle = 'rgba(40,50,72,0.5)';
+    for(let i=0;i<2;i++) c.fillRect(px + rng(gx,gy,i+3)*ts, py + rng(gx,gy,i+6)*ts, 2, 1.3);
+  };
+  switch(ch){
+    case '.': case '+': chao(); return true;
+    case ',': {                                               // folhas mortas azuladas
+      chao();
+      c.fillStyle = 'rgba(60,70,110,0.55)';
+      for(let i=0;i<4;i++){
+        c.save(); c.translate(px + rng(gx,gy,i+10)*ts, py + rng(gx,gy,i+14)*ts);
+        c.rotate(rng(gx,gy,i+18)*6.28);
+        c.beginPath(); c.ellipse(0, 0, 2.4, 1.2, 0, 0, Math.PI*2); c.fill(); c.restore();
+      }
+      return true; }
+    case 'T': {                                               // árvore da noite: alta, densa, fria
+      chao();
+      c.strokeStyle = '#0a0c14'; c.lineWidth = Math.max(2.4, ts*0.13); c.lineCap='round';
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts); c.lineTo(px+ts*0.48, py+ts*0.3); c.stroke();
+      c.fillStyle = '#161c2e'; c.beginPath();                  // copa densa (camadas)
+      c.ellipse(px+ts*0.5, py+ts*0.3, ts*0.46, ts*0.34, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#1c2438'; c.beginPath();
+      c.ellipse(px+ts*0.42, py+ts*0.2, ts*0.3, ts*0.22, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#10141f'; c.beginPath();
+      c.ellipse(px+ts*0.62, py+ts*0.4, ts*0.26, ts*0.18, 0, 0, Math.PI*2); c.fill();
+      return true; }
+    case 'c': {                                               // COGUMELO LUMINOSO (a estrela do chão)
+      chao();
+      const gl = 0.55 + 0.45*Math.sin(t/700 + gx*3 + gy*5);
+      c.strokeStyle = '#c9d8e8'; c.lineWidth = Math.max(1.2, ts*0.05); c.lineCap='round';
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.8); c.lineTo(px+ts*0.5, py+ts*0.5); c.stroke();
+      c.save(); c.globalCompositeOperation='lighter';
+      c.globalAlpha = 0.5*gl;                                  // halo
+      const hg = c.createRadialGradient(px+ts*0.5, py+ts*0.45, 0, px+ts*0.5, py+ts*0.45, ts*0.55);
+      hg.addColorStop(0, '#6ad8ff'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = hg; c.beginPath(); c.arc(px+ts*0.5, py+ts*0.45, ts*0.55, 0, Math.PI*2); c.fill();
+      c.globalAlpha = 0.95;                                    // chapéu brilhante
+      c.fillStyle = gl > 0.7 ? '#8ae8ff' : '#5ac0ea';
+      c.beginPath(); c.ellipse(px+ts*0.5, py+ts*0.48, ts*0.2, ts*0.13, 0, Math.PI, 0); c.fill();
+      c.globalAlpha = 0.8*gl; c.fillStyle = '#d0f4ff';
+      c.beginPath(); c.arc(px+ts*0.44, py+ts*0.44, 1.2, 0, Math.PI*2); c.fill();
+      c.restore();
+      return true; }
+    case '^': {                                               // pedra com musgo frio
+      chao();
+      c.fillStyle = '#1e2434'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.2); c.lineTo(px+ts*0.85, py+ts*0.85);
+      c.lineTo(px+ts*0.15, py+ts*0.85); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(60,110,110,0.45)';
+      c.beginPath(); c.ellipse(px+ts*0.45, py+ts*0.7, ts*0.15, ts*0.06, 0, 0, Math.PI*2); c.fill();
+      return true; }
+  }
+  return false;
+}
+
+// ===========================================================================
+//  FAUNA DA COSTA: leão de juba, avestruz, caranguejo e medusa
+// ===========================================================================
+function drawLeao(c, sx, sy, ts, p){            // LEÃO ERMAL (e o MARAJÁ, o Leão Branco)
+  const t = performance.now();
+  const boss = (p.mtype === 'maraja');
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const d = _dirVec(p.facing || 'down'); const ang = Math.atan2(d[1], d[0]);
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.6 : Math.sin(t/700)*0.6;
+  const BODY = boss ? '#e8e0cc' : '#c9a05a';
+  const BODY2 = boss ? '#d0c6ae' : '#b08a48';
+  const MANE = boss ? '#f6f0e0' : '#7a5228';
+  const enr = p._enraged;
+  c.save();
+  if(boss && enr){
+    const pl = 0.3 + 0.14*Math.abs(Math.sin(t/220));
+    const au = c.createRadialGradient(cx, cy, ts*0.3, cx, cy, S*1.5);
+    au.addColorStop(0, 'rgba(255,220,140,'+pl+')'); au.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = au; c.fillRect(sx - ts, sy - ts, N*ts + ts*2, N*ts + ts*2);
+  }
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy+S*0.55, S*0.8, S*0.22, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy + bob); c.rotate(ang);
+  // cauda com tufo
+  const twl = Math.sin(t/420)*S*0.12;
+  c.strokeStyle = BODY2; c.lineWidth = Math.max(2, S*0.06); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.6, 0); c.quadraticCurveTo(-S*0.95, twl, -S*1.1, -S*0.12 + twl); c.stroke();
+  c.fillStyle = MANE; c.beginPath(); c.arc(-S*1.1, -S*0.12 + twl, S*0.07, 0, Math.PI*2); c.fill();
+  // patas musculosas
+  c.strokeStyle = BODY2; c.lineWidth = Math.max(2.6, S*0.1); c.lineCap='round';
+  const sw = moving ? Math.sin(cyc*Math.PI*2)*S*0.14 : 0;
+  c.beginPath(); c.moveTo(S*0.32, S*0.18); c.lineTo(S*0.4 + sw, S*0.42); c.stroke();
+  c.beginPath(); c.moveTo(S*0.32, -S*0.18); c.lineTo(S*0.4 - sw, -S*0.42); c.stroke();
+  c.beginPath(); c.moveTo(-S*0.42, S*0.18); c.lineTo(-S*0.5 - sw, S*0.42); c.stroke();
+  c.beginPath(); c.moveTo(-S*0.42, -S*0.18); c.lineTo(-S*0.5 + sw, -S*0.42); c.stroke();
+  // corpo felino com gradiente
+  const bg = c.createLinearGradient(-S*0.6, 0, S*0.6, 0);
+  bg.addColorStop(0, BODY2); bg.addColorStop(1, BODY);
+  c.fillStyle = bg; c.beginPath();
+  c.ellipse(-S*0.05, 0, S*0.62, S*0.3, 0, 0, Math.PI*2); c.fill();
+  // JUBA: coroa de tufos em volta da cabeça
+  const hx = S*0.5, hy = 0;
+  c.fillStyle = MANE;
+  for(let i=0;i<10;i++){
+    const a = i*Math.PI*2/10 + Math.sin(t/1600)*0.06;
+    const mr = S*(0.3 + (i%2)*0.06);
+    c.beginPath();
+    c.ellipse(hx + Math.cos(a)*mr*0.7, hy + Math.sin(a)*mr*0.7, S*0.14, S*0.1, a, 0, Math.PI*2); c.fill();
+  }
+  c.fillStyle = boss ? '#e0d6ba' : '#6a4620';                  // sombra interna da juba
+  c.beginPath(); c.arc(hx, hy, S*0.26, 0, Math.PI*2); c.fill();
+  // cabeça
+  c.fillStyle = BODY; c.beginPath(); c.ellipse(hx + S*0.05, hy, S*0.2, S*0.17, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = BODY2; c.beginPath(); c.ellipse(hx + S*0.18, hy, S*0.1, S*0.07, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#2a1c10'; c.beginPath(); c.arc(hx + S*0.26, hy, S*0.028, 0, Math.PI*2); c.fill();
+  // olhos
+  c.fillStyle = enr ? '#ff5a20' : (boss ? '#c9a030' : '#3a2a14');
+  c.beginPath(); c.arc(hx + S*0.1, -S*0.07, S*0.028, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(hx + S*0.1, S*0.07, S*0.028, 0, Math.PI*2); c.fill();
+  c.restore();
+  if(boss){
+    c.save(); c.font = '800 9px Cinzel, serif'; c.textAlign='center'; c.textBaseline='bottom';
+    const lbl = '👑 O LEÃO BRANCO', tw = c.measureText(lbl).width + 10, tagY = sy - 14;
+    c.fillStyle = 'rgba(30,24,8,0.92)'; roundRect(c, cx - tw/2, tagY-12, tw, 12, 3); c.fill();
+    c.fillStyle = '#f0e0a8'; c.fillText(lbl, cx, tagY-2); c.restore();
+  }
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawAvestruz(c, sx, sy, ts, p){        // AVESTRUZ BRAVA: bípede pescoçudo e furioso
+  const t = performance.now();
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*4))*2 : Math.sin(t/500)*0.8;
+  c.save();
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy+S*0.62, S*0.42, S*0.14, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy + bob);
+  // pernas COMPRIDAS (alterna no passo)
+  const st = moving ? Math.sin(cyc*Math.PI*4)*S*0.2 : 0;
+  c.strokeStyle = '#c9a878'; c.lineWidth = Math.max(1.8, S*0.05); c.lineCap='round';
+  c.beginPath(); c.moveTo(-S*0.08, S*0.12); c.lineTo(-S*0.12 + st, S*0.62); c.stroke();
+  c.beginPath(); c.moveTo(S*0.08, S*0.12); c.lineTo(S*0.12 - st, S*0.62); c.stroke();
+  // corpo bolota de penas
+  const bg = c.createRadialGradient(0, 0, 0, 0, 0, S*0.4);
+  bg.addColorStop(0, '#4a4048'); bg.addColorStop(1, '#2e2830');
+  c.fillStyle = bg; c.beginPath(); c.ellipse(0, 0, S*0.36, S*0.28, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#e8e0d8';                                     // penas brancas na cauda
+  c.beginPath(); c.ellipse(-S*0.3, 0, S*0.14, S*0.12, 0.4, 0, Math.PI*2); c.fill();
+  // pescoço LONGO oscilando + cabeça pequena
+  const nod = Math.sin(t/300)*S*0.06;
+  c.strokeStyle = '#d8b890'; c.lineWidth = Math.max(2, S*0.07);
+  c.beginPath(); c.moveTo(S*0.2, -S*0.1);
+  c.quadraticCurveTo(S*0.34, -S*0.5, S*0.3 + nod, -S*0.78); c.stroke();
+  c.fillStyle = '#d8b890'; c.beginPath(); c.arc(S*0.3 + nod, -S*0.82, S*0.1, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#e8a030';                                     // bico
+  c.beginPath(); c.moveTo(S*0.38 + nod, -S*0.84); c.lineTo(S*0.52 + nod, -S*0.8); c.lineTo(S*0.38 + nod, -S*0.77); c.closePath(); c.fill();
+  c.fillStyle = '#1a1410';                                     // olho bravo
+  c.beginPath(); c.arc(S*0.32 + nod, -S*0.85, S*0.025, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#1a1410'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(S*0.26 + nod, -S*0.9); c.lineTo(S*0.36 + nod, -S*0.87); c.stroke();
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawCaranguejo(c, sx, sy, ts, p){      // CARANGUEJO GIGANTE: casco e GARRAS
+  const t = performance.now();
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const bob = Math.sin(t/600 + (p.x||0)) * S*0.03;
+  const snip = 0.14 + 0.12*Math.sin(t/280);                    // pinças abrindo/fechando
+  c.save();
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, cy+S*0.42, S*0.7, S*0.18, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy + bob);
+  // 6 perninhas articuladas
+  c.strokeStyle = '#a84a2e'; c.lineWidth = Math.max(1.8, S*0.055); c.lineCap='round';
+  for(const sgn of [-1, 1]) for(let i=0;i<3;i++){
+    const a = sgn * (0.5 + i*0.42);
+    const kx = Math.cos(a)*S*0.42*sgn* (sgn>0?1:-1), ky = Math.sin(Math.abs(a))*S*0.3 * (i-1>=0?1:1);
+    const bx2 = sgn*S*(0.34 + i*0.05), by2 = S*(0.05 + i*0.1) * (1);
+    const wig = Math.sin(t/240 + i*2 + (sgn>0?0:3))*S*0.05;
+    c.beginPath(); c.moveTo(sgn*S*0.3, S*(0.02 + i*0.08));
+    c.lineTo(sgn*S*0.55, S*(0.12 + i*0.12) + wig);
+    c.lineTo(sgn*S*0.68, S*(0.3 + i*0.1) + wig); c.stroke();
+  }
+  // casco oval com gradiente
+  const bg = c.createRadialGradient(-S*0.1, -S*0.12, 0, 0, 0, S*0.55);
+  bg.addColorStop(0, '#e06840'); bg.addColorStop(0.7, '#c04a28'); bg.addColorStop(1, '#8a2e18');
+  c.fillStyle = bg; c.beginPath(); c.ellipse(0, 0, S*0.46, S*0.34, 0, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#5a1c0e'; c.lineWidth = 1.2; c.stroke();
+  c.strokeStyle = 'rgba(90,28,14,0.6)';                        // marcas do casco
+  c.beginPath(); c.arc(0, -S*0.04, S*0.22, Math.PI*0.2, Math.PI*0.8); c.stroke();
+  c.beginPath(); c.arc(0, S*0.04, S*0.3, Math.PI*1.25, Math.PI*1.75); c.stroke();
+  // GARRAS enormes (abrindo e fechando)
+  for(const sgn of [-1, 1]){
+    const gx2 = sgn*S*0.52, gy2 = -S*0.22;
+    c.strokeStyle = '#a84a2e'; c.lineWidth = Math.max(2.2, S*0.07);
+    c.beginPath(); c.moveTo(sgn*S*0.3, -S*0.14); c.lineTo(gx2, gy2); c.stroke();
+    c.fillStyle = '#d05830';
+    c.save(); c.translate(gx2, gy2); c.rotate(sgn * -0.5);
+    c.beginPath(); c.ellipse(0, 0, S*0.18, S*0.13, 0, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#5a1c0e'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = '#e8784a';                                   // dedos da pinça
+    c.beginPath(); c.moveTo(S*0.05, -S*0.05);
+    c.quadraticCurveTo(sgn>0? S*0.3 : S*0.3, -S*(0.12+snip), S*0.32, -S*(0.02+snip*0.5));
+    c.lineTo(S*0.12, S*0.0); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(S*0.05, S*0.05);
+    c.quadraticCurveTo(S*0.3, S*(0.12+snip), S*0.32, S*(0.02+snip*0.5));
+    c.lineTo(S*0.12, 0); c.closePath(); c.fill();
+    c.restore();
+  }
+  // olhinhos em haste
+  c.strokeStyle = '#5a1c0e'; c.lineWidth = Math.max(1.2, S*0.03);
+  c.beginPath(); c.moveTo(-S*0.1, -S*0.3); c.lineTo(-S*0.12, -S*0.44); c.stroke();
+  c.beginPath(); c.moveTo(S*0.1, -S*0.3); c.lineTo(S*0.12, -S*0.44); c.stroke();
+  c.fillStyle = '#1a0e08';
+  c.beginPath(); c.arc(-S*0.12, -S*0.46, S*0.04, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(S*0.12, -S*0.46, S*0.04, 0, Math.PI*2); c.fill();
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+function drawMedusa(c, sx, sy, ts, p){          // MEDUSA DE AREIA: cúpula translúcida pulsante
+  const t = performance.now();
+  const N = p.size || 1, S = ts * Math.max(N, 1.4) * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const puls = 0.9 + 0.12*Math.sin(t/500 + (p.x||0));
+  const hover = Math.sin(t/700)*S*0.05;
+  c.save();
+  c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(cx, cy+S*0.5, S*0.45, S*0.12, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy + hover);
+  // tentáculos ondulando
+  c.lineCap='round';
+  for(let i=0;i<6;i++){
+    const bx2 = (i-2.5)*S*0.14;
+    const wig = Math.sin(t/260 + i*1.2)*S*0.08;
+    c.strokeStyle = i%2 ? 'rgba(160,110,200,0.7)' : 'rgba(120,150,220,0.7)';
+    c.lineWidth = Math.max(1.2, S*0.035);
+    c.beginPath(); c.moveTo(bx2, S*0.05);
+    c.quadraticCurveTo(bx2 + wig, S*0.3, bx2 + wig*1.8, S*0.52); c.stroke();
+  }
+  // cúpula translúcida (pulsando)
+  c.save(); c.globalAlpha = 0.85;
+  const bg = c.createRadialGradient(0, -S*0.12, 0, 0, -S*0.05, S*0.42*puls);
+  bg.addColorStop(0, 'rgba(200,170,240,0.9)');
+  bg.addColorStop(0.7, 'rgba(140,110,210,0.75)');
+  bg.addColorStop(1, 'rgba(90,80,180,0.35)');
+  c.fillStyle = bg; c.beginPath();
+  c.ellipse(0, -S*0.05, S*0.4*puls, S*0.3*puls, 0, Math.PI, 0); c.fill();
+  c.beginPath(); c.ellipse(0, -S*0.05, S*0.4*puls, S*0.1*puls, 0, 0, Math.PI); c.fill();
+  c.restore();
+  // brilho interno venenoso
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.4 + 0.3*Math.sin(t/380);
+  c.fillStyle = '#c9a0ff'; c.beginPath();
+  c.ellipse(0, -S*0.1, S*0.14, S*0.09, 0, 0, Math.PI*2); c.fill(); c.restore();
+  // pontinhos na borda da cúpula
+  c.fillStyle = 'rgba(230,210,255,0.8)';
+  for(let i=0;i<5;i++){ const a = Math.PI + i*Math.PI/4;
+    c.beginPath(); c.arc(Math.cos(a)*S*0.38*puls, -S*0.05 + Math.sin(a)*S*0.26*puls, 1.1, 0, Math.PI*2); c.fill(); }
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+// ===========================================================================
+//  VÉSPERA, A CIDADE MORTA: calçamento rachado, ruínas góticas, lampiões mortos
+// ===========================================================================
+var worldNodes = [];
+
+function drawVesperaTile(c, ch, px, py, ts, gx, gy){
+  const t = performance.now();
+  const chao = () => {
+    c.fillStyle = rng(gx,gy,1) > 0.5 ? '#2a2430' : '#241f2a'; c.fillRect(px, py, ts, ts);
+    c.strokeStyle = 'rgba(12,10,16,0.7)'; c.lineWidth = 1;      // juntas do calçamento
+    if(rng(gx,gy,2) > 0.5){ c.beginPath(); c.moveTo(px, py+ts/2); c.lineTo(px+ts, py+ts/2); c.stroke(); }
+    if(rng(gx,gy,3) > 0.5){ c.beginPath(); c.moveTo(px+ts/2, py); c.lineTo(px+ts/2, py+ts); c.stroke(); }
+    if(rng(gx,gy,4) > 0.82){                                    // rachadura
+      c.strokeStyle = 'rgba(10,8,12,0.9)';
+      c.beginPath(); c.moveTo(px+rng(gx,gy,5)*ts, py);
+      c.lineTo(px+rng(gx,gy,6)*ts, py+ts*0.6); c.lineTo(px+rng(gx,gy,7)*ts, py+ts); c.stroke();
+    }
+  };
+  switch(ch){
+    case '.': case '+': chao(); return true;
+    case ',': {                                                 // entulho
+      chao();
+      c.fillStyle = 'rgba(70,60,80,0.7)';
+      for(let i=0;i<4;i++) c.fillRect(px+rng(gx,gy,i+8)*ts, py+rng(gx,gy,i+12)*ts, 2.4, 1.8);
+      return true; }
+    case 'd': {                                                 // cinza acumulada
+      c.fillStyle = '#332c38'; c.fillRect(px, py, ts, ts);
+      c.fillStyle = 'rgba(90,80,100,0.4)';
+      c.beginPath(); c.ellipse(px+ts*0.5, py+ts*0.55, ts*0.32, ts*0.18, 0, 0, Math.PI*2); c.fill();
+      return true; }
+    case '#': {                                                 // parede gótica arruinada
+      c.fillStyle = '#3c3444'; c.fillRect(px, py, ts, ts);
+      c.strokeStyle = '#241f2a'; c.lineWidth = 1;               // blocos de pedra
+      for(let i=1;i<3;i++){ c.beginPath(); c.moveTo(px, py+ts*i/3); c.lineTo(px+ts, py+ts*i/3); c.stroke(); }
+      c.beginPath(); c.moveTo(px+ts*0.5, py); c.lineTo(px+ts*0.5, py+ts/3); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.25, py+ts/3); c.lineTo(px+ts*0.25, py+ts*2/3); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.75, py+ts/3); c.lineTo(px+ts*0.75, py+ts*2/3); c.stroke();
+      c.fillStyle = 'rgba(140,40,60,0.10)';                     // mancha antiga
+      if(rng(gx,gy,9) > 0.7) c.fillRect(px, py+ts*0.5, ts, ts*0.5);
+      c.fillStyle = 'rgba(255,255,255,0.05)'; c.fillRect(px, py, ts, 2);
+      return true; }
+    case '^': {                                                 // escombro
+      chao();
+      c.fillStyle = '#443a4c'; c.beginPath();
+      c.moveTo(px+ts*0.5, py+ts*0.25); c.lineTo(px+ts*0.82, py+ts*0.82);
+      c.lineTo(px+ts*0.18, py+ts*0.82); c.closePath(); c.fill();
+      c.fillStyle = '#332c38'; c.beginPath();
+      c.moveTo(px+ts*0.3, py+ts*0.5); c.lineTo(px+ts*0.5, py+ts*0.82); c.lineTo(px+ts*0.12, py+ts*0.82);
+      c.closePath(); c.fill();
+      return true; }
+    case 'T': {                                                 // árvore morta retorcida
+      chao();
+      c.strokeStyle = '#1a1620'; c.lineWidth = Math.max(2, ts*0.09); c.lineCap='round';
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.95);
+      c.quadraticCurveTo(px+ts*0.4, py+ts*0.5, px+ts*0.55, py+ts*0.2); c.stroke();
+      c.lineWidth = Math.max(1.2, ts*0.045);
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.5); c.lineTo(px+ts*0.22, py+ts*0.26); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.52, py+ts*0.38); c.lineTo(px+ts*0.8, py+ts*0.18); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.55, py+ts*0.2); c.lineTo(px+ts*0.62, py+ts*0.06); c.stroke();
+      return true; }
+    case 'Y': {                                                 // lampião apagado
+      chao();
+      c.strokeStyle = '#1c1824'; c.lineWidth = Math.max(1.6, ts*0.06); c.lineCap='round';
+      c.beginPath(); c.moveTo(px+ts*0.5, py+ts*0.9); c.lineTo(px+ts*0.5, py+ts*0.2); c.stroke();
+      c.strokeStyle = '#2a2432'; c.lineWidth = 1.4;
+      c.strokeRect(px+ts*0.38, py+ts*0.08, ts*0.24, ts*0.2);
+      const flick = rng(gx,gy,10) > 0.85 && Math.sin(t/900 + gx*7) > 0.92;
+      c.fillStyle = flick ? 'rgba(255,180,90,0.8)' : 'rgba(30,26,40,0.9)';
+      c.fillRect(px+ts*0.41, py+ts*0.11, ts*0.18, ts*0.14);
+      return true; }
+    case 'b': {                                                 // carroça quebrada
+      chao();
+      c.fillStyle = '#2e2836'; c.fillRect(px+ts*0.15, py+ts*0.35, ts*0.7, ts*0.3);
+      c.strokeStyle = '#1a1620'; c.lineWidth = 1.4;
+      c.beginPath(); c.arc(px+ts*0.3, py+ts*0.7, ts*0.14, 0, Math.PI*2); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.62, py+ts*0.65); c.lineTo(px+ts*0.78, py+ts*0.85); c.stroke();
+      c.beginPath(); c.moveTo(px+ts*0.78, py+ts*0.65); c.lineTo(px+ts*0.62, py+ts*0.85); c.stroke();
+      return true; }
+    case 'W': {                                                 // água parada da fonte
+      c.fillStyle = '#141020'; c.fillRect(px, py, ts, ts);
+      const sh = 0.15 + 0.1*Math.sin(t/1600 + gx);
+      c.fillStyle = 'rgba(120,60,80,'+sh+')';
+      c.beginPath(); c.ellipse(px+ts/2, py+ts/2, ts*0.34, ts*0.22, 0, 0, Math.PI*2); c.fill();
+      return true; }
+  }
+  return false;
+}
+
+// ===========================================================================
+//  OS VAMPIROS DE VÉSPERA (cria / nobre / ancião)
+// ===========================================================================
+function drawVampiro(c, sx, sy, ts, p){
+  const t = performance.now();
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const tipo = p.mtype === 'vampiro_anciao' ? 2 : (p.mtype === 'vampiro_nobre' ? 1 : 0);
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const hover = tipo === 2 ? Math.sin(t/600)*S*0.06 - S*0.08 : 0;   // o ancião LEVITA
+  const bob = tipo === 2 ? hover : (moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*1.5 : Math.sin(t/800)*0.5);
+  const PELE = '#ddd6cf', CAPA = tipo===2 ? '#2a1020' : (tipo===1 ? '#3a1428' : '#241220');
+  const FORRO = tipo===2 ? '#8a1830' : '#6a1428';
+  c.save();
+  c.fillStyle='rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(cx, cy+S*0.6, S*0.5, S*0.16, 0, 0, Math.PI*2); c.fill();
+  if(tipo === 2){                                              // aura de sangue do ancião
+    const pl = 0.16 + 0.1*Math.abs(Math.sin(t/300));
+    const au = c.createRadialGradient(cx, cy, S*0.2, cx, cy, S*1.2);
+    au.addColorStop(0, 'rgba(200,30,50,'+pl+')'); au.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = au; c.fillRect(sx - ts, sy - ts, N*ts + ts*2, N*ts + ts*2);
+  }
+  c.translate(cx, cy + bob);
+  // CAPA de gola alta (a silhueta do vampiro)
+  const sway = Math.sin(t/700 + (p.x||0))*S*0.05;
+  c.fillStyle = CAPA; c.beginPath();
+  c.moveTo(-S*0.34, -S*0.34);
+  c.quadraticCurveTo(-S*(0.5+0.06*(tipo>0?1:0)) + sway, S*0.1, -S*0.4 + sway, S*0.58);
+  c.lineTo(S*0.4 - sway, S*0.58);
+  c.quadraticCurveTo(S*(0.5) - sway, S*0.1, S*0.34, -S*0.34);
+  c.closePath(); c.fill();
+  c.fillStyle = FORRO; c.beginPath();                          // forro vermelho aparecendo
+  c.moveTo(-S*0.2, -S*0.1); c.lineTo(0, S*0.5); c.lineTo(S*0.2, -S*0.1); c.closePath(); c.fill();
+  // corpo/traje
+  c.fillStyle = tipo===0 ? '#2a2028' : '#1c1420';
+  c.fillRect(-S*0.18, -S*0.24, S*0.36, S*0.62);
+  if(tipo >= 1){                                               // nobre: botões e cinto
+    c.fillStyle = '#c9a860';
+    for(let i=0;i<3;i++){ c.beginPath(); c.arc(0, -S*0.1 + i*S*0.14, S*0.02, 0, Math.PI*2); c.fill(); }
+  }
+  // GOLA ALTA
+  c.fillStyle = CAPA;
+  c.beginPath(); c.moveTo(-S*0.3, -S*0.3); c.lineTo(-S*0.14, -S*0.52); c.lineTo(-S*0.08, -S*0.3); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.3, -S*0.3); c.lineTo(S*0.14, -S*0.52); c.lineTo(S*0.08, -S*0.3); c.closePath(); c.fill();
+  // cabeça pálida
+  c.fillStyle = PELE; c.beginPath(); c.ellipse(0, -S*0.42, S*0.15, S*0.17, 0, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#1a1016';                                     // cabelo puxado
+  c.beginPath(); c.ellipse(0, -S*0.52, S*0.15, S*0.09, 0, Math.PI, 0); c.fill();
+  if(tipo===2){ c.beginPath(); c.moveTo(-S*0.15,-S*0.52); c.lineTo(0,-S*0.63); c.lineTo(S*0.15,-S*0.52); c.closePath(); c.fill(); }
+  // olhos vermelhos brilhando
+  const gl = 0.6 + 0.4*Math.sin(t/400);
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = gl;
+  c.fillStyle = '#ff2a40';
+  c.beginPath(); c.arc(-S*0.06, -S*0.44, S*0.022, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(S*0.06, -S*0.44, S*0.022, 0, Math.PI*2); c.fill();
+  c.restore();
+  // PRESAS
+  c.fillStyle = '#f6f2ea';
+  c.beginPath(); c.moveTo(-S*0.05, -S*0.36); c.lineTo(-S*0.03, -S*0.3); c.lineTo(-S*0.01, -S*0.36); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.05, -S*0.36); c.lineTo(S*0.03, -S*0.3); c.lineTo(S*0.01, -S*0.36); c.closePath(); c.fill();
+  // detalhes por tipo
+  if(tipo === 0){                                              // cria: garras compridas caídas
+    c.strokeStyle = PELE; c.lineWidth = Math.max(1.4, S*0.035); c.lineCap='round';
+    for(const sgn of [-1,1]){
+      c.beginPath(); c.moveTo(sgn*S*0.26, S*0.0); c.lineTo(sgn*S*0.38, S*0.3); c.stroke();
+      for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(sgn*S*0.38, S*0.3);
+        c.lineTo(sgn*(S*0.34 + i*S*0.04), S*0.42); c.stroke(); }
+    }
+  } else if(tipo === 1){                                       // nobre: florete
+    c.strokeStyle = '#c9d0d8'; c.lineWidth = Math.max(1.6, S*0.04); c.lineCap='round';
+    c.beginPath(); c.moveTo(S*0.3, S*0.05); c.lineTo(S*0.62, -S*0.4); c.stroke();
+    c.fillStyle = '#c9a860'; c.beginPath(); c.arc(S*0.3, S*0.05, S*0.05, 0, Math.PI*2); c.fill();
+  } else {                                                     // ancião: mão erguida com brasa de sangue
+    c.strokeStyle = PELE; c.lineWidth = Math.max(1.6, S*0.04); c.lineCap='round';
+    c.beginPath(); c.moveTo(-S*0.26, -S*0.05); c.lineTo(-S*0.48, -S*0.34); c.stroke();
+    c.save(); c.globalCompositeOperation='lighter';
+    const org = c.createRadialGradient(-S*0.5, -S*0.4, 0, -S*0.5, -S*0.4, S*0.16);
+    org.addColorStop(0, 'rgba(255,60,80,0.9)'); org.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = org; c.beginPath(); c.arc(-S*0.5, -S*0.4, S*0.16, 0, Math.PI*2); c.fill();
+    c.restore();
+  }
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+// ===========================================================================
+//  OS LOBISOMENS DO UMBRAVAL (ferino / uivador / ancestral)
+// ===========================================================================
+function drawLobisomem(c, sx, sy, ts, p){
+  const t = performance.now();
+  const N = p.size || 2, S = ts * N * 0.5;
+  const cx = sx + N*ts/2, cy = sy + N*ts/2;
+  const tipo = p.mtype === 'lobisomem_ancestral' ? 2 : (p.mtype === 'lobisomem_uivador' ? 1 : 0);
+  const PELO = tipo===2 ? '#3a3648' : (tipo===1 ? '#2e2a3a' : '#46405a');
+  const PELO2 = tipo===2 ? '#55506a' : (tipo===1 ? '#443e52' : '#5c5474');
+  const moving = !!p._moving;
+  const cyc = ((p.walk||0) % WALK_CYCLE) / WALK_CYCLE;
+  const bob = moving ? -Math.abs(Math.sin(cyc*Math.PI*2))*2 : Math.sin(t/500)*0.8;
+  const breath = 1 + 0.03*Math.sin(t/380);
+  c.save();
+  c.fillStyle='rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(cx, cy+S*0.6, S*0.55, S*0.16, 0, 0, Math.PI*2); c.fill();
+  c.translate(cx, cy + bob);
+  // pernas digitígradas (joelho invertido)
+  const st = moving ? Math.sin(cyc*Math.PI*2)*S*0.12 : 0;
+  c.strokeStyle = PELO; c.lineWidth = Math.max(2.6, S*0.09); c.lineCap='round';
+  for(const sgn of [-1,1]){
+    c.beginPath(); c.moveTo(sgn*S*0.16, S*0.1);
+    c.lineTo(sgn*S*0.3 + st*sgn, S*0.34);
+    c.lineTo(sgn*S*0.22 + st*sgn, S*0.58); c.stroke();
+  }
+  // cauda
+  c.beginPath(); c.moveTo(-S*0.22, S*0.05);
+  c.quadraticCurveTo(-S*0.5, S*0.1 + Math.sin(t/420)*S*0.06, -S*0.6, S*0.3); c.stroke();
+  // torso curvado pra frente, PELAGEM ERIÇADA
+  c.save(); c.scale(breath, breath);
+  const bg = c.createLinearGradient(0, -S*0.5, 0, S*0.3);
+  bg.addColorStop(0, PELO2); bg.addColorStop(1, PELO);
+  c.fillStyle = bg; c.beginPath();
+  c.moveTo(-S*0.3, S*0.15);
+  c.quadraticCurveTo(-S*0.36, -S*0.3, -S*0.05, -S*0.44);
+  c.quadraticCurveTo(S*0.3, -S*0.5, S*0.34, -S*0.15);
+  c.quadraticCurveTo(S*0.34, S*0.15, 0, S*0.24);
+  c.closePath(); c.fill();
+  c.fillStyle = PELO;                                          // espinhos de pelo nas costas
+  for(let i=0;i<5;i++){
+    const bx2 = -S*0.28 + i*S*0.12, by2 = -S*0.28 - i*S*0.03;
+    c.beginPath(); c.moveTo(bx2, by2); c.lineTo(bx2+S*0.05, by2-S*0.14); c.lineTo(bx2+S*0.1, by2); c.closePath(); c.fill();
+  }
+  c.restore();
+  // braços LONGOS com garras
+  c.strokeStyle = PELO2; c.lineWidth = Math.max(2.4, S*0.08); c.lineCap='round';
+  const rag = Math.sin(t/300)*S*0.03;
+  for(const sgn of [-1,1]){
+    c.beginPath(); c.moveTo(sgn*S*0.24, -S*0.2);
+    c.lineTo(sgn*S*0.44, S*0.05 + rag);
+    c.lineTo(sgn*S*0.4, S*0.34 + rag); c.stroke();
+    c.strokeStyle = '#e8e2d8'; c.lineWidth = Math.max(1.2, S*0.03);
+    for(let i=0;i<3;i++){
+      c.beginPath(); c.moveTo(sgn*S*0.4, S*0.34 + rag);
+      c.lineTo(sgn*(S*0.36 + i*S*0.05), S*0.46 + rag); c.stroke();
+    }
+    c.strokeStyle = PELO2; c.lineWidth = Math.max(2.4, S*0.08);
+  }
+  // cabeça lupina: focinho, orelhas, olhos amarelos
+  const hy = -S*0.5, howl = tipo===1 && Math.sin(t/2400) > 0.55;   // o uivador UIVA
+  c.save(); c.translate(S*0.08, hy); if(howl) c.rotate(-0.5);
+  c.fillStyle = PELO2; c.beginPath(); c.ellipse(0, 0, S*0.18, S*0.15, 0, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.moveTo(S*0.1, -S*0.02);                     // focinho
+  c.lineTo(S*0.34, S*0.02); c.lineTo(S*0.1, S*0.1); c.closePath(); c.fill();
+  c.fillStyle = '#14101c'; c.beginPath(); c.arc(S*0.33, S*0.02, S*0.03, 0, Math.PI*2); c.fill();
+  c.fillStyle = PELO;                                          // orelhas
+  c.beginPath(); c.moveTo(-S*0.1, -S*0.1); c.lineTo(-S*0.16, -S*0.3); c.lineTo(-S*0.0, -S*0.14); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(S*0.02, -S*0.12); c.lineTo(S*0.02, -S*0.3); c.lineTo(S*0.12, -S*0.13); c.closePath(); c.fill();
+  const gl = 0.6 + 0.4*Math.sin(t/350);                        // olhos amarelos
+  c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = gl;
+  c.fillStyle = tipo===2 ? '#ffd040' : '#e8c030';
+  c.beginPath(); c.arc(0, -S*0.04, S*0.024, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(S*0.09, -S*0.03, S*0.022, 0, Math.PI*2); c.fill();
+  c.restore();
+  if(howl){                                                    // dentes no uivo
+    c.fillStyle = '#f0ead8';
+    c.beginPath(); c.moveTo(S*0.14, S*0.06); c.lineTo(S*0.18, S*0.12); c.lineTo(S*0.22, S*0.06); c.closePath(); c.fill();
+  }
+  c.restore();
+  if(tipo === 2){                                              // ancestral: cicatriz de lua no peito
+    c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.5 + 0.3*Math.sin(t/500);
+    c.strokeStyle = '#c9d8ff'; c.lineWidth = Math.max(1.4, S*0.035);
+    c.beginPath(); c.arc(0, -S*0.1, S*0.12, Math.PI*0.3, Math.PI*1.4); c.stroke();
+    c.restore();
+  }
+  c.restore();
+  drawMonsterBarName(c, sx, sy, ts, p);
+}
+
+// ===========================================================================
+//  NODES DE COLETA: veios, árvores nobres e ervas (as fontes das profissões)
+// ===========================================================================
+function drawNode(c, sx, sy, ts, nd, now){
+  const t = now || performance.now();
+  const cx = sx + ts/2, cy = sy + ts/2;
+  const dep = nd.depleted;
+  const tipo = nd.type;
+  c.save();
+  c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(cx, sy+ts*0.85, ts*0.36, ts*0.1, 0, 0, Math.PI*2); c.fill();
+  if(tipo.startsWith('veio_')){                                // VEIO: rocha com cristais
+    const cor = tipo==='veio_ferro' ? '#b06a50' : (tipo==='veio_prata' ? '#d8e0e8' : '#7a6ae8');
+    c.fillStyle = '#4a4450'; c.beginPath();
+    c.moveTo(cx, sy+ts*0.2); c.lineTo(sx+ts*0.88, sy+ts*0.62); c.lineTo(sx+ts*0.76, sy+ts*0.88);
+    c.lineTo(sx+ts*0.22, sy+ts*0.88); c.lineTo(sx+ts*0.1, sy+ts*0.56); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.1)'; c.beginPath();
+    c.moveTo(cx, sy+ts*0.2); c.lineTo(sx+ts*0.68, sy+ts*0.45); c.lineTo(sx+ts*0.4, sy+ts*0.5); c.closePath(); c.fill();
+    if(!dep){
+      const gl = 0.55 + 0.45*Math.sin(t/600 + nd.x*3);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = gl;
+      c.fillStyle = cor;
+      for(const [dx2, dy2, r] of [[0.35,0.55,0.09],[0.58,0.62,0.07],[0.48,0.74,0.06]]){
+        c.save(); c.translate(sx+ts*dx2, sy+ts*dy2); c.rotate(0.6);
+        c.beginPath(); c.moveTo(0,-ts*r); c.lineTo(ts*r*0.6,0); c.lineTo(0,ts*r); c.lineTo(-ts*r*0.6,0);
+        c.closePath(); c.fill(); c.restore();
+      }
+      c.restore();
+    }
+  } else if(tipo.startsWith('arvore_')){                       // ÁRVORE NOBRE: copa com aura
+    const cor = tipo==='arvore_carvalho' ? '#5a8a3a' : (tipo==='arvore_rubra' ? '#c05838' : '#3a4a8a');
+    if(dep){                                                   // esgotada: só o toco
+      c.fillStyle = '#5a4a34'; c.beginPath();
+      c.ellipse(cx, sy+ts*0.7, ts*0.2, ts*0.12, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#8a7050'; c.beginPath();
+      c.ellipse(cx, sy+ts*0.66, ts*0.16, ts*0.09, 0, 0, Math.PI*2); c.fill();
+    } else {
+      c.strokeStyle = '#4a3a26'; c.lineWidth = Math.max(2.4, ts*0.11); c.lineCap='round';
+      c.beginPath(); c.moveTo(cx, sy+ts*0.9); c.lineTo(cx-ts*0.03, sy+ts*0.34); c.stroke();
+      const sw2 = Math.sin(t/1300 + nd.x)*0.03;
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.25 + 0.15*Math.sin(t/700+nd.y);
+      const au = c.createRadialGradient(cx, sy+ts*0.3, 0, cx, sy+ts*0.3, ts*0.5);
+      au.addColorStop(0, cor); au.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = au; c.beginPath(); c.arc(cx, sy+ts*0.3, ts*0.5, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.fillStyle = cor; c.beginPath();
+      c.ellipse(cx-ts*0.03, sy+ts*0.28, ts*0.34*(1+sw2), ts*0.26, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.14)'; c.beginPath();
+      c.ellipse(cx-ts*0.12, sy+ts*0.2, ts*0.16, ts*0.11, 0, 0, Math.PI*2); c.fill();
+    }
+  } else {                                                     // ERVA / MOITA: tufo brilhante
+    const cor = tipo==='erva_solar' ? '#e8c840' : (tipo==='erva_lunar' ? '#a0c0e8' : '#c9b868');
+    if(dep){
+      c.strokeStyle = '#5a5244'; c.lineWidth = 1.4; c.lineCap='round';
+      for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(cx-4+i*4, sy+ts*0.8);
+        c.lineTo(cx-4+i*4, sy+ts*0.68); c.stroke(); }
+    } else {
+      const gl = 0.5 + 0.5*Math.sin(t/650 + nd.x*2);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.3*gl;
+      const au = c.createRadialGradient(cx, sy+ts*0.6, 0, cx, sy+ts*0.6, ts*0.42);
+      au.addColorStop(0, cor); au.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = au; c.beginPath(); c.arc(cx, sy+ts*0.6, ts*0.42, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.strokeStyle = cor; c.lineWidth = Math.max(1.4, ts*0.05); c.lineCap='round';
+      const sw3 = Math.sin(t/900 + nd.y)*2;
+      for(let i=0;i<5;i++){
+        const bx2 = cx - ts*0.2 + i*ts*0.1;
+        c.beginPath(); c.moveTo(bx2, sy+ts*0.85);
+        c.quadraticCurveTo(bx2 + sw3, sy+ts*0.6, bx2 + sw3*1.4, sy+ts*0.44 - (i%2)*3); c.stroke();
+      }
+      c.fillStyle = cor;
+      c.beginPath(); c.arc(cx + sw3, sy+ts*0.42, 1.8, 0, Math.PI*2); c.fill();
+    }
+  }
+  c.restore();
+}
+
+// ===========================================================================
+//  BANCADA DE CRIAÇÃO (profissões): modal autocontido
+// ===========================================================================
+function openCraft(pl){
+  const RCOL = (typeof RARITY_COL !== 'undefined') ? RARITY_COL : { comum:'#cfd6dd', raro:'#6db3ff', epico:'#c98aff', lendario:'#ffb84a' };
+  let m = document.getElementById('craftModal');
+  if(m) m.remove();
+  m = document.createElement('div');
+  m.id = 'craftModal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:260;display:flex;align-items:center;justify-content:center;background:rgba(6,8,14,0.72);backdrop-filter:blur(3px);font-family:inherit;';
+  const lvlPct = pl.next_xp ? Math.min(100, Math.round((pl.xp % 120) / 1.2)) : 100;
+  let h = '<div style="width:min(480px,94vw);max-height:86vh;overflow:auto;background:#151a26;border:1px solid #3a4a66;border-radius:14px;padding:16px 16px 12px;box-shadow:0 18px 60px rgba(0,0,0,.6);">';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">';
+  h += '<div style="font-size:26px;">' + pl.icon + '</div>';
+  h += '<div style="flex:1;"><div style="font-weight:800;font-size:17px;color:#f0e8d8;">' + pl.name + ' — nível ' + pl.level + '</div>';
+  h += '<div style="font-size:11px;color:#9aa8c0;">' + pl.master + ' te observa trabalhar</div></div>';
+  h += '<button onclick="document.getElementById(\'craftModal\').remove()" style="background:none;border:none;color:#8a97b0;font-size:22px;cursor:pointer;">✕</button></div>';
+  h += '<div style="height:7px;background:#0e1220;border-radius:4px;overflow:hidden;margin:6px 0 12px;">';
+  h += '<div style="height:100%;width:' + lvlPct + '%;background:linear-gradient(90deg,#6db3ff,#c98aff);"></div></div>';
+  for(const r of pl.recipes){
+    const cor = RCOL[r.rarity] || '#cfd6dd';
+    const trava = pl.level < r.lvl;
+    h += '<div style="border:1px solid ' + (r.can ? '#3a5a3a' : '#2a3348') + ';border-radius:10px;padding:10px;margin-bottom:8px;background:#101522;' + (trava ? 'opacity:.55;' : '') + '">';
+    h += '<div style="display:flex;align-items:center;gap:8px;">';
+    h += '<div style="flex:1;font-weight:700;color:' + cor + ';">' + r.name + (trava ? ' <span style="font-size:10px;color:#c07a5a;">(nível ' + r.lvl + ')</span>' : '') + '</div>';
+    h += '<button ' + (r.can ? '' : 'disabled ') + 'onclick="socket.emit(\'craft_make\',{prof:\'' + pl.prof + '\',out:\'' + r.out + '\'})" style="padding:6px 14px;border-radius:8px;border:none;font-weight:800;cursor:' + (r.can ? 'pointer' : 'default') + ';background:' + (r.can ? 'linear-gradient(180deg,#6db36d,#3f7a44)' : '#242c3e') + ';color:' + (r.can ? '#0c1408' : '#5a6680') + ';">Craftar</button></div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;">';
+    for(const ing of r.need){
+      const ok = ing.have >= ing.qty;
+      h += '<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:#0c1120;border:1px solid ' + (ok ? '#2f4a30' : '#4a2a2a') + ';color:' + (ok ? '#8fd08f' : '#e08a7a') + ';">' + ing.have + '/' + ing.qty + ' ' + ing.name + '</span>';
+    }
+    h += '</div></div>';
+  }
+  h += '<div style="font-size:10px;color:#6a7690;text-align:center;margin-top:4px;">Colete recursos pelo mundo (veios, árvores nobres, ervas) e drops de criaturas.</div>';
+  h += '</div>';
+  m.innerHTML = h;
+  m.addEventListener('click', ev=>{ if(ev.target === m) m.remove(); });
+  document.body.appendChild(m);
 }

@@ -479,6 +479,8 @@ class World:
             _spawn(type_id, x, y, "camara_varth")
         for (type_id, x, y) in monsters_def.FLORESTA_ERMO_SPAWNS:
             _spawn(type_id, x, y, "floresta_ermo")
+        for (type_id, x, y) in monsters_def.PLANALTOS_ERMAIS_SPAWNS:
+            _spawn(type_id, x, y, "planaltos_ermais")
         for (type_id, x, y) in monsters_def.BRASAL_SPAWNS:
             _spawn(type_id, x, y, "brasal")
         for (type_id, x, y) in monsters_def.GOELA_1_SPAWNS:
@@ -487,7 +489,37 @@ class World:
             _spawn(type_id, x, y, "goela_2")
         for (type_id, x, y) in monsters_def.COVIL_KREZATH_SPAWNS:
             _spawn(type_id, x, y, "covil_krezath")
+        for (type_id, x, y) in monsters_def.COSTA_MARAVAI_SPAWNS:
+            _spawn(type_id, x, y, "costa_maravai")
+        for (type_id, x, y) in monsters_def.UMBRAVAL_SPAWNS:
+            _spawn(type_id, x, y, "umbraval")
+        for (type_id, x, y) in monsters_def.VESPERA_SPAWNS:
+            _spawn(type_id, x, y, "vespera")
+        self._spawn_nodes()
         return self.monsters
+
+    def _spawn_nodes(self):
+        """Semeia os pontos de coleta das profissões (veios, árvores, ervas)."""
+        from . import professions
+        self.nodes = {}
+        n = 0
+        for mp, lst in professions.NODE_SPAWNS.items():
+            for (ntype, x, y) in lst:
+                if ntype not in professions.NODES:
+                    continue
+                nx, ny = _walkable_near(x, y, mp)
+                n += 1
+                nid = "nd:%d" % n
+                self.nodes[nid] = {"id": nid, "type": ntype, "map": mp,
+                                   "x": nx, "y": ny, "until": 0.0}
+
+    def nodes_in(self, mp):
+        """Os nodes de coleta de um mapa (pro cliente desenhar)."""
+        import time as _t
+        now = _t.time()
+        return [{"id": nd["id"], "type": nd["type"], "x": nd["x"], "y": nd["y"],
+                 "depleted": nd["until"] > now}
+                for nd in getattr(self, "nodes", {}).values() if nd["map"] == mp]
 
     def monster_at(self, mp, x, y):
         """O monstro vivo nessa casa (ou None)."""
