@@ -1274,10 +1274,10 @@ for _yy in range(5):
 _tav[_TVY + 4][_TVX + 3] = "D"                  # porta -> (83, 49)
 MAP_ROWS = ["".join(r) for r in _tav]
 
-# a RUA DOS OFÍCIOS: casas nativas COM INTERIOR (entra pela porta E)
+# a RUA DOS OFÍCIOS: fachadas nativas belas; a porta D leva pro interior
 def _build_prof_houses():
     def casa(cx, cy):
-        linhas = ("mmmmmmm", "MpppppM", "MMMEMMM", "ppppppp")
+        linhas = ("mmmmmmm", "MMMMMMM", "MMMDMMM", "ppppppp")
         for i, ln in enumerate(linhas):
             row = list(MAP_ROWS[cy + i])
             for j, ch in enumerate(ln):
@@ -1290,28 +1290,24 @@ def _build_prof_houses():
 _build_prof_houses()
 
 
-# O TEMPLO DOS DOZE: nave interna com colunatas, altar e portal triplo
+# O TEMPLO DOS DOZE: fachada monumental; o portal triplo D leva à nave interna
 def _build_templo():
-    x0, y0 = 52, 3
+    x0, y0 = 52, 4
     linhas = ("mmmmmmmmmmmmmmm",
-              "MpppppppppppppM",
-              "Mpp^ppp^ppp^ppM",
-              "MpppppppppppppM",
-              "Mpp^ppp^ppp^ppM",
-              "MpppppppppppppM",
-              "MpppppppppppppM",
-              "MMMMMMEEEMMMMMM",
+              "MMMMMMMMMMMMMMM",
+              "MMMMMMMMMMMMMMM",
+              "MMMMMMDDDMMMMMM",
               "ppppppppppppppp")
     for i, ln in enumerate(linhas):
         row = list(MAP_ROWS[y0 + i])
         for j, ch in enumerate(ln):
             row[x0 + j] = ch
         MAP_ROWS[y0 + i] = "".join(row)
-    row = list(MAP_ROWS[y0 + 9])            # lampiões guardando o adro
+    row = list(MAP_ROWS[y0 + 5])
     row[x0 + 2] = "L"; row[x0 + 12] = "L"
     for j in range(6, 9):
         row[x0 + j] = "p"
-    MAP_ROWS[y0 + 9] = "".join(row)
+    MAP_ROWS[y0 + 5] = "".join(row)
 _build_templo()
 
 
@@ -1329,7 +1325,7 @@ def _build_calcadas():
             if (sentido > 0 and x >= 48) or (sentido < 0 and x <= 50):
                 break
             x += sentido
-    for y in range(12, 15):                  # braço do templo até a rua
+    for y in range(10, 15):
         row = list(MAP_ROWS[y])
         for x in (58, 59, 60):
             if row[x] in (".", ",", ":", "T", "^", "Y", "d"):
@@ -2073,6 +2069,87 @@ DOOR_INTERIORS = {(pos[0] + OX, pos[1] + OY): name for name, pos in CASA_MENINAS
 DOOR_INTERIORS[(33 + OX, 20 + OY)] = "casa_comum"                    # casa do Bento
 DOOR_INTERIORS[(10 + OX, 20 + OY)] = "loja_armas"                    # Armas Peteco (liberada!)
 DOOR_INTERIORS[(83, 49)] = "taverna"                                 # Taverna enxaimel (leste, fora da vila)
+
+# ============ INTERIORES DAS OFICINAS (padrão Armas Peteco) ============
+def _oficina_int(tema):
+    """Interior 15x11 customizado por ofício: F parede, 1 piso, # bancada,
+    ; braseiro de parede, / prateleira, D porta de saída."""
+    g = [list("F1111111111111F") for _ in range(11)]
+    g[0] = list("FFFFFFFFFFFFFFF")
+    g[10] = list("FFFFFFFDFFFFFFF")
+    g[1] = list("F1///////////1F")
+    if tema == "ferreiro":
+        for x in range(3, 8): g[3][x] = "#"          # a bancada da forja
+        g[3][10] = ";"; g[5][10] = ";"               # braseiros gêmeos
+        g[6][3] = "#"; g[6][4] = "#"                 # mesa de martelar
+    elif tema == "coureiro":
+        for x in range(9, 13): g[3][x] = "#"         # mesa de corte
+        g[5][2] = "/"; g[6][2] = "/"                 # varal de peles
+        g[7][11] = "#"
+    elif tema == "costureiro":
+        g[3][3] = "#"; g[3][4] = "#"                 # o tear
+        g[5][9] = "#"; g[5][10] = "#"                # mesa de costura
+        g[2][12] = "/"; g[6][2] = "/"
+    elif tema == "carpinteiro":
+        for x in range(4, 11): g[4][x] = "#"         # bancada comprida
+        g[6][3] = "/"; g[6][11] = "/"                # pilhas de tábua
+    elif tema == "alquimista":
+        g[3][7] = ";"                                # o caldeirão central
+        g[2][3] = "/"; g[2][11] = "/"                # prateleiras de frascos
+        g[5][3] = "#"; g[5][11] = "#"
+    elif tema == "joalheiro":
+        g[4][6] = "#"; g[4][7] = "#"; g[4][8] = "#"  # a vitrine
+        g[2][3] = "/"; g[2][11] = "/"
+        g[6][7] = ";"                                # a lupa iluminada
+    elif tema == "cozinheiro":
+        for x in range(3, 7): g[3][x] = "#"          # o fogão
+        g[3][10] = ";"                               # a boca de fogo
+        g[6][5] = "#"; g[6][6] = "#"; g[6][9] = "#"  # mesas de servir
+    return ["".join(r) for r in g]
+
+
+def _templo_int():
+    """A nave dos Doze: 21x15 com colunatas, braseiros e o ALTAR ao fundo."""
+    g = [list("F" + "1" * 19 + "F") for _ in range(15)]
+    g[0] = list("F" * 21)
+    g[14] = list("F" * 10 + "D" + "F" * 10)
+    g[1] = list("F1" + "/" * 17 + "1F")
+    for cy in (4, 7, 10):
+        for cx in (4, 9, 11, 16):
+            g[cy][cx] = "^"
+    for x in range(8, 13):                           # o ALTAR dos Doze
+        g[2][x] = "#"
+    g[3][8] = ";"; g[3][12] = ";"                    # braseiros do altar
+    g[11][3] = ";"; g[11][17] = ";"                  # braseiros da nave
+    return ["".join(r) for r in g]
+
+
+OFICINAS_INT = {
+    "oficina_ferreiro":    _oficina_int("ferreiro"),
+    "oficina_coureiro":    _oficina_int("coureiro"),
+    "oficina_costureiro":  _oficina_int("costureiro"),
+    "oficina_carpinteiro": _oficina_int("carpinteiro"),
+    "oficina_alquimista":  _oficina_int("alquimista"),
+    "oficina_joalheiro":   _oficina_int("joalheiro"),
+    "oficina_cozinheiro":  _oficina_int("cozinheiro"),
+}
+for _nm, _rows in OFICINAS_INT.items():
+    MAPS[_nm] = {"rows": _rows, "spawns": [(7, 8), (6, 8), (8, 8)]}
+MAPS["templo_doze"] = {"rows": _templo_int(), "spawns": [(10, 12), (9, 12), (11, 12)]}
+
+INTERIOR_MAPS |= set(OFICINAS_INT) | {"templo_doze"}
+# as portas D da Rua dos Ofícios e o portal triplo do Templo
+DOOR_INTERIORS[(44, 16)] = "oficina_ferreiro"
+DOOR_INTERIORS[(44, 21)] = "oficina_coureiro"
+DOOR_INTERIORS[(44, 26)] = "oficina_carpinteiro"
+DOOR_INTERIORS[(44, 31)] = "oficina_alquimista"
+DOOR_INTERIORS[(54, 18)] = "oficina_costureiro"
+DOOR_INTERIORS[(54, 24)] = "oficina_joalheiro"
+DOOR_INTERIORS[(54, 30)] = "oficina_cozinheiro"
+DOOR_INTERIORS[(58, 7)] = "templo_doze"
+DOOR_INTERIORS[(59, 7)] = "templo_doze"
+DOOR_INTERIORS[(60, 7)] = "templo_doze"
+
 for _d in [(4, 20), (14, 20), (3, 26), (10, 26)]:                   # Sapopemba: ainda trancadas
     DOOR_INTERIORS[(_d[0] + OX, _d[1] + OY)] = "LOCKED"
 

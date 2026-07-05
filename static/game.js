@@ -11320,7 +11320,7 @@ function drawErmoDecor(c, now){
     }
   }
   // ---- TEMPLO DOS DOZE (fachada 52,4 .. 66,7): chamas na cornija + símbolo ----
-  const tx = 52*TS - camX, ty = 3*TS - camY;
+  const tx = 52*TS - camX, ty = 4*TS - camY;
   if(tx > -TS*16 && ty > -TS*7 && tx < canvas.width+TS*2 && ty < canvas.height+TS*2){
     const ax = tx + 7.5*TS;
     c.save(); c.globalCompositeOperation = 'lighter';
@@ -11335,32 +11335,21 @@ function drawErmoDecor(c, now){
       c.quadraticCurveTo(vx + Math.sin(now/110+i)*1.4, vy - 6 - fl*3, vx + 2.2, vy);
       c.closePath(); c.fill();
     }
-    // ALTAR no fundo da nave
-    const alx = tx + 7.5*TS, aly = ty + 1.55*TS;
-    c.save();
-    c.fillStyle = '#5a5464'; c.fillRect(alx - TS*0.85, aly - TS*0.28, TS*1.7, TS*0.6);
-    c.fillStyle = '#6c667a'; c.fillRect(alx - TS*1.0, aly - TS*0.42, TS*2.0, TS*0.2);
-    c.globalCompositeOperation = 'lighter';
-    const alp = 0.2 + 0.1*Math.sin(now/800);
-    const alg = c.createRadialGradient(alx, aly, 0, alx, aly, TS*2.0);
-    alg.addColorStop(0, 'rgba(244,216,150,'+alp+')'); alg.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = alg; c.beginPath(); c.arc(alx, aly, TS*2.0, 0, Math.PI*2); c.fill();
-    c.restore();
     const pl = 0.5 + 0.3*Math.sin(now/700);         // símbolo dos Doze sobre o portal
     c.globalAlpha = pl;
     c.strokeStyle = '#f6dfa0'; c.lineWidth = 1.8;
-    c.beginPath(); c.arc(ax, ty + TS*8.6, TS*0.5, 0, Math.PI*2); c.stroke();
+    c.beginPath(); c.arc(ax, ty + TS*2.4, TS*0.5, 0, Math.PI*2); c.stroke();
     for(let i=0;i<12;i++){
       const a = i*Math.PI/6 + now/4000;
       c.fillStyle = '#f6dfa0';
-      c.beginPath(); c.arc(ax + Math.cos(a)*TS*0.5, ty + TS*8.6 + Math.sin(a)*TS*0.5, 1.5, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(ax + Math.cos(a)*TS*0.5, ty + TS*2.4 + Math.sin(a)*TS*0.5, 1.5, 0, Math.PI*2); c.fill();
     }
     c.restore();
     // aura quente saindo do portal
     c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 + 0.07*Math.sin(now/900);
-    const g = c.createRadialGradient(ax, ty + TS*9.8, 0, ax, ty + TS*9.8, TS*2.2);
+    const g = c.createRadialGradient(ax, ty + TS*4.2, 0, ax, ty + TS*4.2, TS*2.2);
     g.addColorStop(0, '#f6dfa0'); g.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = g; c.beginPath(); c.arc(ax, ty + TS*9.8, TS*2.2, 0, Math.PI*2); c.fill();
+    c.fillStyle = g; c.beginPath(); c.arc(ax, ty + TS*4.2, TS*2.2, 0, Math.PI*2); c.fill();
     c.restore();
   }
 }
@@ -11370,7 +11359,7 @@ function drawErmoDecor(c, now){
   const orig = drawErmoDecor;
   drawErmoDecor = function(c, now){
     orig(c, now);
-    const mx = 61.5*TS - camX, my = 12.2*TS - camY;
+    const mx = 62.5*TS - camX, my = 9.6*TS - camY;
     if(mx < -TS*3 || my < -TS*3 || mx > canvas.width+TS || my > canvas.height+TS) return;
     c.save();
     c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(mx, my + TS*0.5, TS*0.5, TS*0.14, 0, 0, Math.PI*2); c.fill();

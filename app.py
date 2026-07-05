@@ -2631,13 +2631,6 @@ def on_fish_hit(data):
 _NPC_ROUTINE = {
     "npc:seu_milton":     {"day": (272, 220), "night": (262, 226)},
     "npc:maricota":       {"day": (232, 208), "night": (251, 243)},
-    "npc:mestre_bragan":  {"day": (44, 17),  "night": (44, 15)},
-    "npc:mestra_iolanda": {"day": (44, 22),  "night": (44, 20)},
-    "npc:mestre_justo":   {"day": (44, 27),  "night": (44, 25)},
-    "npc:mestre_vidal":   {"day": (44, 32),  "night": (44, 30)},
-    "npc:mestra_linah":   {"day": (54, 19),  "night": (54, 17)},
-    "npc:mestra_petra":   {"day": (54, 25),  "night": (54, 23)},
-    "npc:mestre_bartolo": {"day": (54, 31),  "night": (54, 29)},
 }
 def _npc_routine_loop():
     while True:
