@@ -176,6 +176,9 @@ ITEMS = {
     "ensopado_da_vila":  {"name": "Ensopado da Vila",   "kind": "consumivel", "stackable": True, "color": "#a86a40", "visual": "potion", "heal": 0.40, "value": 260, "desc": "Panela cheia, coração quente. Cura 40% da vida."},
     "banquete_do_maraja":{"name": "Banquete do Marajá", "kind": "consumivel", "stackable": True, "color": "#e8a040", "visual": "potion", "heal": 0.60, "value": 600, "desc": "Receita digna do Leão Branco. Cura 60% da vida e rende histórias."},
     "festim_umbrio":     {"name": "Festim Umbrío",      "kind": "consumivel", "stackable": True, "color": "#8a6aa8", "visual": "potion", "heal": 0.85, "value": 1300, "desc": "O prato proibido do Bartolo, com um tempero de presa vampírica. Cura 85% da vida."},
+    "peixe_fresco":      {"name": "Peixe Fresco",       "kind": "trofeu", "stackable": True, "color": "#8ab0c9", "value": 40, "desc": "Fisgado no píer da Vila Caiçara. A Dona Maricota paga bem por ele."},
+    "peixe_dourado":     {"name": "Peixe Dourado",      "kind": "trofeu", "stackable": True, "color": "#e8c040", "value": 300, "desc": "Raro, brilhante e briguento. Os pescadores contam histórias sobre esse aí."},
+    "filhote_capivara":  {"name": "Filhote de Capivara","kind": "trofeu", "stackable": False, "color": "#a8875c", "value": 5000, "desc": "Uma capivarinha mansa que decidiu que você é da família. Te segue pra todo lado."},
 
     # trofeus do Cemitério Antigo de Valdarkram (vendiveis na Armas Peteco)
     "osso_amaldicoado":    {"name": "Osso Amaldiçoado",      "kind": "trofeu", "stackable": True, "color": "#d8d2c0", "value": 100},

@@ -41,6 +41,7 @@ except Exception as exc:  # pragma: no cover
 import os
 import random
 import time
+import json
 
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -68,6 +69,59 @@ SAVE_EVERY = 5  # segundos entre gravacoes de posicao no banco
 DAY_LENGTH = 900
 COMBAT_RT = True     # COMBATE EM TEMPO REAL (estilo Tibia). False = volta aos turnos.
 RT_ATK_CD = 2.0      # segundos entre golpes (1 "rodada")
+
+# -------- MUNDO VIVO: eventos globais, loot de raridade, guerra de facções --------
+WORLD_EVENT = {"id": None, "map": None, "until": 0, "name": ""}
+WORLD_EVENTS_DEF = [
+    ("lua_sangue",    "umbraval",      "🌕 LUA DE SANGUE: os lobisomens do Umbraval enlouquecem! Drops em dobro por 10 minutos."),
+    ("mare_viva",     "costa_maravai", "🌊 MARÉ VIVA: a Costa de Maravaí ferve de vida! Drops em dobro por 10 minutos."),
+    ("furia_brasal",  "brasal",        "🔥 FÚRIA DO BRASAL: a Ferida arde! Drops em dobro no Brasal por 10 minutos."),
+    ("noite_morcegos","vespera",       "🦇 NOITE DOS MORCEGOS: Véspera desperta faminta! Drops em dobro por 10 minutos."),
+]
+RARE_CHANCES = [("lendario", 0.004), ("epico", 0.025), ("raro", 0.10)]
+RARE_COLORS = {"raro": "#6db3ff", "epico": "#c98aff", "lendario": "#ffb84a"}
+_RARITY_POOLS = {}
+def _rarity_pool(r):
+    if r not in _RARITY_POOLS:
+        _RARITY_POOLS[r] = [iid for iid, it in items.ITEMS.items()
+                            if it.get("rarity") == r and it.get("kind") in ("weapon", "armor", "trinket")]
+    return _RARITY_POOLS[r]
+
+FACTIONS = {"cria_vampirica": "vampiro", "vampiro_nobre": "vampiro", "vampiro_anciao": "vampiro",
+            "enxame_morcegos": "vampiro", "lobisomem_ferino": "lobisomem",
+            "lobisomem_uivador": "lobisomem", "lobisomem_ancestral": "lobisomem"}
+
+BOSS_RECORDS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "boss_records.json")
+try:
+    with open(BOSS_RECORDS_PATH) as _bf:
+        BOSS_RECORDS = json.load(_bf)
+except Exception:
+    BOSS_RECORDS = {}
+def _save_boss_records():
+    try:
+        os.makedirs(os.path.dirname(BOSS_RECORDS_PATH), exist_ok=True)
+        with open(BOSS_RECORDS_PATH, "w") as _bf:
+            json.dump(BOSS_RECORDS, _bf)
+    except Exception as exc:
+        print("erro salvando recordes:", exc)
+
+
+def _world_event_loop():
+    """Sorteia um evento mundial de tempos em tempos (drop 2x por 10 min)."""
+    while True:
+        socketio.sleep(60)
+        now = time.time()
+        if WORLD_EVENT["id"]:
+            if now >= WORLD_EVENT["until"]:
+                socketio.emit("toast", {"text": "O evento '%s' terminou. O mundo respira." % WORLD_EVENT["name"]})
+                socketio.emit("world_event", {"id": None})
+                WORLD_EVENT.update({"id": None, "map": None, "until": 0, "name": ""})
+            continue
+        if random.random() < 0.028:            # ~1 evento a cada ~35-40 min
+            eid, emap, msg = random.choice(WORLD_EVENTS_DEF)
+            WORLD_EVENT.update({"id": eid, "map": emap, "until": now + 600, "name": msg.split(":")[0]})
+            socketio.emit("toast", {"text": msg})
+            socketio.emit("world_event", {"id": eid, "map": emap, "until": WORLD_EVENT["until"]})
 
 # ----- NPCs (o elenco) -----
 # Ritmo e falas de cada NPC vivem no registro dele em npcs.ROSTER.
@@ -605,6 +659,45 @@ def _rt_kill(sid, pl, m):
             db.save_wallet(pl["player_id"], pl["wallet"])
     except Exception as exc:
         print("erro salvando caça RT:", exc)
+    # EVENTO MUNDIAL ativo neste mapa: drops em DOBRO (+50%% de XP)
+    if WORLD_EVENT["id"] and WORLD_EVENT["map"] == m.get("map") and time.time() < WORLD_EVENT["until"]:
+        loot2, br2 = monsters_def.roll_drops(m.get("type"))
+        for (iid, qty) in loot2:
+            if items.exists(iid) and (items.get(iid) or {}).get("kind") != "currency":
+                items.add_to_bag(bag, iid, qty)
+                got.append("%dx %s" % (qty, (items.get(iid) or {}).get("name", iid)))
+        if br2:
+            pl["wallet"] = int(pl.get("wallet", 0)) + br2
+        extra_xp = ganho // 2
+        f["xp"] = int(f.get("xp", 0)) + extra_xp
+        ganho += extra_xp
+        leveling.recompute(f)
+
+    # LOOT DE RARIDADE: chance universal escalada pela força do monstro
+    _rmult = 1.0 + int(spec.get("xp", 0)) / 4000.0
+    for (_rar, _ch) in RARE_CHANCES:
+        if random.random() < _ch * _rmult:
+            _pool = _rarity_pool(_rar)
+            if _pool:
+                _riid = random.choice(_pool)
+                items.add_to_bag(bag, _riid, 1)
+                _rnome = (items.get(_riid) or {}).get("name", _riid)
+                socketio.emit("rare_drop", {"rarity": _rar, "item": _riid, "name": _rnome,
+                                            "color": RARE_COLORS.get(_rar)}, to=sid)
+                if _rar == "lendario":
+                    socketio.emit("toast", {"text": "🌟 %s encontrou um item LENDÁRIO: %s!" %
+                                            (pl.get("name", "Alguém"), _rnome)})
+            break
+
+    # RECORDES DE BOSS: o mundo inteiro fica sabendo
+    if spec.get("boss"):
+        BOSS_RECORDS[m.get("type")] = {"player": pl.get("name", "Alguém"),
+                                       "boss": m.get("name", "?"), "when": int(time.time()),
+                                       "count": int((BOSS_RECORDS.get(m.get("type")) or {}).get("count", 0)) + 1}
+        _save_boss_records()
+        socketio.emit("toast", {"text": "🏆 %s derrubou %s! A lenda cresce." %
+                                (pl.get("name", "Alguém"), m.get("name", "?"))})
+
     socketio.emit("xp", {"xp": f["xp"], "level": f["level"], "hp": f.get("hp"),
                          "hp_max": f.get("hp_max"), "prof": f.get("prof"),
                          "gained": ganho, "reason": "caça",
@@ -662,6 +755,36 @@ def _rt_combat_loop():
                                          "hp": m["hp"], "hp_max": m["hp_max"]}, room=pl["map"])
                 if m["hp"] <= 0:
                     _rt_kill(sid, pl, m)
+
+            # -------- GUERRA ETERNA: vampiros x lobisomens se enfrentam --------
+            for mid, m in list(world.monsters.items()):
+                fac = FACTIONS.get(m.get("type"))
+                if not fac or not m.get("alive") or m.get("_rt_next_f", 0) > now:
+                    continue
+                rival = None
+                for mid2, m2 in world.monsters.items():
+                    if mid2 == mid or not m2.get("alive") or m2.get("map") != m.get("map"):
+                        continue
+                    f2 = FACTIONS.get(m2.get("type"))
+                    if f2 and f2 != fac and max(abs(m["x"] - m2["x"]), abs(m["y"] - m2["y"])) <= 1:
+                        rival = m2
+                        break
+                if not rival:
+                    continue
+                m["_rt_next_f"] = now + RT_ATK_CD
+                spec_a = monsters_def.MONSTERS.get(m.get("type"), {}) or {}
+                roll = random.randint(1, 20)
+                crit = (roll == 20)
+                if not (crit or (roll != 1 and roll + int(spec_a.get("atk", 3)) >= int(rival.get("ac", 12)))):
+                    continue
+                dmg = _rt_roll_dmg(spec_a.get("dmg") or {"n": 1, "d": 4}, crit)
+                rival["hp"] = max(0, int(rival["hp"]) - dmg)
+                socketio.emit("rt_hit", {"id": rival["id"], "dmg": dmg, "crit": crit, "by": mid,
+                                         "hp": rival["hp"], "hp_max": rival["hp_max"]}, room=m.get("map"))
+                if rival["hp"] <= 0:
+                    rival["alive"] = False
+                    socketio.emit("rt_dead", {"id": rival["id"]}, room=m.get("map"))
+                    _MONSTER_RESPAWNS.append((rival["id"], time.time() + 90))
 
             # -------- monstros revidam em quem estiver no alcance --------
             for mid, m in list(world.monsters.items()):
@@ -1639,7 +1762,8 @@ def on_interact(_data=None):
         return
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
-        _try_gather(player)              # sem NPC por perto? talvez haja um node de coleta
+        if not _try_fish(player):        # no píer? joga a linha!
+            _try_gather(player)          # senão, talvez haja um node de coleta
         return
     mp = player.get("map", "ermo")
     npc["facing"] = _face_to(npc, player)   # ele te olha
@@ -1741,7 +1865,8 @@ def on_interact(_data=None):
         _open_shop(player, npc, "Peixaria da Maricota", [], 0,
                    potions=[("peixe_assado", 80), ("espetinho_camarao", 110),
                             ("caldo_de_sururu", 150), ("agua_de_coco", 50),
-                            ("moqueca_capixaba", 260)])
+                            ("moqueca_capixaba", 260),
+                            ("filhote_capivara", 5000)])
         return
 
     # Zé do Remo, o BARQUEIRO: viagem paga de barco pro Ermo (transporte rápido)
@@ -1778,6 +1903,21 @@ def on_interact(_data=None):
                    potions=[("colar_de_conchas", 2500), ("anel_de_perola", 3200),
                             ("tridente_do_caicara", 2800), ("chapeu_de_palha", 2200)],
                    extra={"item": "concha_rara", "qty": 8, "name": "Conchas Raras"})
+        return
+
+    # MEMORIAL DOS HERÓIS: o Cronista recita os últimos matadores de boss
+    if npc.get("_spec", {}).get("memorial"):
+        if not BOSS_RECORDS:
+            socketio.emit("speech", {"id": npc["id"],
+                "text": "O Memorial ainda espera seu primeiro herói. Vai lá fazer história, viajante."},
+                room=mp)
+            return
+        linhas = []
+        for rec in sorted(BOSS_RECORDS.values(), key=lambda r: -r.get("when", 0))[:6]:
+            linhas.append("%s caiu diante de %s (%dx)" % (rec.get("boss", "?"),
+                          rec.get("player", "?"), rec.get("count", 1)))
+        socketio.emit("speech", {"id": npc["id"],
+            "text": "📜 MEMORIAL DOS HERÓIS: " + " · ".join(linhas)}, room=mp)
         return
 
     # TEMPLO DOS DOZE: oferenda de 100 de bronze = bênção (vida cheia)
@@ -2183,6 +2323,67 @@ def _try_gather(player):
     emit("toast", {"text": "⛏️ Você conseguiu %s ao %s." % (ganho, spec["verb"])})
     socketio.emit("node_update", {"id": alvo["id"], "depleted": True,
                                   "cd": spec["cd"]}, room=mp)
+
+
+def _try_fish(player):
+    """Parado no píer da Vila Caiçara? Joga a linha e abre o minigame."""
+    if player.get("map") != "costa_maravai":
+        return False
+    rows = wm.MAPS["costa_maravai"]["rows"]
+    x, y = player.get("x", 0), player.get("y", 0)
+    if not (0 <= y < len(rows)) or rows[y][x] != "=":
+        return False
+    player["_fishing"] = time.time()
+    emit("fish_start", {})
+    return True
+
+
+@socketio.on("fish_hit")
+def on_fish_hit(data):
+    """O jogador cravou a barra: perto do centro = peixe no balaio."""
+    player = world.players.get(request.sid)
+    if not player or time.time() - player.get("_fishing", 0) > 12:
+        return
+    player["_fishing"] = 0
+    pos = float((data or {}).get("pos", 0))
+    if abs(pos - 0.5) <= 0.17:
+        raro = random.random() < 0.15
+        iid = "peixe_dourado" if raro else "peixe_fresco"
+        bag = player.setdefault("inventory", [])
+        items.add_to_bag(bag, iid, 1)
+        if player.get("player_id"):
+            db.save_loadout(player["player_id"], player["inventory"],
+                            player["equipment"], player.get("look"))
+        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        emit("toast", {"text": ("🌟 Um PEIXE DOURADO! Que dia!" if raro
+                                 else "🎣 Fisgou um Peixe Fresco!")})
+    else:
+        emit("toast", {"text": "🎣 Ele escapou... a maré leva, a maré traz."})
+
+
+# ROTINA DOS NPCs: certos moradores mudam de lugar entre dia e noite
+_NPC_ROUTINE = {
+    "npc:seu_milton":     {"day": (272, 220), "night": (262, 226)},   # a banca só abre à noite
+    "npc:maricota":       {"day": (232, 208), "night": (251, 243)},   # de noite, fogueira da vila
+    "npc:mestre_bragan":  {"day": (35, 26),  "night": (35, 23)},      # mestres recolhem pra oficina
+    "npc:mestra_iolanda": {"day": (21, 28),  "night": (21, 25)},
+    "npc:mestre_justo":   {"day": (59, 50),  "night": (59, 47)},
+    "npc:mestre_vidal":   {"day": (9, 70),   "night": (9, 67)},
+    "npc:mestra_linah":   {"day": (35, 82),  "night": (35, 79)},
+    "npc:mestra_petra":   {"day": (11, 84),  "night": (11, 81)},
+    "npc:mestre_bartolo": {"day": (53, 88),  "night": (53, 85)},
+}
+def _npc_routine_loop():
+    while True:
+        socketio.sleep(30)
+        noite = _is_night()
+        try:
+            for spec in npcs.ROSTER:
+                rot = _NPC_ROUTINE.get(spec.get("id"))
+                if rot:
+                    spec["home"] = rot["night" if noite else "day"]
+        except Exception as exc:
+            print("erro na rotina dos NPCs:", exc)
 
 
 @socketio.on("craft_make")
@@ -3299,6 +3500,8 @@ def _startup():
             socketio.start_background_task(_npc_gaze_loop, spec)
     socketio.start_background_task(_pofnir_loop)   # a aparicao do Pofnir
     socketio.start_background_task(_rt_combat_loop)  # COMBATE TEMPO REAL (Tibia)
+    socketio.start_background_task(_world_event_loop)  # eventos mundiais
+    socketio.start_background_task(_npc_routine_loop)  # rotina dia/noite dos moradores
     socketio.start_background_task(_night_loop)     # a vila dorme a noite
     socketio.start_background_task(_monster_respawn_loop)   # monstros voltam apos um tempo
     socketio.start_background_task(_monster_wander_loop)     # e perambulam pelo Descampado

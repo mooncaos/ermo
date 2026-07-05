@@ -1266,6 +1266,21 @@ ROSTER.extend([
         "smiter": False, "templo": True,
     },
     {
+        "id": "npc:cronista", "name": "Cronista Fabiano",
+        "look": {"skin": "#9a6a48", "cloak": "#4a5a7a", "hood": "down",
+                 "hat": "none", "hair": "#c8c0b8", "staff": False},
+        "map": "ermo", "home": (34, 16), "radius": 2, "wanders": True,
+        "step_every": 2.2, "solid": True, "kind": "person",
+        "murmurs": [
+            "Toda lenda começa com um nome numa página...",
+            "O Memorial não esquece. Eu não deixo.",
+        ],
+        "greetings": [
+            "Quer ouvir quem são os heróis do Ermo, viajante? O Memorial guarda cada feito.",
+        ],
+        "smiter": False, "memorial": True,
+    },
+    {
         "id": "npc:ze_do_remo", "name": "Zé do Remo",
         "look": {"skin": "#6a4a30", "cloak": "#3a5a7a", "hood": "down",
                  "hat": "straw", "hair": "#4a4038", "staff": True},

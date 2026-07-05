@@ -528,7 +528,7 @@ MONSTERS = {
         "dmg": {"n": 1, "d": 4}, "reach": 1, "speed": 5, "passive": True,
         "xp": 40, "dex": 2, "glyph": "\U0001f9ab", "kind": "besta", "size": 2,
         "atk_name": "mordidinha",
-        "drops": [("pele_macia", 0.9, 1, 2), ("carne_caca", 0.8, 1, 2)], "bronze": (10, 30),
+        "drops": [("pele_macia", 0.9, 1, 2), ("carne_caca", 0.8, 1, 2), ("filhote_capivara", 0.03, 1, 1)], "bronze": (10, 30),
     },
     "antilope": {
         "name": "Antílope da Savana", "hp": 55, "ac": 14, "atk": 3,
@@ -1126,6 +1126,8 @@ COSTA_MARAVAI_SPAWNS = [
 
 # VÉSPERA, A CIDADE MORTA (150x150): os vampiros reinam
 VESPERA_SPAWNS = [
+    # PATRULHA LUPINA: lobisomens invadindo a cidade rival
+    ("lobisomem_ferino", 115, 130), ("lobisomem_ferino", 100, 118),
     # a CATEDRAL: o Ancião e sua corte
     ("vampiro_anciao", 75, 20),
     ("vampiro_nobre", 68, 26), ("vampiro_nobre", 82, 26),
@@ -1145,6 +1147,8 @@ VESPERA_SPAWNS = [
 # UMBRAVAL (300x300): a mata onde o sol nunca entrou
 UMBRAVAL_SPAWNS = [
     # os LOBISOMENS: donos da mata, rivais eternos de Véspera
+    # PATRULHA VAMPÍRICA: invasores de Véspera caçando na mata rival
+    ("cria_vampirica", 118, 30), ("cria_vampirica", 112, 60),
     ("lobisomem_ferino", 76, 270),
     ("lobisomem_ferino", 139, 234),
     ("lobisomem_uivador", 190, 206),
