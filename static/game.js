@@ -11139,8 +11139,12 @@ function bindRtSocket(){
     if(p){
       p.hp = d.hp; p.hp_max = d.hp_max;
       const wx = (p.rx||p.x*TS) + (p.size||1)*TS/2, wy = (p.ry||p.y*TS);
-      if(d.miss) rtAddFloat(wx, wy, 'errou', '#9aa0b0', false);
-      else rtAddFloat(wx, wy, '-' + d.dmg + (d.crit ? '!' : ''), d.crit ? '#ffd24a' : '#ffffff', d.crit);
+      if(d.miss) rtAddFloat(wx, wy, d.magic ? 'resistiu' : 'errou', '#9aa0b0', false);
+      else {
+        rtAddFloat(wx, wy, '-' + d.dmg + (d.crit ? '!' : ''),
+                   d.magic ? '#c98aff' : (d.crit ? '#ffd24a' : '#ffffff'), d.crit || d.magic);
+        if(d.magic && d.spell) rtAddFloat(wx, wy - 16, d.spell, '#e0c9ff', false);
+      }
       if(d.crit && d.by === myId) shakeTiny();
     }
   });
@@ -11535,3 +11539,97 @@ function closeFishing(){
 window.addEventListener('keydown', e=>{
   if(_fishing && e.code === 'Space'){ e.preventDefault(); fishStrike(); }
 });
+
+// ===========================================================================
+//  MAGIA EM TEMPO REAL (cliente): hotbar 1-5, mana e efeitos
+// ===========================================================================
+var rtMana = {mana: 0, max: 0};
+var rtSpells = [];
+var _rtCastAt = 0;
+
+function buildHotbar(){
+  let el = document.getElementById('rtHotbar');
+  if(el) el.remove();
+  if(!rtSpells.length) return;
+  el = document.createElement('div');
+  el.id = 'rtHotbar';
+  el.style.cssText = 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:60;'+
+    'display:flex;flex-direction:column;gap:5px;align-items:center;pointer-events:auto;';
+  let mana = '<div id="rtManaWrap" style="width:'+(rtSpells.length*52)+'px;height:7px;background:#0c1224;'+
+    'border:1px solid #2a3a66;border-radius:4px;overflow:hidden;">'+
+    '<div id="rtManaFill" style="height:100%;width:0%;background:linear-gradient(90deg,#3a7ae0,#7ab0ff);"></div></div>';
+  let slots = '<div style="display:flex;gap:6px;">';
+  rtSpells.forEach((sp, i)=>{
+    slots += '<div class="rtSlot" data-sp="'+sp.id+'" style="position:relative;width:46px;height:46px;'+
+      'background:rgba(10,14,26,0.88);border:1px solid #3a4a7a;border-radius:9px;cursor:pointer;'+
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;">'+
+      '<div style="font:800 13px Inter;color:#c9d8ff;line-height:1;">'+(i+1)+'</div>'+
+      '<div style="font:600 7.5px Inter;color:#8a97c0;text-align:center;padding:0 2px;line-height:1.1;">'+sp.name+'</div>'+
+      '<div style="font:700 8px Inter;color:'+(sp.cost?'#7ab0ff':'#8fd08f')+';">'+(sp.cost||'livre')+'</div>'+
+      '<div class="rtCd" style="position:absolute;inset:0;border-radius:9px;background:rgba(6,8,14,0.75);display:none;"></div></div>';
+  });
+  slots += '</div>';
+  el.innerHTML = mana + slots;
+  document.body.appendChild(el);
+  el.querySelectorAll('.rtSlot').forEach(s=>{
+    s.addEventListener('pointerdown', ev=>{ ev.preventDefault(); rtCast(s.getAttribute('data-sp')); });
+  });
+  updateManaBar();
+}
+function updateManaBar(){
+  const fl = document.getElementById('rtManaFill');
+  if(fl && rtMana.max) fl.style.width = Math.round(100*rtMana.mana/rtMana.max) + '%';
+}
+function rtCast(spellId){
+  const now = performance.now();
+  if(now - _rtCastAt < 1500) return;
+  _rtCastAt = now;
+  socket.emit('rt_cast', {spell: spellId, target: rtTargetId});
+  document.querySelectorAll('#rtHotbar .rtCd').forEach(cd=>{
+    cd.style.display = 'block';
+    setTimeout(()=>{ cd.style.display = 'none'; }, 1500);
+  });
+}
+window.addEventListener('keydown', e=>{
+  if(typeof started === 'undefined' || !started || typingInField(e)) return;
+  const n = {'Digit1':0,'Digit2':1,'Digit3':2,'Digit4':3,'Digit5':4}[e.code];
+  if(n != null && rtSpells[n]){ e.preventDefault(); rtCast(rtSpells[n].id); }
+});
+
+var bindArcano = setInterval(()=>{
+  if(typeof socket === 'undefined' || !socket || socket._arcBound) return;
+  socket._arcBound = true;
+  socket.on('mana', d=>{ if(d){ rtMana = {mana: d.mana, max: d.max}; updateManaBar(); } });
+  socket.on('grimoire', g=>{
+    if(!g || !g.caster || !g.chosen) return;
+    const CUSTO = lv => lv === 0 ? 0 : 8 + 6*lv;
+    const det = id => {
+      let sp = null;
+      (g.pool.cantrips||[]).forEach(s=>{ if(s.id===id) sp = s; });
+      Object.values(g.pool.by_level||{}).forEach(arr=> arr.forEach(s=>{ if(s.id===id) sp = s; }));
+      return sp;
+    };
+    const usaveis = [];
+    [].concat(g.chosen.cantrips||[], g.chosen.spells||[]).forEach(id=>{
+      const sp = det(id);
+      if(sp && ['attack','save','auto','heal'].includes(sp.kind))
+        usaveis.push({id: sp.id, name: sp.name, cost: CUSTO(sp.level||0), kind: sp.kind});
+    });
+    usaveis.sort((a,b)=> a.cost - b.cost);
+    rtSpells = usaveis.slice(0, 5);
+    buildHotbar();
+  });
+  socket.on('rt_selfheal', d=>{
+    if(!d) return;
+    const me = players.get(myId);
+    if(me) rtAddFloat((me.rx||0)+TS/2, (me.ry||0), '+' + d.amount, '#6adf6a', true);
+  });
+  socket.on('rt_mheal', d=>{
+    if(!d) return;
+    const p = players.get(d.id);
+    if(p){ p.hp = d.hp; p.hp_max = d.hp_max;
+      rtAddFloat((p.rx||p.x*TS)+(p.size||1)*TS/2, (p.ry||p.y*TS), '+' + d.amount, '#6adf6a', false);
+      if(d.ab) rtAddFloat((p.rx||p.x*TS)+(p.size||1)*TS/2, (p.ry||p.y*TS)-14, d.ab, '#a8ffb0', false); }
+  });
+  socket.emit('grimoire_get');            // popula a hotbar ao entrar
+}, 900);
