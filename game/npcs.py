@@ -1249,6 +1249,23 @@ ROSTER.extend([
         "smiter": False, "prof": "cozinheiro",
     },
     {
+        "id": "npc:irma_solene", "name": "Irmã Solene",
+        "look": {"skin": "#b08a68", "cloak": "#e8e0d0", "hood": "up",
+                 "hat": "none", "hair": "#d8d0c0", "staff": True},
+        "sex": "F",
+        "map": "ermo", "home": (26, 16), "radius": 2, "wanders": True,
+        "step_every": 2.0, "solid": True, "kind": "person",
+        "murmurs": [
+            "Doze nomes, um só silêncio...",
+            "Drazun ri, Atalech observa, Korgath ruge. E o templo escuta todos.",
+            "Uma oferenda sincera vale mais que cem juras.",
+        ],
+        "greetings": [
+            "Bem-vindo ao Templo dos Doze, viajante. Uma oferenda de 100 de bronze e os deuses fecham tuas feridas.",
+        ],
+        "smiter": False, "templo": True,
+    },
+    {
         "id": "npc:ze_do_remo", "name": "Zé do Remo",
         "look": {"skin": "#6a4a30", "cloak": "#3a5a7a", "hood": "down",
                  "hat": "straw", "hair": "#4a4038", "staff": True},

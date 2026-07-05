@@ -1288,6 +1288,51 @@ def _build_prof_houses():
         row = list(MAP_ROWS[cy + 4]); row[cx + 3] = "."; MAP_ROWS[cy + 4] = "".join(row)
 _build_prof_houses()
 
+
+# O TEMPLO DOS DOZE (norte da cidade): a casa de todos os deuses do Ermo
+def _build_templo():
+    x0, y0, w, h = 19, 4, 15, 11
+    for y in range(y0, y0 + h):
+        row = list(MAP_ROWS[y])
+        for x in range(x0, x0 + w):
+            borda = y in (y0, y0 + h - 1) or x in (x0, x0 + w - 1)
+            row[x] = "#" if borda else "."
+        MAP_ROWS[y] = "".join(row)
+    for cy in (y0 + 3, y0 + 7):
+        row = list(MAP_ROWS[cy])
+        for cx in (x0 + 3, x0 + 7, x0 + 11):
+            row[cx] = "^"
+        MAP_ROWS[cy] = "".join(row)
+    row = list(MAP_ROWS[y0 + h - 1])
+    for x in range(x0 + 6, x0 + 9):
+        row[x] = "."
+    MAP_ROWS[y0 + h - 1] = "".join(row)
+    for ay in range(y0 + h, y0 + h + 3):
+        row = list(MAP_ROWS[ay])
+        for x in range(x0 + 5, x0 + 10):
+            if row[x] in (".", ","):
+                row[x] = "d"
+        MAP_ROWS[ay] = "".join(row)
+_build_templo()
+
+
+# calçadas de terra batida na frente de cada oficina (a cidade ganha malha)
+def _build_calcadas():
+    portas = [(35, 25), (21, 27), (59, 49), (9, 69), (35, 81), (11, 83), (53, 87)]
+    for (px, py) in portas:
+        for dy in range(1, 5):
+            y = py + dy
+            if y >= len(MAP_ROWS):
+                break
+            row = list(MAP_ROWS[y])
+            if row[px] in (".", ","):
+                row[px] = "d"
+            if dy <= 2 and row[px - 1] in (".", ","):
+                row[px - 1] = "d"
+            MAP_ROWS[y] = "".join(row)
+_build_calcadas()
+
+
 # ===========================================================================
 #  MAPAS DO NORTE (vazios, foco em arte): Planaltos Ermais + Floresta do Ermo
 # ===========================================================================

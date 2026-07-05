@@ -5899,6 +5899,7 @@ function frame(now){
     }
   }
 
+  if(mapName === 'ermo') drawErmoDecor(ctx, now);
   // pontos de coleta das profissões (veios, árvores nobres, ervas)
   for(const nd of worldNodes){
     const nsx = nd.x*TS - camX, nsy = nd.y*TS - camY;
@@ -11046,6 +11047,7 @@ function drawMinimap(c, now){
 function drawWorldOverlays(c, now){
   try{
     drawStepDust(c, now);
+    drawRtCombat(c, now);
     drawExitArrows(c, now);
     drawVignette(c, now);
     drawMinimap(c, now);
@@ -11087,4 +11089,272 @@ function _fichaOficios(f){
     h += '</div></div>';
   }
   return h;
+}
+
+// ===========================================================================
+//  COMBATE EM TEMPO REAL (cliente): alvo, marcador Tibia, dano flutuante
+// ===========================================================================
+var rtTargetId = null;
+var rtFloats = [];
+
+function rtAddFloat(wx, wy, txt, color, big){
+  rtFloats.push({x: wx, y: wy, txt, color, big: !!big, born: performance.now()});
+  if(rtFloats.length > 40) rtFloats.shift();
+}
+
+function rtPickNearest(){
+  const me = players.get(myId); if(!me) return null;
+  let best = null, bd = 1e9;
+  players.forEach(p=>{
+    if(p.kind !== 'monster' || p._dead) return;
+    const d = Math.max(Math.abs(p.x - me.x), Math.abs(p.y - me.y));
+    if(d < bd && d <= 9){ bd = d; best = p; }
+  });
+  return best;
+}
+
+// Tab: mira o monstro vivo mais próximo (e Esc solta o alvo)
+window.addEventListener('keydown', e=>{
+  if(typeof started === 'undefined' || !started || typingInField(e)) return;
+  if(e.code === 'Tab'){
+    e.preventDefault();
+    const alvo = rtPickNearest();
+    if(alvo){ rtTargetId = alvo.id; socket.emit('rt_target', { target: alvo.id }); }
+  } else if(e.code === 'Escape' && rtTargetId){
+    rtTargetId = null; socket.emit('rt_target', {});
+  }
+});
+
+function bindRtSocket(){
+  if(typeof socket === 'undefined' || !socket || socket._rtBound) return;
+  socket._rtBound = true;
+  socket.on('rt_engage', d=>{ if(d) rtTargetId = d.target || null; });
+  socket.on('rt_hit', d=>{
+    if(!d) return;
+    const p = players.get(d.id);
+    if(p){
+      p.hp = d.hp; p.hp_max = d.hp_max;
+      const wx = (p.rx||p.x*TS) + (p.size||1)*TS/2, wy = (p.ry||p.y*TS);
+      if(d.miss) rtAddFloat(wx, wy, 'errou', '#9aa0b0', false);
+      else rtAddFloat(wx, wy, '-' + d.dmg + (d.crit ? '!' : ''), d.crit ? '#ffd24a' : '#ffffff', d.crit);
+      if(d.crit && d.by === myId) shakeTiny();
+    }
+  });
+  socket.on('rt_dead', d=>{
+    if(!d) return;
+    const p = players.get(d.id);
+    if(p){ p._dead = true;
+      rtAddFloat((p.rx||p.x*TS) + (p.size||1)*TS/2, (p.ry||p.y*TS), '☠', '#ffb84a', true); }
+    if(rtTargetId === d.id) rtTargetId = null;
+  });
+  socket.on('rt_phit', d=>{
+    if(!d) return;
+    const me = players.get(myId);
+    if(me){
+      const wx = (me.rx||me.x*TS) + TS/2, wy = (me.ry||me.y*TS);
+      if(d.miss) rtAddFloat(wx, wy, 'esquivou', '#8fd08f', false);
+      else { rtAddFloat(wx, wy, '-' + d.dmg + (d.crit ? '!' : ''), '#ff5a4a', d.crit); shakeTiny(); }
+    }
+  });
+}
+var _rtShake = 0;
+function shakeTiny(){ _rtShake = performance.now(); }
+setInterval(bindRtSocket, 800);   // liga assim que o socket existir
+
+function drawRtCombat(c, now){
+  bindRtSocket();
+  // marcador do alvo (4 cantos girando, estilo Tibia)
+  if(rtTargetId){
+    const p = players.get(rtTargetId);
+    if(!p || p._dead){ rtTargetId = null; }
+    else {
+      const N = p.size || 1;
+      const sx = (p.rx||p.x*TS) - camX, sy = (p.ry||p.y*TS) - camY;
+      const cx = sx + N*TS/2, cy = sy + N*TS/2, R = N*TS*0.62;
+      const rot = now/600;
+      c.save(); c.translate(cx, cy); c.rotate(rot);
+      c.strokeStyle = '#ff4a3a'; c.lineWidth = 2.4; c.lineCap = 'round';
+      c.shadowColor = 'rgba(255,70,50,0.8)'; c.shadowBlur = 6;
+      for(let i = 0; i < 4; i++){
+        c.save(); c.rotate(i*Math.PI/2);
+        c.beginPath(); c.moveTo(R, R*0.45); c.lineTo(R, R); c.lineTo(R*0.45, R); c.stroke();
+        c.restore();
+      }
+      c.restore();
+      // barra do alvo no topo
+      const bw = 230, bx = canvas.width/2 - bw/2, by = 12;
+      const pct = Math.max(0, Math.min(1, (p.hp||0)/(p.hp_max||1)));
+      c.save();
+      c.fillStyle = 'rgba(8,10,16,0.8)';
+      c.strokeStyle = 'rgba(255,80,60,0.55)'; c.lineWidth = 1;
+      c.beginPath(); c.roundRect ? c.roundRect(bx-6, by-4, bw+12, 30, 7) : c.rect(bx-6, by-4, bw+12, 30);
+      c.fill(); c.stroke();
+      c.fillStyle = '#f0e4d0'; c.font = '700 11px Inter, sans-serif'; c.textAlign = 'center';
+      c.fillText((p.name || 'Alvo'), canvas.width/2, by + 8);
+      c.fillStyle = '#241016'; c.fillRect(bx, by + 13, bw, 8);
+      const g = c.createLinearGradient(bx, 0, bx + bw, 0);
+      g.addColorStop(0, '#e0483a'); g.addColorStop(1, '#ff7a50');
+      c.fillStyle = g; c.fillRect(bx, by + 13, bw*pct, 8);
+      c.restore();
+    }
+  }
+  // números de dano flutuantes
+  for(let i = rtFloats.length - 1; i >= 0; i--){
+    const fl = rtFloats[i];
+    const age = (now - fl.born) / 950;
+    if(age >= 1){ rtFloats.splice(i, 1); continue; }
+    const sx = fl.x - camX, sy = fl.y - camY - age*26;
+    c.save();
+    c.globalAlpha = age < 0.75 ? 1 : (1 - age)/0.25;
+    c.font = (fl.big ? '900 19px' : '800 13px') + ' Inter, sans-serif';
+    c.textAlign = 'center';
+    c.strokeStyle = 'rgba(0,0,0,0.85)'; c.lineWidth = 3;
+    c.strokeText(fl.txt, sx, sy);
+    c.fillStyle = fl.color; c.fillText(fl.txt, sx, sy);
+    c.restore();
+  }
+  // shake curtinho no impacto
+  if(_rtShake && now - _rtShake < 130){
+    const k = 1 - (now - _rtShake)/130;
+    canvas.style.transform = 'translate(' + ((Math.random()-0.5)*4*k) + 'px,' + ((Math.random()-0.5)*4*k) + 'px)';
+  } else if(canvas.style.transform){
+    canvas.style.transform = '';
+  }
+}
+
+// ===========================================================================
+//  ERMO REFORMADO: exteriores temáticos das oficinas + o Templo dos Doze
+// ===========================================================================
+const ERMO_DECOR = [
+  {x:32, y:21, t:'forja',    icon:'⚒️'},
+  {x:18, y:23, t:'couraria', icon:'🟤'},
+  {x:56, y:45, t:'serraria', icon:'🪵'},
+  {x:6,  y:65, t:'alquimia', icon:'⚗️'},
+  {x:32, y:77, t:'costura',  icon:'🧵'},
+  {x:8,  y:79, t:'joalheria',icon:'💎'},
+  {x:50, y:83, t:'cozinha',  icon:'🍲'},
+];
+function drawErmoDecor(c, now){
+  for(const d of ERMO_DECOR){
+    const bx = d.x*TS - camX, by = d.y*TS - camY;
+    if(bx < -TS*9 || by < -TS*7 || bx > canvas.width+TS*2 || by > canvas.height+TS*2) continue;
+    // PLACA pendurada sobre a porta (ícone do ofício)
+    const px = bx + 3.5*TS, py = by + 4*TS;
+    c.save();
+    c.fillStyle = '#6a4a2c'; c.fillRect(px - 9, py - TS*0.66, 18, 13);
+    c.strokeStyle = '#3a2814'; c.lineWidth = 1; c.strokeRect(px - 9, py - TS*0.66, 18, 13);
+    c.font = '10px serif'; c.textAlign = 'center';
+    c.fillText(d.icon, px, py - TS*0.66 + 10);
+    c.restore();
+    // detalhe vivo por ofício
+    if(d.t === 'forja'){
+      const k = (now/70) % 40;                                  // FUMAÇA da chaminé
+      c.save();
+      for(let i=0;i<3;i++){
+        const ph = (k + i*13) % 40;
+        c.globalAlpha = 0.35 * (1 - ph/40);
+        c.fillStyle = '#a8a0a0';
+        c.beginPath(); c.arc(bx + 5.5*TS + Math.sin((now/600)+i)*3, by - 4 - ph*0.8, 3 + ph*0.14, 0, Math.PI*2); c.fill();
+      }
+      c.globalAlpha = 0.5 + 0.3*Math.sin(now/180);              // brilho da forja na janela
+      c.fillStyle = '#ff8a30'; c.fillRect(bx + TS*1.2, by + TS*2.2, TS*0.7, TS*0.6);
+      c.restore();
+    } else if(d.t === 'alquimia'){
+      const bub = Math.sin(now/300);                            // caldeirão borbulhando
+      c.save();
+      c.fillStyle = '#2a2a30'; c.beginPath();
+      c.ellipse(bx - TS*0.7, by + TS*4.4, TS*0.4, TS*0.28, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#5ad86a'; c.globalAlpha = 0.85;
+      c.beginPath(); c.ellipse(bx - TS*0.7, by + TS*4.28, TS*0.3, TS*0.1, 0, 0, Math.PI*2); c.fill();
+      if(bub > 0.4){ c.globalAlpha = 0.7;
+        c.beginPath(); c.arc(bx - TS*0.7 + bub*4, by + TS*4.1, 2, 0, Math.PI*2); c.fill(); }
+      c.restore();
+    } else if(d.t === 'couraria'){
+      c.save();                                                 // varal de couros balançando
+      c.strokeStyle = '#4a3820'; c.lineWidth = 1.4;
+      c.beginPath(); c.moveTo(bx + 7.4*TS, by + TS*1.2); c.lineTo(bx + 8.6*TS, by + TS*1.2); c.stroke();
+      const sw = Math.sin(now/800)*2;
+      for(let i=0;i<2;i++){
+        c.fillStyle = i ? '#8a5a34' : '#a8703c';
+        c.fillRect(bx + (7.6 + i*0.55)*TS + sw*(i?1:-1)*0.4, by + TS*1.25, TS*0.4, TS*0.75);
+      }
+      c.restore();
+    } else if(d.t === 'serraria'){
+      c.save();                                                 // pilha de toras
+      for(const [ox, oy] of [[0,0],[0.55,0],[0.27,-0.4]]){
+        c.fillStyle = '#8a6438';
+        c.beginPath(); c.ellipse(bx + 7.6*TS + ox*TS, by + 4.4*TS + oy*TS, TS*0.28, TS*0.22, 0, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#c9a464';
+        c.beginPath(); c.ellipse(bx + 7.6*TS + ox*TS, by + 4.4*TS + oy*TS, TS*0.16, TS*0.12, 0, 0, Math.PI*2); c.fill();
+      }
+      c.restore();
+    } else if(d.t === 'costura'){
+      c.save();                                                 // tecidos coloridos na janela
+      const cores = ['#c05870', '#5878c0', '#c0a858'];
+      for(let i=0;i<3;i++){
+        c.fillStyle = cores[i];
+        c.fillRect(bx + TS*(1.3 + i*0.75), by + TS*2.1 + Math.sin(now/700+i)*1.5, TS*0.5, TS*0.9);
+      }
+      c.restore();
+    } else if(d.t === 'joalheria'){
+      const sp = (now/450 + d.x) % 3;                           // vitrine cintilando
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.8;
+      c.fillStyle = '#fff0c0';
+      const spx = bx + TS*(1.5 + sp*1.4), spy = by + TS*2.4;
+      c.beginPath();
+      c.moveTo(spx, spy-4); c.lineTo(spx+1.6, spy); c.lineTo(spx, spy+4); c.lineTo(spx-1.6, spy);
+      c.closePath(); c.fill();
+      c.restore();
+    } else if(d.t === 'cozinha'){
+      c.save();                                                 // fumacinha de comida
+      for(let i=0;i<2;i++){
+        const ph = ((now/90) + i*20) % 34;
+        c.globalAlpha = 0.3 * (1 - ph/34);
+        c.fillStyle = '#e8e0d0';
+        c.beginPath(); c.arc(bx + 1.4*TS + Math.sin(now/500+i)*2, by - 2 - ph*0.7, 2.4 + ph*0.1, 0, Math.PI*2); c.fill();
+      }
+      c.restore();
+    }
+  }
+  // ---- TEMPLO DOS DOZE (19,4 .. 33,14): altar, símbolo e as 12 chamas ----
+  const tx = 19*TS - camX, ty = 4*TS - camY;
+  if(tx > -TS*16 && ty > -TS*12 && tx < canvas.width+TS*2 && ty < canvas.height+TS*2){
+    const ax = tx + 7.5*TS, ay = ty + 2.2*TS;
+    // aura sagrada do altar
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const pl = 0.16 + 0.08*Math.sin(now/900);
+    const g = c.createRadialGradient(ax, ay, 0, ax, ay, TS*2.6);
+    g.addColorStop(0, 'rgba(244,216,150,'+pl+')'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(ax, ay, TS*2.6, 0, Math.PI*2); c.fill();
+    c.restore();
+    // o altar de pedra
+    c.fillStyle = '#5a5464'; c.fillRect(ax - TS*0.8, ay - TS*0.3, TS*1.6, TS*0.7);
+    c.fillStyle = '#6c667a'; c.fillRect(ax - TS*0.95, ay - TS*0.45, TS*1.9, TS*0.22);
+    // símbolo dos Doze (círculo com 12 pontos)
+    c.save();
+    c.strokeStyle = '#f0d8a0'; c.lineWidth = 1.6;
+    c.beginPath(); c.arc(ax, ay - TS*0.85, TS*0.42, 0, Math.PI*2); c.stroke();
+    for(let i=0;i<12;i++){
+      const a = i*Math.PI/6 + now/4000;
+      c.fillStyle = '#f0d8a0';
+      c.beginPath(); c.arc(ax + Math.cos(a)*TS*0.42, ay - TS*0.85 + Math.sin(a)*TS*0.42, 1.4, 0, Math.PI*2); c.fill();
+    }
+    c.restore();
+    // 12 chamas votivas nas laterais (6 + 6)
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for(let i=0;i<12;i++){
+      const lado = i < 6 ? 0 : 1;
+      const vx = tx + (lado ? 13.2 : 1.8)*TS;
+      const vy = ty + (2.2 + (i%6)*1.5)*TS;
+      const fl = 0.55 + 0.45*Math.sin(now/160 + i*1.7);
+      c.globalAlpha = 0.85*fl;
+      c.fillStyle = i%2 ? '#ffd070' : '#ffb040';
+      c.beginPath();
+      c.moveTo(vx - 2.4, vy);
+      c.quadraticCurveTo(vx + Math.sin(now/110+i)*1.5, vy - 7 - fl*3, vx + 2.4, vy);
+      c.closePath(); c.fill();
+    }
+    c.restore();
+  }
 }

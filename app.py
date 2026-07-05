@@ -66,6 +66,8 @@ SAVE_EVERY = 5  # segundos entre gravacoes de posicao no banco
 # mesmo entardecer ao mesmo tempo, sem precisar de loop nem estado.
 # 480 = 8 minutos. Quer ver mudar rapido pra testar? Baixa esse numero.
 DAY_LENGTH = 900
+COMBAT_RT = True     # COMBATE EM TEMPO REAL (estilo Tibia). False = volta aos turnos.
+RT_ATK_CD = 2.0      # segundos entre golpes (1 "rodada")
 
 # ----- NPCs (o elenco) -----
 # Ritmo e falas de cada NPC vivem no registro dele em npcs.ROSTER.
@@ -531,7 +533,189 @@ def _combat_party_members(sid, player):
     return out[:PARTY_MAX]
 
 
+
+# ===========================================================================
+#  COMBATE EM TEMPO REAL (estilo Tibia): 1 rodada = 2s, mundo nunca pausa.
+#  A matemática d20/CA/dano é a MESMA dos turnos (make_player_combatant).
+#  Monstros vivos não-passivos batem em quem estiver no alcance; o jogador
+#  marca um alvo (clique/Tab) e o golpe sai sozinho a cada 2s.
+# ===========================================================================
+def _rt_engage(sid, monster_list):
+    """Qualquer gatilho antigo de combate (clique, aggro) vira: mirar o alvo."""
+    player = world.players.get(sid)
+    if not player or not monster_list:
+        return
+    alvo = monster_list[0]
+    player["rt_target"] = alvo.get("id")
+    socketio.emit("rt_engage", {"target": alvo.get("id")}, to=sid)
+
+
+@socketio.on("rt_target")
+def on_rt_target(data):
+    """Tab / clique: escolhe (ou troca) o alvo do auto-ataque."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    tid = (data or {}).get("target")
+    if not tid:
+        player["rt_target"] = None
+        return
+    m = world.monsters.get(tid)
+    if m and m.get("alive") and m.get("map") == player.get("map"):
+        player["rt_target"] = tid
+        emit("rt_engage", {"target": tid})
+
+
+def _rt_roll_dmg(dmg, crit):
+    n = int(dmg.get("n", 1)) * (2 if crit else 1)
+    return sum(random.randint(1, int(dmg.get("d", 4))) for _ in range(n)) + int(dmg.get("flat", 0))
+
+
+def _rt_kill(sid, pl, m):
+    """Monstro caiu em tempo real: XP, drops, bronze, respawn agendado."""
+    m["alive"] = False
+    m["hp"] = 0
+    socketio.emit("rt_dead", {"id": m["id"]}, room=m.get("map"))
+    _MONSTER_RESPAWNS.append((m["id"], time.time() + 90))
+    spec = monsters_def.MONSTERS.get(m.get("type"), {}) or {}
+    f = pl.get("ficha") or {}
+    ganho = int(spec.get("xp", 0))
+    lvl_antes = int(f.get("level", 1))
+    f["xp"] = int(f.get("xp", 0)) + ganho
+    leveling.recompute(f)
+    pl["ficha"] = f
+    bag = pl.setdefault("inventory", [])
+    loot, bronze = monsters_def.roll_drops(m.get("type"))
+    got = []
+    for (iid, qty) in loot:
+        if not items.exists(iid):
+            continue
+        cat = items.get(iid)
+        if cat.get("kind") == "currency":
+            bronze += int(cat.get("value", 1)) * qty
+            continue
+        items.add_to_bag(bag, iid, qty)
+        got.append("%dx %s" % (qty, cat.get("name", iid)))
+    if bronze:
+        pl["wallet"] = int(pl.get("wallet", 0)) + bronze
+    try:
+        if pl.get("player_id"):
+            db.save_ficha(pl["player_id"], f)
+            db.save_loadout(pl["player_id"], pl["inventory"], pl["equipment"], pl.get("look"))
+            db.save_wallet(pl["player_id"], pl["wallet"])
+    except Exception as exc:
+        print("erro salvando caça RT:", exc)
+    socketio.emit("xp", {"xp": f["xp"], "level": f["level"], "hp": f.get("hp"),
+                         "hp_max": f.get("hp_max"), "prof": f.get("prof"),
+                         "gained": ganho, "reason": "caça",
+                         "pending_asi": f.get("pending_asi", [])}, to=sid)
+    if int(f.get("level", 1)) > lvl_antes:
+        socketio.emit("levelup", {"level": f["level"], "hp_max": f.get("hp_max"),
+                                  "pending_asi": f.get("pending_asi", [])}, to=sid)
+    socketio.emit("loadout", {"bag": pl["inventory"], "equipment": pl["equipment"]}, to=sid)
+    socketio.emit("wallet", {"bronze": pl.get("wallet", 0)}, to=sid)
+    extra = (" · " + ", ".join(got)) if got else ""
+    socketio.emit("toast", {"text": "☠️ %s caiu! +%d XP%s" % (m.get("name", "?"), ganho, extra)}, to=sid)
+    pl["rt_target"] = None
+
+
+def _rt_combat_loop():
+    """O coração do tempo real: a cada 0.4s, resolve quem está pronto pra bater."""
+    while True:
+        socketio.sleep(0.4)
+        if not COMBAT_RT:
+            continue
+        now = time.time()
+        try:
+            # -------- jogadores golpeiam o alvo marcado --------
+            for sid, pl in list(world.players.items()):
+                tid = pl.get("rt_target")
+                if not tid:
+                    continue
+                m = world.monsters.get(tid)
+                if not m or not m.get("alive") or m.get("map") != pl.get("map"):
+                    pl["rt_target"] = None
+                    continue
+                f = pl.get("ficha") or {}
+                if int(f.get("hp", 0)) <= 0:
+                    continue
+                if pl.get("_rt_next", 0) > now:
+                    continue
+                try:
+                    pc = combat.make_player_combatant(sid, pl, f)
+                except Exception:
+                    continue
+                reach = max(1, int(pc.get("reach", 1)))
+                if max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"])) > reach:
+                    continue                      # fora de alcance: aproxima que o golpe sai
+                pl["_rt_next"] = now + RT_ATK_CD
+                roll = random.randint(1, 20)
+                crit = (roll == 20)
+                hit = crit or (roll != 1 and roll + int(pc.get("atk", 0)) >= int(m.get("ac", 12)))
+                if not hit:
+                    socketio.emit("rt_hit", {"id": tid, "dmg": 0, "miss": True, "by": sid,
+                                             "hp": m["hp"], "hp_max": m["hp_max"]}, room=pl["map"])
+                    continue
+                dmg = _rt_roll_dmg(pc.get("dmg") or {"n": 1, "d": 4}, crit)
+                m["hp"] = max(0, int(m["hp"]) - dmg)
+                socketio.emit("rt_hit", {"id": tid, "dmg": dmg, "crit": crit, "by": sid,
+                                         "hp": m["hp"], "hp_max": m["hp_max"]}, room=pl["map"])
+                if m["hp"] <= 0:
+                    _rt_kill(sid, pl, m)
+
+            # -------- monstros revidam em quem estiver no alcance --------
+            for mid, m in list(world.monsters.items()):
+                if not m.get("alive") or m.get("passive") or m.get("in_combat"):
+                    continue
+                if m.get("_rt_next", 0) > now:
+                    continue
+                spec = monsters_def.MONSTERS.get(m.get("type"), {}) or {}
+                reach_m = max(1, int(spec.get("reach", 1)))
+                alvo_sid = None
+                alvo_pl = None
+                for sid, pl in world.players.items():
+                    if pl.get("map") != m.get("map") or pl.get("invisible"):
+                        continue
+                    fp = pl.get("ficha") or {}
+                    if int(fp.get("hp", 0)) <= 0:
+                        continue
+                    if max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"])) <= reach_m:
+                        alvo_sid, alvo_pl = sid, pl
+                        break
+                if not alvo_sid:
+                    continue
+                m["_rt_next"] = now + RT_ATK_CD
+                f = alvo_pl.get("ficha") or {}
+                try:
+                    pc = combat.make_player_combatant(alvo_sid, alvo_pl, f)
+                except Exception:
+                    continue
+                roll = random.randint(1, 20)
+                crit = (roll == 20)
+                hit = crit or (roll != 1 and roll + int(spec.get("atk", 3)) >= int(pc.get("ac", 10)))
+                if not hit:
+                    socketio.emit("rt_phit", {"dmg": 0, "miss": True, "by": m.get("name", "?"),
+                                              "hp": f.get("hp"), "hp_max": f.get("hp_max")}, to=alvo_sid)
+                    continue
+                dmg = _rt_roll_dmg(spec.get("dmg") or {"n": 1, "d": 4}, crit)
+                f["hp"] = max(0, int(f.get("hp", 1)) - dmg)
+                alvo_pl["ficha"] = f
+                socketio.emit("rt_phit", {"dmg": dmg, "crit": crit, "by": m.get("name", "?"),
+                                          "hp": f["hp"], "hp_max": f.get("hp_max")}, to=alvo_sid)
+                socketio.emit("xp", {"xp": f.get("xp", 0), "level": f.get("level", 1),
+                                     "hp": f["hp"], "hp_max": f.get("hp_max"),
+                                     "prof": f.get("prof"), "gained": 0,
+                                     "pending_asi": f.get("pending_asi", [])}, to=alvo_sid)
+                if f["hp"] <= 0:
+                    alvo_pl.pop("rt_target", None)
+                    _player_death(alvo_sid)
+        except Exception as exc:
+            print("erro no loop RT:", exc)
+
+
 def _start_combat(sid, monster_list):
+    if COMBAT_RT:
+        return _rt_engage(sid, monster_list)
     player = world.players.get(sid)
     if not player or sid in COMBAT:
         return
@@ -1596,6 +1780,20 @@ def on_interact(_data=None):
                    extra={"item": "concha_rara", "qty": 8, "name": "Conchas Raras"})
         return
 
+    # TEMPLO DOS DOZE: oferenda de 100 de bronze = bênção (vida cheia)
+    if npc.get("_spec", {}).get("templo"):
+        socketio.emit("speech", {"id": npc["id"],
+            "text": "Os Doze escutam quem oferta de coração. Cem de bronze, e tuas feridas se fecham."},
+            room=mp)
+        emit("confirm", {
+            "action": "templo_doar",
+            "title": "Fazer uma oferenda aos Doze? (100 de bronze)",
+            "body": "A Irmã Solene deposita tua oferenda no altar. Os deuses "
+                    "restauram TODA a tua vida.",
+            "ok": "Ofertar 100", "cancel": "Hoje não",
+        })
+        return
+
     # MESTRES DE OFÍCIO (Ermo): abrem a bancada de criação da profissão deles
     _prof = npc.get("_spec", {}).get("prof")
     if _prof and _prof in professions.PROFESSIONS:
@@ -2108,6 +2306,31 @@ def on_confirm_ok(data):
     if action == "go_salao" and player.get("map", "ermo") == "ermo":
         sx, sy = rules.pick_spawn(world, "salao")
         _go_to(request.sid, "salao", sx, sy)
+        return
+
+    # Oferenda no Templo dos Doze: 100 de bronze -> vida cheia
+    if action == "templo_doar" and player.get("map") == "ermo":
+        preco = 100
+        if int(player.get("wallet", 0)) < preco:
+            socketio.emit("speech", {"id": "npc:irma_solene",
+                "text": "Os deuses não cobram, mas o templo tem goteiras. Volta com o bronze, filho."},
+                room="ermo")
+            return
+        player["wallet"] = int(player.get("wallet", 0)) - preco
+        f = player.get("ficha") or {}
+        f["hp"] = f.get("hp_max", f.get("hp", 1))
+        player["ficha"] = f
+        try:
+            if player.get("player_id"):
+                db.save_wallet(player["player_id"], player["wallet"])
+                db.save_ficha(player["player_id"], f)
+        except Exception:
+            pass
+        emit("wallet", {"bronze": player["wallet"]})
+        emit("xp", {"xp": f.get("xp", 0), "level": f.get("level", 1), "hp": f["hp"],
+                    "hp_max": f.get("hp_max"), "prof": f.get("prof"), "gained": 0,
+                    "pending_asi": f.get("pending_asi", [])})
+        emit("toast", {"text": "✨ Os Doze ouviram a tua oferenda. Vida restaurada!"})
         return
 
     # Barco do Zé do Remo: Vila Caiçara -> Ermo por 500 de bronze
@@ -3075,6 +3298,7 @@ def _startup():
         if spec.get("gazes"):
             socketio.start_background_task(_npc_gaze_loop, spec)
     socketio.start_background_task(_pofnir_loop)   # a aparicao do Pofnir
+    socketio.start_background_task(_rt_combat_loop)  # COMBATE TEMPO REAL (Tibia)
     socketio.start_background_task(_night_loop)     # a vila dorme a noite
     socketio.start_background_task(_monster_respawn_loop)   # monstros voltam apos um tempo
     socketio.start_background_task(_monster_wander_loop)     # e perambulam pelo Descampado
