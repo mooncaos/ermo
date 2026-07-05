@@ -11228,112 +11228,108 @@ function drawRtCombat(c, now){
 //  ERMO REFORMADO: exteriores temáticos das oficinas + o Templo dos Doze
 // ===========================================================================
 const ERMO_DECOR = [
-  {x:32, y:21, t:'forja',    icon:'⚒️'},
-  {x:18, y:23, t:'couraria', icon:'🟤'},
-  {x:56, y:45, t:'serraria', icon:'🪵'},
-  {x:6,  y:65, t:'alquimia', icon:'⚗️'},
-  {x:32, y:77, t:'costura',  icon:'🧵'},
-  {x:8,  y:79, t:'joalheria',icon:'💎'},
-  {x:50, y:83, t:'cozinha',  icon:'🍲'},
+  {x:42, y:14, t:'forja',    icon:'⚒️'},
+  {x:42, y:19, t:'couraria', icon:'🟤'},
+  {x:42, y:24, t:'serraria', icon:'🪵'},
+  {x:42, y:29, t:'alquimia', icon:'⚗️'},
+  {x:51, y:16, t:'costura',  icon:'🧵'},
+  {x:51, y:22, t:'joalheria',icon:'💎'},
+  {x:51, y:28, t:'cozinha',  icon:'🍲'},
 ];
 function drawErmoDecor(c, now){
   for(const d of ERMO_DECOR){
     const bx = d.x*TS - camX, by = d.y*TS - camY;
-    if(bx < -TS*9 || by < -TS*7 || bx > canvas.width+TS*2 || by > canvas.height+TS*2) continue;
-    // PLACA pendurada sobre a porta (ícone do ofício)
-    const px = bx + 3.5*TS, py = by + 4*TS;
+    if(bx < -TS*8 || by < -TS*6 || bx > canvas.width+TS*2 || by > canvas.height+TS*2) continue;
+    // PLACA sobre a porta (ícone do ofício)
+    const px = bx + 2.5*TS, py = by + 3*TS;
     c.save();
-    c.fillStyle = '#6a4a2c'; c.fillRect(px - 9, py - TS*0.66, 18, 13);
-    c.strokeStyle = '#3a2814'; c.lineWidth = 1; c.strokeRect(px - 9, py - TS*0.66, 18, 13);
+    c.fillStyle = '#6a4a2c'; c.fillRect(px - 9, py - TS*0.62, 18, 13);
+    c.strokeStyle = '#3a2814'; c.lineWidth = 1; c.strokeRect(px - 9, py - TS*0.62, 18, 13);
     c.font = '10px serif'; c.textAlign = 'center';
-    c.fillText(d.icon, px, py - TS*0.66 + 10);
+    c.fillText(d.icon, px, py - TS*0.62 + 10);
     c.restore();
-    // detalhe vivo por ofício
     if(d.t === 'forja'){
-      const k = (now/70) % 40;                                  // FUMAÇA da chaminé
+      const k = (now/70) % 40;
       c.save();
       for(let i=0;i<3;i++){
         const ph = (k + i*13) % 40;
         c.globalAlpha = 0.35 * (1 - ph/40);
         c.fillStyle = '#a8a0a0';
-        c.beginPath(); c.arc(bx + 5.5*TS + Math.sin((now/600)+i)*3, by - 4 - ph*0.8, 3 + ph*0.14, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(bx + 4.6*TS + Math.sin((now/600)+i)*3, by - 4 - ph*0.8, 3 + ph*0.14, 0, Math.PI*2); c.fill();
       }
-      c.globalAlpha = 0.5 + 0.3*Math.sin(now/180);              // brilho da forja na janela
-      c.fillStyle = '#ff8a30'; c.fillRect(bx + TS*1.2, by + TS*2.2, TS*0.7, TS*0.6);
+      c.globalAlpha = 0.5 + 0.3*Math.sin(now/180);
+      c.fillStyle = '#ff8a30'; c.fillRect(bx + TS*1.1, by + TS*1.5, TS*0.7, TS*0.6);
       c.restore();
     } else if(d.t === 'alquimia'){
-      const bub = Math.sin(now/300);                            // caldeirão borbulhando
+      const bub = Math.sin(now/300);
       c.save();
       c.fillStyle = '#2a2a30'; c.beginPath();
-      c.ellipse(bx - TS*0.7, by + TS*4.4, TS*0.4, TS*0.28, 0, 0, Math.PI*2); c.fill();
+      c.ellipse(bx - TS*0.6, by + TS*3.4, TS*0.38, TS*0.26, 0, 0, Math.PI*2); c.fill();
       c.fillStyle = '#5ad86a'; c.globalAlpha = 0.85;
-      c.beginPath(); c.ellipse(bx - TS*0.7, by + TS*4.28, TS*0.3, TS*0.1, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(bx - TS*0.6, by + TS*3.28, TS*0.28, TS*0.09, 0, 0, Math.PI*2); c.fill();
       if(bub > 0.4){ c.globalAlpha = 0.7;
-        c.beginPath(); c.arc(bx - TS*0.7 + bub*4, by + TS*4.1, 2, 0, Math.PI*2); c.fill(); }
+        c.beginPath(); c.arc(bx - TS*0.6 + bub*4, by + TS*3.1, 2, 0, Math.PI*2); c.fill(); }
       c.restore();
     } else if(d.t === 'couraria'){
-      c.save();                                                 // varal de couros balançando
+      c.save();
       c.strokeStyle = '#4a3820'; c.lineWidth = 1.4;
-      c.beginPath(); c.moveTo(bx + 7.4*TS, by + TS*1.2); c.lineTo(bx + 8.6*TS, by + TS*1.2); c.stroke();
+      c.beginPath(); c.moveTo(bx + 6.3*TS, by + TS*0.9); c.lineTo(bx + 7.5*TS, by + TS*0.9); c.stroke();
       const sw = Math.sin(now/800)*2;
       for(let i=0;i<2;i++){
         c.fillStyle = i ? '#8a5a34' : '#a8703c';
-        c.fillRect(bx + (7.6 + i*0.55)*TS + sw*(i?1:-1)*0.4, by + TS*1.25, TS*0.4, TS*0.75);
+        c.fillRect(bx + (6.5 + i*0.55)*TS + sw*(i?1:-1)*0.4, by + TS*0.95, TS*0.4, TS*0.72);
       }
       c.restore();
     } else if(d.t === 'serraria'){
-      c.save();                                                 // pilha de toras
+      c.save();
       for(const [ox, oy] of [[0,0],[0.55,0],[0.27,-0.4]]){
         c.fillStyle = '#8a6438';
-        c.beginPath(); c.ellipse(bx + 7.6*TS + ox*TS, by + 4.4*TS + oy*TS, TS*0.28, TS*0.22, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(bx + 6.6*TS + ox*TS, by + 3.4*TS + oy*TS, TS*0.26, TS*0.2, 0, 0, Math.PI*2); c.fill();
         c.fillStyle = '#c9a464';
-        c.beginPath(); c.ellipse(bx + 7.6*TS + ox*TS, by + 4.4*TS + oy*TS, TS*0.16, TS*0.12, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(bx + 6.6*TS + ox*TS, by + 3.4*TS + oy*TS, TS*0.15, TS*0.11, 0, 0, Math.PI*2); c.fill();
       }
       c.restore();
     } else if(d.t === 'costura'){
-      c.save();                                                 // tecidos coloridos na janela
+      c.save();
       const cores = ['#c05870', '#5878c0', '#c0a858'];
       for(let i=0;i<3;i++){
         c.fillStyle = cores[i];
-        c.fillRect(bx + TS*(1.3 + i*0.75), by + TS*2.1 + Math.sin(now/700+i)*1.5, TS*0.5, TS*0.9);
+        c.fillRect(bx + TS*(1.1 + i*0.75), by + TS*1.4 + Math.sin(now/700+i)*1.5, TS*0.5, TS*0.85);
       }
       c.restore();
     } else if(d.t === 'joalheria'){
-      const sp = (now/450 + d.x) % 3;                           // vitrine cintilando
+      const sp = (now/450 + d.x) % 3;
       c.save(); c.globalCompositeOperation = 'lighter';
       c.globalAlpha = 0.8;
       c.fillStyle = '#fff0c0';
-      const spx = bx + TS*(1.5 + sp*1.4), spy = by + TS*2.4;
+      const spx = bx + TS*(1.3 + sp*1.3), spy = by + TS*1.7;
       c.beginPath();
       c.moveTo(spx, spy-4); c.lineTo(spx+1.6, spy); c.lineTo(spx, spy+4); c.lineTo(spx-1.6, spy);
       c.closePath(); c.fill();
       c.restore();
     } else if(d.t === 'cozinha'){
-      c.save();                                                 // fumacinha de comida
+      c.save();
       for(let i=0;i<2;i++){
         const ph = ((now/90) + i*20) % 34;
         c.globalAlpha = 0.3 * (1 - ph/34);
         c.fillStyle = '#e8e0d0';
-        c.beginPath(); c.arc(bx + 1.4*TS + Math.sin(now/500+i)*2, by - 2 - ph*0.7, 2.4 + ph*0.1, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(bx + 1.2*TS + Math.sin(now/500+i)*2, by - 2 - ph*0.7, 2.4 + ph*0.1, 0, Math.PI*2); c.fill();
       }
       c.restore();
     }
   }
-  // ---- TEMPLO DOS DOZE (19,4 .. 33,14): altar, símbolo e as 12 chamas ----
-  const tx = 19*TS - camX, ty = 4*TS - camY;
-  if(tx > -TS*16 && ty > -TS*12 && tx < canvas.width+TS*2 && ty < canvas.height+TS*2){
-    const ax = tx + 7.5*TS, ay = ty + 2.2*TS;
-    // aura sagrada do altar
+  // ---- TEMPLO DOS DOZE (52,4 .. 66,13): altar, símbolo e as 12 chamas ----
+  const tx = 52*TS - camX, ty = 4*TS - camY;
+  if(tx > -TS*16 && ty > -TS*11 && tx < canvas.width+TS*2 && ty < canvas.height+TS*2){
+    const ax = tx + 7.5*TS, ay = ty + 2.0*TS;
     c.save(); c.globalCompositeOperation = 'lighter';
     const pl = 0.16 + 0.08*Math.sin(now/900);
     const g = c.createRadialGradient(ax, ay, 0, ax, ay, TS*2.6);
     g.addColorStop(0, 'rgba(244,216,150,'+pl+')'); g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g; c.beginPath(); c.arc(ax, ay, TS*2.6, 0, Math.PI*2); c.fill();
     c.restore();
-    // o altar de pedra
     c.fillStyle = '#5a5464'; c.fillRect(ax - TS*0.8, ay - TS*0.3, TS*1.6, TS*0.7);
     c.fillStyle = '#6c667a'; c.fillRect(ax - TS*0.95, ay - TS*0.45, TS*1.9, TS*0.22);
-    // símbolo dos Doze (círculo com 12 pontos)
     c.save();
     c.strokeStyle = '#f0d8a0'; c.lineWidth = 1.6;
     c.beginPath(); c.arc(ax, ay - TS*0.85, TS*0.42, 0, Math.PI*2); c.stroke();
@@ -11343,12 +11339,11 @@ function drawErmoDecor(c, now){
       c.beginPath(); c.arc(ax + Math.cos(a)*TS*0.42, ay - TS*0.85 + Math.sin(a)*TS*0.42, 1.4, 0, Math.PI*2); c.fill();
     }
     c.restore();
-    // 12 chamas votivas nas laterais (6 + 6)
     c.save(); c.globalCompositeOperation = 'lighter';
     for(let i=0;i<12;i++){
       const lado = i < 6 ? 0 : 1;
-      const vx = tx + (lado ? 13.2 : 1.8)*TS;
-      const vy = ty + (2.2 + (i%6)*1.5)*TS;
+      const vx = tx + (lado ? 13.4 : 1.6)*TS;
+      const vy = ty + (1.8 + (i%6)*1.35)*TS;
       const fl = 0.55 + 0.45*Math.sin(now/160 + i*1.7);
       c.globalAlpha = 0.85*fl;
       c.fillStyle = i%2 ? '#ffd070' : '#ffb040';
@@ -11361,177 +11356,12 @@ function drawErmoDecor(c, now){
   }
 }
 
-// ===========================================================================
-//  MUNDO VIVO: clima, fauna ambiente, pet, pesca e drops raros
-// ===========================================================================
-var _weather = {type: null, k: 0};
-var _fauna = [];
-var _petTrail = [];
-
-// clima decidido ao trocar de mapa (chuva na costa/floresta, névoa densa no Umbraval)
-socketOnReady_weather = setInterval(()=>{
-  if(typeof socket === 'undefined' || !socket || socket._wxBound) return;
-  socket._wxBound = true;
-  socket.on('map_change', d=>{
-    const nm = (d && d.map && d.map.map) || 'ermo';
-    _fauna = []; _petTrail = [];
-    if((nm === 'costa_maravai' || nm === 'floresta_ermo') && Math.random() < 0.3)
-      _weather = {type: 'chuva', k: 0.6 + Math.random()*0.4};
-    else if(nm === 'umbraval' && Math.random() < 0.4)
-      _weather = {type: 'nevoa', k: 1};
-    else _weather = {type: null, k: 0};
-    // semeia a fauna ambiente do mapa
-    if(nm === 'costa_maravai'){
-      for(let i=0;i<10;i++) _fauna.push({t:'borboleta', x: 20+Math.random()*260, y: 10+Math.random()*130, ph: Math.random()*9});
-      for(let i=0;i<6;i++)  _fauna.push({t:'gaivota', x: 30+Math.random()*250, y: 200+Math.random()*50, ph: Math.random()*9, voa: 0});
-    }
-  });
-  socket.on('rare_drop', d=>{
-    if(!d) return;
-    const me = players.get(myId);
-    if(me) rtAddFloat((me.rx||0)+TS/2, (me.ry||0)-6, '✨ ' + (d.rarity||'').toUpperCase() + '!', d.color || '#c98aff', true);
-    toastMsg('✨ Drop ' + d.rarity + ': ' + d.name + '!');
-  });
-  socket.on('fish_start', ()=> openFishing());
-}, 800);
-
-function drawWeather(c, now){
-  if(!_weather.type) return;
-  if(_weather.type === 'chuva'){
-    c.save(); c.strokeStyle = 'rgba(170,200,230,0.35)'; c.lineWidth = 1;
-    const n = Math.floor(70 * _weather.k);
-    for(let i=0;i<n;i++){
-      const rx = ((i*997 + now*0.5) % (canvas.width + 60)) - 30;
-      const ry = ((i*641 + now*0.9) % (canvas.height + 40)) - 20;
-      c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx - 3, ry + 11); c.stroke();
-    }
-    c.fillStyle = 'rgba(90,120,160,0.06)'; c.fillRect(0, 0, canvas.width, canvas.height);
-    c.restore();
-  } else if(_weather.type === 'nevoa'){
-    c.save();
-    const g = c.createLinearGradient(0, 0, 0, canvas.height);
-    g.addColorStop(0, 'rgba(120,140,200,0.05)');
-    g.addColorStop(1, 'rgba(120,140,200,0.13)');
-    c.fillStyle = g; c.fillRect(0, 0, canvas.width, canvas.height);
-    c.restore();
-  }
-}
-
-function drawFaunaAndPet(c, now){
-  // ---- fauna ambiente (zero stats, só vida) ----
-  const me = players.get(myId);
-  for(const f of _fauna){
-    const sx = f.x*TS - camX, sy = f.y*TS - camY;
-    if(sx < -TS*3 || sy < -TS*3 || sx > canvas.width+TS*3 || sy > canvas.height+TS*3) continue;
-    if(f.t === 'borboleta'){
-      f.x += Math.sin(now/900 + f.ph)*0.012; f.y += Math.cos(now/1100 + f.ph)*0.01;
-      const wing = Math.abs(Math.sin(now/120 + f.ph));
-      c.save(); c.translate(sx, sy);
-      c.fillStyle = f.ph % 2 < 1 ? '#e8a040' : '#c060c0';
-      c.beginPath(); c.ellipse(-2.2*wing, 0, 2.6*wing, 1.7, -0.4, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(2.2*wing, 0, 2.6*wing, 1.7, 0.4, 0, Math.PI*2); c.fill();
-      c.restore();
-    } else if(f.t === 'gaivota'){
-      if(!f.voa && me && Math.max(Math.abs(me.x - f.x), Math.abs(me.y - f.y)) < 4) f.voa = now;
-      if(f.voa){
-        const k = Math.min(1, (now - f.voa)/1600);
-        f.y -= 0.06; f.x += 0.05;
-        if(k >= 1){ f.voa = 0; f.x = 30+Math.random()*250; f.y = 205+Math.random()*45; }
-      }
-      const flap = f.voa ? Math.sin(now/90)*4 : 0;
-      c.save(); c.strokeStyle = '#e8e8ea'; c.lineWidth = 2; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(sx-5, sy - flap); c.quadraticCurveTo(sx, sy - 3 - flap*0.4, sx+5, sy - flap); c.stroke();
-      c.restore();
-    }
-  }
-  // peixes pulando no mar da costa
-  if(mapName === 'costa_maravai' && Math.floor(now/700) % 5 === 0 && (now % 700) < 40){
-    _fauna.push({t:'peixe', x: 20 + Math.random()*260, y: 266 + Math.random()*20, born: now});
-  }
-  for(let i=_fauna.length-1; i>=0; i--){
-    const f = _fauna[i];
-    if(f.t !== 'peixe') continue;
-    const age = (now - f.born)/800;
-    if(age >= 1){ _fauna.splice(i,1); continue; }
-    const sx = f.x*TS - camX, sy = f.y*TS - camY - Math.sin(age*Math.PI)*14;
-    c.save(); c.globalAlpha = 0.85;
-    c.fillStyle = '#a8c8d8'; c.beginPath();
-    c.ellipse(sx, sy, 4, 2, age*3, 0, Math.PI*2); c.fill();
-    if(age > 0.8){ c.strokeStyle = 'rgba(230,245,250,0.6)';
-      c.beginPath(); c.arc(f.x*TS - camX, f.y*TS - camY, 5*(age-0.8)*5, 0, Math.PI); c.stroke(); }
-    c.restore();
-  }
-  // ---- PET: filhote de capivara segue o dono ----
-  if(me && typeof inventory !== 'undefined' &&
-     (inventory||[]).some(s=> s.item === 'filhote_capivara')){
-    _petTrail.push({x: me.rx, y: me.ry});
-    if(_petTrail.length > 14) _petTrail.shift();
-    const pos = _petTrail[0];
-    if(pos){
-      const sx = pos.x - camX + TS/2, sy = pos.y - camY + TS/2;
-      const bob = Math.sin(now/300)*1.2;
-      c.save(); c.translate(sx, sy + bob);
-      c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(0, 6, 7, 2.4, 0, 0, Math.PI*2); c.fill();
-      c.fillStyle = '#a8875c';                                   // corpinho redondo
-      c.beginPath(); c.ellipse(0, 0, 7, 5.4, 0, 0, Math.PI*2); c.fill();
-      c.fillStyle = '#8a6a44';                                   // cabecinha
-      c.beginPath(); c.ellipse(6, -2, 4, 3.4, 0, 0, Math.PI*2); c.fill();
-      c.fillStyle = '#5a4228';                                   // focinho + orelha
-      c.beginPath(); c.ellipse(9, -1.4, 1.6, 1.2, 0, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.arc(5, -5, 1.3, 0, Math.PI*2); c.fill();
-      c.fillStyle = '#1a1410';                                   // olhinho
-      c.beginPath(); c.arc(7, -3, 0.8, 0, Math.PI*2); c.fill();
-      c.restore();
-    }
-  }
-}
-
-// ---------- PESCA: a barra que oscila ----------
-var _fishing = null;
-function openFishing(){
-  if(_fishing) return;
-  _fishing = {born: performance.now()};
-  let el = document.createElement('div');
-  el.id = 'fishUI';
-  el.style.cssText = 'position:fixed;left:50%;bottom:24%;transform:translateX(-50%);z-index:240;'+
-    'background:rgba(8,10,18,0.88);border:1px solid #3a5a7a;border-radius:12px;padding:12px 16px;text-align:center;';
-  el.innerHTML = '<div style="font:700 12px Inter;color:#c9e0f0;margin-bottom:8px;">🎣 Crave na zona verde! (Espaço ou toque)</div>'+
-    '<div id="fishTrack" style="position:relative;width:240px;height:16px;background:#101828;border-radius:8px;overflow:hidden;">'+
-    '<div style="position:absolute;left:'+(240*0.33)+'px;width:'+(240*0.34)+'px;top:0;bottom:0;background:rgba(80,200,110,0.35);border-left:1px solid #4aa86a;border-right:1px solid #4aa86a;"></div>'+
-    '<div id="fishCur" style="position:absolute;top:1px;width:5px;height:14px;background:#f0d870;border-radius:2px;box-shadow:0 0 6px #f0d870;"></div></div>';
-  document.body.appendChild(el);
-  el.addEventListener('pointerdown', fishStrike);
-  _fishing.frame = ()=>{
-    if(!_fishing) return;
-    const t = (performance.now() - _fishing.born)/1000;
-    _fishing.pos = 0.5 + 0.5*Math.sin(t*3.4);
-    const cur = document.getElementById('fishCur');
-    if(cur) cur.style.left = (_fishing.pos*235) + 'px';
-    if(t > 10){ closeFishing(); return; }
-    requestAnimationFrame(_fishing.frame);
-  };
-  requestAnimationFrame(_fishing.frame);
-}
-function fishStrike(){
-  if(!_fishing) return;
-  socket.emit('fish_hit', {pos: _fishing.pos || 0});
-  closeFishing();
-}
-function closeFishing(){
-  _fishing = null;
-  const el = document.getElementById('fishUI');
-  if(el) el.remove();
-}
-window.addEventListener('keydown', e=>{
-  if(_fishing && e.code === 'Space'){ e.preventDefault(); fishStrike(); }
-});
-
 // obelisco do MEMORIAL DOS HERÓIS (ao lado do templo)
 (function(){
   const orig = drawErmoDecor;
   drawErmoDecor = function(c, now){
     orig(c, now);
-    const mx = 35.5*TS - camX, my = 15*TS - camY;
+    const mx = 63.5*TS - camX, my = 14.6*TS - camY;
     if(mx < -TS*3 || my < -TS*3 || mx > canvas.width+TS || my > canvas.height+TS) return;
     c.save();
     c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(mx, my + TS*0.5, TS*0.5, TS*0.14, 0, 0, Math.PI*2); c.fill();

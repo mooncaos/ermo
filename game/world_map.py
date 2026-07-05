@@ -1274,62 +1274,67 @@ for _yy in range(5):
 _tav[_TVY + 4][_TVX + 3] = "D"                  # porta -> (83, 49)
 MAP_ROWS = ["".join(r) for r in _tav]
 
-# as 7 OFICINAS das profissões, erguidas nos espaços livres do Ermo
-# (casa 7x5 com porta ao sul; o mestre mora na frente da porta)
+# a RUA DOS OFÍCIOS: 7 casas no estilo nativo do Ermo (paredes H, porta D),
+# ladeando a estrada principal (x=49) que sobe pro norte. Elegante e integrado.
 def _build_prof_houses():
-    casas = [(32, 21), (18, 23), (56, 45), (6, 65), (32, 77), (8, 79), (50, 83)]
-    for (cx, cy) in casas:
-        for y in range(cy, cy + 5):
+    def casa(cx, cy):                     # casa 6x4, porta ao sul no meio
+        for y in range(cy, cy + 4):
             row = list(MAP_ROWS[y])
-            for x in range(cx, cx + 7):
-                borda = y in (cy, cy + 4) or x in (cx, cx + 6)
-                row[x] = "#" if borda else "."
+            for x in range(cx, cx + 6):
+                borda = y in (cy, cy + 3) or x in (cx, cx + 5)
+                row[x] = "H" if borda else "."
             MAP_ROWS[y] = "".join(row)
-        row = list(MAP_ROWS[cy + 4]); row[cx + 3] = "."; MAP_ROWS[cy + 4] = "".join(row)
+        row = list(MAP_ROWS[cy + 3]); row[cx + 2] = "D"; MAP_ROWS[cy + 3] = "".join(row)
+    # lado OESTE da estrada (4 casas) + lado LESTE (3 casas)
+    for cy in (14, 19, 24, 29):
+        casa(42, cy)
+    for cy in (16, 22, 28):
+        casa(51, cy)
 _build_prof_houses()
 
 
-# O TEMPLO DOS DOZE (norte da cidade): a casa de todos os deuses do Ermo
+# O TEMPLO DOS DOZE: no alto da estrada, ao lado do caminho pro norte.
+# Paredes nativas H, colunas ^ e um portal D triplo voltado pro sul.
 def _build_templo():
-    x0, y0, w, h = 19, 4, 15, 11
+    x0, y0, w, h = 52, 4, 15, 10
     for y in range(y0, y0 + h):
         row = list(MAP_ROWS[y])
         for x in range(x0, x0 + w):
             borda = y in (y0, y0 + h - 1) or x in (x0, x0 + w - 1)
-            row[x] = "#" if borda else "."
+            row[x] = "H" if borda else "."
         MAP_ROWS[y] = "".join(row)
-    for cy in (y0 + 3, y0 + 7):
+    for cy in (y0 + 3, y0 + 6):                      # colunatas internas
         row = list(MAP_ROWS[cy])
         for cx in (x0 + 3, x0 + 7, x0 + 11):
             row[cx] = "^"
         MAP_ROWS[cy] = "".join(row)
-    row = list(MAP_ROWS[y0 + h - 1])
+    row = list(MAP_ROWS[y0 + h - 1])                 # portal sul (3 portas)
     for x in range(x0 + 6, x0 + 9):
-        row[x] = "."
+        row[x] = "D"
     MAP_ROWS[y0 + h - 1] = "".join(row)
-    for ay in range(y0 + h, y0 + h + 3):
+    for ay in range(y0 + h, y0 + h + 3):             # adro de terra até a rua
         row = list(MAP_ROWS[ay])
         for x in range(x0 + 5, x0 + 10):
-            if row[x] in (".", ","):
+            if row[x] in (".", ",", ":", "T", "^", "Y"):
                 row[x] = "d"
         MAP_ROWS[ay] = "".join(row)
 _build_templo()
 
 
-# calçadas de terra batida na frente de cada oficina (a cidade ganha malha)
+# calçadas: da porta de cada oficina até a estrada principal
 def _build_calcadas():
-    portas = [(35, 25), (21, 27), (59, 49), (9, 69), (35, 81), (11, 83), (53, 87)]
-    for (px, py) in portas:
-        for dy in range(1, 5):
-            y = py + dy
-            if y >= len(MAP_ROWS):
+    ligas = [(44, 18, 1), (44, 23, 1), (44, 28, 1), (44, 33, 1),    # oeste -> leste
+             (53, 20, -1), (53, 26, -1), (53, 32, -1)]              # leste -> oeste
+    for (px, py, sentido) in ligas:
+        x = px
+        while 42 <= x <= 57:
+            row = list(MAP_ROWS[py])
+            if row[x] in (".", ",", ":", "T", "^", "Y"):
+                row[x] = "d"
+            MAP_ROWS[py] = "".join(row)
+            if (sentido > 0 and x >= 48) or (sentido < 0 and x <= 50):
                 break
-            row = list(MAP_ROWS[y])
-            if row[px] in (".", ","):
-                row[px] = "d"
-            if dy <= 2 and row[px - 1] in (".", ","):
-                row[px - 1] = "d"
-            MAP_ROWS[y] = "".join(row)
+            x += sentido
 _build_calcadas()
 
 
