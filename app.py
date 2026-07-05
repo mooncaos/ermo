@@ -818,7 +818,7 @@ def _monster_wander_loop():
     while True:
         socketio.sleep(1.2)
         for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram", "mina_avhur", "camara_avhur",
-                   "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth"):
+                   "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth", "floresta_ermo"):
             moved = world.wander_monsters(mp)
             if moved:
                 socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)
@@ -826,7 +826,7 @@ def _monster_wander_loop():
                 if pl.get("map") != mp or pl.get("in_combat") or pl.get("invisible"):
                     continue
                 near = [m for m in world.monsters_near(mp, pl["x"], pl["y"], COMBAT_AGGRO)
-                        if not m.get("in_combat")]
+                        if not m.get("in_combat") and not m.get("passive")]
                 if near:
                     _start_combat(sid, near)
 
@@ -844,9 +844,9 @@ def on_combat_engage(data):
     if max(abs(m["x"] - player["x"]), abs(m["y"] - player["y"])) > COMBAT_AGGRO + 1:
         return   # longe demais pra engajar clicando
     near = [mm for mm in world.monsters_near(m["map"], player["x"], player["y"], COMBAT_AGGRO)
-            if not mm.get("in_combat")]
+            if not mm.get("in_combat") and not mm.get("passive")]
     if m not in near:
-        near.append(m)
+        near.append(m)              # o bicho clicado entra na luta mesmo sendo passivo (caça)
     _start_combat(sid, near)
 
 

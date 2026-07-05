@@ -191,6 +191,16 @@ const MAP_AMBIENT = {
 };
 // mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
 const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth']);
+// TIPO de particula por bioma (rework visual): cada mapa tem a SUA vida no ar.
+// leaf=folhas caindo | ember=brasas/cinzas subindo | sand=areia soprando | mist=flocos de bruma | petal=palha dourada | spark=faisca eterea
+const MAP_PTYPE = {
+  repouso_dama:'leaf', floresta_ermo:'leaf', bosque_atalech:'leaf', fadrakor_selva:'leaf',
+  torre_andar1:'ember', torre_andar2:'ember', torre_andar3:'ember', camara_varth:'ember', fadrakor_vulcao:'ember',
+  avasham:'sand', cova_colosso:'sand', mina_avhur:'sand',
+  valdarkram:'mist', planaltos_ermais:'mist',
+  rasharan:'petal',
+  valoran:'spark', falanor:'spark', fundamento:'spark', salao:'spark',
+};
 
 // ---------- ciclo de dia e noite ----------
 let dayLength = 480;          // segundos por ciclo (o servidor manda o valor real)
@@ -2737,6 +2747,7 @@ function drawMonster(c, sx, sy, ts, p){
   if(t === 'dama_noite'){ drawBanshee(c, sx, sy, ts, p); return; }
   if(t === 'capanga' || t === 'capanga_brutamontes'){ drawThug(c, sx, sy, ts, p); return; }
   if(t === 'velho_bob' || t === 'rato_gigante' || t === 'lobo' || t === 'javali' || t === 'lobo_negro'){ drawBeast(c, sx, sy, ts, p); return; }
+  if(t === 'coelho' || t === 'lebre' || t === 'veado' || t === 'cervo' || t === 'lobo_cinzento_ermo' || t === 'urso_pardo' || t === 'urso_negro' || t === 'urso_rei'){ drawBeast(c, sx, sy, ts, p); return; }
   if(t === 'harpia'){ drawHarpy(c, sx, sy, ts, p); return; }
   if(t === 'bruxa_louca'){ drawWitch(c, sx, sy, ts, p); return; }
   if(t === 'alma_errante' || t === 'assombracao' || t === 'espectro' || t === 'vulto' || t === 'alma_penada'){ drawSpirit(c, sx, sy, ts, p); return; }
@@ -3012,6 +3023,14 @@ const BEAST = {
   hiena_ermo:   {body:'#9a8458', belly:'#b5a070', size:0.82, ear:'point', tail:'tuft', snout:'#5a4a30', tusk:false, bristle:true},
   urso:         {body:'#6b4a32', belly:'#856448', size:1.34, ear:'round', tail:'tuft', snout:'#3a2a1c', tusk:false, bristle:false},
   mainecoon:    {body:'#e8e0cf', belly:'#f6f0e2', size:1.04, ear:'point', tail:'bush', snout:'#caa86a', tusk:false, bristle:false},
+  coelho:       {body:'#b8a890', belly:'#ece4d6', size:0.50, ear:'point', tail:'tuft', snout:'#d8b0a0', tusk:false, bristle:false, longear:true},
+  lebre:        {body:'#a08868', belly:'#d8c8b0', size:0.56, ear:'point', tail:'tuft', snout:'#c8a090', tusk:false, bristle:false, longear:true},
+  veado:        {body:'#a87c50', belly:'#d8c0a0', size:1.02, ear:'point', tail:'tuft', snout:'#5a4030', tusk:false, bristle:false, antler:true},
+  cervo:        {body:'#8c6240', belly:'#c0a078', size:1.28, ear:'point', tail:'tuft', snout:'#4a3020', tusk:false, bristle:false, antler:true},
+  lobo_cinzento_ermo: {body:'#8a8d96', belly:'#aab0b8', size:1.72, ear:'point', tail:'bush', snout:'#4a4d56', tusk:false, bristle:true},
+  urso_pardo:   {body:'#6b4a30', belly:'#876848', size:2.60, ear:'round', tail:'tuft', snout:'#3a2a1c', tusk:false, bristle:false},
+  urso_negro:   {body:'#221c20', belly:'#3a323a', size:2.80, ear:'round', tail:'tuft', snout:'#100c10', tusk:false, bristle:false},
+  urso_rei:     {body:'#4a3424', belly:'#6a4e36', size:3.40, ear:'round', tail:'tuft', snout:'#281a10', tusk:false, bristle:true, crown:true},
 };
 function _dirVec(f){ return f==='up'?[0,-1] : f==='down'?[0,1] : f==='left'?[-1,0] : [1,0]; }
 
@@ -3086,6 +3105,43 @@ function drawBeast(c, sx, sy, ts, p){
     c.beginPath(); c.arc(e2x, e2y, hr*0.2, 0, Math.PI*2); c.fill();
   }
 
+  // orelhas LONGAS (coelho/lebre)
+  if(base.longear){
+    for(const sgn of [-1, 1]){
+      const ex = hx + px*hr*0.4*sgn + fx*hr*0.1, ey = hy + py*hr*0.4*sgn + fy*hr*0.1;
+      c.save(); c.translate(ex, ey); c.rotate(ang + sgn*0.2);
+      c.fillStyle = shade(base.body, -0.05);
+      c.beginPath(); c.ellipse(0, -hr*0.85, hr*0.26, hr*1.05, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = base.snout;
+      c.beginPath(); c.ellipse(0, -hr*0.85, hr*0.12, hr*0.78, 0, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+  }
+  // GALHADA (veado/cervo): chifres ramificados apontando pra cima
+  if(base.antler){
+    c.strokeStyle = '#cdb287'; c.lineWidth = Math.max(1.5, ts*0.028*s); c.lineCap = 'round';
+    for(const sgn of [-1, 1]){
+      const bx0 = hx + sgn*hr*0.32, by0 = hy - hr*0.25;
+      const ax = bx0 + sgn*hr*0.35, ay = by0 - hr*0.75;
+      c.beginPath(); c.moveTo(bx0, by0); c.lineTo(ax, ay);
+      c.lineTo(ax + sgn*hr*0.45, ay - hr*0.5); c.stroke();
+      c.beginPath(); c.moveTo(ax - sgn*hr*0.02, ay + hr*0.05); c.lineTo(ax + sgn*hr*0.6, ay - hr*0.02); c.stroke();
+      c.beginPath(); c.moveTo(bx0 + sgn*hr*0.15, by0 - hr*0.35); c.lineTo(bx0 + sgn*hr*0.55, by0 - hr*0.5); c.stroke();
+    }
+  }
+  // COROA do Rei do Planalto
+  if(base.crown){
+    const cwy = hy - hr*0.95, cw = hr*1.25;
+    c.fillStyle = '#f4c84a';
+    c.beginPath(); c.moveTo(hx - cw/2, cwy);
+    c.lineTo(hx - cw/2, cwy - hr*0.32); c.lineTo(hx - cw*0.24, cwy - hr*0.06);
+    c.lineTo(hx, cwy - hr*0.44); c.lineTo(hx + cw*0.24, cwy - hr*0.06);
+    c.lineTo(hx + cw/2, cwy - hr*0.32); c.lineTo(hx + cw/2, cwy);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#b8881c'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = '#e0405a'; c.beginPath(); c.arc(hx, cwy - hr*0.14, Math.max(1.5, hr*0.12), 0, Math.PI*2); c.fill();
+  }
+
   // presas (javali / Bob com uma quebrada)
   if(base.tusk){
     c.fillStyle = '#efe6cf';
@@ -3116,6 +3172,12 @@ function drawBeast(c, sx, sy, ts, p){
     const tw = c.measureText('PATRIARCA').width + 8, tagY = sy - 12;
     c.fillStyle = 'rgba(20,16,8,0.92)'; roundRect(c, cx-tw/2, tagY-11, tw, 11, 3); c.fill();
     c.fillStyle = '#d9cba0'; c.fillText('PATRIARCA', cx, tagY-1.5); c.restore();
+  }
+  if(p.mtype === 'urso_rei'){
+    c.save(); c.font = '800 9px Cinzel, serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
+    const lbl = '👑 REI DO PLANALTO', tw = c.measureText(lbl).width + 10, tagY = sy - 14;
+    c.fillStyle = 'rgba(24,16,8,0.92)'; roundRect(c, cx-tw/2, tagY-12, tw, 12, 3); c.fill();
+    c.fillStyle = '#f4c84a'; c.fillText(lbl, cx, tagY-2); c.restore();
   }
   drawMonsterBarName(c, sx, sy, ts, p);
 }
@@ -5038,20 +5100,47 @@ function spawnParticle(now){
   const night = isNightish(dayTime);
   const amb = MAP_AMBIENT[mapName];
   const biomeHue = amb && amb.part;                     // cor das motas daquele bioma
+  const ptype = MAP_PTYPE[mapName] || (night ? 'firefly' : 'dust');
   const glow = night || GLOW_MAPS.has(mapName);         // reinos/cemiterio/salao: brilho etereo
-  particles.push({
-    x:wx, y:wy,
+  const p = {
+    x:wx, y:wy, ptype: ptype,
     vx:(Math.random()-0.5)*6,
     vy: night ? -(4+Math.random()*6) : (2+Math.random()*4),
     r: glow ? 1.1+Math.random()*1.3 : 0.7+Math.random()*0.9,
     life: 4200+Math.random()*4200, t0:now,
     glow: glow, hue: biomeHue || (night ? (Math.random()<0.5?'#f4e08a':'#a9f0c0') : '#d8d2c2'),
-    ph: Math.random()*6.283
-  });
+    ph: Math.random()*6.283, spin:(Math.random()-0.5)*3,
+  };
+  // comportamento POR BIOMA (rework visual)
+  if(ptype==='leaf'){                                    // folha: cai devagar balançando
+    p.vy = 7+Math.random()*8; p.vx = (Math.random()-0.5)*10; p.r = 2.2+Math.random()*1.8;
+    p.life = 6000+Math.random()*5000; p.glow=false;
+  } else if(ptype==='ember'){                            // brasa necrótica: sobe tremulando
+    p.vy = -(9+Math.random()*12); p.vx = (Math.random()-0.5)*8; p.r = 1.0+Math.random()*1.2;
+    p.life = 3200+Math.random()*2600; p.glow=true;
+  } else if(ptype==='sand'){                             // areia: sopra na horizontal
+    p.vx = 26+Math.random()*30; p.vy = (Math.random()-0.5)*4; p.r = 0.8+Math.random()*0.8;
+    p.life = 2600+Math.random()*2200; p.glow=false;
+  } else if(ptype==='mist'){                             // floco de bruma: enorme, quase parado
+    p.vx = 3+Math.random()*4; p.vy = (Math.random()-0.5)*2; p.r = 7+Math.random()*9;
+    p.life = 9000+Math.random()*7000; p.glow=false;
+  } else if(ptype==='petal'){                            // palha dourada do trigo: cai dançando
+    p.vy = 5+Math.random()*6; p.vx = (Math.random()-0.5)*14; p.r = 1.6+Math.random()*1.2;
+    p.life = 6500+Math.random()*4500; p.glow=true;
+  } else if(ptype==='firefly'){                          // vagalume: vaga devagar, pulsa
+    p.vx = (Math.random()-0.5)*8; p.vy = (Math.random()-0.5)*8; p.r = 1.2+Math.random()*1.0;
+    p.life = 5200+Math.random()*4200; p.glow=true;
+  }
+  particles.push(p);
 }
 function updateParticles(now, dt){
   const indoors = mapName && (mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0);
-  const want = indoors ? Math.floor(ATMO.particlesMax*0.4) : ATMO.particlesMax;
+  const pt = MAP_PTYPE[mapName];
+  let want = indoors ? Math.floor(ATMO.particlesMax*0.4) : ATMO.particlesMax;
+  if(pt==='sand') want = Math.floor(ATMO.particlesMax*1.7);        // vendaval de areia
+  else if(pt==='leaf') want = Math.floor(ATMO.particlesMax*1.25);  // mata viva
+  else if(pt==='ember') want = Math.floor(ATMO.particlesMax*1.3);  // cinzas por toda parte
+  else if(pt==='mist') want = Math.floor(ATMO.particlesMax*0.75);  // brumas grandes, poucas
   let guard = 0;
   while(particles.length < want && guard++ < 40) spawnParticle(now - Math.random()*2200);
   particles = particles.filter(p=>{
@@ -5063,12 +5152,47 @@ function updateParticles(now, dt){
 function drawParticles(c, now){
   for(const p of particles){
     const sx = p.x - camX, sy = p.y - camY;
-    if(sx<-8||sy<-8||sx>canvas.width+8||sy>canvas.height+8) continue;
+    if(sx<-24||sy<-24||sx>canvas.width+24||sy>canvas.height+24) continue;
     const k = (now - p.t0)/p.life;
     const fade = Math.sin(Math.min(Math.PI, Math.max(0,k)*Math.PI));
     const pulse = p.glow ? (0.55+0.45*Math.sin(now/500+p.ph)) : 0.5;
     c.save();
-    if(p.glow){
+    if(p.ptype==='leaf'){
+      // folha girando: elipse com veio central, balanço lateral no vento
+      const wob = Math.sin(now/600+p.ph)*4;
+      const rot = now/900*p.spin + p.ph;
+      c.translate(sx+wob, sy); c.rotate(rot);
+      c.globalAlpha = fade*0.55;
+      c.fillStyle = p.hue;
+      c.beginPath(); c.ellipse(0, 0, p.r*1.7, p.r*0.85, 0, 0, Math.PI*2); c.fill();
+      c.globalAlpha = fade*0.35; c.strokeStyle = 'rgba(10,20,12,0.8)'; c.lineWidth = 0.7;
+      c.beginPath(); c.moveTo(-p.r*1.5, 0); c.lineTo(p.r*1.5, 0); c.stroke();
+    } else if(p.ptype==='ember'){
+      // brasa: núcleo quente com rastro vertical de calor
+      const flick = 0.6+0.4*Math.sin(now/120+p.ph*7);
+      c.globalCompositeOperation='lighter'; c.globalAlpha = fade*flick*0.8;
+      const g=c.createRadialGradient(sx,sy,0,sx,sy,p.r*4);
+      g.addColorStop(0,'#fff'); g.addColorStop(0.35,p.hue); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(sx,sy,p.r*4,0,Math.PI*2); c.fill();
+      c.globalAlpha = fade*flick*0.35; c.strokeStyle=p.hue; c.lineWidth=1;
+      c.beginPath(); c.moveTo(sx,sy); c.lineTo(sx+Math.sin(now/200+p.ph)*2, sy+p.r*6); c.stroke();
+    } else if(p.ptype==='sand'){
+      // grão de areia: risco horizontal veloz
+      c.globalAlpha = fade*0.30; c.strokeStyle = p.hue; c.lineWidth = Math.max(0.8, p.r);
+      c.beginPath(); c.moveTo(sx-6, sy); c.lineTo(sx+2, sy+0.6); c.stroke();
+    } else if(p.ptype==='mist'){
+      // floco de bruma: blob difuso enorme, quase invisível, dá VOLUME ao ar
+      c.globalAlpha = fade*0.10;
+      const g=c.createRadialGradient(sx,sy,0,sx,sy,p.r*3);
+      g.addColorStop(0,p.hue); g.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(sx,sy,p.r*3,0,Math.PI*2); c.fill();
+    } else if(p.ptype==='petal'){
+      // palha dourada do trigo: fiapinho girando, brilha ao sol
+      const rot = now/700*p.spin + p.ph, wob = Math.sin(now/500+p.ph)*5;
+      c.translate(sx+wob, sy); c.rotate(rot);
+      c.globalCompositeOperation='lighter'; c.globalAlpha = fade*pulse*0.7;
+      c.fillStyle=p.hue; c.fillRect(-p.r*2, -p.r*0.4, p.r*4, p.r*0.8);
+    } else if(p.glow){
       c.globalCompositeOperation='lighter'; c.globalAlpha = fade*pulse*0.55;
       const g=c.createRadialGradient(sx,sy,0,sx,sy,p.r*4);
       g.addColorStop(0,p.hue); g.addColorStop(1,'rgba(0,0,0,0)');
@@ -5094,10 +5218,63 @@ function drawAtmoPool(c){
 }
 function drawVignette(c){
   const w=canvas.width,h=canvas.height;
+  const amb = MAP_AMBIENT[mapName];
+  // vinheta COLORIDA: a borda escurece puxando pro clima do bioma (rework visual)
+  const vr = amb ? Math.round(6+amb.r*0.10) : 6, vg = amb ? Math.round(5+amb.g*0.10) : 5, vb = amb ? Math.round(12+amb.b*0.14) : 12;
   const g=c.createRadialGradient(w/2,h*0.46,Math.min(w,h)*0.32, w/2,h*0.5,Math.max(w,h)*0.72);
   g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.68,'rgba(0,0,0,0)');
-  g.addColorStop(1,'rgba(6,5,12,'+ATMO.vignette+')');
+  g.addColorStop(1,'rgba('+vr+','+vg+','+vb+','+ATMO.vignette+')');
   c.save(); c.fillStyle=g; c.fillRect(0,0,w,h); c.restore();
+}
+
+// ---- NÉVOA RASTEIRA (rework visual): lençóis de bruma que derivam devagar ----
+// dá VOLUME e mistério aos mapas sombrios; desenhada POR CIMA das entidades.
+const MAP_FOG = {
+  valdarkram:       {hue:'166,186,200', a:0.070, n:5},   // bruma fria do cemitério
+  bosque_atalech:   {hue:'150,190,200', a:0.080, n:5},   // floresta negra: neblina azulada
+  planaltos_ermais: {hue:'210,225,240', a:0.055, n:4},   // neblina clara de altitude
+  floresta_ermo:    {hue:'140,190,150', a:0.040, n:3},   // hálito verde da mata fechada
+  camara_varth:     {hue:'150,90,200',  a:0.060, n:4},   // miasma necrótico do trono
+  mina_avhur:       {hue:'190,160,90',  a:0.045, n:3},   // pó dourado suspenso da tumba
+};
+function drawGroundFog(c, now){
+  const f = MAP_FOG[mapName]; if(!f) return;
+  const w=canvas.width, h=canvas.height;
+  c.save(); 
+  for(let i=0;i<f.n;i++){
+    // cada lençol deriva num ritmo próprio, ancorado no MUNDO (parallax sutil com a câmera)
+    const ph = i*2.4;
+    const fx = ((Math.sin(now/17000+ph)*0.5+0.5)*(w+400) - 200) - (camX*0.15)%(w+400);
+    const fy = h*(0.28+0.55*((Math.sin(now/23000+ph*1.7)*0.5+0.5))) - (camY*0.10)%(h*0.5);
+    const R = Math.max(w,h)*(0.34+0.14*Math.sin(now/9000+ph));
+    const g=c.createRadialGradient(fx,fy,R*0.15,fx,fy,R);
+    g.addColorStop(0,'rgba('+f.hue+','+f.a+')');
+    g.addColorStop(1,'rgba('+f.hue+',0)');
+    c.fillStyle=g; c.beginPath(); c.arc(fx,fy,R,0,Math.PI*2); c.fill();
+  }
+  c.restore();
+}
+
+// ---- GOD RAYS (rework visual): feixes de sol vazando pela copa das matas, só DE DIA ----
+const RAY_MAPS = new Set(['floresta_ermo','repouso_dama','bosque_atalech','fadrakor_selva']);
+function drawGodRays(c, now){
+  if(!RAY_MAPS.has(mapName) || isNightish(dayTime)) return;
+  const w=canvas.width, h=canvas.height;
+  c.save(); c.globalCompositeOperation='lighter';
+  for(let i=0;i<4;i++){
+    const ph=i*1.9;
+    const sway = Math.sin(now/12000+ph)*w*0.06;
+    const bx = w*(0.12+0.25*i) + sway - (camX*0.08)%(w*0.3);
+    const wTop = w*0.030, wBot = w*0.085, lean = w*0.16;   // feixe inclinado (sol alto a nordeste)
+    const a = 0.045 + 0.02*Math.sin(now/5000+ph);
+    const g=c.createLinearGradient(bx,0,bx-lean,h);
+    g.addColorStop(0,'rgba(255,240,190,'+a.toFixed(3)+')');
+    g.addColorStop(1,'rgba(255,240,190,0)');
+    c.fillStyle=g; c.beginPath();
+    c.moveTo(bx-wTop,0); c.lineTo(bx+wTop,0);
+    c.lineTo(bx-lean+wBot,h); c.lineTo(bx-lean-wBot,h); c.closePath(); c.fill();
+  }
+  c.restore();
 }
 
 // ---- bloom barato: downscale -> limiar (multiplica por si) -> borrao -> soma ----
@@ -5179,6 +5356,16 @@ function spawnDarkBlast(atId, radius, color, delay){   // EXPLOSÃO sombria (mag
   vfx.push({kind:'shadowblast', x1:e.x, y1:e.y, color:color||'#a050ff', radius:Math.max(1,radius||2),
             t0:performance.now()+(delay||0), life:840});
 }
+function spawnRing(atId, radius, color, delay){   // onda de choque (rework visual)
+  const e=players.get(atId); if(!e) return;
+  vfx.push({kind:'ring', x1:e.x, y1:e.y, color:color||'#ffd86b', radius:radius||1.6,
+            t0:performance.now()+(delay||0), life:520});
+}
+function spawnSparks(atId, color, n){             // faíscas de impacto (rework visual)
+  const e=players.get(atId); if(!e) return;
+  vfx.push({kind:'sparks', x1:e.x, y1:e.y, color:color||'#ffd86b', n:n||8,
+            ph:Math.random()*6.283, t0:performance.now(), life:560});
+}
 function spawnAtalechPlague(atId){   // PRAGA DE ATALECH: miasma roxo-esverdeado do bosque profano (camadas)
   const e=players.get(atId); if(!e) return;
   const now=performance.now();
@@ -5221,7 +5408,31 @@ function drawVfx(c, now){
     const k=(now - v.t0)/v.life; if(k>1) continue;
     const cx=v.x1*TS-camX+TS/2, cy=v.y1*TS-camY+TS/2;
 
-    if(v.kind==='bolt'){
+    if(v.kind==='ring'){
+      // ONDA DE CHOQUE (rework): anel que expande com espessura e alpha decaindo
+      const ease = 1-Math.pow(1-k,3);
+      const R = (v.radius||1.6)*TS*ease + TS*0.2;
+      c.save(); c.globalCompositeOperation='lighter';
+      c.globalAlpha = (1-k)*0.85; c.strokeStyle = v.color; c.lineWidth = Math.max(1.5, TS*0.14*(1-k));
+      c.beginPath(); c.arc(cx,cy,R,0,Math.PI*2); c.stroke();
+      c.globalAlpha = (1-k)*0.4; c.lineWidth = Math.max(1, TS*0.06*(1-k));
+      c.beginPath(); c.arc(cx,cy,R*0.72,0,Math.PI*2); c.stroke();
+      c.restore();
+
+    } else if(v.kind==='sparks'){
+      // FAÍSCAS de impacto (rework): estilhaços radiais com gravidade
+      c.save(); c.globalCompositeOperation='lighter';
+      const n = v.n||8;
+      for(let i=0;i<n;i++){
+        const a=(i/n)*Math.PI*2 + (v.ph||0), sp=TS*(0.9+((i*37)%10)/9);
+        const gx=cx+Math.cos(a)*sp*k, gy=cy+Math.sin(a)*sp*k*0.7 + TS*1.3*k*k;   // arqueia e cai
+        c.globalAlpha=(1-k)*0.9; c.strokeStyle=v.color; c.lineWidth=Math.max(1,TS*0.05*(1-k));
+        c.beginPath(); c.moveTo(gx,gy);
+        c.lineTo(gx-Math.cos(a)*4*(1-k), gy-Math.sin(a)*4*(1-k)*0.7 - 2*k); c.stroke();
+      }
+      c.restore();
+
+    } else if(v.kind==='bolt'){
       // projétil mágico: cabeça luminosa + rastro afilado + faíscas
       const x0=v.x0*TS-camX+TS/2, y0=v.y0*TS-camY+TS/2;
       const kk=Math.min(1,k*1.12), hx=x0+(cx-x0)*kk, hy=y0+(cy-y0)*kk;
@@ -5655,6 +5866,22 @@ function frame(now){
     if(sx < -cull || sy < -cull || sx > canvas.width+cull || sy > canvas.height+cull) continue;
     if(p.kind === 'monster' && p._dead) continue;   // monstro derrotado some
     entityShadow(ctx, sx, sy, TS, p);               // sombra suave no chao (profundidade)
+    // AURA DE PRESENÇA dos chefes (rework): brasa pulsante no chão sob TODO boss
+    if(p.kind === 'monster' && p.boss && !p._dead){
+      const BOSS_AURA = { urso_rei:'244,200,74', farao_avhur:'255,217,138', maurao:'255,138,90',
+                          velho_bob:'192,176,144', colosso_avasham:'255,154,80', lorde_varth:'176,112,255' };
+      const col = BOSS_AURA[p.mtype] || '232,184,96';
+      const span = Math.max(1, p.size||1) * TS;
+      const bx = sx + span/2, by = sy + span*0.82;
+      const pulse = 0.5 + 0.5*Math.sin(now/460 + (p.x||0));
+      ctx.save(); ctx.globalCompositeOperation='lighter';
+      const ag = ctx.createRadialGradient(bx, by, 0, bx, by, span*0.72);
+      ag.addColorStop(0, 'rgba('+col+','+(0.16+0.10*pulse).toFixed(3)+')');
+      ag.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = ag; ctx.beginPath();
+      ctx.ellipse(bx, by, span*0.72, span*0.30, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
     // realce de alvos: mirando magia/habilidade (à distância = todos, corpo a corpo = adjacentes)
     // ou, no modo normal, inimigos ao lado que dá pra atacar.
     if(combat && combat.yourTurn && combat.snapshot && p.kind === 'monster' && !p._dead){
@@ -5678,7 +5905,7 @@ function frame(now){
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
     else if(p.kind === 'mesa') drawMesaParty(ctx, sx, sy, TS, p);
-    else if(p.kind === 'monster' && (p.size||0) >= 4){
+    else if(p.kind === 'monster' && (p.size||0) >= 4 && !BEAST[p.mtype]){
       if(p.mtype === 'colosso_avasham') drawColosso(ctx, sx, sy, TS, p);
       else if(p.mtype === 'lorde_varth') drawLordeVarthBoss(ctx, sx, sy, TS, p);
       else drawVarth(ctx, sx, sy, TS, p);
@@ -5692,18 +5919,45 @@ function frame(now){
       if(p.smoke) _smokeAura(ctx, sx, sy, TS);                 // Botas de Vargo: fumaça preta
       drawCharacter(ctx, sx, sy, TS, p.look, p.facing, p.name, p.id===myId, p._moving, p.walk);
     }
+    // HIT FLASH global (rework): clarão rápido na entidade atingida, qualquer tipo/tamanho
+    if(p._hitFlash && now < p._hitFlash){
+      const fk = (p._hitFlash - now) / 150;                    // 1 -> 0
+      const span = Math.max(1, p.size||1) * TS;
+      const fx2 = sx + span/2, fy2 = sy + span/2, R = span*0.72;
+      ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha = 0.55*fk;
+      const fg = ctx.createRadialGradient(fx2,fy2,0,fx2,fy2,R);
+      fg.addColorStop(0, p._hitFlashCol||'#ffffff'); fg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(fx2,fy2,R,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+    // GLOW DE EQUIPAR (rework): brilho pulsante da raridade envolvendo o personagem
+    if(p._equipGlow && now < p._equipGlow){
+      const gk = (p._equipGlow - now) / 900;
+      const pulse = 0.6 + 0.4*Math.sin(now/90);
+      const gx2 = sx + TS/2, gy2 = sy + TS/2, GR = TS*0.95;
+      ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha = 0.45*gk*pulse;
+      const gg = ctx.createRadialGradient(gx2,gy2,0,gx2,gy2,GR);
+      gg.addColorStop(0, p._equipGlowCol||'#f4b860'); gg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(gx2,gy2,GR,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
   }
 
-  // numeros de dano flutuantes (sobem e somem)
+  // numeros de dano flutuantes (rework: POP de escala + subida com easing + espalhamento)
   if(dmgPops.length){
     const now = performance.now();
-    dmgPops = dmgPops.filter(d=> now - d.t0 < 900);
-    ctx.save(); ctx.textAlign = 'center'; ctx.font = '700 16px Inter, sans-serif';
+    dmgPops = dmgPops.filter(d=> now - d.t0 < 1000);
+    ctx.save(); ctx.textAlign = 'center';
     for(const d of dmgPops){
-      const k = (now - d.t0) / 900;
-      const px = d.x*TS + TS/2 - camX, py = d.y*TS - camY - k*26 + 6;
-      ctx.globalAlpha = 1 - k;
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8,7,15,0.85)'; ctx.strokeText(d.text, px, py);
+      const k = (now - d.t0) / 1000;
+      const rise = 1 - Math.pow(1-k, 2.4);                      // sobe rápido e desacelera
+      const px = d.x*TS + TS/2 - camX + (d.ox||0)*rise;
+      const py = d.y*TS - camY - rise*34 + 6;
+      const popS = k < 0.16 ? (0.6 + 2.9*k) : (k < 0.3 ? (1.064 - 0.457*(k-0.16)) : 1.0);   // estica e assenta
+      const base = d.big ? 21 : 16;
+      ctx.font = '800 ' + Math.round(base*popS) + 'px Inter, sans-serif';
+      ctx.globalAlpha = k < 0.75 ? 1 : (1-k)/0.25;
+      ctx.lineWidth = d.big ? 4 : 3; ctx.strokeStyle = 'rgba(8,7,15,0.9)'; ctx.strokeText(d.text, px, py);
       ctx.fillStyle = d.color; ctx.fillText(d.text, px, py);
     }
     ctx.restore();
@@ -5716,6 +5970,8 @@ function frame(now){
   dayTime = (((Date.now()/1000) + dayOffset) % dayLength) / dayLength;
   if(dayTime < 0) dayTime += 1;
   updateParticles(now, dt); drawParticles(ctx, now);
+  drawGroundFog(ctx, now);                          // névoa rasteira dos mapas sombrios (rework)
+  drawGodRays(ctx, now);                            // feixes de sol nas matas, de dia (rework)
   if(mapName === 'salao') drawPofnirLight(ctx, now);
   drawAtmoPool(ctx);
 
@@ -6879,8 +7135,36 @@ function applyRarityName(el, rarity, rc){
   }
 }
 
-function equipItem(itemId){ if(socket) socket.emit('equip', { item: itemId }); }
-function unequipSlot(slot){ if(socket) socket.emit('unequip', { slot }); }
+function equipItem(itemId){
+  if(socket) socket.emit('equip', { item: itemId });
+  // EFEITO DE EQUIPAR (rework): o personagem brilha na cor da raridade
+  const def = catalog[itemId]; if(!def) return;
+  const rar = def.rarity || 'comum';
+  const col = RARITY_COL[rar] || RARITY_COL.comum;
+  const e = players.get(myId);
+  const now = performance.now();
+  if(rar === 'divino'){                                  // DIVINO: anéis arco-íris em cascata
+    const cores = ['#ff6e6e','#f6c453','#5ec27a','#5a9bf4','#b06bff'];
+    cores.forEach((cc,i)=> spawnRing(myId, 1.0+i*0.35, cc, i*90));
+    spawnSparks(myId, '#ffffff', 12);
+    if(e){ e._equipGlow = now + 1000; e._equipGlowCol = '#f7d6ff'; }
+  } else if(rar === 'maldito'){                          // MALDITO: pulso rubro e o chão treme
+    spawnRing(myId, 1.6, '#b81d1d'); spawnRing(myId, 1.0, '#7a1414', 120);
+    spawnSparks(myId, '#ff5a4a', 10);
+    screenShake(2, 220);
+    if(e){ e._equipGlow = now + 900; e._equipGlowCol = '#b81d1d'; }
+  } else if(rar === 'lendario' || rar === 'epico'){
+    spawnRing(myId, 1.5, col); spawnSparks(myId, col, 10);
+    if(e){ e._equipGlow = now + 750; e._equipGlowCol = col; }
+  } else {
+    spawnRing(myId, 1.1, col); spawnSparks(myId, col, 6);
+    if(e){ e._equipGlow = now + 550; e._equipGlowCol = col; }
+  }
+}
+function unequipSlot(slot){
+  if(socket) socket.emit('unequip', { slot });
+  spawnRing(myId, 0.9, '#7c8290');                       // tirar peça: anel cinza discreto
+}
 
 function refreshEquip(){
   if(!equipRow) return;
@@ -8168,6 +8452,10 @@ function applyCombatSnapshot(snap){
       e = players.get(c.cid);
     }
     if(e){
+      if(c.kind==='monster' && !e._dead && !c.alive){          // MORREU AGORA: dissolução da alma (rework)
+        spawnRing(c.cid, Math.max(1.2, (c.size||1)*0.8), '#cfc8e6');
+        spawnSparks(c.cid, '#b8b0d8', 10);
+      }
       e.x = c.x; e.y = c.y; e.hp = c.hp; e.hp_max = c.hp_max; e._dead = !c.alive;
       e.boss = !!c.boss; e._enraged = !!c.enraged; if(c.mtype) e.mtype = c.mtype; if(c.size) e.size = c.size;
       e.smoke = !!c.smoke;
@@ -8433,7 +8721,15 @@ function openSpellMenu(){
 
 function popDamage(cid, text, color){
   const e = players.get(cid); if(!e) return;
-  dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now() });
+  // HIT FLASH global (rework): a entidade PISCA ao tomar dano de verdade
+  if(typeof text==='string' && text.indexOf('-')>=0){
+    const now = performance.now();
+    e._hitFlash = now + 150;
+    e._hitFlashCol = (color==='#ffd86b'||color==='#ffe08a') ? '#ffd86b' : '#ffffff';
+  }
+  const num = parseInt(String(text).replace(/[^0-9]/g,''), 10) || 0;   // valor do dano (pro destaque)
+  dmgPops.push({ x:e.x, y:e.y, text:text, color:color||'#fff', t0:performance.now(),
+                 ox:(Math.random()-0.5)*TS*0.8, big:num>=80 });
 }
 const STATUS_ICON = { stunned:'💫', poison:'☠️', burning:'🔥', bleeding:'🩸',
   frightened:'😱', restrained:'🕸️', blinded:'⚫', slowed:'🐌', maldicao:'🟣', veneno_varth:'☠️', praga_atalech:'☣️', couraca_vargo:'🟣', aurora:'☀️', aurora_fraca:'🕯️', facalan:'🐆', facalan_folego:'💛', cancao:'🎵' };
@@ -8470,9 +8766,9 @@ function showAttackResult(res){
     const cata = (res.vfx === 'cataclysm');
     const atalech = (res.vfx === 'atalech');
     if(cata) spawnCataclysm(res.target);
-    else if(atalech) spawnAtalechPlague(res.target);
-    else if(dark) spawnDarkBlast(res.target, 2, '#a050ff');
-    else spawnBlast(res.target, 2, '#ff7a30');
+    else if(atalech){ spawnAtalechPlague(res.target); spawnRing(res.target, 3.2, '#7ee07a', 180); screenShake(6, 450); }
+    else if(dark){ spawnDarkBlast(res.target, 2, '#a050ff'); spawnRing(res.target, 2.4, '#c79bff', 80); screenShake(4, 320); }
+    else { spawnBlast(res.target, 2, '#ff7a30'); spawnRing(res.target, 2.4, '#ffb060', 80); screenShake(4, 320); }
     const _pcol = atalech ? '#7ee07a' : (cata?'#d49bff':(dark?'#c79bff':'#ff9a4a'));
     const _ptag = atalech ? '☣ -' : (cata?'☠ -':'-');
     setTimeout(()=>{ for(const s of res.splash){
@@ -8506,10 +8802,14 @@ function showAttackResult(res){
     spawnDarkBolt(res.attacker, res.target, '#a050ff');
   } else if(res.mon_ability && res.atype === 'heavy'){
     spawnAt(res.target, 'slam', dark ? '#8a4adf' : (res.crit ? '#ffd86b' : '#d0834a'));
+    spawnRing(res.target, 1.5, dark ? '#a878e8' : '#e8a060');       // pancada pesada: onda de choque
+    spawnSparks(res.target, dark ? '#c9a0ff' : '#ffcf7a', 9);
+    screenShake(3, 240);
   } else if(dark){
     spawnAt(res.target, 'slash', '#b06bff');
     if(res.vfx === 'cursesigil') spawnAt(res.target, 'cursesigil', '#b06bff');
   } else spawnAt(res.target, 'slash', res.crit ? '#ffd86b' : '#fff2c2');
+  if(res.crit && res.hit){ spawnSparks(res.target, '#ffd86b', 10); screenShake(2, 170); }   // CRÍTICO: faíscas douradas
   if(res.dodged){                                  // ESQUIVA: o golpe passou da CA mas foi desviado (anula o dano)
     popDamage(res.target, '✦ Esquivou!', '#6bd4ff');
   } else if(res.hit){

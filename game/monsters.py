@@ -376,6 +376,66 @@ MONSTERS = {
         "drops": [("fagulha_divindade", 1.0, 1, 1), ("mascara_faraonica", 1.0, 1, 1), ("moeda_avhur", 1.0, 6, 10), ("coin_gold", 1.0, 3, 6)],
         "bronze": (500, 800),
     },
+
+    # ===================== FLORESTA DO ERMO: SANTUÁRIO SELVAGEM =====================
+    # --- FAIXA 1 (sul, entrada): bichos PASSIVOS (caça: carne pra curar + couro pra vender) ---
+    "coelho": {
+        "name": "Coelho do Ermo", "hp": 6, "ac": 11, "atk": 0,
+        "dmg": {"n": 1, "d": 2, "flat": 0}, "reach": 1, "speed": 7,
+        "xp": 30, "dex": 4, "glyph": "🐇", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "patada", "drops": [("carne_caca", 1.0, 1, 1), ("pele_macia", 0.6, 1, 1)], "bronze": (5, 15),
+    },
+    "lebre": {
+        "name": "Lebre Veloz", "hp": 9, "ac": 12, "atk": 1,
+        "dmg": {"n": 1, "d": 3, "flat": 0}, "reach": 1, "speed": 8,
+        "xp": 45, "dex": 5, "glyph": "🐇", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "coice", "drops": [("carne_caca", 1.0, 1, 2), ("pele_macia", 0.6, 1, 1)], "bronze": (8, 20),
+    },
+    "veado": {
+        "name": "Veado dos Ermos", "hp": 18, "ac": 12, "atk": 2,
+        "dmg": {"n": 1, "d": 4, "flat": 1}, "reach": 1, "speed": 6,
+        "xp": 70, "dex": 3, "glyph": "🦌", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "chifrada", "drops": [("carne_caca", 1.0, 1, 2), ("couro_selvagem", 0.8, 1, 1)], "bronze": (15, 35),
+    },
+    "cervo": {
+        "name": "Cervo de Galhada", "hp": 30, "ac": 13, "atk": 4,
+        "dmg": {"n": 2, "d": 4, "flat": 2}, "reach": 2, "speed": 6,
+        "xp": 110, "dex": 3, "glyph": "🦌", "kind": "besta", "size": 1, "passive": True,
+        "atk_name": "galhada", "drops": [("carne_caca", 1.0, 2, 3), ("couro_selvagem", 0.9, 1, 1), ("galhada", 0.7, 1, 1)], "bronze": (25, 55),
+    },
+
+    # --- FAIXA 2 (meio): LOBOS CINZENTOS DOS ERMOS (mais fortes que o 2º andar da Torre) ---
+    "lobo_cinzento_ermo": {
+        "name": "Lobo Cinzento dos Ermos", "hp": 820, "ac": 17, "atk": 18,
+        "dmg": {"n": 5, "d": 10, "flat": 13}, "reach": 1, "speed": 7,
+        "xp": 1400, "dex": 4, "glyph": "🐺", "kind": "besta", "size": 2,
+        "atk_name": "mordida dilacerante",
+        "drops": [("carne_caca", 1.0, 2, 3), ("couro_selvagem", 1.0, 1, 2), ("coin_gold", 0.5, 1, 3)], "bronze": (350, 600),
+    },
+
+    # --- FAIXA 3 (norte): URSOS. Pardo 30% > lobo; Negro > pardo. ---
+    "urso_pardo": {
+        "name": "Urso Pardo", "hp": 1070, "ac": 18, "atk": 19,
+        "dmg": {"n": 6, "d": 10, "flat": 17}, "reach": 2, "speed": 5,
+        "xp": 2000, "dex": 2, "glyph": "🐻", "kind": "besta", "size": 4,
+        "atk_name": "patada brutal",
+        "drops": [("carne_caca", 1.0, 3, 4), ("couro_urso", 1.0, 1, 2), ("coin_gold", 0.6, 2, 4)], "bronze": (500, 850),
+    },
+    "urso_negro": {
+        "name": "Urso Negro", "hp": 1380, "ac": 19, "atk": 20,
+        "dmg": {"n": 7, "d": 10, "flat": 20}, "reach": 2, "speed": 5,
+        "xp": 2600, "dex": 2, "glyph": "🐻", "kind": "besta", "size": 4,
+        "atk_name": "esmagamento",
+        "drops": [("carne_caca", 1.0, 3, 5), ("couro_urso", 1.0, 1, 2), ("coin_gold", 0.8, 3, 5)], "bronze": (700, 1100),
+    },
+    "urso_rei": {
+        "name": "Urso Rei do Planalto", "hp": 2100, "ac": 24, "atk": 18,
+        "dmg": {"n": 6, "d": 12, "flat": 22}, "reach": 2, "speed": 5,
+        "xp": 3200, "dex": 3, "glyph": "🐻", "kind": "besta", "size": 5, "boss": True,
+        "atk_name": "patada do rei",
+        "drops": [("pelego_do_rei", 1.0, 1, 1), ("couro_urso", 1.0, 2, 3), ("galhada", 1.0, 1, 2), ("coin_gold", 1.0, 5, 9)],
+        "bronze": (1200, 2000),
+    },
 }
 
 
@@ -474,6 +534,26 @@ BOSS_BARKS = {
         ],
         "win": [
             "Mais uma alma para a coleção. Descanse... no que sobrou de você.",
+        ],
+    },
+    "urso_rei": {
+        "intro": [
+            "Um rugido colossal sacode o planalto. O Rei se ergue nas patas traseiras, alto como uma árvore.",
+            "O dono da floresta encara você. Aqui, todo galho range em nome dele.",
+        ],
+        "taunt": [
+            "As garras do Rei rasgam o ar a um palmo do seu rosto.",
+            "Ele bate o peito num trovão surdo. O chão estremece.",
+            "Os olhos do Rei do Planalto não conhecem medo, só fome territorial.",
+        ],
+        "enrage": [
+            "FERIDO, o Rei ENLOUQUECE! Um urro de fúria espanta os pássaros a quilômetros.",
+        ],
+        "hurt": [
+            "O Rei recua um passo, sangrando, e rosna mais alto. Você o irritou de verdade.",
+        ],
+        "win": [
+            "O último rugido ecoa pelo vale. O planalto volta a pertencer só a ele.",
         ],
     },
 }
@@ -664,6 +744,27 @@ TORRE_ANDAR3_SPAWNS = [
 ]
 CAMARA_VARTH_SPAWNS = [
     ("lorde_varth", 50, 22),       # CHEFE FINAL no topo da Torre (saiu do cemitério)
+]
+
+
+# FLORESTA DO ERMO (150x150, entrada ao SUL em y~147): santuário em 3 faixas.
+# Faixa 1 (sul, y 100-145): bichos passivos | Faixa 2 (meio, y 50-98): lobos | Faixa 3 (norte, y 8-48): ursos + REI.
+FLORESTA_ERMO_SPAWNS = [
+    # --- FAIXA 1: caça passiva (perto da entrada) ---
+    ("coelho", 60, 138), ("coelho", 88, 142), ("coelho", 44, 128), ("coelho", 104, 132),
+    ("lebre", 72, 134), ("lebre", 52, 120), ("lebre", 96, 124),
+    ("veado", 38, 130), ("veado", 110, 136), ("veado", 66, 116), ("veado", 84, 122),
+    ("cervo", 50, 108), ("cervo", 100, 112), ("cervo", 75, 104),
+    # --- FAIXA 2: lobos cinzentos dos ermos ---
+    ("lobo_cinzento_ermo", 40, 90), ("lobo_cinzento_ermo", 62, 84), ("lobo_cinzento_ermo", 88, 88),
+    ("lobo_cinzento_ermo", 110, 80), ("lobo_cinzento_ermo", 30, 72), ("lobo_cinzento_ermo", 55, 66),
+    ("lobo_cinzento_ermo", 80, 70), ("lobo_cinzento_ermo", 100, 60), ("lobo_cinzento_ermo", 70, 56),
+    ("lobo_cinzento_ermo", 45, 52),
+    # --- FAIXA 3: ursos (pardo + negro) e o REI no topo ---
+    ("urso_pardo", 40, 44), ("urso_pardo", 100, 42), ("urso_pardo", 62, 38),
+    ("urso_negro", 80, 34), ("urso_negro", 50, 28), ("urso_negro", 95, 26),
+    ("urso_pardo", 30, 30),
+    ("urso_rei", 75, 14),           # REI DO PLANALTO: chefe no topo da floresta
 ]
 
 
@@ -886,6 +987,35 @@ MONSTER_ABILITIES = {
                        "save": "SAB", "dc": 18, "status": "frightened", "turns": 3, "chance": 0.35, "cd": 3},
                       {"id": "banquete_dos_mortos", "name": "Banquete dos Mortos", "type": "heal",
                        "heal": {"n": 6, "d": 8}, "chance": 0.3, "cd": 4}],
+
+    # --- FERAS DA FLORESTA DO ERMO ---
+    "lobo_cinzento_ermo": [{"id": "dilacerar_ermo", "name": "Dilacerar", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 6}, "chance": 0.45, "cd": 2},
+                      {"id": "bote_lupino", "name": "Bote Lupino", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "uivo_dos_ermos", "name": "Uivo dos Ermos", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "urso_pardo": [{"id": "patada_parda", "name": "Patada Brutal", "type": "heavy",
+                       "dmg_bonus": {"n": 4, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "dilacerar_urso", "name": "Dilacerar Carne", "type": "inflict",
+                       "dmg_bonus": {"n": 2, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 2},
+                      {"id": "rugido_pardo", "name": "Rugido", "type": "fear",
+                       "save": "SAB", "dc": 15, "status": "frightened", "turns": 2, "chance": 0.3, "cd": 3}],
+    "urso_negro": [{"id": "esmagar_negro", "name": "Esmagamento", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 10}, "chance": 0.5, "cd": 2},
+                      {"id": "retalhar", "name": "Retalhar", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 8}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 8}, "chance": 0.45, "cd": 2},
+                      {"id": "rugido_negro", "name": "Rugido Feroz", "type": "fear",
+                       "save": "SAB", "dc": 16, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
+    "urso_rei": [{"id": "pisao_sismico", "name": "Pisão Sísmico", "type": "blast", "aoe": True, "ranged": True,
+                       "dmg_bonus": {"n": 8, "d": 10, "flat": 10}, "save": "DES", "dc": 18,
+                       "status": "bleeding", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.5, "cd": 3},
+                      {"id": "patada_real", "name": "Patada do Rei", "type": "heavy",
+                       "dmg_bonus": {"n": 5, "d": 12}, "chance": 0.5, "cd": 1},
+                      {"id": "rugido_do_rei", "name": "Rugido do Rei", "type": "fear",
+                       "save": "SAB", "dc": 17, "status": "frightened", "turns": 3, "chance": 0.4, "cd": 3},
+                      {"id": "dilacerar_real", "name": "Dilacerar Real", "type": "inflict",
+                       "dmg_bonus": {"n": 3, "d": 10}, "status": "bleeding", "turns": 3, "dot": {"n": 3, "d": 10}, "chance": 0.45, "cd": 2}],
 }
 
 

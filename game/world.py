@@ -443,7 +443,7 @@ class World:
             "glyph": spec["glyph"], "kind": "monster", "alive": True,
             "atk_name": spec["atk_name"], "boss": spec.get("boss", False),
             "summon_type": spec.get("summon_type"), "summons": spec.get("summons", 0),
-            "size": spec.get("size"),
+            "size": spec.get("size"), "passive": spec.get("passive", False),
             "_spawn": (type_id, pos[0], pos[1]),
         }
         return mid
@@ -477,6 +477,8 @@ class World:
             _spawn(type_id, x, y, "torre_andar3")
         for (type_id, x, y) in monsters_def.CAMARA_VARTH_SPAWNS:
             _spawn(type_id, x, y, "camara_varth")
+        for (type_id, x, y) in monsters_def.FLORESTA_ERMO_SPAWNS:
+            _spawn(type_id, x, y, "floresta_ermo")
         return self.monsters
 
     def monster_at(self, mp, x, y):
@@ -509,6 +511,29 @@ class World:
         for m in self.monsters.values():
             if not m.get("alive", True) or m.get("map") != mp or m.get("in_combat") or m.get("boss"):
                 continue
+            # bicho PASSIVO (caça): foge do jogador mais perto (ignora a coleira pra escapar)
+            if m.get("passive"):
+                thr = min((p for p in self.players.values()
+                           if p.get("map") == mp and not p.get("_inside")
+                           and max(abs(p["x"] - m["x"]), abs(p["y"] - m["y"])) <= 6),
+                          key=lambda p: abs(p["x"] - m["x"]) + abs(p["y"] - m["y"]), default=None)
+                if thr:
+                    best = None; bestd = -1
+                    for nm, ddx, ddy in dirs:
+                        nx2, ny2 = m["x"] + ddx, m["y"] + ddy
+                        if (nx2, ny2) in ptiles or (nx2, ny2) in occ:
+                            continue
+                        if not rules.is_walkable(nx2, ny2, mp):
+                            continue
+                        dd = abs(thr["x"] - nx2) + abs(thr["y"] - ny2)   # quanto mais longe do jogador, melhor
+                        if dd > bestd:
+                            bestd = dd; best = (nm, nx2, ny2)
+                    if best:
+                        nm, nx2, ny2 = best
+                        occ.discard((m["x"], m["y"])); occ.add((nx2, ny2))
+                        m["facing"] = nm; m["x"], m["y"] = nx2, ny2
+                        moved.append({"id": m["id"], "x": nx2, "y": ny2, "facing": nm})
+                    continue
             if random.random() > chance:
                 continue
             name, dx, dy = random.choice(dirs)

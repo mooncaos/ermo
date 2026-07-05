@@ -83,6 +83,14 @@ ITEMS = {
     "nucleo_areia":        {"name": "Núcleo de Areia",       "kind": "trofeu", "stackable": True, "color": "#e8cf8a", "value": 82},
     "olho_basilisco":      {"name": "Olho de Basilisco",     "kind": "trofeu", "stackable": True, "color": "#d6b84a", "value": 120},
 
+    # --- caça e couros da Floresta do Ermo ---
+    "carne_caca":          {"name": "Carne de Caça", "kind": "consumivel", "stackable": True, "color": "#b5503a", "visual": "potion", "heal": 0.18, "value": 40, "desc": "Um naco de carne fresca de caça, assado no fogo. Restaura 18% da vida na hora. O sustento de quem vive nos ermos."},
+    "pele_macia":          {"name": "Pele Macia",            "kind": "trofeu", "stackable": True, "color": "#cdbba2", "value": 12, "animal": True},
+    "couro_selvagem":      {"name": "Couro Selvagem",        "kind": "trofeu", "stackable": True, "color": "#8a6a44", "value": 38, "animal": True},
+    "galhada":             {"name": "Galhada de Cervo",      "kind": "trofeu", "stackable": True, "color": "#cdb98a", "value": 70, "animal": True},
+    "couro_urso":          {"name": "Couro de Urso",         "kind": "trofeu", "stackable": True, "color": "#5a3f2a", "value": 160, "animal": True},
+    "pelego_do_rei":       {"name": "Pelego do Rei do Planalto", "kind": "armor", "stackable": False, "color": "#6e4a2e", "slot": "back", "visual": "cloak", "rarity": "lendario", "armor": 12, "ward": 10, "speed": 1, "value": 4500, "desc": "O manto feito do couro do próprio Urso Rei, ainda quente de fúria. Pesado, imponente, coroado de garras. Mitiga até 12 de dano por golpe, soma 10 de barreira e dá um passo a mais de deslocamento. Quem o veste carrega o trono do planalto nas costas."},
+
     # trofeus do Cemitério Antigo de Valdarkram (vendiveis na Armas Peteco)
     "osso_amaldicoado":    {"name": "Osso Amaldiçoado",      "kind": "trofeu", "stackable": True, "color": "#d8d2c0", "value": 100},
     "carne_putrida":       {"name": "Carne Pútrida",         "kind": "trofeu", "stackable": True, "color": "#7a8a5a", "value": 110},
@@ -247,8 +255,166 @@ def shows_staff(item_id):
     return bool(it and it.get("visual") == "staff")
 
 
+# ---------------------------------------------------------------- descrições
+# LORE fixo dos itens icônicos (escrito à mão). Os demais ganham um sabor
+# automático por categoria/classe/raridade, sempre seguido da linha mecânica.
+ITEM_LORE = {
+    # kit inicial da Robetina (humilde e honesto)
+    "touca_la":        "Uma touca de lã que já aqueceu três gerações de cabeças azaradas.",
+    "camiseta_surrada": "Puída nos ombros, rasgada na barra. Ainda assim, é sua.",
+    "ombreira_couro":  "Um retalho de couro amarrado com barbante. Melhor que ombro nu.",
+    "capa_puida":      "Já foi capa de alguém importante. Hoje só corta o vento dos ermos.",
+    "calca_jeans":     "Um jeans surrado que atravessou mundos. Literalmente.",
+    "chinelo":         "O calçado dos guerreiros humildes. Estala no chão e no destino.",
+    "faca_cozinha":    "Afiada pra cebola, promovida a arma. Os ermos não julgam.",
+    "tampa_panela":    "Escudo improvisado que já aparou pancada de marido e de monstro.",
+    "anel_lata":       "Um anel de lasca de lata. Não vale nada, mas brilha se você acreditar.",
+    "cordao_fake":     "Dourado por fora, decepção por dentro. Impressiona de longe.",
+    "bornal_cria":     "A bolsa de quem cresceu se virando. Cabe pouco, aguenta tudo.",
+    # moedas e poções
+    "coin_bronze":     "A moeda miúda dos ermos. Com muitas delas, até o Goblin sorri.",
+    "coin_silver":     "Prata honesta. Compra uma noite quente e uma refeição de verdade.",
+    "coin_gold":       "Ouro puro. Nos ermos, quem tem ouro tem inimigos.",
+    "pocao_vida":      "Um vidro rubro que fecha ferida e devolve o fôlego. O melhor amigo de quem apanha.",
+    # armas icônicas de caster
+    "staff_portuz":    "O cajado do velho Portuz, entalhado em madeira de raio. Ainda estala faísca.",
+    "cajado_magico":   "Um cajado de aprendiz com o verniz gasto de tanto conjurar.",
+    # troféus do Descampado e da mata
+    "rabo_rato":       "Rabo de rato gigante. Nojento, mas o Goblin paga sem perguntar.",
+    "presa_lobo":      "Presa amarelada de lobo. Nos ermos, vira colar de valentia.",
+    "pelego_lobo":     "Pelego cinza e quente. Forra bota, sela e orgulho de caçador.",
+    "presa_javali":    "Presa curva de javali. Já rasgou canela de gente distraída.",
+    "couro_javali":    "Couro grosso de javali, cheio de cicatriz. Bom pra remendo.",
+    "presa_velho_bob": "A presa quebrada do Velho Bob. O patriarca caiu, a lenda ficou.",
+    "couro_velho_bob": "O couro grisalho do javali mais velho dos ermos. Pesa história.",
+    "couro_lobo_negro": "Couro negro que engole a luz. Os caçadores pagam bem pelo medo.",
+    "marreta_velha":   "Uma marreta de obra que trocou o cimento pelo crânio alheio.",
+    "correntao_ouro":  "O cordão do Maurão. Grosso, dourado e pesado de ostentação.",
+    "microfone_patrao": "O microfone do baile do QG. Ainda ecoa o grave da Sapopemba.",
+    # troféus do Repouso e do cemitério
+    "pena_harpia":     "Pena longa de harpia, leve como um mau agouro.",
+    "dedo_bruxa":      "Um dedo ressecado que ainda aponta pra onde não se deve ir.",
+    "ectoplasma":      "Gosma fria de assombração. Escorre devagar, como um suspiro preso.",
+    "veu_assombracao": "Um véu que flutua sozinho quando ninguém olha.",
+    "cinza_espectral": "Cinza que não esquenta nem esfria. Restos de alguém que insiste.",
+    "essencia_sombria": "Um frasco de escuridão condensada. Não abra perto de vela.",
+    "lamento_petrificado": "Um grito que virou pedra. Segure longe do ouvido.",
+    "lagrima_da_dama": "Uma lágrima cristalizada da Dama. Quem a vende, sonha com ela por semanas.",
+    "olho_basilisco":  "O olho que petrificava. Agora só encara, parado, quem o carrega.",
+    "veneno_naja":     "Peçonha dourada de naja tumular. Uma gota mata um boi.",
+    "carne_putrida":   "Carne que os carniçais disputavam. O cheiro chega antes de você.",
+    "osso_amaldicoado": "Um osso que range sozinho nas noites frias. Vende logo.",
+    # caça da Floresta do Ermo
+    "pele_macia":      "Pele macia de caça miúda. Forra luva, capuz e berço de criança.",
+    "couro_selvagem":  "Couro firme de veado dos ermos. O curtidor paga sorrindo.",
+    "galhada":         "Galhada de cervo em ponto de troféu. Enfeita taverna e rende bronze.",
+    "couro_urso":      "Couro espesso de urso. Uma manta dele atravessa qualquer inverno.",
+}
+
+# sabor automático por CLASSE (sets: set_<classe>_<peça>)
+CLASS_FLAVOR = {
+    "barbaro":     "Forjado para a fúria: os bárbaros vestem pouco e quebram muito.",
+    "guerreiro":   "Aço de linha de frente, batido para quem segura a batalha no peito.",
+    "paladino":    "Consagrado nos altares de Valíria, brilha contra o que é profano.",
+    "ladino":      "Costurado para o silêncio. Quem ouve um ladino já morreu.",
+    "monge":       "Leve como a respiração. O corpo é a arma, isto é só o invólucro.",
+    "patrulheiro": "Curtido em trilha e chuva, no tom exato da mata ao entardecer.",
+    "mago":        "Tecido com fios de conhecimento. Cheira a pergaminho antigo.",
+    "feiticeiro":  "Pulsa de leve, como se lembrasse da linhagem de quem o veste.",
+    "bruxo":       "Um sussurro do patrono vive costurado na bainha. Ele escuta.",
+    "bardo":       "Elegante o bastante pro palco, resistente o bastante pra fuga.",
+    "clerigo":     "Ungido com óleo e fé. Protege o corpo enquanto a prece protege a alma.",
+    "druida":      "Fibra, osso e folha trançados. A mata reconhece quem o veste.",
+}
+
+# pools de sabor por categoria (escolha determinística pelo id: mesma frase sempre)
+_FLAVOR = {
+    "weapon_low": [
+        "Ferro honesto de forja de beira de estrada.",
+        "Já viu mais brigas de taverna que campos de batalha.",
+        "Simples, gasto e confiável, como as coisas dos ermos.",
+        "O fio é irregular, mas corta o que precisa cortar.",
+    ],
+    "weapon_high": [
+        "Aço que já provou sangue de coisa que não devia existir.",
+        "Forjado por mãos que sabiam que o mundo é perigoso.",
+        "Equilíbrio perfeito: a arma quase decide sozinha onde acertar.",
+        "Há runas finas no metal que só aparecem sob a lua.",
+    ],
+    "shield": [
+        "Cada marca nele é um golpe que não chegou em você.",
+        "Pesado no braço, leve na consciência.",
+        "Um bom escudo vale mais que um bom amigo. Este é bom.",
+    ],
+    "head": [
+        "Protege as ideias, que nos ermos valem tanto quanto o crânio.",
+        "Ajustado pra não escorregar na hora errada.",
+    ],
+    "chest": [
+        "Guarda o coração, que é onde os ermos sempre miram.",
+        "O peso no tronco que separa o susto do enterro.",
+    ],
+    "shoulder": [
+        "Ombros firmes carregam mais que armadura.",
+        "Apara o golpe que desce de cima, o favorito dos covardes.",
+    ],
+    "back": [
+        "Corta o vento frio e esconde a silhueta na estrada.",
+        "As costas de um andarilho contam a viagem inteira.",
+    ],
+    "legs": [
+        "Pernas inteiras levam você pra casa. Cuide delas.",
+        "Reforçado no joelho, onde a estrada cobra primeiro.",
+    ],
+    "feet": [
+        "Sola firme pra lama, pedra e o que mais o chão inventar.",
+        "Quem anda bem calçado foge melhor e chuta mais forte.",
+    ],
+    "ring": [
+        "Um aro discreto com mais história que muita gente.",
+        "Aperta de leve o dedo, como um lembrete.",
+    ],
+    "neck": [
+        "Pende no peito e pesa exatamente o que promete.",
+        "Um talismã contra o que os olhos não veem.",
+    ],
+    "trofeu": [
+        "Espólio de caça dos ermos. Os mercadores pagam em bronze vivo.",
+        "Prova de que a fera caiu. O resto é história de taverna.",
+        "Troféu que se vende caro e se conta mais caro ainda.",
+    ],
+    "tesouro": [
+        "Brilha com a promessa de bronze e o silêncio de quem o perdeu.",
+        "Valioso demais pra carregar à mostra nos ermos.",
+    ],
+    "consumivel": [
+        "Feito pra hora do aperto. Não deixe pra depois do golpe.",
+    ],
+}
+
+def _auto_flavor(item_id, it):
+    """Sabor determinístico: o mesmo item conta sempre a mesma historinha."""
+    if item_id.startswith("set_"):
+        parts = item_id.split("_")
+        if len(parts) >= 2 and parts[1] in CLASS_FLAVOR:
+            return CLASS_FLAVOR[parts[1]]
+    k = it.get("kind")
+    if k == "weapon":
+        rare = it.get("rarity", "comum")
+        pool = _FLAVOR["weapon_high"] if rare in ("raro", "epico", "lendario", "divino", "maldito") else _FLAVOR["weapon_low"]
+    elif k == "armor":
+        slot = it.get("slot")
+        pool = _FLAVOR["shield"] if slot == "hand" else _FLAVOR.get(slot) or _FLAVOR["chest"]
+    elif k in _FLAVOR:
+        pool = _FLAVOR[k]
+    else:
+        return ""
+    h = sum(ord(ch) for ch in item_id)
+    return pool[h % len(pool)]
+
+
 def describe(item_id):
-    """Gera uma descricao curta do item a partir dos atributos (ou usa 'desc' fixo)."""
+    """Descrição do item: LORE (fixo ou automático) + linha mecânica dos atributos."""
     it = ITEMS.get(item_id) or {}
     if it.get("desc"):
         return it["desc"]
@@ -266,6 +432,7 @@ def describe(item_id):
         if it.get("spell_pow"): bits.append("+%d de poder mágico" % it["spell_pow"])
         if it.get("spell_hit"): bits.append("+%d de acerto mágico" % it["spell_hit"])
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+        if it.get("dmg_flat"): bits.append("+%d de dano fixo" % it["dmg_flat"])
     elif k == "armor":
         head = "Escudo." if it.get("slot") == "hand" else "Peça de armadura."
         if it.get("armor"): bits.append("mitiga até %d de dano por golpe" % it["armor"])
@@ -275,16 +442,22 @@ def describe(item_id):
         if it.get("spell_pow"): bits.append("+%d de poder mágico" % it["spell_pow"])
         if it.get("block"): bits.append("bloqueia %d de dano por golpe" % it["block"])
         if it.get("ac"): bits.append("+%d de armadura" % it["ac"])
+        if it.get("atk"): bits.append("+%d para acertar" % it["atk"])
+        if it.get("speed"): bits.append("+%d de deslocamento" % it["speed"])
     elif k == "consumivel":
         head = "Consumível."
         if it.get("heal"): bits.append("cura %d%% da vida" % int(it["heal"] * 100))
     elif k == "currency":
-        return "Moeda do Ermo."
+        return ITEM_LORE.get(item_id, "Moeda do Ermo.")
     else:
         head = it.get("name", "Item")
     rare = it.get("rarity")
     tail = (" Raridade: %s." % rare) if rare and rare != "comum" else ""
-    return head + ((" " + ", ".join(bits) + ".") if bits else "") + tail
+    lore = ITEM_LORE.get(item_id) or _auto_flavor(item_id, it)
+    mech = ((" ".join([", ".join(bits).capitalize()]) + ".") if bits else "")
+    if lore:
+        return lore + ((" " + mech) if mech else "") + tail
+    return head + ((" " + mech) if mech else "") + tail
 
 
 def catalog():
