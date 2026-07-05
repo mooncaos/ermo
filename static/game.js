@@ -5845,6 +5845,11 @@ function frame(now){
     p.rx += (tx - p.rx)*t; p.ry += (ty - p.ry)*t;
     if(Math.abs(tx-p.rx)<0.4) p.rx = tx;
     if(Math.abs(ty-p.ry)<0.4) p.ry = ty;
+    if(moving && (!p.kind || p.kind === 'person') && (!p._lastPuff || now - p._lastPuff > 190)){
+      p._lastPuff = now;
+      stepDust.push({x: p.rx + TS/2 + (Math.random()-0.5)*4, y: p.ry + TS*0.92, born: now});
+      if(stepDust.length > 80) stepDust.shift();
+    }
     p.walk = moving ? (p.walk || 0) + dt : 0;
     p._moving = moving;
   });
@@ -6077,6 +6082,7 @@ function frame(now){
 
   if(me) coordsEl.textContent = `x ${me.x}, y ${me.y}`;
   drawThroneWarn(ctx, now);                     // aparicao do Pofnir no trono
+  drawWorldOverlays(ctx, now);                  // ERMO 2.0: vinheta, bússola, poeira, minimapa
   requestAnimationFrame(frame);
 }
 
@@ -6625,7 +6631,14 @@ function connectWithToken(token){
   // troca de mapa (entrar no Salao / voltar pro Ermo): troca o mapa, as
   // entidades e o chao, e recoloca a camera no jogador. Mochila/ficha/relogio
   // continuam como estao.
-  socket.on('map_change', d=>{ worldNodes = d.nodes || []; });
+  socket.on('map_change', d=>{
+    worldNodes = d.nodes || [];
+    mapEdges = d.edges || {};
+    _minimapCache = null;                        // reconstrói o minimapa do mapa novo
+    const nm = (d.map && d.map.map) || 'ermo';
+    fadeTransition();
+    showMapBanner(nm);
+  });
   socket.on('node_update', d=>{
     const nd = worldNodes.find(n=>n.id === d.id);
     if(nd){ nd.depleted = true; setTimeout(()=>{ nd.depleted = false; }, (d.cd||90)*1000); }
@@ -8283,10 +8296,11 @@ function renderFicha(){
   if(fichaTab==='grimorio' && !caster) fichaTab='geral';   // trocou de classe? volta
   h += '<div style="display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid #2a2742">'+
     tabBtn('geral','Geral')+tabBtn('passivas','Passivas')+
-    (caster ? tabBtn('grimorio','Grimório') : '')+tabBtn('marcas','Marcas')+'</div>';
+    (caster ? tabBtn('grimorio','Grimório') : '')+tabBtn('oficios','Ofícios')+tabBtn('marcas','Marcas')+'</div>';
   if(fichaTab==='geral') h += _fichaGeral(f);
   else if(fichaTab==='passivas') h += _fichaPassivas(f);
   else if(fichaTab==='grimorio') h += _fichaGrimorio();
+  else if(fichaTab==='oficios') h += _fichaOficios(f);
   else h += _fichaMarcas(f);
   fichaPanel.innerHTML = h;
   const x = document.getElementById('ficha-x'); if(x) x.onclick = ()=> toggleFicha(false);
@@ -10822,4 +10836,255 @@ function openCraft(pl){
   m.innerHTML = h;
   m.addEventListener('click', ev=>{ if(ev.target === m) m.remove(); });
   document.body.appendChild(m);
+}
+
+// ===========================================================================
+//  ERMO 2.0: PACOTE POLIMENTO TOTAL
+//  banner de mapa, fade de viagem, bússola de saídas, vinheta cinematográfica,
+//  poeira nos passos, MINIMAPA ao vivo e a aba de Ofícios na ficha.
+// ===========================================================================
+var mapEdges = {};
+var stepDust = [];
+var _minimapCache = null;
+var minimapOn = true;
+
+const MAP_TITLES = {
+  ermo:'O Ermo', descampado:'O Descampado', planaltos_ermais:'Planaltos Ermais',
+  floresta_ermo:'Floresta do Ermo', bosque_atalech:'Bosque de Atalech',
+  umbraval:'Umbraval, a Noite Eterna', vespera:'Véspera, a Cidade Morta',
+  costa_maravai:'Costa de Maravaí', brasal:'O Brasal', goela_1:'Goela de Krezath',
+  goela_2:'Goela Profunda', covil_krezath:'Covil do Devorador',
+  avasham:'Avasham', cova_colosso:'Cova do Colosso', valdarkram:'Valdarkram',
+  mina_avhur:'Mina de Avhur', camara_avhur:'Câmara de Avhur',
+  torre_andar1:'Torre de Varth — 1º Andar', torre_andar2:'Torre de Varth — 2º Andar',
+  torre_andar3:'Torre de Varth — 3º Andar', camara_varth:'Câmara do Lorde Varth',
+  repouso_dama:'Repouso da Dama', salao:'Salão das Classes', taverna:'Taverna do Ermo',
+  loja_armas:'Armas Peteco', sapopemba:'Sapopemba do Caíque',
+};
+function mapTitle(nm){
+  if(MAP_TITLES[nm]) return MAP_TITLES[nm];
+  return (nm||'').replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+}
+
+// ---------- banner do nome do mapa (entrada cinematográfica) ----------
+function showMapBanner(nm){
+  let el = document.getElementById('mapBanner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'mapBanner';
+    el.style.cssText = 'position:fixed;top:14%;left:0;right:0;text-align:center;z-index:180;'+
+      'pointer-events:none;opacity:0;transition:opacity .7s ease;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div style="display:inline-block;padding:10px 30px;">'+
+    '<div style="font:800 24px Cinzel,serif;color:#f4e4c0;letter-spacing:4px;'+
+    'text-shadow:0 2px 14px rgba(0,0,0,.9),0 0 40px rgba(244,216,160,.25);">'+ mapTitle(nm).toUpperCase() +'</div>'+
+    '<div style="height:1px;margin:7px auto 0;width:70%;background:linear-gradient(90deg,transparent,#c9a860,transparent);"></div></div>';
+  clearTimeout(el._t1); clearTimeout(el._t2);
+  requestAnimationFrame(()=>{ el.style.opacity = '1'; });
+  el._t1 = setTimeout(()=>{ el.style.opacity = '0'; }, 2400);
+}
+
+// ---------- fade de viagem (transição suave entre mapas) ----------
+function fadeTransition(){
+  let el = document.getElementById('mapFade');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'mapFade';
+    el.style.cssText = 'position:fixed;inset:0;background:#05060c;z-index:170;'+
+      'pointer-events:none;opacity:0;transition:opacity .45s ease;';
+    document.body.appendChild(el);
+  }
+  el.style.transition = 'none'; el.style.opacity = '0.95';
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{
+    el.style.transition = 'opacity .45s ease'; el.style.opacity = '0';
+  }); });
+}
+
+// ---------- bússola de saídas (setas pulsantes nas bordas) ----------
+function drawExitArrows(c, now){
+  if(!mapEdges) return;
+  const pul = 0.55 + 0.35*Math.sin(now/420);
+  c.save(); c.font = '700 10px Inter, sans-serif'; c.textAlign = 'center';
+  const W = canvas.width, H = canvas.height;
+  const draw = (bx, by, ang, dst)=>{
+    c.save(); c.translate(bx, by); c.rotate(ang);
+    c.globalAlpha = pul;
+    c.fillStyle = '#f0d8a0';
+    c.beginPath(); c.moveTo(0, -9); c.lineTo(7, 3); c.lineTo(-7, 3); c.closePath(); c.fill();
+    c.restore();
+    c.globalAlpha = Math.min(1, pul + 0.25);
+    c.fillStyle = 'rgba(8,10,16,0.75)';
+    const lbl = mapTitle(dst), tw = c.measureText(lbl).width + 10;
+    let lx = bx, ly = by + (ang === 0 ? 26 : (ang === Math.PI ? -18 : 0));
+    if(ang === -Math.PI/2) lx = bx + tw/2 + 14;
+    if(ang ===  Math.PI/2) lx = bx - tw/2 - 14;
+    c.fillRect(lx - tw/2, ly - 9, tw, 13);
+    c.fillStyle = '#e8d8b0'; c.fillText(lbl, lx, ly + 1);
+    c.globalAlpha = 1;
+  };
+  if(mapEdges.north) draw(W/2, 20, 0, mapEdges.north);
+  if(mapEdges.south) draw(W/2, H - 20, Math.PI, mapEdges.south);
+  if(mapEdges.west)  draw(20, H/2, -Math.PI/2, mapEdges.west);
+  if(mapEdges.east)  draw(W - 20, H/2, Math.PI/2, mapEdges.east);
+  c.restore();
+}
+
+// ---------- vinheta cinematográfica ----------
+let _vigCache = null, _vigKey = '';
+function drawVignette(c, now){
+  const key = canvas.width + 'x' + canvas.height;
+  if(_vigKey !== key){
+    _vigKey = key;
+    _vigCache = document.createElement('canvas');
+    _vigCache.width = canvas.width; _vigCache.height = canvas.height;
+    const vc = _vigCache.getContext('2d');
+    const g = vc.createRadialGradient(canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height)*0.42,
+                                      canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)*0.72);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(4,5,10,0.34)');
+    vc.fillStyle = g; vc.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  c.drawImage(_vigCache, 0, 0);
+}
+
+// ---------- poeira nos passos ----------
+function drawStepDust(c, now){
+  if(!stepDust.length) return;
+  c.save();
+  for(let i = stepDust.length - 1; i >= 0; i--){
+    const d = stepDust[i];
+    const age = (now - d.born) / 520;
+    if(age >= 1){ stepDust.splice(i, 1); continue; }
+    const sx = d.x - camX, sy = d.y - camY;
+    c.globalAlpha = 0.22 * (1 - age);
+    c.fillStyle = '#cfc4ae';
+    c.beginPath(); c.arc(sx, sy - age*5, 1.6 + age*3.4, 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+}
+
+// ---------- MINIMAPA ao vivo ----------
+function _miniColor(ch){
+  if(ch === '~') return null;
+  if(ch === 'W') return '#2a5a8a';
+  if(ch === 'L' || ch === 'M') return '#a83a1c';
+  if(ch === 'T') return '#2c4a30';
+  if(ch === '+') return '#d8b060';
+  if(ch === '=' || ch === 'd') return '#6a5c48';
+  if(typeof SOLID !== 'undefined' && SOLID.has && SOLID.has(ch)) return '#3a3644';
+  if('#^YbjFhHsfgkPQRUAlqNIvyzGBK456&X87J{}/;_'.indexOf(ch) >= 0) return '#3a3644';
+  return '#514c5c';
+}
+function buildMinimapCache(){
+  if(!mapRows || !mapRows.length) return null;
+  const w = mapW, h = mapH;
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const mc = cv.getContext('2d');
+  for(let y = 0; y < h; y++){
+    const row = mapRows[y];
+    for(let x = 0; x < w; x++){
+      const col = _miniColor(row[x]);
+      if(!col) continue;
+      mc.fillStyle = col; mc.fillRect(x, y, 1, 1);
+    }
+  }
+  const scale = Math.min(148 / w, 148 / h, 3);
+  return { cv, scale, w, h };
+}
+function drawMinimap(c, now){
+  if(!minimapOn) return;
+  if(!_minimapCache) _minimapCache = buildMinimapCache();
+  const m = _minimapCache; if(!m) return;
+  const dw = m.w * m.scale, dh = m.h * m.scale;
+  const ox = canvas.width - dw - 14, oy = 14;
+  c.save();
+  c.fillStyle = 'rgba(6,8,14,0.72)';
+  c.strokeStyle = 'rgba(200,170,110,0.5)'; c.lineWidth = 1;
+  c.beginPath(); c.roundRect ? c.roundRect(ox-5, oy-5, dw+10, dh+10, 7) : c.rect(ox-5, oy-5, dw+10, dh+10);
+  c.fill(); c.stroke();
+  c.imageSmoothingEnabled = false;
+  c.drawImage(m.cv, ox, oy, dw, dh);
+  // entidades
+  players.forEach(p=>{
+    if(p._dead) return;
+    const px = ox + (p.x||0)*m.scale, py = oy + (p.y||0)*m.scale;
+    if(p.id === myId) return;                                    // o dono desenha por último
+    if(p.kind === 'monster'){
+      c.fillStyle = p.boss ? '#ffd060' : '#e0584a';
+      c.fillRect(px-1, py-1, p.boss ? 4 : 2.4, p.boss ? 4 : 2.4);
+    } else if(p.kind){                                           // npcs e afins
+      c.fillStyle = '#e8c860'; c.fillRect(px-1, py-1, 2, 2);
+    } else {
+      c.fillStyle = '#6adf6a'; c.fillRect(px-1, py-1, 2.6, 2.6);
+    }
+  });
+  for(const nd of worldNodes){
+    if(nd.depleted) continue;
+    c.fillStyle = '#5ad8e8';
+    c.fillRect(ox + nd.x*m.scale - 0.8, oy + nd.y*m.scale - 0.8, 2, 2);
+  }
+  const me = players.get(myId);
+  if(me){
+    const px = ox + me.x*m.scale, py = oy + me.y*m.scale;
+    const pl = 2.4 + 0.9*Math.sin(now/300);
+    c.fillStyle = '#ffffff';
+    c.beginPath(); c.arc(px, py, pl, 0, Math.PI*2); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1;
+    // janela da câmera
+    const vw = canvas.width / TS * m.scale, vh = canvas.height / TS * m.scale;
+    c.strokeRect(ox + camX/TS*m.scale, oy + camY/TS*m.scale, vw, vh);
+  }
+  c.fillStyle = 'rgba(220,205,170,0.55)';
+  c.font = '600 8px Inter, sans-serif'; c.textAlign = 'right';
+  c.fillText('M', ox + dw, oy + dh + 9);
+  c.restore();
+}
+
+// ---------- o maestro dos overlays (chamado no fim do frame) ----------
+function drawWorldOverlays(c, now){
+  try{
+    drawStepDust(c, now);
+    drawExitArrows(c, now);
+    drawVignette(c, now);
+    drawMinimap(c, now);
+  }catch(err){ /* nunca derruba o render */ }
+}
+
+// tecla M: liga/desliga o minimapa
+window.addEventListener('keydown', e=>{
+  if(e.code === 'KeyM' && typeof started !== 'undefined' && started && !typingInField(e)){
+    minimapOn = !minimapOn;
+  }
+});
+
+// ---------- FICHA: aba de Ofícios ----------
+const PROF_META = {
+  ferreiro:   {n:'Ferreiro',    i:'⚒️'},
+  coureiro:   {n:'Coureiro',    i:'🟤'},
+  costureiro: {n:'Costureiro',  i:'🧵'},
+  carpinteiro:{n:'Carpinteiro', i:'🪵'},
+  alquimista: {n:'Alquimista',  i:'⚗️'},
+  joalheiro:  {n:'Joalheiro',   i:'💎'},
+  cozinheiro: {n:'Cozinheiro',  i:'🍲'},
+};
+function _fichaOficios(f){
+  const profs = (f && f.profs) || {};
+  let h = '<div style="font:600 11px Inter;color:#8a86a0;margin-bottom:10px;">'+
+    'Aprenda com os mestres do Ermo: colete recursos pelo mundo e crie nas oficinas.</div>';
+  for(const id in PROF_META){
+    const xp = Math.max(0, parseInt(profs[id] || 0, 10));
+    const lvl = 1 + Math.min(4, Math.floor(xp / 120));
+    const pct = lvl >= 5 ? 100 : Math.round((xp % 120) / 1.2);
+    h += '<div style="display:flex;align-items:center;gap:9px;margin-bottom:9px;">';
+    h += '<div style="font-size:19px;width:26px;text-align:center;">'+ PROF_META[id].i +'</div>';
+    h += '<div style="flex:1;">';
+    h += '<div style="display:flex;justify-content:space-between;font:700 12px Inter;color:#e4e0ee;">'+
+      '<span>'+ PROF_META[id].n +'</span><span style="color:'+ (lvl>=5?'#ffd060':'#9b6dff') +';">nível '+ lvl + (lvl>=5?' ★':'') +'</span></div>';
+    h += '<div style="height:5px;background:#191527;border-radius:3px;overflow:hidden;margin-top:3px;">'+
+      '<div style="height:100%;width:'+ pct +'%;background:linear-gradient(90deg,#6db3ff,#c98aff);"></div></div>';
+    h += '</div></div>';
+  }
+  return h;
 }

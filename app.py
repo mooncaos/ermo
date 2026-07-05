@@ -339,6 +339,7 @@ def _go_to(sid, target_map, x, y, facing=None):
         "players": world.entities_in(target_map),
         "ground": world.ground_snapshot() if target_map == "ermo" else [],
         "nodes": world.nodes_in(target_map),
+        "edges": {d: dst[0] for d, dst in wm.EDGE_LINKS.get(target_map, {}).items()},
         "you": {"id": sid, "x": player["x"], "y": player["y"],
                 "facing": player["facing"]},
     }, to=sid)
@@ -2022,6 +2023,7 @@ def on_craft_make(data):
         db.save_ficha(player["player_id"], ficha)
         db.save_loadout(player["player_id"], player["inventory"],
                         player["equipment"], player.get("look"))
+    emit("ficha", {"ficha": ficha})
     emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
     nome = (items.get(out) or {}).get("name", out)
     if novo_lvl > lvl:
