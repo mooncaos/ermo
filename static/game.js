@@ -5899,14 +5899,16 @@ function frame(now){
     }
   }
 
-  if(mapName === 'ermo') drawErmoDecor(ctx, now);
-  drawFaunaAndPet(ctx, now);
-  // pontos de coleta das profissões (veios, árvores nobres, ervas)
-  for(const nd of worldNodes){
-    const nsx = nd.x*TS - camX, nsy = nd.y*TS - camY;
-    if(nsx < -TS*2 || nsy < -TS*2 || nsx > canvas.width+TS*2 || nsy > canvas.height+TS*2) continue;
-    drawNode(ctx, nsx, nsy, TS, nd, now);
-  }
+  try{
+    if(mapName === 'ermo') drawErmoDecor(ctx, now);
+    drawFaunaAndPet(ctx, now);
+    // pontos de coleta das profissões (veios, árvores nobres, ervas)
+    for(const nd of worldNodes){
+      const nsx = nd.x*TS - camX, nsy = nd.y*TS - camY;
+      if(nsx < -TS*2 || nsy < -TS*2 || nsx > canvas.width+TS*2 || nsy > canvas.height+TS*2) continue;
+      drawNode(ctx, nsx, nsy, TS, nd, now);
+    }
+  }catch(err){ /* decoração nunca derruba o mundo */ }
 
   const ordered = [...players.values()].sort((a,b)=> (a.ry - b.ry));
   for(const p of ordered){
@@ -11382,3 +11384,162 @@ function drawErmoDecor(c, now){
     c.restore();
   };
 })();
+
+// ===========================================================================
+//  MUNDO VIVO (restaurado): clima, fauna ambiente, pet e pesca
+// ===========================================================================
+var _weather = {type: null, k: 0};
+var _fauna = [];
+var _petTrail = [];
+
+var socketOnReady_weather = setInterval(()=>{
+  if(typeof socket === 'undefined' || !socket || socket._wxBound) return;
+  socket._wxBound = true;
+  socket.on('map_change', d=>{
+    const nm = (d && d.map && d.map.map) || 'ermo';
+    _fauna = []; _petTrail = [];
+    if((nm === 'costa_maravai' || nm === 'floresta_ermo') && Math.random() < 0.3)
+      _weather = {type: 'chuva', k: 0.6 + Math.random()*0.4};
+    else if(nm === 'umbraval' && Math.random() < 0.4)
+      _weather = {type: 'nevoa', k: 1};
+    else _weather = {type: null, k: 0};
+    if(nm === 'costa_maravai'){
+      for(let i=0;i<10;i++) _fauna.push({t:'borboleta', x: 20+Math.random()*260, y: 10+Math.random()*130, ph: Math.random()*9});
+      for(let i=0;i<6;i++)  _fauna.push({t:'gaivota', x: 30+Math.random()*250, y: 200+Math.random()*50, ph: Math.random()*9, voa: 0});
+    }
+  });
+  socket.on('rare_drop', d=>{
+    if(!d) return;
+    const me = players.get(myId);
+    if(me) rtAddFloat((me.rx||0)+TS/2, (me.ry||0)-6, '✨ ' + (d.rarity||'').toUpperCase() + '!', d.color || '#c98aff', true);
+    toastMsg('✨ Drop ' + d.rarity + ': ' + d.name + '!');
+  });
+  socket.on('fish_start', ()=> openFishing());
+}, 800);
+
+function drawWeather(c, now){
+  if(!_weather.type) return;
+  if(_weather.type === 'chuva'){
+    c.save(); c.strokeStyle = 'rgba(170,200,230,0.35)'; c.lineWidth = 1;
+    const n = Math.floor(70 * _weather.k);
+    for(let i=0;i<n;i++){
+      const rx = ((i*997 + now*0.5) % (canvas.width + 60)) - 30;
+      const ry = ((i*641 + now*0.9) % (canvas.height + 40)) - 20;
+      c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx - 3, ry + 11); c.stroke();
+    }
+    c.fillStyle = 'rgba(90,120,160,0.06)'; c.fillRect(0, 0, canvas.width, canvas.height);
+    c.restore();
+  } else if(_weather.type === 'nevoa'){
+    c.save();
+    const g = c.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, 'rgba(120,140,200,0.05)');
+    g.addColorStop(1, 'rgba(120,140,200,0.13)');
+    c.fillStyle = g; c.fillRect(0, 0, canvas.width, canvas.height);
+    c.restore();
+  }
+}
+
+function drawFaunaAndPet(c, now){
+  const me = players.get(myId);
+  for(const f of _fauna){
+    const sx = f.x*TS - camX, sy = f.y*TS - camY;
+    if(sx < -TS*3 || sy < -TS*3 || sx > canvas.width+TS*3 || sy > canvas.height+TS*3) continue;
+    if(f.t === 'borboleta'){
+      f.x += Math.sin(now/900 + f.ph)*0.012; f.y += Math.cos(now/1100 + f.ph)*0.01;
+      const wing = Math.abs(Math.sin(now/120 + f.ph));
+      c.save(); c.translate(sx, sy);
+      c.fillStyle = f.ph % 2 < 1 ? '#e8a040' : '#c060c0';
+      c.beginPath(); c.ellipse(-2.2*wing, 0, 2.6*wing, 1.7, -0.4, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(2.2*wing, 0, 2.6*wing, 1.7, 0.4, 0, Math.PI*2); c.fill();
+      c.restore();
+    } else if(f.t === 'gaivota'){
+      if(!f.voa && me && Math.max(Math.abs(me.x - f.x), Math.abs(me.y - f.y)) < 4) f.voa = now;
+      if(f.voa){
+        const k = Math.min(1, (now - f.voa)/1600);
+        f.y -= 0.06; f.x += 0.05;
+        if(k >= 1){ f.voa = 0; f.x = 30+Math.random()*250; f.y = 205+Math.random()*45; }
+      }
+      const flap = f.voa ? Math.sin(now/90)*4 : 0;
+      c.save(); c.strokeStyle = '#e8e8ea'; c.lineWidth = 2; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(sx-5, sy - flap); c.quadraticCurveTo(sx, sy - 3 - flap*0.4, sx+5, sy - flap); c.stroke();
+      c.restore();
+    }
+  }
+  if(mapName === 'costa_maravai' && Math.floor(now/700) % 5 === 0 && (now % 700) < 40){
+    _fauna.push({t:'peixe', x: 20 + Math.random()*260, y: 266 + Math.random()*20, born: now});
+  }
+  for(let i=_fauna.length-1; i>=0; i--){
+    const f = _fauna[i];
+    if(f.t !== 'peixe') continue;
+    const age = (now - f.born)/800;
+    if(age >= 1){ _fauna.splice(i,1); continue; }
+    const sx = f.x*TS - camX, sy = f.y*TS - camY - Math.sin(age*Math.PI)*14;
+    c.save(); c.globalAlpha = 0.85;
+    c.fillStyle = '#a8c8d8'; c.beginPath();
+    c.ellipse(sx, sy, 4, 2, age*3, 0, Math.PI*2); c.fill();
+    if(age > 0.8){ c.strokeStyle = 'rgba(230,245,250,0.6)';
+      c.beginPath(); c.arc(f.x*TS - camX, f.y*TS - camY, 5*(age-0.8)*5, 0, Math.PI); c.stroke(); }
+    c.restore();
+  }
+  if(me && typeof inventory !== 'undefined' &&
+     (inventory||[]).some(s=> s.item === 'filhote_capivara')){
+    _petTrail.push({x: me.rx, y: me.ry});
+    if(_petTrail.length > 14) _petTrail.shift();
+    const pos = _petTrail[0];
+    if(pos){
+      const sx = pos.x - camX + TS/2, sy = pos.y - camY + TS/2;
+      const bob = Math.sin(now/300)*1.2;
+      c.save(); c.translate(sx, sy + bob);
+      c.fillStyle='rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(0, 6, 7, 2.4, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#a8875c';
+      c.beginPath(); c.ellipse(0, 0, 7, 5.4, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#8a6a44';
+      c.beginPath(); c.ellipse(6, -2, 4, 3.4, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#5a4228';
+      c.beginPath(); c.ellipse(9, -1.4, 1.6, 1.2, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(5, -5, 1.3, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#1a1410';
+      c.beginPath(); c.arc(7, -3, 0.8, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+  }
+}
+
+var _fishing = null;
+function openFishing(){
+  if(_fishing) return;
+  _fishing = {born: performance.now()};
+  let el = document.createElement('div');
+  el.id = 'fishUI';
+  el.style.cssText = 'position:fixed;left:50%;bottom:24%;transform:translateX(-50%);z-index:240;'+
+    'background:rgba(8,10,18,0.88);border:1px solid #3a5a7a;border-radius:12px;padding:12px 16px;text-align:center;';
+  el.innerHTML = '<div style="font:700 12px Inter;color:#c9e0f0;margin-bottom:8px;">🎣 Crave na zona verde! (Espaço ou toque)</div>'+
+    '<div id="fishTrack" style="position:relative;width:240px;height:16px;background:#101828;border-radius:8px;overflow:hidden;">'+
+    '<div style="position:absolute;left:'+(240*0.33)+'px;width:'+(240*0.34)+'px;top:0;bottom:0;background:rgba(80,200,110,0.35);border-left:1px solid #4aa86a;border-right:1px solid #4aa86a;"></div>'+
+    '<div id="fishCur" style="position:absolute;top:1px;width:5px;height:14px;background:#f0d870;border-radius:2px;box-shadow:0 0 6px #f0d870;"></div></div>';
+  document.body.appendChild(el);
+  el.addEventListener('pointerdown', fishStrike);
+  _fishing.frame = ()=>{
+    if(!_fishing) return;
+    const t = (performance.now() - _fishing.born)/1000;
+    _fishing.pos = 0.5 + 0.5*Math.sin(t*3.4);
+    const cur = document.getElementById('fishCur');
+    if(cur) cur.style.left = (_fishing.pos*235) + 'px';
+    if(t > 10){ closeFishing(); return; }
+    requestAnimationFrame(_fishing.frame);
+  };
+  requestAnimationFrame(_fishing.frame);
+}
+function fishStrike(){
+  if(!_fishing) return;
+  socket.emit('fish_hit', {pos: _fishing.pos || 0});
+  closeFishing();
+}
+function closeFishing(){
+  _fishing = null;
+  const el = document.getElementById('fishUI');
+  if(el) el.remove();
+}
+window.addEventListener('keydown', e=>{
+  if(_fishing && e.code === 'Space'){ e.preventDefault(); fishStrike(); }
+});
