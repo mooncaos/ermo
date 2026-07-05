@@ -5901,6 +5901,7 @@ function frame(now){
 
   try{
     if(mapName === 'ermo') drawErmoDecor(ctx, now);
+  else if(mapName && (mapName.indexOf('oficina_') === 0 || mapName === 'templo_doze')) drawInteriorDecor(ctx, now);
     drawFaunaAndPet(ctx, now);
     // pontos de coleta das profissões (veios, árvores nobres, ervas)
     for(const nd of worldNodes){
@@ -11647,3 +11648,194 @@ var bindArcano = setInterval(()=>{
   });
   socket.emit('grimoire_get');            // popula a hotbar ao entrar
 }, 900);
+
+// ===========================================================================
+//  INTERIORES CUSTOMIZADOS: cada oficina com alma própria (arte à mão)
+// ===========================================================================
+function drawInteriorDecor(c, now){
+  const P = (tx, ty)=> [tx*TS - camX, ty*TS - camY];
+  c.save();
+  if(mapName === 'oficina_ferreiro'){
+    let [x, y] = P(10.5, 3.2);                       // A FORJA acesa
+    c.fillStyle = '#3a3238'; c.fillRect(x - TS*0.9, y - TS*0.5, TS*1.8, TS*1.3);
+    c.fillStyle = '#241f26'; c.fillRect(x - TS*0.6, y - TS*0.2, TS*1.2, TS*0.7);
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for(let i=0;i<3;i++){
+      const fl = 0.6 + 0.4*Math.sin(now/140 + i*2);
+      c.globalAlpha = 0.85*fl;
+      c.fillStyle = i===0 ? '#ffd070' : (i===1 ? '#ff9a30' : '#ff5a18');
+      c.beginPath();
+      c.moveTo(x - TS*0.4, y + TS*0.4);
+      c.quadraticCurveTo(x + Math.sin(now/110+i)*4, y - TS*(0.1 + i*0.14), x + TS*0.4, y + TS*0.4);
+      c.closePath(); c.fill();
+    }
+    c.restore();
+    [x, y] = P(5.5, 3.6);                            // a BIGORNA clássica
+    c.fillStyle = '#2a2a32'; c.fillRect(x - TS*0.32, y + TS*0.18, TS*0.64, TS*0.2);
+    c.fillStyle = '#4a4a56';
+    c.beginPath(); c.moveTo(x - TS*0.55, y - TS*0.05); c.lineTo(x + TS*0.35, y - TS*0.05);
+    c.lineTo(x + TS*0.62, y - TS*0.22); c.lineTo(x + TS*0.62, y - TS*0.05);
+    c.lineTo(x + TS*0.35, y + TS*0.18); c.lineTo(x - TS*0.4, y + TS*0.18); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(x - TS*0.5, y - TS*0.05, TS*0.9, 2);
+    const sp = (now % 900) < 90;                     // fagulhas do martelo
+    if(sp){ c.save(); c.globalCompositeOperation='lighter'; c.fillStyle='#ffd070';
+      for(let i=0;i<4;i++) c.fillRect(x + (Math.random()-0.5)*TS, y - TS*0.3 - Math.random()*8, 2, 2);
+      c.restore(); }
+  } else if(mapName === 'oficina_coureiro'){
+    let [x, y] = P(3.2, 5.2);                        // couro esticado na armação
+    c.strokeStyle = '#4a3820'; c.lineWidth = 3;
+    c.strokeRect(x - TS*0.7, y - TS*0.9, TS*1.4, TS*1.8);
+    c.fillStyle = '#a8703c';
+    c.beginPath(); c.ellipse(x, y, TS*0.52, TS*0.72, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#8a5a30';
+    c.beginPath(); c.ellipse(x - TS*0.1, y - TS*0.15, TS*0.2, TS*0.28, 0.3, 0, Math.PI*2); c.fill();
+    [x, y] = P(10.6, 3.4);                           // mesa com facas e pele
+    c.fillStyle = '#c9a05a'; c.fillRect(x - TS*0.8, y, TS*1.6, TS*0.5);
+    c.fillStyle = '#d8e0e8'; c.fillRect(x - TS*0.4, y + TS*0.12, TS*0.5, 3);
+    c.fillRect(x + TS*0.15, y + TS*0.22, TS*0.4, 3);
+  } else if(mapName === 'oficina_costureiro'){
+    let [x, y] = P(3.8, 3.4);                        // o TEAR com fios
+    c.strokeStyle = '#6a4a2c'; c.lineWidth = 3.4;
+    c.strokeRect(x - TS*0.75, y - TS*0.65, TS*1.5, TS*1.35);
+    const cores = ['#e089a8', '#89a8e0', '#e0cf89', '#8fd08f'];
+    for(let i=0;i<9;i++){
+      c.strokeStyle = cores[i % 4]; c.lineWidth = 1.6;
+      const fx = x - TS*0.6 + i*TS*0.15;
+      c.beginPath(); c.moveTo(fx, y - TS*0.6);
+      c.lineTo(fx + Math.sin(now/700 + i)*1.5, y + TS*0.62); c.stroke();
+    }
+    c.fillStyle = '#8a5a30'; c.fillRect(x - TS*0.7, y - TS*0.05 + Math.sin(now/500)*TS*0.2, TS*1.4, 4);
+    [x, y] = P(10.2, 5.4);                           // rolos de pano
+    for(let i=0;i<3;i++){
+      c.fillStyle = cores[i];
+      c.beginPath(); c.ellipse(x + i*TS*0.5, y, TS*0.2, TS*0.42, 0.2, 0, Math.PI*2); c.fill();
+    }
+  } else if(mapName === 'oficina_carpinteiro'){
+    let [x, y] = P(7.2, 4.3);                        // bancada com tora e SERRA
+    c.fillStyle = '#8a6438';
+    c.beginPath(); c.ellipse(x - TS*0.9, y - TS*0.1, TS*0.55, TS*0.26, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#c9a464';
+    c.beginPath(); c.ellipse(x - TS*0.9, y - TS*0.1, TS*0.34, TS*0.15, 0, 0, Math.PI*2); c.fill();
+    const sw = Math.sin(now/260)*TS*0.16;            // serrote indo e vindo
+    c.fillStyle = '#c9ccd4';
+    c.beginPath(); c.moveTo(x + TS*0.1 + sw, y - TS*0.34);
+    c.lineTo(x + TS*1.15 + sw, y - TS*0.22); c.lineTo(x + TS*1.15 + sw, y - TS*0.1);
+    for(let i=6;i>=0;i--) c.lineTo(x + TS*0.15 + i*TS*0.14 + sw, y - TS*(0.1 - (i%2)*0.05));
+    c.closePath(); c.fill();
+    c.fillStyle = '#6a4a2c'; c.fillRect(x + TS*1.1 + sw, y - TS*0.3, TS*0.28, TS*0.14);
+    c.fillStyle = 'rgba(216,196,150,0.5)';           // serragem
+    for(let i=0;i<7;i++) c.fillRect(x - TS*0.4 + (i*37 % 60), y + TS*0.3 + (i*17 % 14), 2.4, 1.6);
+    [x, y] = P(11.6, 6.3);                           // pilha de tábuas
+    for(let i=0;i<3;i++){ c.fillStyle = i%2 ? '#a8824a' : '#8a6438';
+      c.fillRect(x - TS*0.7, y - i*5, TS*1.4, 4.4); }
+  } else if(mapName === 'oficina_alquimista'){
+    let [x, y] = P(7.5, 3.5);                        // CALDEIRÃO borbulhando
+    c.fillStyle = '#22261e';
+    c.beginPath(); c.ellipse(x, y + TS*0.15, TS*0.7, TS*0.5, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#3a4034';
+    c.beginPath(); c.ellipse(x, y - TS*0.15, TS*0.66, TS*0.24, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#5ad86a';
+    c.beginPath(); c.ellipse(x, y - TS*0.15, TS*0.52, TS*0.16, 0, 0, Math.PI*2); c.fill();
+    c.save(); c.globalCompositeOperation='lighter';
+    for(let i=0;i<3;i++){                            // bolhas + vapor
+      const ph = ((now/60) + i*20) % 50;
+      c.globalAlpha = 0.5*(1 - ph/50);
+      c.fillStyle = '#8affa0';
+      c.beginPath(); c.arc(x + Math.sin(now/300+i*2)*TS*0.3, y - TS*0.2 - ph*0.5, 2.4 + ph*0.06, 0, Math.PI*2); c.fill();
+    }
+    c.restore();
+    for(const [px2, py2] of [P(3.4, 2.4), P(11.6, 2.4)]){   // prateleiras de frascos
+      c.fillStyle = '#5a4228'; c.fillRect(px2 - TS*0.7, py2 + TS*0.3, TS*1.4, 3);
+      const fc = ['#e05858', '#58a8e0', '#e0c958', '#a858e0'];
+      for(let i=0;i<4;i++){
+        c.fillStyle = fc[i];
+        const gl = 0.7 + 0.3*Math.sin(now/500 + i + px2);
+        c.globalAlpha = gl;
+        c.fillRect(px2 - TS*0.55 + i*TS*0.32, py2 + TS*0.02, TS*0.16, TS*0.28);
+        c.globalAlpha = 1;
+      }
+    }
+  } else if(mapName === 'oficina_joalheiro'){
+    let [x, y] = P(7.5, 4.3);                        // VITRINE com gemas girando
+    c.fillStyle = '#2a2436'; c.fillRect(x - TS*1.5, y - TS*0.4, TS*3, TS*0.9);
+    c.fillStyle = 'rgba(160,190,230,0.22)'; c.fillRect(x - TS*1.4, y - TS*0.34, TS*2.8, TS*0.5);
+    const gc = ['#d060c0', '#60c0d0', '#e0c040'];
+    for(let i=0;i<3;i++){
+      const gx2 = x - TS*0.9 + i*TS*0.9;
+      const rot = now/800 + i*2;
+      c.save(); c.translate(gx2, y - TS*0.06); c.rotate(rot);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = 0.5 + 0.4*Math.sin(now/300 + i);
+      c.fillStyle = gc[i];
+      c.beginPath(); c.moveTo(0, -6); c.lineTo(4.5, 0); c.lineTo(0, 6); c.lineTo(-4.5, 0);
+      c.closePath(); c.fill(); c.restore(); c.restore();
+    }
+    [x, y] = P(7.5, 6.4);                            // tapete de veludo
+    c.fillStyle = 'rgba(90,40,90,0.4)';
+    c.beginPath(); c.ellipse(x, y, TS*1.6, TS*0.6, 0, 0, Math.PI*2); c.fill();
+  } else if(mapName === 'oficina_cozinheiro'){
+    let [x, y] = P(4.8, 3.3);                        // FOGÃO com panela fumegando
+    c.fillStyle = '#3a3238'; c.fillRect(x - TS*1.0, y - TS*0.2, TS*2.0, TS*0.8);
+    c.fillStyle = '#22262a';
+    c.beginPath(); c.ellipse(x - TS*0.4, y - TS*0.22, TS*0.34, TS*0.14, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#5a3020';
+    c.beginPath(); c.ellipse(x + TS*0.45, y - TS*0.24, TS*0.3, TS*0.13, 0, 0, Math.PI*2); c.fill();
+    c.save(); c.globalCompositeOperation='lighter';
+    for(let i=0;i<2;i++){                            // vapor da panela
+      const ph = ((now/70) + i*22) % 44;
+      c.globalAlpha = 0.35*(1 - ph/44);
+      c.fillStyle = '#f0e8d8';
+      c.beginPath(); c.arc(x - TS*0.4 + Math.sin(now/400+i)*3, y - TS*0.35 - ph*0.55, 2.6 + ph*0.09, 0, Math.PI*2); c.fill();
+    }
+    c.restore();
+    [x, y] = P(10.4, 3.2);                           // presuntos pendurados
+    c.strokeStyle = '#4a3820'; c.lineWidth = 1.4;
+    for(let i=0;i<2;i++){
+      const hx2 = x + i*TS*0.7, sw2 = Math.sin(now/900 + i)*2;
+      c.beginPath(); c.moveTo(hx2, y - TS*0.4); c.lineTo(hx2 + sw2, y); c.stroke();
+      c.fillStyle = '#a84a3a';
+      c.beginPath(); c.ellipse(hx2 + sw2, y + TS*0.22, TS*0.16, TS*0.28, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#e8d0b8';
+      c.beginPath(); c.ellipse(hx2 + sw2, y + TS*0.06, TS*0.1, TS*0.06, 0, 0, Math.PI*2); c.fill();
+    }
+  } else if(mapName === 'templo_doze'){
+    let [x, y] = P(10.5, 2.6);                       // O ALTAR DOS DOZE
+    c.fillStyle = '#55506a'; c.fillRect(x - TS*2.2, y - TS*0.5, TS*4.4, TS*1.0);
+    c.fillStyle = '#6c667a'; c.fillRect(x - TS*2.4, y - TS*0.66, TS*4.8, TS*0.26);
+    c.save(); c.globalCompositeOperation='lighter';   // chama sagrada central
+    const fl = 0.6 + 0.4*Math.sin(now/180);
+    c.globalAlpha = 0.9*fl;
+    c.fillStyle = '#f6dfa0';
+    c.beginPath(); c.moveTo(x - 5, y - TS*0.6);
+    c.quadraticCurveTo(x + Math.sin(now/130)*3, y - TS*1.3 - fl*6, x + 5, y - TS*0.6);
+    c.closePath(); c.fill();
+    const g = c.createRadialGradient(x, y - TS*0.7, 0, x, y - TS*0.7, TS*3.2);
+    g.addColorStop(0, 'rgba(246,223,160,0.28)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalAlpha = 1; c.fillStyle = g;
+    c.beginPath(); c.arc(x, y - TS*0.7, TS*3.2, 0, Math.PI*2); c.fill();
+    c.restore();
+    // tapete vermelho da porta ao altar
+    c.fillStyle = 'rgba(140,40,50,0.34)';
+    c.fillRect(10*TS - camX + TS*0.06, 3.6*TS - camY, TS*0.9, TS*10.4);
+    c.fillStyle = 'rgba(220,180,90,0.4)';
+    c.fillRect(10*TS - camX + TS*0.06, 3.6*TS - camY, TS*0.9, 2);
+    // 12 NICHOS dos deuses nas paredes laterais (símbolos dourados pulsando)
+    c.save();
+    for(let i=0;i<12;i++){
+      const lado = i < 6 ? 1.0 : 19.0;
+      const ny = 3.4 + (i % 6) * 1.85;
+      const [nx2, ny2] = P(lado + (i < 6 ? 0.5 : -0.5), ny);
+      c.fillStyle = '#2a2440';
+      c.fillRect(nx2 - 7, ny2 - 10, 14, 20);
+      c.strokeStyle = '#c9a860'; c.lineWidth = 1; c.strokeRect(nx2 - 7, ny2 - 10, 14, 20);
+      const gl = 0.5 + 0.5*Math.sin(now/600 + i*1.3);
+      c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha = gl;
+      c.fillStyle = '#f0d888';
+      c.beginPath(); c.arc(nx2, ny2 - 1, 3.4, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(nx2, ny2 - 1, 5.6 + gl*1.4, 0, Math.PI*2);
+      c.strokeStyle = 'rgba(240,216,136,0.5)'; c.stroke();
+      c.restore();
+    }
+    c.restore();
+  }
+  c.restore();
+}

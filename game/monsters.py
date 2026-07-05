@@ -1319,7 +1319,9 @@ MONSTER_ABILITIES = {
                        "status": "poison", "turns": 3, "dot": {"n": 2, "d": 8}, "chance": 0.4, "cd": 3}],
 
     # arsenal do necromante: muitas magias, ele varia a cada turno
-    "lorde_varth": [{"id": "praga_de_atalech", "name": "Praga de Atalech", "type": "trueblast", "aoe": True, "ranged": True, "vfx": "atalech",
+    "lorde_varth": [{"id": "chamar_servos", "name": "Chamar os Servos", "type": "summon",
+                       "minion": "tumular_torre", "count": 2, "chance": 0.35, "cd": 6},
+                      {"id": "praga_de_atalech", "name": "Praga de Atalech", "type": "trueblast", "aoe": True, "ranged": True, "vfx": "atalech",
                        "fixed": 50, "turns": 10, "dot": {"n": 0, "d": 1, "flat": 5}, "chance": 1.0, "cd": 10},
                       {"id": "manto_de_vargo", "name": "Manto de Vargo", "type": "selfbuff", "ranged": True, "vfx": "purpleglow",
                        "status": "couraca_vargo", "turns": 3, "chance": 0.5, "cd": 7},
@@ -1477,7 +1479,9 @@ MONSTER_ABILITIES = {
                        "dmg_bonus": {"n": 6, "d": 12}, "chance": 0.55, "cd": 1},
                       {"id": "brado_da_goela", "name": "Brado da Goela", "type": "fear",
                        "save": "SAB", "dc": 17, "status": "frightened", "turns": 2, "chance": 0.35, "cd": 3}],
-    "krezath": [{"id": "halito_do_fim", "name": "Hálito do Fim", "type": "trueblast", "aoe": True, "ranged": True, "vfx": "dragonfire",
+    "krezath": [{"id": "ninhada_do_devorador", "name": "Ninhada do Devorador", "type": "summon",
+                       "minion": "cria_krezath", "count": 2, "chance": 0.35, "cd": 6},
+                      {"id": "halito_do_fim", "name": "Hálito do Fim", "type": "trueblast", "aoe": True, "ranged": True, "vfx": "dragonfire",
                        "fixed": 65, "status": "chama_eterna", "turns": 8, "dot": {"n": 0, "d": 1, "flat": 6}, "chance": 1.0, "cd": 9},
                       {"id": "escamas_de_obsidiana", "name": "Escamas de Obsidiana", "type": "selfbuff", "ranged": True, "vfx": "emberglow",
                        "status": "escamas_krezath", "turns": 3, "chance": 0.5, "cd": 7},

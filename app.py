@@ -117,7 +117,7 @@ def _world_event_loop():
                 socketio.emit("world_event", {"id": None})
                 WORLD_EVENT.update({"id": None, "map": None, "until": 0, "name": ""})
             continue
-        if random.random() < 0.028:            # ~1 evento a cada ~35-40 min
+        if random.random() < 0.042:            # ~1 evento a cada ~24 min
             eid, emap, msg = random.choice(WORLD_EVENTS_DEF)
             WORLD_EVENT.update({"id": eid, "map": emap, "until": now + 600, "name": msg.split(":")[0]})
             socketio.emit("toast", {"text": msg})
@@ -726,7 +726,9 @@ def on_rt_cast(data):
         dmg = max(1, dmg // 2)
     m["hp"] = max(0, int(m["hp"]) - dmg)
     socketio.emit("rt_hit", {"id": tid, "dmg": dmg, "crit": crit, "magic": True, "by": sid,
-                             "spell": sp.get("name"), "hp": m["hp"], "hp_max": m["hp_max"]},
+                             "spell": sp.get("name"), "dtype": sp.get("dtype", "energia"),
+                             "fx": [player["x"], player["y"], m["x"], m["y"]],
+                             "hp": m["hp"], "hp_max": m["hp_max"]},
                   room=player["map"])
     if m["hp"] <= 0:
         _rt_kill(sid, player, m)
@@ -778,6 +780,9 @@ def _rt_summon(invocador, minion_type, count):
             "id": nid, "type": minion_type, "name": spec.get("name", minion_type),
             "hp": int(spec.get("hp", 100)), "hp_max": int(spec.get("hp", 100)),
             "ac": int(spec.get("ac", 12)), "size": int(spec.get("size", 1)),
+            "atk": int(spec.get("atk", 3)), "dmg": dict(spec.get("dmg") or {"n": 1, "d": 6}),
+            "xp": int(spec.get("xp", 0)), "speed": int(spec.get("speed", 5)),
+            "reach": int(spec.get("reach", 1)), "boss": False, "passive": bool(spec.get("passive")),
             "glyph": spec.get("glyph"), "alive": True, "in_combat": False, "temp": True,
             "x": invocador["x"] + random.randint(-1, 1),
             "y": invocador["y"] + random.randint(-1, 1),
@@ -2565,6 +2570,11 @@ def _try_gather(player):
             alvo = nd
             break
     if not alvo:
+        for nd in getattr(world, "nodes", {}).values():
+            if nd["map"] == mp and abs(nd["x"] - px) <= 3 and abs(nd["y"] - py) <= 3:
+                nome = professions.NODES[nd["type"]]["name"]
+                emit("toast", {"text": "⛏️ Chegue colado no %s e aperte E pra coletar." % nome})
+                return
         return
     spec = professions.NODES[alvo["type"]]
     now = _t.time()
@@ -2639,8 +2649,15 @@ def _npc_routine_loop():
         try:
             for spec in npcs.ROSTER:
                 rot = _NPC_ROUTINE.get(spec.get("id"))
-                if rot:
-                    spec["home"] = rot["night" if noite else "day"]
+                if not rot:
+                    continue
+                alvo = rot["night" if noite else "day"]
+                spec["home"] = alvo
+                ent = world.players.get(spec["id"])
+                if ent and max(abs(ent["x"] - alvo[0]), abs(ent["y"] - alvo[1])) > 6:
+                    ent["x"], ent["y"] = alvo
+                    socketio.emit("player_moved", _npc_moved_payload(ent),
+                                  room=spec.get("map", "ermo"))
         except Exception as exc:
             print("erro na rotina dos NPCs:", exc)
 
