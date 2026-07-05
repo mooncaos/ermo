@@ -1443,7 +1443,9 @@ def on_set_title(data):
 #  A FENDA DO CAOS: chave abre, andares infinitos, ranking de profundidade.
 #  A BIGORNA DO BRAGAN: +1/+2/+3 com risco real. O ALTAR: fortuna paga.
 # ===========================================================================
-FENDA_POS = (72, 20)          # o portal, no leste do Ermo
+FENDA_MAP = "ossuario"        # o portal vive no fundo do Ossuário
+FENDA_POS = (9, 3)
+OSSUARIO_DESCE = (3, 12)      # o alçapão, no canto sudoeste do templo
 FENDA_POCO = (8, 2)           # o poço de descida, no fundo da câmara
 FENDA = {"floor": 0, "open": False}
 FENDA_RECORDS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -1528,16 +1530,34 @@ def _fenda_spawn_floor(n):
                   room="fenda")
 
 
+def _try_ossuario(player):
+    """A escada do templo desce pro Ossuário; a do Ossuário volta pro templo."""
+    if player.get("map") == "templo_doze" and \
+       max(abs(player["x"] - OSSUARIO_DESCE[0]), abs(player["y"] - OSSUARIO_DESCE[1])) <= 2:
+        _go_to(request.sid, "ossuario", 9, 10)
+        socketio.emit("toast", {"text": "🦴 Você desce a escada fria. O Ossuário dos Doze "
+                                "guarda os que vieram antes... e a FENDA, no fundo."},
+                      to=request.sid)
+        return True
+    if player.get("map") == "ossuario" and player.get("y", 0) >= 10 and \
+       max(abs(player["x"] - FENDA_POS[0]), abs(player["y"] - FENDA_POS[1])) > 2:
+        _go_to(request.sid, "templo_doze", OSSUARIO_DESCE[0], OSSUARIO_DESCE[1])
+        socketio.emit("toast", {"text": "⛪ Você sobe de volta ao Templo dos Doze."},
+                      to=request.sid)
+        return True
+    return False
+
+
 def _try_fenda(player):
-    """No Ermo, perto do portal: consome uma Chave e mergulha."""
-    if player.get("map") != "ermo":
+    """No fundo do Ossuário, diante do portal: consome uma Chave e mergulha."""
+    if player.get("map") != FENDA_MAP:
         return False
     if max(abs(player["x"] - FENDA_POS[0]), abs(player["y"] - FENDA_POS[1])) > 2:
         return False
     if FENDA["floor"] > 0 and not _fenda_players():
         _fenda_reset()                       # a fenda esfriou: recomeça do 1
     if _bag_count(player, "chave_da_fenda") < 1:
-        emit("toast", {"text": "🌀 O portal exige uma CHAVE DA FENDA (o joalheiro forja; os chefes carregam)."})
+        emit("toast", {"text": "🌀 O portal murmura... exige uma CHAVE DA FENDA (o joalheiro forja no nível 3; os chefes carregam)."})
         return True
     items.remove_from_bag(player["inventory"], "chave_da_fenda", 1)
     _persist_loadout(player)
@@ -1565,7 +1585,7 @@ def _try_fenda_inside(player):
         return True
     if py >= 9:
         best = int((player.get("ficha") or {}).get("fenda_best", 0))
-        _go_to(request.sid, "ermo", FENDA_POS[0], FENDA_POS[1] + 1)
+        _go_to(request.sid, "ossuario", 9, 9)
         socketio.emit("toast", {"text": "🌀 Você emergiu da Fenda. Seu recorde: andar %d." % best},
                       to=request.sid)
         if not _fenda_players():
@@ -3565,7 +3585,7 @@ def on_interact(_data=None):
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
         if not _try_fenda(player) and not _try_fenda_inside(player) and \
-           not _try_mastro(player) and \
+           not _try_ossuario(player) and not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \
            not _try_fish(player):        # no píer? joga a linha!
             _try_gather(player)          # senão, talvez haja um node de coleta

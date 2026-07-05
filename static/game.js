@@ -5913,7 +5913,7 @@ function frame(now){
 
   try{
     if(mapName === 'ermo') drawErmoDecor(ctx, now);
-  else if(mapName && (mapName.indexOf('oficina_') === 0 || mapName === 'templo_doze' || mapName === 'fenda' || mapName === 'arena')) drawInteriorDecor(ctx, now);
+  else if(mapName && (mapName.indexOf('oficina_') === 0 || mapName === 'templo_doze' || mapName === 'fenda' || mapName === 'arena' || mapName === 'ossuario')) drawInteriorDecor(ctx, now);
     drawFaunaAndPet(ctx, now);
     // pontos de coleta das profissões (veios, árvores nobres, ervas)
     for(const nd of worldNodes){
@@ -11496,6 +11496,7 @@ function drawErmoDecor(c, now){
   const orig2 = drawErmoDecor;
   drawErmoDecor = function(c, now){
     orig2(c, now);
+    return;                    // o portal migrou pro Ossuário, sob o templo
     const fx = 72.5*TS - camX, fy = 20.5*TS - camY;
     if(fx < -TS*3 || fy < -TS*3 || fx > canvas.width+TS*3 || fy > canvas.height+TS*3) return;
     c.save();
@@ -12976,3 +12977,103 @@ window.addEventListener('keydown', e=>{
   if(e.code === 'KeyL'){ e.preventDefault(); openSkills(); }
   if(e.code === 'KeyR'){ e.preventDefault(); openRunes(); }
 });
+
+// ===========================================================================
+//  O OSSUÁRIO DOS DOZE: subsolo do templo (crânios, velas, névoa e a FENDA)
+//  + o alçapão de descida desenhado dentro do próprio templo
+// ===========================================================================
+(function(){
+  const orig5 = drawInteriorDecor;
+  drawInteriorDecor = function(c, now){
+    orig5(c, now);
+    if(mapName === 'templo_doze'){
+      const ax = 3.5*TS - camX, ay = 12.5*TS - camY;      // o alçapão (3,12)
+      c.save();
+      c.fillStyle = '#0c0a10';
+      c.fillRect(ax - TS*0.65, ay - TS*0.5, TS*1.3, TS*0.95);
+      c.strokeStyle = '#4a4030'; c.lineWidth = 2;
+      c.strokeRect(ax - TS*0.65, ay - TS*0.5, TS*1.3, TS*0.95);
+      for(let i=0;i<3;i++){                                // os degraus sumindo
+        c.fillStyle = 'rgba(120,104,80,' + (0.5 - i*0.14) + ')';
+        c.fillRect(ax - TS*0.5 + i*4, ay - TS*0.32 + i*8, TS - i*8, 5);
+      }
+      c.font = '700 9px Inter'; c.textAlign = 'center';
+      c.globalAlpha = 0.75 + 0.2*Math.sin(now/450);
+      c.fillStyle = '#c9b890';
+      c.fillText('🦴 Ossuário (E)', ax, ay - TS*0.7);
+      c.restore();
+      return;
+    }
+    if(mapName !== 'ossuario') return;
+    c.save();
+    // ---- paredes de CRÂNIOS: fileiras no topo e na base ----
+    for(let i=0;i<9;i++){
+      for(const wy of [0.62, 12.38]){
+        const sx = (1.6 + i*1.9)*TS - camX, sy = wy*TS - camY;
+        c.fillStyle = '#c9bda4';
+        c.beginPath(); c.arc(sx, sy, 5.2, 0, Math.PI*2); c.fill();
+        c.fillRect(sx - 3.4, sy + 2.5, 6.8, 3.2);
+        c.fillStyle = '#161018';
+        c.beginPath(); c.arc(sx - 1.9, sy - 0.6, 1.5, 0, Math.PI*2);
+        c.arc(sx + 1.9, sy - 0.6, 1.5, 0, Math.PI*2); c.fill();
+      }
+    }
+    // ---- nichos laterais com pilhas de ossos ----
+    for(const ny of [2, 6, 10]){
+      for(const nx of [0.55, 17.45]){
+        const bx = nx*TS - camX, by = (ny + 0.5)*TS - camY;
+        c.fillStyle = 'rgba(10,8,12,0.8)';
+        c.fillRect(bx - 7, by - 12, 14, 24);
+        c.fillStyle = '#b8ac92';
+        for(let k=0;k<4;k++) c.fillRect(bx - 5.5, by + 6 - k*4.4, 11, 2.6);
+      }
+    }
+    // ---- velas tremulando junto aos braseiros ----
+    for(const [vx, vy] of [[3,2],[15,2],[3,6],[15,6],[3,10],[15,10]]){
+      const cx3 = (vx + 0.5)*TS - camX, cy3 = (vy + 0.1)*TS - camY;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.5 + 0.3*Math.sin(now/160 + vx*3 + vy);
+      const g = c.createRadialGradient(cx3, cy3, 0, cx3, cy3, TS*0.8);
+      g.addColorStop(0, 'rgba(240,190,110,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g;
+      c.beginPath(); c.arc(cx3, cy3, TS*0.8, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+    // ---- O PORTAL DA FENDA (9,3): o vórtice no fundo da cripta ----
+    const fx = 9.5*TS - camX, fy = 3.4*TS - camY;
+    c.fillStyle = '#3a3444';
+    for(const [ox, hh] of [[-0.62, 0.9], [0.62, 0.9], [-0.3, 1.2], [0.3, 1.2]]){
+      c.fillRect(fx + ox*TS - 3, fy + TS*0.4 - hh*TS, 6, hh*TS);
+    }
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for(let i=0;i<3;i++){
+      const a2 = now/700 + i*2.1;
+      c.globalAlpha = 0.5 + 0.3*Math.sin(now/300 + i);
+      c.strokeStyle = i%2 ? '#a06aff' : '#6a3adf'; c.lineWidth = 2.2;
+      c.beginPath(); c.ellipse(fx, fy - TS*0.3, TS*0.4*(0.6+i*0.22), TS*0.55*(0.6+i*0.22), a2, 0, Math.PI*1.6); c.stroke();
+    }
+    const pg = c.createRadialGradient(fx, fy - TS*0.3, 0, fx, fy - TS*0.3, TS*1.0);
+    pg.addColorStop(0, 'rgba(150,90,255,0.3)'); pg.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalAlpha = 0.6 + 0.3*Math.sin(now/500);
+    c.fillStyle = pg; c.beginPath(); c.arc(fx, fy - TS*0.3, TS*1.0, 0, Math.PI*2); c.fill();
+    c.restore();
+    c.font = '700 9px Inter'; c.textAlign = 'center';
+    c.fillStyle = '#c9a0ff';
+    c.fillText('🌀 A FENDA (E com a Chave)', fx, fy - TS*1.35);
+    // ---- a escada de volta + a placa + névoa baixa ----
+    c.globalAlpha = 0.6 + 0.2*Math.sin(now/400);
+    c.fillStyle = '#c9b890';
+    c.fillText('▲ subir ao templo (E na parte de baixo)', 9.5*TS - camX, 11.3*TS - camY);
+    c.globalAlpha = 1;
+    c.font = '800 12px Cinzel, serif';
+    c.fillStyle = 'rgba(0,0,0,.7)'; c.fillText('🦴 OSSUÁRIO DOS DOZE', canvas.width/2 + 1, 25);
+    c.fillStyle = '#c9bda4'; c.fillText('🦴 OSSUÁRIO DOS DOZE', canvas.width/2, 24);
+    c.save(); c.globalAlpha = 0.09;
+    c.fillStyle = '#c9bda4';
+    for(let i=0;i<4;i++){
+      const mx = ((now/40 + i*160) % (canvas.width + 240)) - 120;
+      c.beginPath(); c.ellipse(mx, (10.6 + (i%2)*0.7)*TS - camY, 90, 16, 0, 0, Math.PI*2); c.fill();
+    }
+    c.restore(); c.restore();
+  };
+})();

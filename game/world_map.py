@@ -2151,6 +2151,19 @@ def _fenda_int():
 MAPS["fenda"] = {"rows": _fenda_int(), "spawns": [(8, 10), (7, 10), (9, 10)]}
 
 
+def _ossuario_int():
+    """O Ossuário dos Doze: subsolo do templo, 19x13, paredes de ossos."""
+    g = [list("F" + "1" * 17 + "F") for _ in range(13)]
+    g[0] = list("F" * 19)
+    g[12] = list("F" * 19)
+    for (bx, by) in ((3, 2), (15, 2), (3, 6), (15, 6), (3, 10), (15, 10)):
+        g[by][bx] = ";"
+    return ["".join(r) for r in g]
+
+
+MAPS["ossuario"] = {"rows": _ossuario_int(), "spawns": [(9, 10), (8, 10), (10, 10)]}
+
+
 # A ARENA DO ERMO: fachada no sudeste + o ringue interior
 def _build_arena():
     x0, y0 = 71, 39
