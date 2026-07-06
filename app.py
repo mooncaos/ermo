@@ -187,7 +187,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v14: Feirao de Sao Celeste + Baixa da Egua + Madre + fofocas 2.0 + bichos (06/jul)"
+BUILD_TAG = "v15: Madre Aurora rege o Jardim do Templo (06/jul)"
 
 
 def _asset_version():
