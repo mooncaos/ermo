@@ -1655,6 +1655,17 @@ ROSTER.append({
 
 # ============ O SEGUNDO POVOAMENTO (rodada de julho/2026) ============
 # --- Vilalbina: a rendeira-pirata, o filósofo e o mosteiro ---
+ROSTER.append({"id": "npc:chef_jacquard", "name": "Chef Jacquard ✶✶✶✶✶✶",
+    "look": {"skin": "#e0c9a8", "cloak": "#f0ead8", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": False},
+    "map": "restaurante_jacquard", "home": (7, 2), "radius": 3, "wanders": True, "step_every": 2.2,
+    "solid": True, "kind": "person",
+    "greetings": ["Bonjour. Sente. Non toca no talher ainda. O talher SENTE a pressa.",
+                  "Seis estrela. SEIS. A sétima non ecziste porque eu ainda non inventei.",
+                  "Você comeu na taverna da Rosa? *respira fundo* Ç'est... corajoso da sua parte.",
+                  "PUTAIN de trigo do Rei Marth! É o melhor trigo que eu já vi. Non conta pra ele.",
+                  "Isso que você chama de 'lanche' non é comida. É um pedido de socorro.",
+                  "O segredo? Manteiga. O outro segredo? MAIS manteiga. O terceiro é segredo."],
+})
 ROSTER.append({"id": "npc:mestre_fanfarrao", "name": "Mestre Fanfarrão, o Cerimonialista",
     "look": {"skin": "#c9a06a", "cloak": "#c9a842", "hat": "cap", "hood": "down", "hair": "#3a2a1a", "staff": False},
     "map": "feirao_sao_celeste", "home": (24, 6), "radius": 5, "wanders": True, "step_every": 2.4,

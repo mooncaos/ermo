@@ -3013,6 +3013,32 @@ MAPS["casa_bibi"] = {"rows": _casa_bibi(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["padaria_bruno"] = {"rows": _padaria_bruno(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["casa_naiara"] = {"rows": _casa_naiara(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_caio"] = {"rows": _casa_caio(), "spawns": [(5, 5), (4, 5), (6, 5)]}
+def _restaurante_jacquard():
+    """O Restaurante Jacquard (16x11): seis estrelas, zero paciência.
+    Salão de gala, cozinha aberta e a adega do Chef."""
+    W, H = 16, 11
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x in (3, 7, 12) else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    # o salão: mesas de gala com tapete central
+    for y in range(3, 8):
+        g[y][7] = "2"; g[y][8] = "2"
+    for (mx, my) in ((2, 3), (2, 6), (4, 3), (4, 6), (11, 3), (11, 6), (13, 3), (13, 6)):
+        g[my][mx] = "k"
+        g[my + 1][mx] = "^"
+    # a COZINHA ABERTA (norte): balcão, fogões e o palco do Chef
+    g[1][5] = "#"; g[1][6] = "#"; g[1][7] = "#"; g[1][8] = "#"; g[1][9] = "#"
+    g[1][3] = "h"; g[1][11] = "h"
+    # a adega e os candelabros
+    g[8][1] = "o"; g[8][2] = "o"; g[3][1] = ";"; g[3][14] = ";"
+    g[8][13] = "P"                          # o retrato do Chef (pintado por ele)
+    g[H - 1][7] = "D"; g[H - 1][8] = "D"
+    return ["".join(r) for r in g]
+
+
 def _casa_baixa():
     """O Sobrado dos Quatro (14x9): Juvenal, Rita, Bito e Luzia sob o mesmo
     teto de mármore. A quebrada mora junta."""
@@ -3060,6 +3086,7 @@ def _cortico_baixa():
 MAPS["feirao_sao_celeste"] = {"rows": _feirao_sao_celeste(), "spawns": [(24, 4), (23, 4), (25, 4)]}
 MAPS["baixa_da_egua"] = {"rows": _baixa_da_egua(), "spawns": [(24, 4), (23, 4), (25, 4)]}
 MAPS["casa_baixa"] = {"rows": _casa_baixa(), "spawns": [(7, 6), (6, 6), (8, 6)]}
+MAPS["restaurante_jacquard"] = {"rows": _restaurante_jacquard(), "spawns": [(7, 8), (8, 8), (7, 7)]}
 MAPS["cortico_baixa"] = {"rows": _cortico_baixa(), "spawns": [(8, 6), (9, 6), (8, 5)]}
 
 
