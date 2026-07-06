@@ -1587,14 +1587,14 @@ def _try_ossuario(player):
     """A escada do templo desce pro Ossuário; a do Ossuário volta pro templo."""
     if player.get("map") == "templo_doze" and \
        max(abs(player["x"] - OSSUARIO_DESCE[0]), abs(player["y"] - OSSUARIO_DESCE[1])) <= 2:
-        _go_to(request.sid, "ossuario", 9, 10)
+        _go_to(request.sid, "ossuario", 9, 7)
         socketio.emit("toast", {"text": "🦴 Você desce a escada fria. O Ossuário dos Doze "
                                 "guarda os que vieram antes... e a FENDA, no fundo."},
                       to=request.sid)
         return True
-    if player.get("map") == "ossuario" and player.get("y", 0) >= 10 and \
+    if player.get("map") == "ossuario" and player.get("y", 0) >= 11 and \
        max(abs(player["x"] - FENDA_POS[0]), abs(player["y"] - FENDA_POS[1])) > 2:
-        _go_to(request.sid, "templo_doze", OSSUARIO_DESCE[0], OSSUARIO_DESCE[1])
+        _go_to(request.sid, "templo_doze", OSSUARIO_DESCE[0], max(1, OSSUARIO_DESCE[1] - 3))
         socketio.emit("toast", {"text": "⛪ Você sobe de volta ao Templo dos Doze."},
                       to=request.sid)
         return True
@@ -2880,21 +2880,22 @@ def on_outfit_set(data):
 # ===========================================================================
 CASAS_ILHA = [
     {"mapa": "vilalbina", "cx": 30, "cy": 3, "w": 5, "h": 3,
-     "dest": "taverna_vilalbina", "dx": 6, "dy": 7, "bx": 32, "by": 7},
+     "dest": "taverna_vilalbina", "dx": 6, "dy": 5, "bx": 32, "by": 7},
     {"mapa": "vilalbina", "cx": 30, "cy": 20, "w": 4, "h": 3,
-     "dest": "iscas_cais", "dx": 4, "dy": 5, "bx": 31, "by": 24},
+     "dest": "iscas_cais", "dx": 4, "dy": 3, "bx": 31, "by": 24},
     {"mapa": "prospera", "cx": 58, "cy": 20, "w": 5, "h": 3,
-     "dest": "mercado_prospera", "dx": 6, "dy": 7, "bx": 60, "by": 24},
+     "dest": "mercado_prospera", "dx": 6, "dy": 5, "bx": 60, "by": 24},
     {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
-     "dest": "solar_prospera", "dx": 7, "dy": 8, "bx": 52, "by": 9},
+     "dest": "solar_prospera", "dx": 7, "dy": 6, "bx": 52, "by": 9},
 ]
 
 
 def _try_casas_ilha(player):
     mp = player.get("map")
     for c in CASAS_ILHA:
-        if mp == c["mapa"] and c["cy"] + c["h"] - 1 <= player.get("y", 0) <= c["cy"] + c["h"] + 1 \
-           and c["cx"] - 1 <= player.get("x", 0) <= c["cx"] + c["w"]:
+        _px = c["cx"] + c["w"] // 2
+        if mp == c["mapa"] and player.get("y", 0) == c["cy"] + c["h"] \
+           and _px - 1 <= player.get("x", 0) <= _px + 1:
             _go_to(request.sid, c["dest"], c["dx"], c["dy"])
             emit("toast", {"text": "🚪 " + MAP_TITLES.get(c["dest"], c["dest"])})
             return True
@@ -2912,16 +2913,22 @@ def _auto_portais(player):
     """MUDANÇA DE MAPA É AUTOMÁTICA: pisou na porta/píer/alçapão, passou.
     A tecla E fica reservada pro portal da Fenda (e interações de conteúdo)."""
     agora = time.time()
+    if player.get("_porta_cd", 0) > agora:
+        return False
+    _mapa0 = player.get("map")
+    def _selo():
+        player["_porta_cd"] = agora + 0.9
+        return True
     # portas das casas da ilha (entra e sai pisando)
     if _try_casas_ilha(player):
-        return True
+        return _selo()
     # o domo do Santuário e a volta ao jardim
     if _try_santuario(player):
-        return True
+        return _selo()
     # o alçapão do templo -> Ossuário (e a volta)
     try:
         if _try_ossuario(player):
-            return True
+            return _selo()
     except Exception:
         pass
     # a Torre: com passe livre entra pisando; sem passe, os grifos perguntam
@@ -2929,13 +2936,13 @@ def _auto_portais(player):
        max(abs(player["x"] - 24), abs(player["y"] - 12)) <= 1:
         f = player.get("ficha") or {}
         if f.get("torre_ok"):
-            return _try_torre(player)
+            return _selo() if _try_torre(player) else False
         if player.get("_auto_cd", 0) <= agora:
             player["_auto_cd"] = agora + 4
             return _try_torre(player)
         return False
     if player.get("map") == "torre_alvorada" and player.get("y", 0) >= 10:
-        return _try_torre(player)
+        return _selo() if _try_torre(player) else False
     # a porta do Farol: o Lorde barra (com pausa pra não spammar)
     if player.get("map") == "farol_margem" and 23 <= player.get("x", 0) <= 27 and \
        player.get("y", 0) == 24:
@@ -2950,10 +2957,13 @@ def _auto_portais(player):
         18 <= player.get("x", 0) <= 27):
         f = player.get("ficha") or {}
         if f.get("prosperina") or player.get("map") == "vilalbina":
-            return _try_travessia(player)
+            return _selo() if _try_travessia(player) else False
         if player.get("_auto_cd", 0) <= agora:
             player["_auto_cd"] = agora + 3
-            return _try_travessia(player)
+            _r = _try_travessia(player)
+            if player.get("map") != _mapa0:
+                player["_porta_cd"] = agora + 0.9
+            return _r
         return False
     return False
 
@@ -4951,6 +4961,12 @@ def on_interact(_data=None):
            not _try_fish(player):        # no píer? joga a linha!
             _try_gather(player)          # senão, talvez haja um node de coleta
         return
+    # ENTREGAS DE ADDON: a mochila fala primeiro (antes de loja e conversa)
+    try:
+        _outfit_delivery(player, npc.get("id"))
+    except Exception:
+        pass
+
     # MISSÕES DO NPC: entregar > aceitar nova > lembrar em andamento
     _nid = npc.get("id") or npc.get("_spec", {}).get("id")
     _qf = (player.get("ficha") or {}).get("quests") or {}
@@ -5160,11 +5176,6 @@ def on_interact(_data=None):
         greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
         emit("couraria_open", _marion_payload(player, greet))
         return
-
-    try:
-        _outfit_delivery(player, npc.get("id"))
-    except Exception:
-        pass
 
     # ZECA: a banca ambulante da caravana
     if npc.get("_spec", {}).get("caravaneiro"):

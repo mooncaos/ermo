@@ -14286,7 +14286,28 @@ function openOutfits(){
   renderOutfits();
   socket.emit('outfits_get');
 }
-function closeOutfits(){ if(_outfitsEl){ _outfitsEl.remove(); _outfitsEl = null; } }
+function closeOutfits(){
+  if(_ofprevTimer){ clearInterval(_ofprevTimer); _ofprevTimer = null; }
+  if(_outfitsEl){ _outfitsEl.remove(); _outfitsEl = null; }
+}
+var _ofprevTimer = null;
+function _paintOutfitPrevs(){
+  if(!_outfitsEl || !_outfitsData) return;
+  const me = (typeof players !== 'undefined' && typeof myId !== 'undefined') ? players.get(myId) : null;
+  const baseLook = (me && me.look) || (typeof currentLook !== 'undefined' ? currentLook : {});
+  _outfitsEl.querySelectorAll('canvas[data-oid]').forEach(cv => {
+    const o = (_outfitsData.outfits || []).find(x => x.id === cv.getAttribute('data-oid'));
+    if(!o) return;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const lk = {skin: baseLook.skin || '#c9a06a', hair: baseLook.hair || '#3a2a1a',
+                cloak: o.cloak, sex: _outfitsData.sex || 'M', outfit: o.id,
+                hat: 'none', hood: 'down', staff: false,
+                addons: o.addons.map((a, i) => a.ok ? i + 1 : 0).filter(Boolean)};
+    try{ drawCharacter(ctx, cv.width/2 - 28, 8, 56, lk, 'down', '', false, false, 0); }catch(e){}
+  });
+}
+
 function renderOutfits(){
   if(!_outfitsEl) return;
   const d = _outfitsData || {outfits: [], atual: '', sex: 'M'};
@@ -14300,10 +14321,12 @@ function renderOutfits(){
     const atual = d.atual === o.id;
     h += '<div style="margin-bottom:10px;padding:9px;background:#0c1422;border:1px solid '+(atual?'#e0c98a':'#22304a')+';border-radius:10px;'+(o.aberto?'':'opacity:0.55;')+'">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-      '<span style="font:800 12.5px Inter;color:'+(atual?'#e0c98a':'#c9d8ff')+';"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:'+o.cloak+';border:1px solid '+o.accent+';margin-right:5px;"></span>'+o.nome+(atual?' ✦':'')+'</span>'+
+      '<span style="font:800 12.5px Inter;color:'+(atual?'#e0c98a':'#c9d8ff')+';">'+o.nome+(atual?' ✦':'')+'</span>'+
       (o.aberto ? '<button data-of="'+o.id+'" style="padding:4px 12px;background:#1a2a44;border:1px solid #3a5a8a;border-radius:8px;color:#8ac0f0;font:800 10.5px Inter;cursor:pointer;">VESTIR</button>'
                 : '<span style="font:800 10.5px Inter;color:#5a6a88;">🔒 nível '+o.lvl+'</span>')+'</div>'+
-      '<div style="font:500 10px Inter;color:#7a86a8;margin:3px 0 6px;">'+o.desc+'</div>';
+      '<div style="display:flex;gap:9px;align-items:flex-start;margin:3px 0 6px;">'+
+      '<canvas data-oid="'+o.id+'" width="64" height="84" style="background:#0a1220;border:1px solid #22304a;border-radius:8px;flex:none;"></canvas>'+
+      '<div style="font:500 10px Inter;color:#7a86a8;">'+o.desc+'</div></div>';
     o.addons.forEach((a, i)=>{
       const pct = Math.min(100, Math.round(a.tem*100/a.alvo));
       h += '<div style="margin-top:5px;">'+
@@ -14320,6 +14343,8 @@ function renderOutfits(){
   _outfitsEl.querySelectorAll('[data-of]').forEach(b=> b.addEventListener('click', ()=>{
     socket.emit('outfit_set', {outfit: b.getAttribute('data-of'), sex: (_outfitsData||{}).sex || 'M'});
   }));
+  _paintOutfitPrevs();
+  if(!_ofprevTimer) _ofprevTimer = setInterval(_paintOutfitPrevs, 130);
   _outfitsEl.querySelectorAll('[data-sx]').forEach(b=> b.addEventListener('click', ()=>{
     if(_outfitsData){ _outfitsData.sex = b.getAttribute('data-sx'); renderOutfits(); }
     if((_outfitsData||{}).atual) socket.emit('outfit_set', {outfit: _outfitsData.atual, sex: b.getAttribute('data-sx')});
@@ -14515,6 +14540,61 @@ function renderOutfits(){
         c.beginPath(); c.moveTo(sx - 5.4, sy - 2); c.lineTo(sx + 5.4, sy - 2);
         c.moveTo(sx - 5.4, sy + 2); c.lineTo(sx + 5.4, sy + 2); c.stroke();
       }
+    }
+    c.restore();
+  };
+})();
+
+
+// ===========================================================================
+//  PORTAS VIVAS: as casas entráveis se anunciam (porta grande, placa, luz).
+// ===========================================================================
+var _PORTAS_VIVAS = [
+  {mapa: 'vilalbina', cx: 30, cy: 3,  w: 5, h: 3, emoji: '🍺'},
+  {mapa: 'vilalbina', cx: 30, cy: 20, w: 4, h: 3, emoji: '🎣'},
+  {mapa: 'prospera',  cx: 58, cy: 20, w: 5, h: 3, emoji: '🛒'},
+  {mapa: 'prospera',  cx: 50, cy: 4,  w: 6, h: 4, emoji: '👑'},
+];
+(function(){
+  const base3 = drawIlhaDecor;
+  drawIlhaDecor = function(c, now){
+    base3(c, now);
+    if(typeof mapName === 'undefined') return;
+    c.save();
+    for(const p of _PORTAS_VIVAS){
+      if(p.mapa !== mapName) continue;
+      const dx = (p.cx + p.w/2)*TS - camX;          // centro da fachada
+      const dy = (p.cy + p.h)*TS - camY;            // a linha da rua
+      if(dx < -TS*2 || dx > canvas.width + TS*2 || dy < -TS*3 || dy > canvas.height + TS*2) continue;
+      c.save(); c.globalCompositeOperation = 'lighter';       // a luz convidativa
+      c.globalAlpha = 0.30 + 0.10*Math.sin(now/500 + p.cx);
+      const g = c.createRadialGradient(dx, dy - 6, 0, dx, dy - 6, TS*1.1);
+      g.addColorStop(0, 'rgba(255,214,130,0.9)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(dx, dy - 6, TS*1.1, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.fillStyle = '#9a9a9e';                                // o degrau
+      c.fillRect(dx - TS*0.42, dy - 3, TS*0.84, 5);
+      c.fillStyle = '#c9b9a0';                                // o batente
+      c.fillRect(dx - TS*0.36, dy - TS*0.72, TS*0.72, TS*0.72);
+      c.fillStyle = '#5a3c20';                                // a PORTA grande
+      c.fillRect(dx - TS*0.28, dy - TS*0.66, TS*0.56, TS*0.64);
+      c.strokeStyle = 'rgba(0,0,0,0.45)'; c.lineWidth = 1;
+      c.strokeRect(dx - TS*0.28, dy - TS*0.66, TS*0.56, TS*0.64);
+      c.beginPath(); c.moveTo(dx, dy - TS*0.66); c.lineTo(dx, dy - 2); c.stroke();
+      c.fillStyle = '#e0c060';                                // maçanetas
+      c.beginPath(); c.arc(dx - 3, dy - TS*0.32, 1.6, 0, Math.PI*2);
+      c.arc(dx + 3, dy - TS*0.32, 1.6, 0, Math.PI*2); c.fill();
+      const sw2 = Math.sin(now/420 + p.cx)*0.10;              // a PLACA pendurada
+      c.save(); c.translate(dx + TS*0.52, dy - TS*0.78); c.rotate(sw2);
+      c.strokeStyle = '#4a3418'; c.lineWidth = 1.4;
+      c.beginPath(); c.moveTo(-TS*0.2, 0); c.lineTo(TS*0.2, 0); c.stroke();
+      c.beginPath(); c.moveTo(-4, 0); c.lineTo(-4, 5); c.moveTo(4, 0); c.lineTo(4, 5); c.stroke();
+      c.fillStyle = '#8a6a44';
+      c.fillRect(-9, 5, 18, 14);
+      c.strokeStyle = 'rgba(0,0,0,0.4)'; c.strokeRect(-9, 5, 18, 14);
+      c.font = '10px serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(p.emoji, 0, 12.5);
+      c.restore();
     }
     c.restore();
   };
