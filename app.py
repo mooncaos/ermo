@@ -101,7 +101,9 @@ FACTIONS = {"cria_vampirica": "vampiro", "vampiro_nobre": "vampiro", "vampiro_an
 BOSS_RESPAWN_MIN = 3600      # bosses grandes renascem entre 1 e 2 horas REAIS
 BOSS_RESPAWN_MAX = 7200
 MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Costa de Maravaí",
-              "templo_estrelado": "Templo Estrelado", "vilalbina": "Vilalbina",
+              "templo_estrelado": "Templo Estrelado", "ala_sumos": "Ala dos Sumos",
+              "casa_lyra": "Lar da Maga Lyra", "casa_bramir": "Lar do Mago Bramir",
+              "casa_cecille": "Lar da Maga Cecille", "vilalbina": "Vilalbina",
               "taverna_vilalbina": "Taverna da Rosa", "iscas_cais": "Isqueria do Tião",
               "mercado_prospera": "Empório do Otto", "solar_prospera": "Solar dos Eméritos", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
               "pastos": "Pastos & Fazendas", "prospera": "Prospera", "jardim_templo": "Jardim do Templo Estrelado",
@@ -178,7 +180,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "Templo Estrelado DIGNO no jardim + Septo Branco no Ermo (06/jul v2)"
+BUILD_TAG = "3 Trajes de Missao: Nobre, Clerigo e Mago da Alvorada (06/jul v6)"
 
 
 def _asset_version():
@@ -2754,6 +2756,21 @@ def _try_santuario(player):
         _go_to(request.sid, "templo_estrelado", 16, 29)
         emit("toast", {"text": "⭐ O Templo Estrelado: mármore negro, doze altares, um silêncio antigo."})
         return True
+    if player.get("map") == "templo_estrelado" and player.get("y", 0) <= 1 and \
+       15 <= player.get("x", 0) <= 17:
+        _go_to(request.sid, "ala_sumos", 14, 12)
+        _f9 = player.get("ficha") or {}
+        if not _f9.get("ala_ok"):
+            _f9["ala_ok"] = True
+            player["ficha"] = _f9
+            _quest_save(player)
+        emit("toast", {"text": "🛏️ A Ala dos Sumos: treze portas, treze vidas a serviço dos Doze."})
+        return True
+    if player.get("map") == "ala_sumos" and player.get("y", 0) >= 13 and \
+       13 <= player.get("x", 0) <= 15:
+        _go_to(request.sid, "templo_estrelado", 16, 3)
+        emit("toast", {"text": "⭐ De volta ao salão do Templo Estrelado."})
+        return True
     if player.get("map") == "templo_estrelado" and player.get("y", 0) >= 31:
         _go_to(request.sid, "jardim_templo", 27, 33)
         emit("toast", {"text": "🌿 De volta ao círculo do jardim."})
@@ -2830,7 +2847,8 @@ def _outfits_payload(player):
                         "ok": prog.get(chave, 0) >= alvo})
         out.append({"id": o["id"], "nome": o["nome"], "lvl": o["lvl"],
                     "desc": o["desc"], "cloak": o["cloak"], "accent": o["accent"],
-                    "aberto": lvl >= o["lvl"], "addons": ads})
+                    "aberto": lvl >= o["lvl"] and ((not o.get("req")) or bool(f.get(o.get("req")))),
+                    "req": o.get("req"), "reqtxt": o.get("reqtxt"), "addons": ads})
     return {"outfits": out, "atual": (player.get("look") or {}).get("outfit", ""),
             "sex": (player.get("look") or {}).get("sex", "M")}
 
@@ -2854,6 +2872,9 @@ def on_outfit_set(data):
     f = player.get("ficha") or {}
     if not o or int(f.get("level", 1)) < o["lvl"]:
         emit("toast", {"text": "🔒 Esse outfit ainda não é seu."})
+        return
+    if o.get("req") and not f.get(o["req"]):
+        emit("toast", {"text": "🔒 %s exige: %s" % (o["nome"], o.get("reqtxt", "uma façanha"))})
         return
     look = player.get("look") or {}
     look["outfit"] = oid
@@ -2890,6 +2911,12 @@ CASAS_ILHA = [
      "dest": "mercado_prospera", "dx": 8, "dy": 8, "bx": 60, "by": 24},
     {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
      "dest": "solar_prospera", "dx": 10, "dy": 10, "bx": 52, "by": 9},
+    {"mapa": "cidade_alta", "cx": 4, "cy": 12, "w": 6, "h": 4,
+     "dest": "casa_lyra", "dx": 6, "dy": 6, "bx": 7, "by": 17},
+    {"mapa": "cidade_alta", "cx": 38, "cy": 12, "w": 5, "h": 3,
+     "dest": "casa_bramir", "dx": 5, "dy": 5, "bx": 40, "by": 16},
+    {"mapa": "cidade_alta", "cx": 38, "cy": 4, "w": 6, "h": 4,
+     "dest": "casa_cecille", "dx": 6, "dy": 6, "bx": 41, "by": 9},
 ]
 
 
@@ -5201,6 +5228,18 @@ def on_interact(_data=None):
                    potions=[("caneca_de_cerveja", 40), ("hidromel_do_ermo", 100),
                             ("prato_do_dia", 150), ("pinga_do_jorge", 60)])
         return
+
+    if npc.get("id") == "npc:celestino":
+        _fb = player.get("ficha") or {}
+        if _fb.get("ala_ok") and not _fb.get("bencao12"):
+            _fb["bencao12"] = True
+            player["ficha"] = _fb
+            _quest_save(player)
+            socketio.emit("speech", {"id": npc["id"],
+                "text": "Você caminhou entre os quartos dos meus Doze... e voltou com respeito. "
+                        "RECEBA A BÊNÇÃO. *a voz de trovão faz o mármore vibrar*"}, room=player.get("map"))
+            emit("toast", {"text": "✨ BÊNÇÃO DOS DOZE recebida! O traje de Clérigo foi desbloqueado (tecla O)."})
+            return
 
     if npc.get("id") == "npc:rosa_albina":
         _open_shop(player, npc, "Taverna da Rosa", [], 0,

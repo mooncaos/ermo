@@ -429,6 +429,9 @@ const INT_THEMES = {
   casa_camila:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#6db9f4', kind:'quarto'},
   casa_amanda:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#ff9a6b', kind:'quarto'},
   casa_comum:     {f1:'#6b5638', f2:'#73603f', wall:'#3a2c1c', acc:'#b08d57', kind:'comum'},
+  casa_lyra:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#5a7ac0', kind:'quarto'},
+  casa_bramir:  {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#7a6a4a', kind:'quarto'},
+  casa_cecille: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#b06ae0', kind:'quarto'},
   taverna_vilalbina: {f1:'#6b4f34', f2:'#75583a', wall:'#33241a', acc:'#e05a6a', kind:'loja'},
   iscas_cais:        {f1:'#5f5340', f2:'#695c47', wall:'#2e2820', acc:'#5aa9e0', kind:'loja'},
   mercado_prospera:  {f1:'#6e5a3e', f2:'#786445', wall:'#2e2416', acc:'#d4af37', kind:'loja'},
@@ -4246,6 +4249,14 @@ function drawHat(c, hx, topY, hr, kind, cloak, facing){
     else c.fillRect(hx-bw/2, topY+hr*0.02, bw, 2);
   }
 }
+function drawTraitLayer(c, cx, py, ts, hr, hy, bodyTop, bodyW, look, facing){
+  // ARQUÉTIPOS FUTUROS (decidir com o Moon antes de criar!):
+  // 'nobre' -> coroa/broche/gola de arminho | 'xama' -> pintura ritual/colar de ossos
+  // 'mago_missao' -> aura/glifo | 'pirata', 'guarda', 'sacerdote'...
+  switch(look.trait){
+    default: break;
+  }
+}
 function _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, walk){
   const cx = px + ts/2;
   const cyc = ((walk||0) % WALK_CYCLE) / WALK_CYCLE;
@@ -4262,10 +4273,14 @@ function _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, w
   c.fillStyle = 'rgba(0,0,0,.26)';
   c.beginPath(); c.ellipse(cx, py+ts*0.87, ts*0.25, ts*0.085, 0, 0, Math.PI*2); c.fill();
 
-  // botas (alternam ao andar) com brilho
+  // pernas (a calça na sombra da capa) + botas alternando
   const baseFy = py+ts*0.74 + bob;
   const lf = baseFy + (moving ? (frame ? -1.5 : 1.5) : 0);
   const rf = baseFy + (moving ? (frame ? 1.5 : -1.5) : 0);
+  const legCol = shade(cloak,-0.42);
+  c.fillStyle = legCol;
+  roundRect(c, cx-ts*0.155, py+ts*0.66+bob, ts*0.10, lf - (py+ts*0.66+bob) + 3, 2); c.fill();
+  roundRect(c, cx+ts*0.055, py+ts*0.66+bob, ts*0.10, rf - (py+ts*0.66+bob) + 3, 2); c.fill();
   const bootCol = shade(cloak,-0.5);
   c.fillStyle = bootCol;
   roundRect(c, cx-ts*0.16, lf, ts*0.11, ts*0.14, 2); c.fill();
@@ -4278,6 +4293,18 @@ function _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, w
 
   const fem = (look.sex === 'F');                              // gênero: muda a silhueta
   const bodyTop = py+ts*0.42 + bob, bodyH = ts*0.40, bodyW = ts*(fem ? 0.395 : 0.44);
+
+  // ---- capa esvoaçante (a ponta dança atrás ao andar) ----
+  const flap = moving ? Math.sin(cyc*Math.PI*2)*ts*0.05 : 0;
+  c.fillStyle = cloakDk;
+  c.beginPath();
+  c.moveTo(cx - bodyW*0.34, bodyTop + 2);
+  c.quadraticCurveTo(cx - bodyW*0.55 - flap, bodyTop + bodyH*0.7,
+                     cx - bodyW*0.30 - flap, py + ts*0.78 + bob);
+  c.lineTo(cx + bodyW*0.30 + flap, py + ts*0.78 + bob);
+  c.quadraticCurveTo(cx + bodyW*0.55 + flap, bodyTop + bodyH*0.7,
+                     cx + bodyW*0.34, bodyTop + 2);
+  c.closePath(); c.fill();
 
   // ---- corpo (capa): preenche, sombreia embaixo, luz no peito, contorno ----
   c.fillStyle = cloak;
@@ -4309,6 +4336,22 @@ function _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, w
     c.fillStyle = shade(cloak,-0.5);                          // pezinhos espiando sob a barra
     roundRect(c, cx-ts*0.11, skBot-1.5, ts*0.085, ts*0.05, 2); c.fill();
     roundRect(c, cx+ts*0.025, skBot-1.5, ts*0.085, ts*0.05, 2); c.fill();
+  }
+
+  // ---- braços e mãos (o balanço da caminhada) ----
+  const armSw = moving ? (frame ? 2.0 : -2.0) : 0;
+  const armTop = bodyTop + 2, armLen = bodyH*0.62;
+  for(const lado of [-1, 1]){
+    const ax2 = cx + lado*bodyW*0.50;
+    const ay2 = armTop + lado*armSw*0.5 + (lado > 0 ? -armSw : armSw)*0.5;
+    c.fillStyle = cloakDk;
+    roundRect(c, ax2 - ts*0.045, ay2, ts*0.09, armLen, 3); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 1;
+    roundRect(c, ax2 - ts*0.045, ay2, ts*0.09, armLen, 3); c.stroke();
+    c.fillStyle = skin;                                        // a mão
+    c.beginPath(); c.arc(ax2, ay2 + armLen + 1, ts*0.05, 0, Math.PI*2); c.fill();
+    c.strokeStyle = shade(skin,-0.3); c.lineWidth = 0.8;
+    c.beginPath(); c.arc(ax2, ay2 + armLen + 1, ts*0.05, 0, Math.PI*2); c.stroke();
   }
 
   // ---- cabeça + pescoço ----
@@ -4363,7 +4406,27 @@ function _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, w
     else { c.fillRect(hx-hr*0.42, ey, 2.2, 2.6); c.fillRect(hx+hr*0.2, ey, 2.2, 2.6); }
   }
 
+  if(facing !== 'up'){
+    c.strokeStyle = shade(look.hood==='up' ? hood : (look.hair || '#3a2a1a'), -0.2);
+    c.lineWidth = 1.1;                                          // sobrancelhas
+    if(facing==='left'){ c.beginPath(); c.moveTo(hx-hr*0.55, ey-2.4); c.lineTo(hx-hr*0.18, ey-2.9); c.stroke(); }
+    else if(facing==='right'){ c.beginPath(); c.moveTo(hx+hr*0.18, ey-2.9); c.lineTo(hx+hr*0.55, ey-2.4); c.stroke(); }
+    else {
+      c.beginPath(); c.moveTo(hx-hr*0.5, ey-2.6); c.lineTo(hx-hr*0.14, ey-2.9); c.stroke();
+      c.beginPath(); c.moveTo(hx+hr*0.14, ey-2.9); c.lineTo(hx+hr*0.5, ey-2.6); c.stroke();
+    }
+    if(fem){                                                    // bochechas
+      c.fillStyle = 'rgba(230,110,120,0.22)';
+      c.beginPath(); c.ellipse(hx-hr*0.52, ey+3, 2.2, 1.4, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(hx+hr*0.52, ey+3, 2.2, 1.4, 0, 0, Math.PI*2); c.fill();
+    }
+    c.strokeStyle = shade(skin,-0.35); c.lineWidth = 1;         // boquinha
+    const mx = hx + (facing==='left' ? -hr*0.16 : facing==='right' ? hr*0.16 : 0);
+    c.beginPath(); c.arc(mx, ey + hr*0.36, 1.6, 0.25, Math.PI - 0.25); c.stroke();
+  }
+
   if(look.hat && look.hat!=='none') drawHat(c, hx, hy-hr*0.95, hr, look.hat, look.cloak, facing);
+  if(look.trait) drawTraitLayer(c, cx, py, ts, hr, hy, bodyTop, bodyW, look, facing);
 
   // ---- luz de borda (rim light) no alto-esquerda ----
   if(facing!=='up'){
@@ -14101,6 +14164,14 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
     c.lineTo(cx + hr*0.72, hy - hr*0.05); c.lineTo(cx - hr*0.72, hy - hr*0.05);
     c.closePath(); c.fill();
   }
+  function remendo(rx, ry, cor){
+    c.fillStyle = cor;
+    c.fillRect(rx - u*1.6, ry - u*1.6, u*3.2, u*3.2);
+    c.strokeStyle = 'rgba(40,30,20,0.75)'; c.lineWidth = u*0.5;
+    c.setLineDash([u*0.9, u*0.7]);
+    c.strokeRect(rx - u*1.6, ry - u*1.6, u*3.2, u*3.2);
+    c.setLineDash([]);
+  }
   function armaCostas(tipo){
     if(tipo === 'arco'){
       c.strokeStyle = '#6a4a24'; c.lineWidth = u*1.8;
@@ -14137,6 +14208,8 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
     c.fillStyle = 'rgba(232,221,194,0.95)';                // peitilho de linho
     c.fillRect(cx - bodyW*0.18, bodyTop + u, bodyW*0.36, bodyH*0.55);
     coleteAberto('#8a6a44');
+    remendo(cx - bodyW*0.10, bodyTop + bodyH*0.38, '#c9b48a');
+    remendo(cx + bodyW*0.14, beltY - u*2, '#a8845c');
     if(fem){
       c.fillStyle = '#c04a4a';                             // lenço de cabeça
       c.beginPath(); c.arc(cx, hy - hr*0.15, hr*1.05, Math.PI*0.95, Math.PI*2.05); c.fill();
@@ -14170,6 +14243,15 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
   if(oid === 'cacador'){
     c.fillStyle = '#8a7458';                               // gola de pelagem
     c.beginPath(); c.ellipse(cx, bodyTop + u, bodyW*0.52, u*3, 0, 0, Math.PI*2); c.fill();
+    c.strokeStyle = 'rgba(30,40,22,0.5)'; c.lineWidth = u*0.6;   // trama de couro
+    for(let i = -2; i <= 2; i++){
+      c.beginPath(); c.moveTo(cx + i*bodyW*0.18 - bodyW*0.1, bodyTop + u);
+      c.lineTo(cx + i*bodyW*0.18 + bodyW*0.1, beltY - u); c.stroke();
+    }
+    c.fillStyle = '#3a462c';                                       // bolso peitoral
+    c.fillRect(cx + bodyW*0.14, bodyTop + bodyH*0.22, u*3.4, u*3);
+    c.strokeStyle = '#1e2814'; c.lineWidth = u*0.6;
+    c.strokeRect(cx + bodyW*0.14, bodyTop + bodyH*0.22, u*3.4, u*3);
     cinto('#3a2c18', '#c9a842');
     armaCostas('arco');
     if(ads.includes(1)){
@@ -14191,6 +14273,16 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
   // ================= MERCENÁRIO =================
   if(oid === 'mercenario'){
     faixaPeito('#a83838');
+    c.fillStyle = '#c9c4bc';                                       // rebites da faixa
+    for(let i = 0; i < 4; i++){
+      c.beginPath();
+      c.arc(cx - bodyW*0.36 + i*bodyW*0.22, bodyTop + bodyH*(0.16 + i*0.17), u*0.8, 0, Math.PI*2);
+      c.fill();
+    }
+    c.fillStyle = '#3a2c20';                                       // protetor de antebraço
+    c.fillRect(cx + bodyW*0.46, bodyTop + bodyH*0.35, u*2.6, bodyH*0.4);
+    c.strokeStyle = '#c9c4bc'; c.lineWidth = u*0.6;
+    c.strokeRect(cx + bodyW*0.46, bodyTop + bodyH*0.35, u*2.6, bodyH*0.4);
     cinto('#2c2018', '#c9c4bc');
     c.save(); c.translate(cx - bodyW*0.55, beltY + u); c.rotate(0.45);   // espada na bainha
     c.fillStyle = '#5a4428'; c.fillRect(-u*1.3, 0, u*2.6, bodyH*0.5);
@@ -14222,6 +14314,22 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
 
   // ================= APRENDIZ =================
   if(oid === 'aprendiz'){
+    c.fillStyle = '#4a4a6a';                               // mangas largas
+    c.beginPath(); c.moveTo(cx - bodyW*0.5, bodyTop + u);
+    c.lineTo(cx - bodyW*0.72, beltY); c.lineTo(cx - bodyW*0.5, beltY); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(cx + bodyW*0.5, bodyTop + u);
+    c.lineTo(cx + bodyW*0.72, beltY); c.lineTo(cx + bodyW*0.5, beltY); c.closePath(); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter';      // constelação bordada
+    c.globalAlpha = 0.8;
+    c.strokeStyle = 'rgba(168,154,255,0.5)'; c.lineWidth = u*0.5;
+    c.beginPath(); c.moveTo(cx - bodyW*0.16, bodyTop + bodyH*0.2);
+    c.lineTo(cx + bodyW*0.05, bodyTop + bodyH*0.34);
+    c.lineTo(cx + bodyW*0.2, bodyTop + bodyH*0.24); c.stroke();
+    c.fillStyle = '#c9beff';
+    for(const [sx2, sy2] of [[-0.16, 0.2], [0.05, 0.34], [0.2, 0.24]]){
+      c.fillRect(cx + bodyW*sx2 - u*0.5, bodyTop + bodyH*sy2 - u*0.5, u, u);
+    }
+    c.restore();
     c.strokeStyle = '#c9b48a'; c.lineWidth = u*1.4;        // cinto de corda
     c.beginPath(); c.moveTo(cx - bodyW*0.48, beltY); c.lineTo(cx + bodyW*0.48, beltY); c.stroke();
     c.beginPath(); c.moveTo(cx + bodyW*0.14, beltY); c.lineTo(cx + bodyW*0.2, beltY + u*3.4); c.stroke();
@@ -14254,6 +14362,10 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
   // ================= PESCADOR =================
   if(oid === 'pescador'){
     coleteAberto('#3a5a6a');
+    c.strokeStyle = '#c9c4bc'; c.lineWidth = u*0.8;                // o anzol da sorte
+    c.beginPath(); c.arc(cx - bodyW*0.30, beltY + u*3, u*1.6, -0.4, Math.PI*0.9); c.stroke();
+    c.beginPath(); c.moveTo(cx - bodyW*0.30 + u*1.4, beltY + u*1.8);
+    c.lineTo(cx - bodyW*0.30 + u*1.4, beltY); c.stroke();
     armaCostas('vara');
     if(!ads.includes(1)) chapeuAba('#5a7484', hr*1.25, hr*0.7, null);
     if(fem){ c.fillStyle = '#c04a5a';
@@ -14285,6 +14397,12 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
     c.lineTo(cx, bodyBot + u*2);
     c.lineTo(cx - bodyW*0.72 - sway, beltY + u*2);
     c.closePath(); c.fill();
+    c.strokeStyle = fem ? '#6a3a26' : '#4a3a26'; c.lineWidth = u*0.8;   // franjas
+    for(let i = -4; i <= 4; i++){
+      const fx3 = cx + i*bodyW*0.14;
+      const fy3 = beltY + u*2 + Math.abs(i)*u*0.5 + Math.sin(now/300 + i)*u*0.4;
+      c.beginPath(); c.moveTo(fx3, fy3); c.lineTo(fx3, fy3 + u*2.2); c.stroke();
+    }
     c.strokeStyle = '#c9a05a'; c.lineWidth = u;             // barra listrada
     c.beginPath(); c.moveTo(cx - bodyW*0.56, beltY); c.lineTo(cx, bodyBot - u);
     c.lineTo(cx + bodyW*0.56, beltY); c.stroke();
@@ -14312,13 +14430,31 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
 
   // ================= GUARDIÃO =================
   if(oid === 'guardiao'){
-    c.fillStyle = 'rgba(154,160,170,0.92)';                // peitoral sobre o torso real
+    c.fillStyle = 'rgba(154,160,170,0.95)';                // peitoral sobre o torso real
     c.fillRect(cx - bodyW*0.42, bodyTop + u, bodyW*0.84, bodyH*0.52);
-    c.fillStyle = 'rgba(255,255,255,0.30)';
-    c.fillRect(cx - bodyW*0.30, bodyTop + u*2, bodyW*0.16, bodyH*0.42);
-    c.fillStyle = '#8a9098';                               // ombreiras
-    c.beginPath(); c.ellipse(cx - bodyW*0.44, bodyTop + u, bodyW*0.26, u*2.6, -0.25, 0, Math.PI*2); c.fill();
-    c.beginPath(); c.ellipse(cx + bodyW*0.44, bodyTop + u, bodyW*0.26, u*2.6, 0.25, 0, Math.PI*2); c.fill();
+    c.strokeStyle = 'rgba(58,64,74,0.9)'; c.lineWidth = u*0.7;   // PLACAS segmentadas
+    for(const py2 of [0.20, 0.37]){
+      c.beginPath(); c.moveTo(cx - bodyW*0.42, bodyTop + bodyH*py2);
+      c.lineTo(cx + bodyW*0.42, bodyTop + bodyH*py2); c.stroke();
+    }
+    c.fillStyle = '#5a606a';                               // parafusos
+    for(const [px2, py2] of [[-0.36, 0.13], [0.36, 0.13], [-0.36, 0.30], [0.36, 0.30], [-0.36, 0.47], [0.36, 0.47]]){
+      c.beginPath(); c.arc(cx + bodyW*px2, bodyTop + bodyH*py2, u*0.7, 0, Math.PI*2); c.fill();
+    }
+    c.save(); c.globalCompositeOperation = 'lighter';      // brilho varrendo o metal
+    const swp = ((now/1400) % 1.6) - 0.3;
+    const gg2 = c.createLinearGradient(cx + bodyW*(swp - 0.25), 0, cx + bodyW*(swp + 0.05), 0);
+    gg2.addColorStop(0, 'rgba(255,255,255,0)'); gg2.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+    gg2.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = gg2;
+    c.fillRect(cx - bodyW*0.42, bodyTop + u, bodyW*0.84, bodyH*0.52);
+    c.restore();
+    c.fillStyle = '#8a9098';                               // ombreiras GRANDES
+    c.beginPath(); c.ellipse(cx - bodyW*0.48, bodyTop + u*0.5, bodyW*0.34, u*3.3, -0.25, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(cx + bodyW*0.48, bodyTop + u*0.5, bodyW*0.34, u*3.3, 0.25, 0, Math.PI*2); c.fill();
+    c.strokeStyle = 'rgba(58,64,74,0.8)'; c.lineWidth = u*0.7;
+    c.beginPath(); c.ellipse(cx - bodyW*0.48, bodyTop + u*0.5, bodyW*0.34, u*3.3, -0.25, 0, Math.PI*2); c.stroke();
+    c.beginPath(); c.ellipse(cx + bodyW*0.48, bodyTop + u*0.5, bodyW*0.34, u*3.3, 0.25, 0, Math.PI*2); c.stroke();
     c.fillStyle = '#c9b44a';                               // o brasão
     c.beginPath(); c.moveTo(cx, bodyTop + bodyH*0.22);
     c.lineTo(cx - u*2, bodyTop + bodyH*0.38); c.lineTo(cx, bodyTop + bodyH*0.54);
@@ -14352,6 +14488,13 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
   // ================= MERGULHADOR =================
   if(oid === 'mergulhador'){
     capuz('#1e1830');
+    c.save(); c.globalCompositeOperation = 'lighter';      // fio de energia descendo
+    const et = (now/1600) % 1;
+    c.globalAlpha = 0.7*Math.sin(et*Math.PI);
+    c.strokeStyle = '#a06aff'; c.lineWidth = u*0.7;
+    c.beginPath(); c.moveTo(cx, bodyTop + bodyH*Math.max(0, et - 0.25));
+    c.lineTo(cx + Math.sin(now/200)*u, bodyTop + bodyH*et); c.stroke();
+    c.restore();
     c.save(); c.globalCompositeOperation = 'lighter';
     c.globalAlpha = 0.55 + 0.3*Math.sin(now/420);          // runas vivas
     c.fillStyle = '#a06aff';
@@ -14393,6 +14536,148 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
         g.addColorStop(0, 'rgba(160,106,255,0.6)'); g.addColorStop(1, 'rgba(0,0,0,0)');
         c.fillStyle = g; c.beginPath(); c.arc(ox, oy, u*5.5, 0, Math.PI*2); c.fill();
       }
+      c.restore();
+    }
+  }
+
+  // ================= NOBRE DE PROSPERA =================
+  if(oid === 'nobre'){
+    c.fillStyle = '#f0ead8';                               // gola de ARMINHO
+    c.beginPath(); c.ellipse(cx, bodyTop + u, bodyW*0.56, u*3.2, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#2a2222';
+    for(let i2 = -2; i2 <= 2; i2++){
+      c.beginPath(); c.arc(cx + i2*bodyW*0.18, bodyTop + u*1.2, u*0.6, 0, Math.PI*2); c.fill();
+    }
+    c.fillStyle = '#e0c060';                               // botões dourados
+    for(let i2 = 0; i2 < 4; i2++){
+      c.beginPath(); c.arc(cx, bodyTop + bodyH*0.22 + i2*bodyH*0.16, u*0.9, 0, Math.PI*2); c.fill();
+    }
+    c.fillStyle = 'rgba(224,192,96,0.9)';                  // meia-capa de um ombro
+    c.beginPath();
+    c.moveTo(cx + bodyW*0.18, bodyTop);
+    c.quadraticCurveTo(cx + bodyW*0.72 + sway, beltY, cx + bodyW*0.42 + sway, bodyBot + u*2);
+    c.lineTo(cx + bodyW*0.5, bodyTop + u*2); c.closePath(); c.fill();
+    c.strokeStyle = '#e8c860'; c.lineWidth = u*1.1;        // o circlete
+    c.beginPath(); c.arc(cx, hy - hr*0.15, hr*0.92, Math.PI*1.05, Math.PI*1.95); c.stroke();
+    c.fillStyle = '#c43e3e';
+    c.beginPath(); c.arc(cx, hy - hr*1.02, u*1.1, 0, Math.PI*2); c.fill();
+    if(ads.includes(1)){
+      c.fillStyle = '#e8c860';                             // COROA de gala
+      c.fillRect(cx - hr*0.85, topY - u*2.2, hr*1.7, u*2.6);
+      for(let i2 = -2; i2 <= 2; i2++){
+        c.beginPath(); c.moveTo(cx + i2*hr*0.38 - u, topY - u*2.2);
+        c.lineTo(cx + i2*hr*0.38, topY - u*4.4);
+        c.lineTo(cx + i2*hr*0.38 + u, topY - u*2.2); c.closePath(); c.fill();
+      }
+      c.fillStyle = ['#c43e3e','#3a6aaa','#3a7a4a'][1];
+      for(const jx of [-0.5, 0, 0.5]){
+        c.fillStyle = ['#c43e3e','#5aa9e0','#3a9a5a'][(jx + 0.5)*2 | 0];
+        c.beginPath(); c.arc(cx + jx*hr, topY - u*0.9, u*0.8, 0, Math.PI*2); c.fill();
+      }
+    }
+    if(ads.includes(2)){
+      const stX2 = cx + (facing === 'left' ? -1 : 1)*bodyW*0.60;
+      c.strokeStyle = '#e0c060'; c.lineWidth = u*1.3;      // o CETRO
+      c.beginPath(); c.moveTo(stX2, bodyTop); c.lineTo(stX2, bodyBot); c.stroke();
+      c.fillStyle = '#e8c860';
+      c.beginPath(); c.arc(stX2, bodyTop - u*2, u*2, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#7a2e3a';
+      c.beginPath(); c.arc(stX2, bodyTop - u*2, u*1, 0, Math.PI*2); c.fill();
+    }
+  }
+
+  // ================= CLÉRIGO DOS DOZE =================
+  if(oid === 'clerigo'){
+    const CORES12 = ['#f2c14e','#5a5a6a','#7a8a5a','#e0865a','#e05a4e','#a83838',
+                     '#8a7ae0','#f2e05a','#b06ae0','#e08ae0','#8a6a3a','#7ac06a'];
+    for(let i2 = 0; i2 < 12; i2++){                        // a ESTOLA das doze cores
+      c.fillStyle = CORES12[i2];
+      const sy2 = bodyTop + u + i2*((fem ? py + ts*0.78 + bob : bodyBot) - bodyTop - u*2)/12;
+      c.fillRect(cx - u*1.5, sy2, u*3, ((fem ? py + ts*0.78 + bob : bodyBot) - bodyTop - u*2)/12 - u*0.3);
+    }
+    c.strokeStyle = '#c9a842'; c.lineWidth = u*0.8;
+    c.strokeRect(cx - u*1.5, bodyTop + u, u*3, (fem ? py + ts*0.78 + bob : bodyBot) - bodyTop - u*2);
+    cinto('#c9a842');
+    c.fillStyle = '#7a5434';                               // o livrinho sagrado
+    c.fillRect(cx - bodyW*0.44, beltY + u, u*3.4, u*4.4);
+    c.fillStyle = '#e8d8a0'; c.fillRect(cx - bodyW*0.44, beltY + u, u*0.9, u*4.4);
+    if(ads.includes(1)){
+      c.fillStyle = '#f0ead8';                             // a MITRA
+      c.beginPath(); c.moveTo(cx - hr*0.7, topY + u);
+      c.quadraticCurveTo(cx - hr*0.5, topY - hr*1.6, cx, topY - hr*1.9);
+      c.quadraticCurveTo(cx + hr*0.5, topY - hr*1.6, cx + hr*0.7, topY + u);
+      c.closePath(); c.fill();
+      c.strokeStyle = '#c9a842'; c.lineWidth = u*0.9; c.stroke();
+      c.beginPath(); c.moveTo(cx, topY - hr*1.9); c.lineTo(cx, topY + u); c.stroke();
+    }
+    if(ads.includes(2)){
+      const tx2 = cx + (facing === 'left' ? -1 : 1)*bodyW*0.58;
+      const ang2 = Math.sin(now/500)*0.5;
+      c.save(); c.translate(tx2, beltY); c.rotate(ang2);   // o TURÍBULO balançando
+      c.strokeStyle = '#c9a842'; c.lineWidth = u*0.7;
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(0, u*5); c.stroke();
+      c.fillStyle = '#c9a842';
+      c.beginPath(); c.arc(0, u*6, u*1.8, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.save(); c.globalCompositeOperation = 'lighter';    // a fumaça
+      for(let i2 = 0; i2 < 3; i2++){
+        const ft = (now/1800 + i2/3) % 1;
+        c.globalAlpha = 0.35*(1 - ft);
+        c.fillStyle = '#e8e0d0';
+        c.beginPath();
+        c.arc(tx2 + Math.sin(ft*6 + i2)*u*2, beltY + u*6 - ft*ts*0.5, u*(1 + ft*1.5), 0, Math.PI*2);
+        c.fill();
+      }
+      c.restore();
+    }
+  }
+
+  // ================= MAGO DA ALVORADA =================
+  if(oid === 'mago_alvorada'){
+    c.fillStyle = '#4a6ab0';                               // mangas largas do Conclave
+    c.beginPath(); c.moveTo(cx - bodyW*0.5, bodyTop + u);
+    c.lineTo(cx - bodyW*0.74, beltY + u); c.lineTo(cx - bodyW*0.5, beltY); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(cx + bodyW*0.5, bodyTop + u);
+    c.lineTo(cx + bodyW*0.74, beltY + u); c.lineTo(cx + bodyW*0.5, beltY); c.closePath(); c.fill();
+    c.fillStyle = '#e8c860';                               // orla dourada
+    c.fillRect(cx - bodyW*0.48, (fem ? py + ts*0.78 + bob : bodyBot) - u*1.6, bodyW*0.96, u*1.4);
+    c.save(); c.globalCompositeOperation = 'lighter';      // O SOL DA ALVORADA no peito
+    c.globalAlpha = 0.75 + 0.25*Math.sin(now/700);
+    c.fillStyle = '#e8c860';
+    c.beginPath(); c.arc(cx, bodyTop + bodyH*0.28, u*2, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#ffe08a'; c.lineWidth = u*0.7;
+    for(let i2 = 0; i2 < 8; i2++){
+      const a2 = i2*Math.PI/4 + now/4000;
+      c.beginPath();
+      c.moveTo(cx + Math.cos(a2)*u*2.6, bodyTop + bodyH*0.28 + Math.sin(a2)*u*2.6);
+      c.lineTo(cx + Math.cos(a2)*u*3.8, bodyTop + bodyH*0.28 + Math.sin(a2)*u*3.8);
+      c.stroke();
+    }
+    c.restore();
+    if(ads.includes(1)){
+      c.fillStyle = '#3a5a9a';                             // chapéu do Conclave
+      const aba2 = hr*1.4;
+      c.beginPath(); c.ellipse(cx, topY + u, aba2, aba2*0.35, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.moveTo(cx - hr*0.75, topY + u*0.5);
+      c.quadraticCurveTo(cx - hr*0.1, topY - hr*1.6, cx + hr*0.4, topY - hr*1.9);
+      c.quadraticCurveTo(cx + hr*0.4, topY - hr*0.9, cx + hr*0.75, topY + u*0.5);
+      c.closePath(); c.fill();
+      c.fillStyle = '#e8c860'; c.fillRect(cx - hr*0.75, topY - u*1.1, hr*1.5, u*1.2);
+      c.beginPath(); c.arc(cx, topY - u*0.5, u*1, 0, Math.PI*2); c.fill();
+    }
+    if(ads.includes(2)){
+      const a3 = now/1200;                                 // o GRIMÓRIO ORBITAL
+      const gx2 = cx + Math.cos(a3)*bodyW*0.85;
+      const gy2 = bodyTop + bodyH*0.3 + Math.sin(a3)*bodyH*0.4;
+      c.save(); c.translate(gx2, gy2); c.rotate(Math.sin(a3)*0.4);
+      c.fillStyle = '#3a5a9a'; c.fillRect(-u*2, -u*1.5, u*4, u*3);
+      c.fillStyle = '#e8d8a0'; c.fillRect(-u*2, -u*1.5, u*1, u*3);
+      c.strokeStyle = '#e8c860'; c.lineWidth = u*0.5; c.strokeRect(-u*2, -u*1.5, u*4, u*3);
+      c.restore();
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.4;
+      const gg3 = c.createRadialGradient(gx2, gy2, 0, gx2, gy2, u*5);
+      gg3.addColorStop(0, 'rgba(232,200,96,0.8)'); gg3.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = gg3; c.beginPath(); c.arc(gx2, gy2, u*5, 0, Math.PI*2); c.fill();
       c.restore();
     }
   }
@@ -14453,6 +14738,7 @@ function renderOutfits(){
       '<span style="font:800 12.5px Inter;color:'+(atual?'#e0c98a':'#c9d8ff')+';">'+o.nome+(atual?' ✦':'')+'</span>'+
       (o.aberto ? '<button data-of="'+o.id+'" style="padding:4px 12px;background:#1a2a44;border:1px solid #3a5a8a;border-radius:8px;color:#8ac0f0;font:800 10.5px Inter;cursor:pointer;">VESTIR</button>'
                 : '<span style="font:800 10.5px Inter;color:#5a6a88;">🔒 nível '+o.lvl+'</span>')+'</div>'+
+      (o.req && !o.aberto ? '<div style="font:700 10px Inter;color:#e0a840;margin:2px 0;">🔒 Missão: '+(o.reqtxt||'')+'</div>' : '') +
       '<div style="display:flex;gap:9px;align-items:flex-start;margin:3px 0 6px;">'+
       '<canvas data-oid="'+o.id+'" width="64" height="84" style="background:#0a1220;border:1px solid #22304a;border-radius:8px;flex:none;"></canvas>'+
       '<div style="font:500 10px Inter;color:#7a86a8;">'+o.desc+'</div></div>';
@@ -14741,6 +15027,9 @@ function renderOutfits(){
 //  PORTAS VIVAS: as casas entráveis se anunciam (porta grande, placa, luz).
 // ===========================================================================
 var _PORTAS_VIVAS = [
+  {mapa: 'cidade_alta', cx: 4,  cy: 12, w: 6, h: 4, emoji: '🎼'},
+  {mapa: 'cidade_alta', cx: 38, cy: 12, w: 5, h: 3, emoji: '🛡️'},
+  {mapa: 'cidade_alta', cx: 38, cy: 4,  w: 6, h: 4, emoji: '🌙'},
   {mapa: 'vilalbina', cx: 30, cy: 3,  w: 5, h: 3, emoji: '🍺'},
   {mapa: 'vilalbina', cx: 30, cy: 20, w: 4, h: 3, emoji: '🎣'},
   {mapa: 'prospera',  cx: 58, cy: 20, w: 5, h: 3, emoji: '🛒'},

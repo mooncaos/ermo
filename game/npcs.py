@@ -1532,6 +1532,122 @@ ROSTER.append({
     "greetings": ['Nharé é a segunda chance que você não merecia. Eu que o diga.', 'Ganhei de novo. EU NEM QUERIA GANHAR. Uma derrota, Lebre. UMA. É pedir muito?', '*joga uma moeda* Cara: ensopado. Coroa: ensopado também. A moeda gosta de ensopado.', 'Deixo as portas destrancadas. Por princípio. Quem precisa fugir, foge; quem precisa entrar... que os deuses julguem.', 'Meu passado? *sorri* Aposto que você não adivinha. ...viu? Ganhei DE NOVO. Droga.'],
 })
 
+# OS PRIMEIROS MAGOS DO CONCLAVE DA AURORA (a Torre da Alvorada)
+ROSTER.append({
+    "id": "npc:maga_lyra", "name": "Maga Lyra, a Segunda Voz",
+    "look": {"skin": "#c9a06a", "cloak": "#5a7ac0", "hat": "wizard", "hair": "#2a2a3a", "staff": True},
+    "map": "torre_alvorada", "home": (6, 5), "radius": 2, "wanders": True,
+    "step_every": 3.0, "solid": True, "kind": "person",
+    "greetings": ["O Heron lidera. Eu organizo. O Conclave anda porque ALGUÉM lembra das chaves.",
+                  "A magia me escolheu aos sete anos. Levei vinte pra parar de pedir desculpas por isso.",
+                  "A cadeira do Cronista? Não toque. É dele. Será dele. O Heron acredita, então eu acredito.",
+                  "Aqui ninguém pergunta de onde veio o seu dom. Só o que você fará com ele."],
+})
+ROSTER.append({
+    "id": "npc:mago_bramir", "name": "Mago Bramir, o Muro",
+    "look": {"skin": "#a8845c", "cloak": "#7a6a4a", "hat": "none", "hair": "#d8d8d8", "staff": True},
+    "map": "torre_alvorada", "home": (18, 5), "radius": 2, "wanders": True,
+    "step_every": 3.6, "solid": True, "kind": "person",
+    "greetings": ["Abjuração. A magia de DIZER NÃO. Subestimada por todo tolo que já explodiu.",
+                  "Vi Valdarkram cair. Meus escudos seguraram uma rua inteira. UMA. Nunca esqueço as outras.",
+                  "Marion nos enganou por anos. Meus escudos não a pegaram. Escudos não param sorrisos.",
+                  "O jovem que estuda proteção salva mais vidas que dez que estudam fogo."],
+})
+ROSTER.append({
+    "id": "npc:maga_cecille", "name": "Maga Cecille, a Véspera",
+    "look": {"skin": "#e0c9a8", "cloak": "#b06ae0", "hat": "none", "hair": "#e8e0d0", "staff": False},
+    "map": "torre_alvorada", "home": (12, 8), "radius": 2, "wanders": True,
+    "step_every": 2.8, "solid": True, "kind": "person",
+    "greetings": ["Ilusão não é mentira. É a verdade ensaiando.",
+                  "Fiz esta biblioteca parecer maior por dentro. ...ou não fiz? Viu? FUNCIONA.",
+                  "Sonho em cores que não existem. A Suma Selene diz que existem SIM, só ainda não chegaram.",
+                  "O Conclave me acolheu quando me chamavam de bruxa da névoa. Aqui, névoa é currículo."],
+})
+ROSTER.append({
+    "id": "npc:aprendiz_tobias", "name": "Tobias, Aprendiz Prodígio",
+    "look": {"skin": "#c9a06a", "cloak": "#4a4a6a", "hat": "none", "hair": "#8a5a2a", "staff": False},
+    "map": "torre_alvorada", "home": (12, 4), "radius": 3, "wanders": True,
+    "step_every": 2.2, "solid": True, "kind": "person",
+    "greetings": ["Eu NÃO explodi a estante três. Foi a estante que... tá, fui eu. NÃO CONTA PRO BRAMIR.",
+                  "Decorei quatrocentos glifos. O quatrocentos e um me odeia pessoalmente.",
+                  "O Arquimago rega uma flor lá em cima todo dia. Um dia eu pergunto por quê. Um dia.",
+                  "Quando eu crescer quero ser o Cronista! ...que é isso? Por que a Lyra tá me olhando assim?"],
+})
+
+# OS CIDADÃOS DA ILHA (a vida de todo dia)
+ROSTER.append({
+    "id": "npc:naiara", "name": "Naiara, a Pescadora",
+    "look": {"skin": "#a8845c", "cloak": "#4a7a8a", "hat": "none", "hair": "#1a1a20", "staff": False},
+    "map": "vilalbina", "home": (14, 22), "radius": 4, "wanders": True,
+    "step_every": 2.4, "solid": True, "kind": "person",
+    "greetings": ["O mar deu pouco hoje. O mar sabe o que faz. Eu é que não.",
+                  "O Tião jura que o peixe-rei existe. Quarenta anos jurando. Eu quase acredito.",
+                  "Remendo rede melhor que muito marido remenda promessa."],
+})
+ROSTER.append({
+    "id": "npc:bruno_padeiro", "name": "Bruno, o Padeiro",
+    "look": {"skin": "#e0c9a8", "cloak": "#c9b090", "hat": "none", "hair": "#6a4a2a", "staff": False},
+    "map": "vilalbina", "home": (8, 8), "radius": 3, "wanders": True,
+    "step_every": 2.8, "solid": True, "kind": "person",
+    "greetings": ["Pão quentinho! O trigo do Trigal, o fermento é segredo, o cheiro é de graça.",
+                  "A Suma Clara também faz pão de madrugada. Concorrência SANTA é a pior que tem.",
+                  "Farinha na roupa não é sujeira. É uniforme."],
+})
+ROSTER.append({
+    "id": "npc:caio_menino", "name": "Caio",
+    "look": {"skin": "#c9a06a", "cloak": "#e0865a", "hat": "none", "hair": "#2a1a10", "staff": False},
+    "map": "vilalbina", "home": (20, 12), "radius": 6, "wanders": True,
+    "step_every": 1.2, "solid": False, "kind": "person",
+    "greetings": ["NÃO PISA NA LINHA! ...perdeu. Tá pagando.",
+                  "A Suma Iara me ensinou a ler pegada! Aquela ali é sua. Aquela é de gaivota. Aquela é MISTÉRIO.",
+                  "Quando eu crescer vou remar que nem o Zé! Minha mãe falou que primeiro eu cresço."],
+})
+ROSTER.append({
+    "id": "npc:guarda_vico", "name": "Guarda Vico",
+    "look": {"skin": "#a8845c", "cloak": "#3a4a5a", "hat": "cap", "hair": "#2a2a2a", "staff": False},
+    "map": "prospera", "home": (38, 20), "radius": 5, "wanders": True,
+    "step_every": 3.2, "solid": True, "kind": "person",
+    "greetings": ["Sem correria na praça. A fonte é da cidade, o mergulho é multa.",
+                  "Lady Diana passa às seis. TUDO tem que estar perfeito às cinco e meia.",
+                  "Ronda tranquila. Em Prospera até os pombos respeitam a fila."],
+})
+ROSTER.append({
+    "id": "npc:florista_marta", "name": "Marta, a Florista",
+    "look": {"skin": "#e0c9a8", "cloak": "#e05a8a", "hat": "none", "hair": "#8a4a2a", "staff": False},
+    "map": "prospera", "home": (47, 26), "radius": 4, "wanders": True,
+    "step_every": 2.6, "solid": True, "kind": "person",
+    "greetings": ["Flores frescas! As rosas da Lady eu não vendo. Ninguém consegue. São IMPOSSÍVEIS.",
+                  "Todo mês alguém compra um buquê anônimo de doces... digo, DE FLORES. Esquece.",
+                  "Uma flor na lapela muda o dia. Duas mudam a semana. Três? Casamento."],
+})
+ROSTER.append({
+    "id": "npc:escriba_nino", "name": "Escriba Nino",
+    "look": {"skin": "#c9b090", "cloak": "#6a5a8a", "hat": "none", "hair": "#3a3a4a", "staff": False},
+    "map": "prospera", "home": (60, 30), "radius": 3, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ["Cartas, contratos, declarações de amor. Cobro por palavra; suspiro é grátis.",
+                  "O Otto pediu um contrato de dez páginas pra vender UMA corda. Eu cobrei por página.",
+                  "A história desta ilha caberia num livro. Estou na página doze há três anos."],
+})
+ROSTER.append({
+    "id": "npc:dora_fazendeira", "name": "Dora, a Fazendeira",
+    "look": {"skin": "#a8845c", "cloak": "#c9a05a", "hat": "none", "hair": "#6a5a3a", "staff": False},
+    "map": "trigal_dourado", "home": (18, 12), "radius": 5, "wanders": True,
+    "step_every": 2.8, "solid": True, "kind": "person",
+    "greetings": ["O trigo cresceu numa noite, dizem. O MEU cresce em quatro meses e com reza.",
+                  "O Rei Marth veio aqui uma vez. Conversou com a plantação. A plantação MELHOROU. Não questiono.",
+                  "Espantalho novo. O corvo pousa NELE agora. Acho que virou amizade."],
+})
+ROSTER.append({
+    "id": "npc:pastor_elias", "name": "Pastor Elias",
+    "look": {"skin": "#c9a06a", "cloak": "#7a8a5a", "hat": "none", "hair": "#d8d8d8", "staff": True},
+    "map": "pastos", "home": (26, 16), "radius": 5, "wanders": True,
+    "step_every": 3.0, "solid": True, "kind": "person",
+    "greetings": ["Ovelha não foge. Ovelha EXPLORA. Quem foge é o meu sossego.",
+                  "O lobo negro rondou ontem. Assobiei o assobio da Iara. Ele foi embora. Ela ensina isso, sabia?",
+                  "Céu limpo, capim alto, ninguém gritando meu nome. Dia perfeito."],
+})
+
 # O COMÉRCIO DA ILHA + OS EMÉRITOS
 ROSTER.append({
     "id": "npc:rosa_albina", "name": "Rosa Albina",

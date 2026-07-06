@@ -2625,6 +2625,10 @@ def _templo_estrelado():
         for x in (cx - 1, cx, cx + 1):
             g[y][x] = "2" if x == cx else "1"
     g[H - 1][cx] = "D"
+    for y in range(0, cy - 12):            # corredor norte: a Ala dos Sumos
+        for x in (cx - 1, cx, cx + 1):
+            g[y][x] = "2" if x == cx else "1"
+    g[0][cx] = "D"
     return ["".join(r) for r in g]
 
 
@@ -2655,6 +2659,121 @@ def _torre_alvorada():
 
 
 MAPS["torre_alvorada"] = {"rows": _torre_alvorada(), "spawns": [(12, 12), (11, 12), (13, 12)]}
+def _ala_sumos():
+    """A Ala dos Sumos (29x15): corredor central, 12 celas + o aposento do
+    Arcebispo. Cada quarto fala de quem dorme nele."""
+    W, H = 29, 15
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "F"; g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    for x in range(1, W - 1):              # paredes das fileiras de celas
+        g[5][x] = "F"
+        g[9][x] = "F"
+    # celas de cima (6): divisórias verticais
+    for cx2 in (5, 9, 13, 17, 21, 25):
+        for y in range(1, 5):
+            g[y][cx2] = "F"
+    # celas de baixo (6)
+    for cx2 in (5, 9, 13, 17, 21, 25):
+        for y in range(10, 14):
+            g[y][cx2] = "F"
+    # portas das celas (no corredor)
+    for px in (3, 7, 11, 15, 19, 23):
+        g[5][px] = "1"
+        g[9][px] = "1"
+    # ---- os quartos de cima: Aurelian, Morwen, Tenaz, Iara, Vermeer, Brakk ----
+    # Aurelian (Pofnir): cama, velas dos nascimentos, pires de leite (barril pequeno? tigela=q)
+    g[1][2] = "b"; g[2][1] = ";"; g[3][3] = "q"
+    # Morwen (Vargo): cama, velas e mais velas
+    g[1][6] = "b"; g[2][8] = ";"; g[3][6] = ";"
+    # Tenaz (Martur): cama, o relógio de água (barril!) e ampulhetas (baú)
+    g[1][10] = "b"; g[2][12] = "o"; g[3][10] = "q"
+    # Iara (Facalan): SEM cama — esteira (tapete) e a janela aberta
+    g[2][15] = "2"; g[2][16] = "2"; g[0][15] = "j"
+    # Vermeer (Drazun): cama, o terrário (barril) e o braseiro sempre aceso
+    g[1][18] = "b"; g[2][20] = "o"; g[3][18] = ";"
+    # Brakk (Korgath): cama reforçada, baú de pesos, banco de treino
+    g[1][22] = "b"; g[2][24] = "q"; g[3][22] = "^"
+    # ---- os de baixo: Pluma, Clara, Selene, Gozo, Ferro, Sorte ----
+    # Pluma (Corvo): cama, poleiro (banco alto) e a janela dos corvos
+    g[13][2] = "b"; g[11][3] = "^"; g[14][2] = "j"
+    # Clara (Valiria): cama, ervas (estante) e o forninho de pão (lareira!)
+    g[13][6] = "b"; g[11][8] = "E"; g[14][7] = "h"
+    # Selene (Nherith): cama, o bastidor (penteadeira) e vela azul
+    g[13][10] = "b"; g[11][10] = "_"; g[12][12] = ";"
+    # Gozo (José): cama farta, tapete de dança GRANDE e barril de vinho
+    g[13][14] = "b"; g[11][14] = "2"; g[11][15] = "2"; g[12][16] = "o"
+    # Ferro (Bragor): cama, ferramentas aposentadas (baús) e braseiro de forja
+    g[13][18] = "b"; g[11][20] = "q"; g[12][20] = "q"; g[14][19] = ";"
+    # Sorte (Nharé): cama e... a PORTA SEMPRE ABERTA (cela sem parede frontal!)
+    g[13][22] = "b"; g[11][24] = "2"
+    g[9][22] = "1"; g[9][24] = "1"
+    # ---- o APOSENTO DO ARCEBISPO (ala leste, grande) ----
+    for y in range(6, 9):
+        for x in range(22, 28):
+            g[y][x] = "1"
+    g[6][21] = "F"; g[8][21] = "F"        # a porta do Arcebispo (só o corredor entra)
+    g[6][22] = "E"; g[6][24] = "P"; g[6][27] = "j"   # periferia: estante, retrato, janela
+    g[7][26] = "b"; g[7][27] = "b"                    # a cama na parede leste
+    g[8][22] = ";"; g[8][24] = "k"                    # braseiro e escrivaninha
+    # corredor: tapete central e braseiros
+    for x in range(2, 27):
+        g[7][x] = g[7][x] if g[7][x] != "1" else "2"
+    g[7][1] = ";"
+    # a porta de volta (sul, centro)
+    g[H - 1][14] = "D"
+    for y in (5, 9):
+        g[y][14] = "1"
+    return ["".join(r) for r in g]
+
+
+def _casa_lyra():
+    """O lar da Maga Lyra (12x9): tudo em ordem, tudo em pares. A Segunda Voz."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(9)]
+    g[0] = list("FFjjFFhFFjjF")
+    g[8] = list("FFFFFDDFFFFF")
+    g[2][2] = "E"; g[2][9] = "E"          # estantes espelhadas
+    g[4][2] = "E"; g[4][9] = "E"
+    g[3][5] = "k"; g[3][6] = "k"          # a mesa dupla
+    g[4][5] = "2"; g[4][6] = "2"
+    g[6][2] = "b"; g[6][9] = "q"          # cama e o baú das chaves
+    return ["".join(r) for r in g]
+
+
+def _casa_bramir():
+    """O lar do Mago Bramir (11x8): espartano. Uma parede a mais que o necessário."""
+    g = [list("F" + "1" * 9 + "F") for _ in range(8)]
+    g[0] = list("FFFFFjFFFFF")
+    g[7] = list("FFFFDDFFFFF")
+    g[2][2] = "b"                          # cama simples
+    g[2][8] = "E"                          # UMA estante
+    g[4][8] = "q"; g[5][8] = "q"           # os escudos guardados
+    g[2][5] = ";"                          # o braseiro de vigília
+    return ["".join(r) for r in g]
+
+
+def _casa_cecille():
+    """O lar da Maga Cecille (12x9): nada em ordem, tudo em sonho."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(9)]
+    g[0] = list("FFjFFPFFjjFF")
+    g[8] = list("FFFFFDDFFFFF")
+    g[2][3] = "2"; g[3][7] = "2"; g[5][2] = "2"      # tapetes ao acaso
+    g[6][8] = "2"
+    g[2][9] = "b"                          # cama no canto errado (o certo dela)
+    g[4][4] = "_"                          # o espelho dos ensaios
+    g[2][6] = ";"; g[6][3] = ";"           # velas espalhadas
+    g[5][9] = "E"                          # a estante torta
+    return ["".join(r) for r in g]
+
+
+MAPS["ala_sumos"] = {"rows": _ala_sumos(), "spawns": [(14, 12), (13, 12), (15, 12)]}
+MAPS["casa_lyra"] = {"rows": _casa_lyra(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["casa_bramir"] = {"rows": _casa_bramir(), "spawns": [(5, 5), (4, 5), (6, 5)]}
+MAPS["casa_cecille"] = {"rows": _casa_cecille(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+
+
 MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(16, 29), (15, 29), (17, 29)]}
 
 

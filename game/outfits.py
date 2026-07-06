@@ -27,10 +27,34 @@ OUTFITS = [
     {"id": "mergulhador","nome": "Mergulhador da Fenda",   "lvl": 20,
      "cloak": "#2a2438", "accent": "#a06aff",
      "desc": "Runas roxas pulsam no tecido escuro."},
+    {"id": "nobre", "nome": "Nobre de Prospera", "lvl": 1,
+     "req": "prosperina", "reqtxt": "Conquiste a cidadania: as 3 Provas do Zé do Remo",
+     "cloak": "#7a2e3a", "accent": "#e0c060",
+     "desc": "Gibão de veludo vinho, gola de arminho e o circlete da corte."},
+    {"id": "clerigo", "nome": "Clérigo dos Doze", "lvl": 1,
+     "req": "bencao12", "reqtxt": "Visite a Ala dos Sumos e receba a bênção do Arcebispo Celestino",
+     "cloak": "#e8e0d0", "accent": "#c9a842",
+     "desc": "Túnica alva com a estola das doze cores."},
+    {"id": "mago_alvorada", "nome": "Mago da Alvorada", "lvl": 1,
+     "req": "torre_ok", "reqtxt": "Decifre o enigma dos grifos da Torre da Alvorada",
+     "cloak": "#4a6ab0", "accent": "#e8c860",
+     "desc": "O robe azul do Conclave com o Sol da Alvorada no peito."},
 ]
 
 # addons: (indice, nome, chave, alvo, descricao da missao)
 ADDONS = {
+    "nobre": [
+        ("Coroa de Gala", "invas", 2, "Defenda 2 invasões: a coroa se inclina a quem protege."),
+        ("Cetro Dourado", "kills", 150, "150 abates: o poder também se conquista."),
+    ],
+    "clerigo": [
+        ("Mitra Sagrada", "arcano", 15, "Leia 15 escritos: a fé estudada pesa mais."),
+        ("Turíbulo dos Doze", "fenda", 3, "Alcance a câmara 3 da Fenda."),
+    ],
+    "mago_alvorada": [
+        ("Chapéu do Conclave", "arcano", 25, "25 escritos lidos: o chapéu reconhece leitores."),
+        ("Grimório Orbital", "kills", 200, "200 abates com a Alvorada nos olhos."),
+    ],
     "aldeao": [
         ("Chapéu de Palha", "ervas", 70,
          "Entregue 50 Ervas Solares e 20 Lunares à Cigana (entrega automática ao falar)."),
