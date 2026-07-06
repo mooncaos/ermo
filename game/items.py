@@ -288,6 +288,11 @@ ITEMS = {
     "runa_cura_intensa":    {"name": "Runa: Cura Intensa",    "kind": "runa", "stackable": True, "color": "#8ae0a0", "rune": {"tier": 2, "heal": True}, "ml_req": 3, "value": 240, "desc": "Costura carne como quem remenda rede."},
     "runa_cura_suprema":    {"name": "Runa: Cura Suprema",    "kind": "runa", "stackable": True, "color": "#c0f0c9", "rune": {"tier": 4, "heal": True}, "ml_req": 11, "value": 900, "desc": "A vida volta correndo, envergonhada de ter saído."},
 
+    "isca_viva":       {"name": "Isca Viva",        "kind": "trofeu", "stackable": True, "color": "#c9a06a", "value": 25, "desc": "Se mexe no anzol. As LENDAS das águas só mordem isso."},
+    "peixe_rei":       {"name": "O Peixe-Rei",      "kind": "trofeu", "stackable": False, "color": "#ffd24a", "rarity": "lendario", "value": 9000, "desc": "Só aparece na chuva, de noite, pra quem tem isca viva. Coroa de escamas e tudo."},
+    "carpa_estelar":   {"name": "Carpa Estelar",    "kind": "trofeu", "stackable": False, "color": "#c9b8ff", "rarity": "lendario", "value": 7000, "desc": "Nada nas madrugadas de céu limpo. Dizem que reflete constelações que não existem mais."},
+    "bagre_abissal":   {"name": "Bagre Abissal",    "kind": "trofeu", "stackable": False, "color": "#4a5a7a", "rarity": "lendario", "value": 8000, "desc": "Sobe do fundo quando o trovão bate na água. Tem MUITOS dentes pra um bagre."},
+
     "caneca_de_cerveja":  {"name": "Caneca de Cerveja",   "kind": "consumivel", "stackable": True, "color": "#e0a840", "visual": "potion", "heal": 0.15, "value": 40,  "desc": "Gelada como o Jorge gosta de servir. Restaura 15%% da vida e 100%% do humor."},
     "hidromel_do_ermo":   {"name": "Hidromel do Ermo",    "kind": "consumivel", "stackable": True, "color": "#e8c860", "visual": "potion", "heal": 0.25, "value": 100, "desc": "Mel, tempo e paciência. Restaura 25%% da vida."},
     "prato_do_dia":       {"name": "Prato do Dia",        "kind": "consumivel", "stackable": True, "color": "#c98a50", "visual": "potion", "heal": 0.4,  "value": 150, "desc": "O Jorge jura que a receita é da avó dele. Restaura 40%% da vida."},

@@ -1153,7 +1153,8 @@ def on_quests_get(_data=None):
     _contract_refresh()
     _t_ar = max(ARENA_RECORDS.items(), key=lambda kv: kv[1].get("w", 0))[0] if ARENA_RECORDS else ""
     _t_fd = max(FENDA_RECORDS.items(), key=lambda kv: kv[1])[0] if FENDA_RECORDS else ""
-    socketio.emit("plaza", {"arena": _t_ar, "fenda": _t_fd, "pesca": ""}, to=request.sid)
+    socketio.emit("plaza", {"arena": _t_ar, "fenda": _t_fd,
+                            "pesca": FISH_RECORDS.get("name", "")}, to=request.sid)
     if not ((player.get("ficha") or {}).get("skills") or {}).get("magic"):
         skills.ensure(player.get("ficha") or {})
         _quest_save(player)
@@ -2104,7 +2105,7 @@ def _npc_travel(nid, mapa, x, y):
 
 # turno do dia pelo relógio REAL: manhã 6-11, tarde 12-18, noite 19-23, madruga 0-5
 def _turno_do_dia():
-    h = int(time.time() // 3600) % 24
+    h = int((time.time() - 3 * 3600) // 3600) % 24    # horário do Brasil (UTC-3)
     if 6 <= h <= 11:
         return "manha"
     if 12 <= h <= 18:
@@ -2138,7 +2139,10 @@ def _npc_agenda_tick():
         ent = world.players.get(nid)
         if not ent:
             continue
-        if turno == "noite":
+        _hora = int((time.time() - 3 * 3600) // 3600)
+        _folga = [s for s in _SOCIAVEIS if (abs(hash(s)) + _hora) % len(_SOCIAVEIS) < 3]
+        if turno == "noite" or (turno in ("manha", "tarde") and nid in _folga) or \
+           (turno == "madruga" and nid == "npc:lazaro"):
             destino = ("taverna",) + _TAVERNA_SPOTS[abs(hash(nid)) % len(_TAVERNA_SPOTS)]
         elif turno == "tarde" and nid in _VIAGENS_TARDE:
             destino = _VIAGENS_TARDE[nid]
@@ -2346,6 +2350,25 @@ def _invasion_tick(now):
         INVASION.update({"on": True, "until": now + 480, "helpers": set(), "cidade": alvo[3]})
         _spawn_wave(alvo[0], alvo[1], alvo[2], 9, "_invasion",
                     "⚔️🔥 INVASÃO em %s! Às armas: defendam a cidade!" % alvo[3])
+
+
+
+FISH_RECORDS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "data", "fish_records.json")
+try:
+    with open(FISH_RECORDS_PATH) as _fr:
+        FISH_RECORDS = json.load(_fr)
+except Exception:
+    FISH_RECORDS = {}
+
+
+def _save_fish_records():
+    try:
+        os.makedirs(os.path.dirname(FISH_RECORDS_PATH), exist_ok=True)
+        with open(FISH_RECORDS_PATH, "w") as _fr:
+            json.dump(FISH_RECORDS, _fr)
+    except Exception as exc:
+        print("erro salvando recordes de pesca:", exc)
 
 
 def _gossip_line(npc_id=None):
@@ -2605,6 +2628,12 @@ def _rt_kill(sid, pl, m):
                                             (pl.get("name", "Alguém"), _rnome)})
             break
 
+    if m.get("type") == "carcaca" and m.get("_owner"):
+        _dono = world.monsters.get(m.get("_owner"))
+        if _dono and _dono.get("alive"):
+            _mob_aggro(_dono, sid)
+            socketio.emit("toast", {"text": "🐺 O dono da caça NÃO gostou. E chamou os amigos."},
+                          to=sid)
     if m.get("_caravan_raid"):
         CARAVAN["helpers"].add(sid)
         if not any(x.get("_caravan_raid") and x.get("alive") for x in world.monsters.values()):
@@ -3037,6 +3066,53 @@ def _rt_combat_loop():
                         if dd <= aggro and dd < alvo_d:
                             alvo_sid, alvo_pl, alvo_d = sid, pl, dd
                 if not alvo_sid:
+                    # PREDADOR sem jogador por perto: caça uma PRESA de verdade
+                    if m.get("type") in ("lobo", "lobo_negro", "hiena_ermo") and \
+                       m.get("_feed_until", 0) <= now:
+                        _presa = None
+                        for _pm in world.monsters.values():
+                            if not _pm.get("alive") or not _pm.get("passive"):
+                                continue
+                            if _pm.get("map") != m.get("map") or _pm.get("type") == "carcaca":
+                                continue
+                            if max(abs(_pm["x"] - m["x"]), abs(_pm["y"] - m["y"])) <= 6:
+                                _presa = _pm
+                                break
+                        if _presa:
+                            _dp = max(abs(_presa["x"] - m["x"]), abs(_presa["y"] - m["y"]))
+                            if _dp <= 1:
+                                import uuid as _uu
+                                _presa["alive"] = False
+                                socketio.emit("rt_dead", {"id": _presa["id"]}, room=m.get("map"))
+                                if not _presa.get("temp"):
+                                    _MONSTER_RESPAWNS.append((_presa["id"], time.time() + 240))
+                                _cid = "crc:" + _uu.uuid4().hex[:8]
+                                world.monsters[_cid] = {"id": _cid, "type": "carcaca",
+                                    "name": "Carcaça", "map": m.get("map"),
+                                    "x": _presa["x"], "y": _presa["y"], "hp": 25, "hp_max": 25,
+                                    "ac": 5, "size": 1, "glyph": "🦴", "alive": True,
+                                    "in_combat": False, "temp": True, "passive": True,
+                                    "_owner": mid, "_carc_until": now + 180,
+                                    "_spawn": ("carcaca", _presa["x"], _presa["y"]),
+                                    "_rt_next": 0, "_rt_next_f": 0}
+                                m["_feed_until"] = now + 25
+                                try:
+                                    _world_refresh(m.get("map"))
+                                except Exception:
+                                    pass
+                            elif m.get("_rt_step", 0) <= now:
+                                m["_rt_step"] = now + max(0.3, 4.2 / max(1, int(spec.get("speed", 5))))
+                                _dx = (1 if _presa["x"] > m["x"] else (-1 if _presa["x"] < m["x"] else 0))
+                                _dy = (1 if _presa["y"] > m["y"] else (-1 if _presa["y"] < m["y"] else 0))
+                                for (_tx, _ty, _fc) in ([(m["x"] + _dx, m["y"], "right" if _dx > 0 else "left")] if _dx else []) + \
+                                                       ([(m["x"], m["y"] + _dy, "down" if _dy > 0 else "up")] if _dy else []):
+                                    if rules.is_walkable(_tx, _ty, m.get("map")):
+                                        m["x"], m["y"], m["facing"] = _tx, _ty, _fc
+                                        socketio.emit("monsters_moved", {"map": m.get("map"),
+                                            "moves": [{"id": mid, "x": _tx, "y": _ty, "facing": _fc}]},
+                                            room=m.get("map"))
+                                        break
+                            continue
                     # sem alvo: machucado ou perdido volta pro ponto de origem (e sara)
                     sp0 = m.get("_spawn")
                     if sp0 and len(sp0) >= 3:
@@ -4339,7 +4415,7 @@ def on_interact(_data=None):
     # Peixaria da Dona Maricota: comida fresca do mar (cura barata e gostosa)
     if npc.get("_spec", {}).get("peixaria"):
         _open_shop(player, npc, "Peixaria da Maricota", [], 0,
-                   potions=[("peixe_assado", 80), ("espetinho_camarao", 110),
+                   potions=[("isca_viva", 25), ("peixe_assado", 80), ("espetinho_camarao", 110),
                             ("caldo_de_sururu", 150), ("agua_de_coco", 50),
                             ("moqueca_capixaba", 260),
                             ("filhote_capivara", 5000)])
@@ -4879,6 +4955,30 @@ def on_fish_hit(data):
     if not player or time.time() - player.get("_fishing", 0) > 12:
         return
     player["_fishing"] = 0
+    # PESCA LENDÁRIA: clima + hora + isca viva invocam as lendas das águas
+    _h = int((time.time() - 3 * 3600) // 3600) % 24
+    _lend = None
+    if _bag_count(player, "isca_viva") >= 1:
+        if WEATHER.get("type") in ("chuva", "tempestade") and (_h >= 19 or _h <= 4):
+            _lend = "peixe_rei"
+        elif WEATHER.get("type") == "limpo" and 0 <= _h <= 5:
+            _lend = "carpa_estelar"
+        elif WEATHER.get("type") == "tempestade":
+            _lend = "bagre_abissal"
+    if _lend and random.random() < 0.12:
+        items.remove_from_bag(player["inventory"], "isca_viva", 1)
+        items.add_to_bag(player.setdefault("inventory", []), _lend, 1)
+        _peso = round(random.uniform(4.0, 42.0), 1)
+        _nomef = (items.get(_lend) or {}).get("name", _lend)
+        _persist_loadout(player)
+        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        socketio.emit("toast", {"text": "🎣🌟 %s fisgou %s de %.1f kg!!" %
+                                (player.get("name", "Alguém"), _nomef, _peso)})
+        if _peso > float(FISH_RECORDS.get("kg", 0)):
+            FISH_RECORDS.update({"name": player.get("name", "?"), "fish": _nomef, "kg": _peso})
+            _save_fish_records()
+            socketio.emit("toast", {"text": "🏆🎣 NOVO RECORDE DE PESCA: %s (%.1f kg) por %s!" %
+                                    (_nomef, _peso, player.get("name", "?"))})
     pos = float((data or {}).get("pos", 0))
     if abs(pos - 0.5) <= 0.17:
         raro = random.random() < 0.15
@@ -4929,12 +5029,17 @@ def _npc_routine_loop():
             _npc_agenda_tick()
             _weather_tick(time.time())
             _caravan_tick(time.time())
+            for _cid2 in [k for k, mm in list(world.monsters.items())
+                          if mm.get("type") == "carcaca" and mm.get("_carc_until", 0) < time.time()]:
+                world.monsters.pop(_cid2, None)
             _invasion_tick(time.time())
         except Exception:
             pass
         noite = _is_night()
         try:
             for spec in npcs.ROSTER:
+                if spec.get("id") in _SOCIAVEIS:
+                    continue                     # esses seguem a AGENDA rica
                 rot = _NPC_ROUTINE.get(spec.get("id"))
                 if not rot:
                     continue

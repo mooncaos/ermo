@@ -1648,3 +1648,10 @@ for _t in ['coelho', 'lebre', 'veado', 'cervo', 'capivara', 'antilope', 'enxame_
         _ab = {"id": "golpe_%s" % _t, "name": "Golpe Brutal", "type": "heavy",
                "mult": 2, "chance": 0.25, "cd": 4}
     MONSTER_ABILITIES.setdefault(_t, []).append(_ab)
+
+
+# a CARCAÇA: o que sobra da caça dos predadores (saqueável... por sua conta e risco)
+MONSTERS["carcaca"] = {"name": "Carcaça", "hp": 25, "ac": 5, "atk": 0,
+    "dmg": {"n": 0, "d": 1}, "reach": 1, "speed": 1, "xp": 0, "dex": 0,
+    "glyph": "🦴", "kind": "bicho", "passive": True,
+    "drops": [["carne_caca", 0.9, 1, 2], ["couro_curtido", 0.5, 1, 1]], "bronze": [0, 5]}
