@@ -534,7 +534,7 @@ function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
           c.fillRect(px + 3 + v2*(ts - 6)/3, py + 3, (ts - 6)/3 - 1, ts - 6);
         }
         c.save(); c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = 0.25 + 0.1*Math.sin(now/800 + gx);
+        c.globalAlpha = 0.25 + 0.1*Math.sin(Date.now()/800 + gx);
         c.fillStyle = '#ffe9a8'; c.fillRect(px + 3, py + 3, ts - 6, ts - 6); c.restore();
         c.strokeStyle = '#1a1a20'; c.lineWidth = 1.5; c.strokeRect(px + 3, py + 3, ts - 6, ts - 6);
         return;
@@ -5503,7 +5503,7 @@ function drawItemIcon(c, cx, cy, size, itemId, glow){
 //  + luz divina do Pofnir. Tudo desenhado por cima no frame(), sem mexer nos
 //  tiles ja assados nem na arte dos personagens.
 // ===========================================================================
-function isNightish(t){ return false; }   // ⚠️ REGRA DO MOON: escuridão visual BANIDA em TODOS os mapas   // crepusculo/noite (Umbraval e Véspera: noite ETERNA)
+function isNightish(t){ if(typeof mapName !== 'undefined' && (mapName === 'umbraval' || mapName === 'vespera')) return true; return t < 0.24 || t > 0.72; }   // crepusculo/noite (Umbraval e Véspera: noite ETERNA)
 
 function entityShadow(c, sx, sy, ts, p){
   // personagens e monstros ja desenham sombra propria; aqui so os bichos que faltavam
@@ -6440,10 +6440,15 @@ function frame(now){
   }
 
   // ---- ciclo de dia e noite: tinte por cima de tudo ----
-  // ⚠️ REGRA DO MOON (06/jul/2026): o EFEITO DE ESCURIDÃO foi BANIDO do jogo
-  // inteiro, de TODOS os mapas, para sempre. O ciclo dia/noite continua vivo
-  // na lógica (relógio, fases, falas noturnas, eventos), mas NUNCA mais
-  // escurece a tela. Não reative o tinte.
+  // ⚠️ REGRA DO MOON (v31): NOITE SÓ LÁ FORA, e suave (teto de alpha no dayTint —
+  // breu que some tudo é PROIBIDO). INTERIOR é SEMPRE iluminado, detectado pelo
+  // PORTÃO AUTOMÁTICO (INT_THEMES + prefixos + _INT_EXTRA), nunca por lista velha.
+  const tint = dayTint(dayTime);
+  const _indoor = mapName && (INT_THEMES[mapName] || mapName === 'taverna' ||
+    mapName.indexOf('casa_') === 0 || mapName.indexOf('loja_') === 0 ||
+    mapName.indexOf('oficina_') === 0 ||
+    (typeof _INT_EXTRA !== 'undefined' && _INT_EXTRA[mapName]));
+  if(tint && !_indoor){ ctx.fillStyle = tint; ctx.fillRect(0, 0, canvas.width, canvas.height); }
   if(phaseEl){
     const ph = phaseName(dayTime);
     if(ph !== lastPhase){ phaseEl.textContent = ph; lastPhase = ph; }
@@ -6540,18 +6545,19 @@ function dayTint(t){
       const bl= Math.round(a[1][2] + (b[1][2] - a[1][2]) * k);
       const al= a[1][3] + (b[1][3] - a[1][3]) * k;
       if(al <= 0.001) return null;
-      return `rgba(${r},${g},${bl},${al.toFixed(3)})`;
+      const alSafe = Math.min(al, 0.38);        // TETO: noite sim, breu jamais
+      return `rgba(${r},${g},${bl},${alSafe.toFixed(3)})`;
     }
   }
   return null;
 }
 function phaseName(t){
-  if(t < 0.23) return 'noite';
+  if(t < 0.208) return 'noite';
   if(t < 0.30) return 'amanhecer';
   if(t < 0.50) return 'manhã';
   if(t < 0.66) return 'tarde';
   if(t < 0.80) return 'crepúsculo';
-  if(t < 0.88) return 'anoitecer';
+  if(t < 0.9167) return 'anoitecer';
   return 'noite';
 }
 
@@ -15939,7 +15945,7 @@ function renderOutfits(){
 
     // ---- o INTERIOR do Santuário: noite estrelada e as 12 luzes ----
     if(mapName === 'templo_estrelado'){
-      c.fillStyle = 'rgba(14,12,22,0.45)';                     // o mármore negro
+      c.fillStyle = 'rgba(14,12,22,0.22)';                     // o mármore negro (suave)
       c.fillRect(0, 0, canvas.width, canvas.height);
       for(let i = 0; i < 40; i++){                             // estrelas no teto
         const sx = ((i*397) % 33)*TS - camX, sy = ((i*211) % 33)*TS - camY;

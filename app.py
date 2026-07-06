@@ -195,7 +195,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v30: LUZ TOTAL - noite visual banida + tiles blindados + banner de erro (06/jul)"
+BUILD_TAG = "v35: A AGENDA VIVA - liturgia, conclave, praca, cha, Jacquard nobre (06/jul)"
 
 
 def _asset_version():
@@ -6175,6 +6175,172 @@ def _npc_gossip_tick(now):
             socketio.emit("speech", {"id": nid, "text": _g}, room=mp)
 
 
+# ROTINA DA ILHA (v33): moradores mudam de MAPA entre dia e noite.
+# dia = posto de trabalho; noite = a cama de casa. Os magos invertem:
+# dia no Salão do Conclave, noite nos lares da Cidade Alta.
+_ILHA_ROTINA = {
+    "npc:seu_juvenal":  {"day": ("baixa_da_egua", 18, 16), "night": ("casa_baixa", 2, 5)},
+    "npc:dona_rita":    {"day": ("baixa_da_egua", 38, 9),  "night": ("casa_baixa", 6, 5)},
+    "npc:bito_ferradura": {"day": ("baixa_da_egua", 30, 16), "night": ("casa_baixa", 11, 5)},
+    "npc:nega_luzia":   {"day": ("baixa_da_egua", 12, 12), "night": ("casa_baixa", 3, 6)},
+    "npc:grum":         {"day": ("trigal_dourado", 12, 13), "night": ("cortico_baixa", 2, 2)},
+    "npc:ana_semeadora": {"day": ("trigal_dourado", 20, 14), "night": ("cortico_baixa", 6, 2)},
+    "npc:tono":         {"day": ("trigal_dourado", 26, 16), "night": ("cortico_baixa", 11, 2)},
+    "npc:beto_carro":   {"day": ("trigal_dourado", 15, 18), "night": ("cortico_baixa", 16, 2)},
+    "npc:lia_sacos":    {"day": ("trigal_dourado", 10, 13), "night": ("cortico_baixa", 2, 9)},
+    "npc:dora_fazendeira": {"day": ("trigal_dourado", 18, 12), "night": ("casa_dora", 3, 3)},
+    "npc:dona_bibi":    {"day": ("vilalbina", 15, 24), "night": ("casa_bibi", 3, 5)},
+    "npc:lita":         {"day": ("vilalbina", 15, 23), "night": ("casa_bibi", 8, 3)},
+    "npc:naiara":       {"day": ("vilalbina", 20, 22), "night": ("casa_naiara", 4, 3)},
+    "npc:maga_lyra":    {"day": ("torre_conclave", 8, 4),  "night": ("casa_lyra", 6, 5)},
+    "npc:mago_bramir":  {"day": ("torre_conclave", 12, 4), "night": ("casa_bramir", 6, 5)},
+    "npc:maga_cecille": {"day": ("torre_conclave", 9, 8),  "night": ("casa_cecille", 6, 5)},
+}
+
+
+# ============ A AGENDA VIVA DE PROSPERINA (v35, aprovada pelo Moon) ============
+FEIRAO_EVENTO = False    # gancho: eventos futuros no São Celeste setam True (o Dante VAI!)
+
+_SUMOS_IDS = ["npc:sumo_pofnir", "npc:sumo_vargo", "npc:sumo_martur", "npc:sumo_facalan",
+              "npc:sumo_drazun", "npc:sumo_korgath", "npc:sumo_corvo", "npc:sumo_valiria",
+              "npc:sumo_nherith", "npc:sumo_jose", "npc:sumo_bragor", "npc:sumo_nhare"]
+_PASSEIO_SUMOS = ["vilalbina", "trigal_dourado", "vinhedo", "pastos", "prospera",
+                  "jardim_templo", "cidade_alta", "feirao_sao_celeste", "baixa_da_egua",
+                  "templo_doze"]   # inclusive o Septo da Irmã Solene, no continente!
+_NOBRES_POOL = ["npc:rei_marth", "npc:rainha_valesca", "npc:antoniet", "npc:valliet", "npc:fadogan"]
+_CHEF_SURTOS = ["PUTAIN DE MERDE! O molho SEPAROU na frente da NOBREZA! GASTON!!",
+                "SACREBLEU, Gaston! A manteiga NON espera, a manteiga NON perdoa!",
+                "MON DIEU... o ponto. O PONTO! *beija os dedos e chora*",
+                "Isso é sal? ISSO É SAL?! Non, ç'est AREIA DO DIABO! REFAZ!",
+                "Vossa senhoria vai provar a PERFEIÇÃO. Gaston, se errar, você vira sopa."]
+
+
+def _hora_ciclo():
+    t = (time.time() % DAY_LENGTH) / DAY_LENGTH
+    return t * 24.0
+
+
+def _dia_num():
+    return int(time.time() // DAY_LENGTH)
+
+
+def _mover_npc(nid, mp, ax, ay):
+    ent = world.players.get(nid)
+    if not ent:
+        return
+    # nunca dentro de mobília: acha o tile livre mais próximo
+    if mp in wm.MAPS:
+        rows = wm.MAPS[mp]["rows"]
+        if rows[ay][ax] in wm.SOLID_CHARS:
+            for r2 in range(1, 4):
+                achou = False
+                for dy2 in range(-r2, r2 + 1):
+                    for dx2 in range(-r2, r2 + 1):
+                        nx2, ny2 = ax + dx2, ay + dy2
+                        if 0 <= ny2 < len(rows) and 0 <= nx2 < len(rows[0]) and \
+                           rows[ny2][nx2] not in wm.SOLID_CHARS:
+                            ax, ay = nx2, ny2; achou = True; break
+                    if achou: break
+                if achou: break
+    if ent.get("map") != mp:
+        socketio.emit("player_left", {"id": nid}, room=ent.get("map"))
+        world.set_map(nid, mp, ax, ay)
+        ent["_home"] = (ax, ay)
+        spec = ent.get("_spec") or {}
+        spec["map"] = mp; spec["home"] = (ax, ay)
+        socketio.emit("player_joined", public(ent), room=mp)
+    elif max(abs(ent["x"] - ax), abs(ent["y"] - ay)) > 7:
+        ent["x"], ent["y"] = ax, ay
+        ent["_home"] = (ax, ay)
+        socketio.emit("player_moved", _npc_moved_payload(ent), room=mp)
+
+
+def _agenda_tick():
+    """A Agenda Viva: sobrepõe a rotina base em horários especiais."""
+    h = _hora_ciclo()
+    dia = _dia_num()
+    noite = _is_night()
+    # ---- OS 12 SUMOS: liturgia, plantão, folga e sono ----
+    if 7 <= h < 8:                                   # LITURGIA: todos no salão
+        for i, sid in enumerate(_SUMOS_IDS):
+            ang = i * 6.283 / 12
+            _mover_npc(sid, "templo_estrelado", int(21 + 7*__import__("math").cos(ang)),
+                       int(14 + 5*__import__("math").sin(ang)))
+    else:
+        turno = int(h // 6) % 4
+        plantao = set(_SUMOS_IDS[turno*3:(turno+1)*3])
+        for i, sid in enumerate(_SUMOS_IDS):
+            if sid in plantao:
+                _mover_npc(sid, "templo_estrelado", 19 + (i % 3)*3, 12)
+            elif noite:
+                _mover_npc(sid, "ala_sumos", 3 + (i % 6)*4, 3 + (i // 6)*6)
+            else:                                    # folga: passeia pela ilha (e pelo Septo!)
+                mp = _PASSEIO_SUMOS[(dia*7 + i*3) % len(_PASSEIO_SUMOS)]
+                sp = wm.MAPS[mp]["spawns"][0] if mp in wm.MAPS else (10, 10)
+                _mover_npc(sid, mp, sp[0], sp[1])
+    # ---- CONCLAVE EM SESSÃO 9h-11h (Heron desce e preside) ----
+    if 9 <= h < 11:
+        _mover_npc("npc:heron", "torre_conclave", 13, 5)
+        _mover_npc("npc:tobias", "torre_conclave", 10, 8)
+    elif 16 <= h < 18:
+        _mover_npc("npc:heron", "torre_escritorio", 9, 3)   # ele NUNCA vai à praça
+    else:
+        _mover_npc("npc:heron", "torre_terraco", 4, 6)
+    # ---- A HORA DA PRAÇA 16h-18h: todos confraternizam na fonte ----
+    if 16 <= h < 18 and not noite:
+        praca = list(_ILHA_ROTINA.keys()) + ["npc:rei_marth", "npc:rainha_valesca"]
+        for i, nid in enumerate(praca):
+            ang = i * 6.283 / max(1, len(praca))
+            _mover_npc(nid, "prospera", int(36 + (3 + i % 3)*__import__("math").cos(ang)),
+                       int(23 + (3 + i % 3)*__import__("math").sin(ang)))
+    # ---- A VALESCA no Chá das 17h (sagrado) ----
+    if 17 <= h < 18:
+        _mover_npc("npc:rainha_valesca", "salao_cha", 5, 4)
+    # ---- OS NOBRES NO JACQUARD 19h-21h (sorteio diário) + o Chef SURTA ----
+    if 19 <= h < 21 and not noite:
+        n = 1 + (dia % 3)
+        idxs = [(dia*5 + k*3) % len(_NOBRES_POOL) for k in range(n)]
+        mesas = [(2, 4), (11, 4), (13, 7)]
+        presentes = False
+        for k, ix in enumerate(dict.fromkeys(idxs)):
+            _mover_npc(_NOBRES_POOL[ix], "restaurante_jacquard", *mesas[k % 3])
+            presentes = True
+        if presentes and random.random() < 0.2:
+            socketio.emit("speech", {"id": "npc:chef_jacquard",
+                          "text": random.choice(_CHEF_SURTOS)}, room="restaurante_jacquard")
+    # ---- DANTE: recluso, salvo evento no São Celeste (ou raro passeio) ----
+    if FEIRAO_EVENTO:
+        _mover_npc("npc:lorde_dante", "feirao_sao_celeste", 24, 8)
+    elif 12 <= h < 13 and (dia * 31) % 100 < 5:
+        _mover_npc("npc:lorde_dante", "farol_margem", 20, 20)
+    # ---- HERON: aparição rara na porta externa (nunca longe) ----
+    if 15 <= h < 15.5 and (dia * 17) % 100 < 5:
+        _mover_npc("npc:heron", "cidade_alta", 25, 14)
+
+
+def _ilha_rotina_tick(noite):
+    """Aplica a rotina da ilha: quem está no mapa errado pro horário, muda."""
+    for nid, rot in _ILHA_ROTINA.items():
+        alvo = rot["night" if noite else "day"]
+        mp, ax, ay = alvo
+        ent = world.players.get(nid)
+        if not ent:
+            continue
+        if ent.get("map") != mp:
+            old = ent.get("map")
+            socketio.emit("player_left", {"id": nid}, room=old)
+            world.set_map(nid, mp, ax, ay)
+            ent["_home"] = (ax, ay)
+            spec = ent.get("_spec") or {}
+            spec["map"] = mp
+            spec["home"] = (ax, ay)
+            socketio.emit("player_joined", public(ent), room=mp)
+        elif max(abs(ent["x"] - ax), abs(ent["y"] - ay)) > 8:
+            ent["x"], ent["y"] = ax, ay
+            ent["_home"] = (ax, ay)
+            socketio.emit("player_moved", _npc_moved_payload(ent), room=mp)
+
+
 def _npc_routine_loop():
     while True:
         socketio.sleep(30)
@@ -6206,6 +6372,8 @@ def _npc_routine_loop():
                     ent["x"], ent["y"] = alvo
                     socketio.emit("player_moved", _npc_moved_payload(ent),
                                   room=spec.get("map", "ermo"))
+            _ilha_rotina_tick(noite)
+            _agenda_tick()
         except Exception as exc:
             print("erro na rotina dos NPCs:", exc)
 
@@ -7205,7 +7373,7 @@ def _is_night(now=None):
     MESMA conta do cliente (phaseName): noite = comeco e fim do ciclo."""
     now = time.time() if now is None else now
     t = (now % DAY_LENGTH) / DAY_LENGTH
-    return t < 0.23 or t >= 0.88
+    return t < 0.2083 or t >= 0.9167   # REGRA DO MOON: noite 22h-5h (ruas vivas ate tarde)
 
 
 def _far_spawn(players):
