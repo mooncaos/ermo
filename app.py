@@ -192,7 +192,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v25: revisao critica - nuvens no chao, patio da torre, texturas (06/jul)"
+BUILD_TAG = "v26: ESCURIDAO BANIDA de todos os mapas (06/jul)"
 
 
 def _asset_version():

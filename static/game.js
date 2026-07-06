@@ -6416,11 +6416,10 @@ function frame(now){
   }
 
   // ---- ciclo de dia e noite: tinte por cima de tudo ----
-  const tint = dayTint(dayTime);
-  const indoors = mapName && (mapName === 'taverna' || mapName.indexOf('casa_') === 0 ||
-    mapName.indexOf('loja_') === 0 || mapName.indexOf('oficina_') === 0 ||
-    (typeof _INT_EXTRA !== 'undefined' && _INT_EXTRA[mapName])); // dentro: aconchegante
-  if(tint && !indoors){ ctx.fillStyle = tint; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  // ⚠️ REGRA DO MOON (06/jul/2026): o EFEITO DE ESCURIDÃO foi BANIDO do jogo
+  // inteiro, de TODOS os mapas, para sempre. O ciclo dia/noite continua vivo
+  // na lógica (relógio, fases, falas noturnas, eventos), mas NUNCA mais
+  // escurece a tela. Não reative o tinte.
   if(phaseEl){
     const ph = phaseName(dayTime);
     if(ph !== lastPhase){ phaseEl.textContent = ph; lastPhase = ph; }
