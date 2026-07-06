@@ -2797,6 +2797,9 @@ def on_outfit_set(data):
     look = player.get("look") or {}
     look["outfit"] = oid
     look["cloak"] = o["cloak"]
+    look["hat"] = "none"
+    look["hood"] = "down"
+    look["staff"] = False
     if sex in ("M", "F"):
         look["sex"] = sex
     aw = int((ARENA_RECORDS.get(player.get("name", "")) or {}).get("w", 0))
@@ -2908,6 +2911,29 @@ def _rt_engage(sid, monster_list):
     socketio.emit("rt_engage", {"target": alvo.get("id"), "boss": bool((monsters_def.MONSTERS.get(alvo.get("type"), {}) or {}).get("boss"))}, to=sid)
 
 
+@socketio.on("rt_lock_nearest")
+def on_rt_lock_nearest(data=None):
+    """TIBIA: trava a mira no inimigo VIVO mais próximo (tecla de ataque)."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    melhor, mdist = None, 99
+    for m in world.monsters.values():
+        if not m.get("alive") or m.get("map") != player.get("map"):
+            continue
+        if m.get("passive") and m.get("type") == "carcaca":
+            continue
+        d = max(abs(m["x"] - player["x"]), abs(m["y"] - player["y"]))
+        if d <= 7 and d < mdist:
+            melhor, mdist = m, d
+    if melhor:
+        player["rt_target"] = melhor["id"]
+        emit("rt_locked", {"id": melhor["id"], "name": melhor.get("name", "?")})
+        emit("toast", {"text": "🎯 Mira travada: %s" % melhor.get("name", "?")})
+    else:
+        emit("toast", {"text": "🎯 Nenhum inimigo por perto."})
+
+
 @socketio.on("rt_target")
 def on_rt_target(data):
     """Tab / clique: escolhe (ou troca) o alvo do auto-ataque."""
@@ -2921,6 +2947,7 @@ def on_rt_target(data):
     m = world.monsters.get(tid)
     if m and m.get("alive") and m.get("map") == player.get("map"):
         player["rt_target"] = tid
+        emit("rt_locked", {"id": tid})
         emit("rt_engage", {"target": tid, "boss": bool((monsters_def.MONSTERS.get((world.monsters.get(tid) or {}).get("type"), {}) or {}).get("boss"))})
 
 
@@ -3506,14 +3533,16 @@ def _rt_combat_loop():
                 if _ag and (world.players.get(_ag) or {}).get("gm_god"):
                     _ag = None
                     m.pop("_aggro_sid", None)
-                if _ag and m.get("_aggro_until", 0) > now:
+                if _ag:
+                    # TIBIA: aggro ETERNO enquanto o alvo viver neste mapa
                     _p3 = world.players.get(_ag)
                     _f3 = (_p3 or {}).get("ficha") or {}
                     if _p3 and _p3.get("map") == m.get("map") and int(_f3.get("hp", 0)) > 0 and \
-                       not _p3.get("invisible") and \
-                       max(abs(m["x"] - _p3["x"]), abs(m["y"] - _p3["y"])) <= 14:
+                       not _p3.get("invisible"):
                         alvo_sid, alvo_pl = _ag, _p3
                         alvo_d = max(abs(m["x"] - _p3["x"]), abs(m["y"] - _p3["y"]))
+                    else:
+                        m.pop("_aggro_sid", None)
                 if not alvo_sid:
                     for sid, pl in world.players.items():
                         if pl.get("map") != m.get("map") or pl.get("invisible") or pl.get("gm_god"):
@@ -3524,6 +3553,8 @@ def _rt_combat_loop():
                         dd = max(abs(m["x"] - pl["x"]), abs(m["y"] - pl["y"]))
                         if dd <= aggro and dd < alvo_d:
                             alvo_sid, alvo_pl, alvo_d = sid, pl, dd
+                    if alvo_sid:
+                        m["_aggro_sid"] = alvo_sid
                 if not alvo_sid:
                     # PREDADOR sem jogador por perto: caça uma PRESA de verdade
                     if m.get("type") in ("lobo", "lobo_negro", "hiena_ermo") and \
@@ -3627,7 +3658,7 @@ def _rt_combat_loop():
                 if alvo_d > reach_m:
                     # longe: PERSEGUE (um passo por vez, na velocidade do bicho)
                     if m.get("_rt_step", 0) <= now:
-                        m["_rt_step"] = now + max(0.28, 4.2 / max(1, int(spec.get("speed", 5))))
+                        m["_rt_step"] = now + max(0.16, 2.0 / max(1, int(spec.get("speed", 5))))
                         dx = (1 if alvo_pl["x"] > m["x"] else (-1 if alvo_pl["x"] < m["x"] else 0))
                         dy = (1 if alvo_pl["y"] > m["y"] else (-1 if alvo_pl["y"] < m["y"] else 0))
                         tent = []
@@ -3636,6 +3667,13 @@ def _rt_combat_loop():
                         if dy:
                             tent.append((m["x"], m["y"] + dy, "down" if dy > 0 else "up"))
                         random.shuffle(tent)
+                        # TIBIA: se o caminho direto trava, CONTORNA pelo lado
+                        if not dy:
+                            tent.append((m["x"], m["y"] + 1, "down"))
+                            tent.append((m["x"], m["y"] - 1, "up"))
+                        if not dx:
+                            tent.append((m["x"] + 1, m["y"], "right"))
+                            tent.append((m["x"] - 1, m["y"], "left"))
                         for (tx, ty, fc) in tent:
                             if not rules.is_walkable(tx, ty, m.get("map")):
                                 continue

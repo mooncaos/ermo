@@ -6725,6 +6725,7 @@ function connectWithToken(token){
     refreshInventory();
     if(shopIsOpen()) _renderShopBody();
   });
+  socket.on('rt_locked', d=>{ if(d && d.id) rtTargetId = d.id; });
   socket.on('player_look', d=>{
     const p = players.get(d.id); if(p && d.look) p.look = d.look;
   });
@@ -13016,6 +13017,9 @@ window.addEventListener('keydown', e=>{
   if(typeof started === 'undefined' || !started || typingInField(e)) return;
   if(e.code === 'KeyL'){ e.preventDefault(); openSkills(); }
   if(e.code === 'KeyO'){ e.preventDefault(); openOutfits(); }
+  if(e.code === 'Space' && !e.repeat && (typeof _fishing === 'undefined' || !_fishing)){
+    e.preventDefault(); socket.emit('rt_lock_nearest', {});
+  }
   if(e.code === 'KeyR'){ e.preventDefault(); openRunes(); }
 });
 
