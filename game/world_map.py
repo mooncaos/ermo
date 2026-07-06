@@ -2884,6 +2884,48 @@ def _casa_fadogan():
     return ["".join(r) for r in g]
 
 
+def _casinha_pesc(nome_var):
+    """Casinha de pescador (10x7): simples, limpa, esperando a família."""
+    g = [list("F" + "1" * 8 + "F") for _ in range(7)]
+    g[0] = list("FFjFFFjFFF")
+    g[6] = list("FFFFDDFFFF")
+    g[1][2] = "b"; g[1][7] = "q"
+    g[3][7] = "o"; g[4][2] = "k"; g[4][3] = "^"
+    if nome_var == 1:
+        g[3][2] = "h"
+    elif nome_var == 2:
+        g[1][4] = "E"
+    return ["".join(r) for r in g]
+
+
+def _casa_dora():
+    """A casa da Dora (13x9): fazenda por dentro — ferramentas, sacas e paz."""
+    g = [list("F" + "1" * 11 + "F") for _ in range(9)]
+    g[0] = list("FFjFFFhFFjFFF")
+    g[8] = list("FFFFFDDFFFFFF")
+    g[2][2] = "b"; g[2][10] = "q"
+    g[4][2] = "o"; g[5][2] = "o"; g[4][10] = "o"
+    g[3][6] = "k"; g[4][6] = "^"; g[6][9] = "2"; g[6][10] = "2"
+    g[2][6] = "E"
+    return ["".join(r) for r in g]
+
+
+def _celeiro_colheita():
+    """O CELEIRO DA COLHEITA (16x11): feno até o teto, a mesa comunitária
+    e o chão aberto onde as festas da colheita vão acontecer."""
+    g = [list("F" + "1" * 14 + "F") for _ in range(11)]
+    g[0] = list("FFjFFFFjFFFFjFFF")
+    g[10] = list("FFFFFFFDDFFFFFFF")
+    for (fx, fy) in ((2, 1), (3, 1), (2, 2), (13, 1), (12, 1), (13, 2), (2, 8), (13, 8)):
+        g[fy][fx] = "o"
+    g[1][7] = "w"; g[1][8] = "w"; g[2][7] = "w"
+    for x in range(5, 11):
+        g[5][x] = "k"
+    g[4][5] = "^"; g[4][10] = "^"; g[6][5] = "^"; g[6][10] = "^"
+    g[8][7] = ";"
+    return ["".join(r) for r in g]
+
+
 def _casa_bibi():
     """Ateliê da Dona Bibi (12x8): teares, tecidos e a renda que esconde nós de navio."""
     g = [list("F" + "1" * 10 + "F") for _ in range(8)]
@@ -3014,6 +3056,11 @@ MAPS["casa_bibi"] = {"rows": _casa_bibi(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["padaria_bruno"] = {"rows": _padaria_bruno(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["casa_naiara"] = {"rows": _casa_naiara(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_caio"] = {"rows": _casa_caio(), "spawns": [(5, 5), (4, 5), (6, 5)]}
+MAPS["casinha_norte"] = {"rows": _casinha_pesc(0), "spawns": [(5, 4), (4, 4), (5, 3)]}
+MAPS["casinha_leste"] = {"rows": _casinha_pesc(1), "spawns": [(5, 4), (4, 4), (5, 3)]}
+MAPS["casinha_sul"] = {"rows": _casinha_pesc(2), "spawns": [(5, 4), (4, 4), (5, 3)]}
+MAPS["casa_dora"] = {"rows": _casa_dora(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["celeiro_colheita"] = {"rows": _celeiro_colheita(), "spawns": [(8, 8), (7, 8), (8, 7)]}
 def _torre_conclave():
     """2º andar: o SALÃO DO CONCLAVE (21x14). A origem da magia do Ermo.
     Mesa de mármore rúnica, os cinco assentos, colunas, vitrais e o

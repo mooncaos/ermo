@@ -1655,6 +1655,16 @@ ROSTER.append({
 
 # ============ O SEGUNDO POVOAMENTO (rodada de julho/2026) ============
 # --- Vilalbina: a rendeira-pirata, o filósofo e o mosteiro ---
+ROSTER.append({"id": "npc:gaston", "name": "Gaston, o Sous-chef",
+    "look": {"skin": "#e0c9a8", "cloak": "#d8d0c0", "hat": "cap", "hood": "down", "hair": "#8a4a2a", "staff": False},
+    "map": "restaurante_jacquard", "home": (11, 2), "radius": 2, "wanders": True, "step_every": 1.6,
+    "solid": True, "kind": "person",
+    "greetings": ["OUI, CHEF! ...ah, é você. Perdão. Reflexo.",
+                  "*corta cebola tremendo* Ele disse que meu brunoise melhorou. EU CHOREI. De alegria. Acho.",
+                  "O Chef berra porque ama. É o que eu digo pro meu travesseiro toda noite.",
+                  "Um dia terei meu restaurante. Cinco estrelas. Não seis. Seis é DELE. Eu sei meu lugar.",
+                  "*sussurra* O segredo do petit gâteau sou EU tirando do forno no segundo exato. Non conta."],
+})
 ROSTER.append({"id": "npc:chef_jacquard", "name": "Chef Jacquard ✶✶✶✶✶✶",
     "look": {"skin": "#e0c9a8", "cloak": "#f0ead8", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": False},
     "map": "restaurante_jacquard", "home": (7, 2), "radius": 3, "wanders": True, "step_every": 2.2,

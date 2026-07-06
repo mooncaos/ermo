@@ -120,6 +120,19 @@ function zoomStep(dir){   // +1 aproxima, -1 afasta
 
 // ---------- estado ----------
 let socket = null, myId = null;
+function _showErrBanner(msg){
+  try{
+    let b = document.getElementById('errbanner');
+    if(!b){ b = document.createElement('div'); b.id = 'errbanner';
+      b.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;' +
+        'background:#7a1e2c;color:#ffe9e9;font:600 12px monospace;padding:8px 14px;border-radius:8px;' +
+        'max-width:90vw;box-shadow:0 4px 18px rgba(0,0,0,0.5);';
+      document.body.appendChild(b); }
+    b.textContent = '⚠️ ERRO: ' + msg + ' (manda print pro Claudinho!)';
+  }catch(_e2){}
+}
+window.addEventListener('error', ev => _showErrBanner((ev.error && ev.error.message) || ev.message || 'erro desconhecido'));
+
 let wasKicked = false;   // conta aberta em outro lugar: nao reconectar
 let TS = 32, mapRows = [], mapW = 0, mapH = 0, mapCanvas = null, mapName = 'ermo', throneBounds = null;
 let camX = 0, camY = 0;
@@ -165,36 +178,36 @@ const ATMO = {                // tudo discreto (intensidade "sutil")
 // MOOD por mapa: um veu de cor por cima da cena que da o clima de cada bioma.
 // {r,g,b,a} -> overlay; part:'#hex' -> cor das motas de ambiente daquele mapa.
 const MAP_AMBIENT = {
-  ermo:             {r:54,  g:46,  b:88,  a:0.10, part:'#b59cff'},  // crepusculo arcano
+  ermo:             {r:54,  g:46,  b:88,  a:0.1, part:'#b59cff'},  // crepusculo arcano
   descampado:       {r:122, g:92,  b:52,  a:0.11, part:'#e8c98a'},  // descampado seco, poeira
   avasham:          {r:255, g:200, b:110, a:0.12, part:'#ffd98a'},  // deserto: calor ambar
-  cova_colosso:     {r:228, g:150, b:78,  a:0.18, part:'#e8a860'},  // cova do colosso: pedra quente, poeira
-  mina_avhur:       {r:60,  g:42,  b:18,  a:0.34, part:'#e8b860'},  // tumba egipcia: penumbra de tocha, poeira dourada
-  camara_avhur:     {r:72,  g:50,  b:16,  a:0.30, part:'#f4cf6a'},  // sala do trono: brilho dourado dos braseiros
-  valdarkram:       {r:28,  g:38,  b:48,  a:0.40, part:'#9fb4c0'},  // cemiterio: bruma fria
-  torre_andar1:     {r:30,  g:22,  b:46,  a:0.36, part:'#b89bff'},  // torre: penumbra roxa gotica
-  torre_andar2:     {r:32,  g:21,  b:48,  a:0.38, part:'#c0a0ff'},
-  torre_andar3:     {r:36,  g:20,  b:52,  a:0.40, part:'#c9a0ff'},
-  camara_varth:     {r:42,  g:18,  b:56,  a:0.44, part:'#caa6ff'},  // trono do Lorde: necrose densa
+  cova_colosso:     {r:228, g:150, b:78,  a:0.12, part:'#e8a860'},  // cova do colosso: pedra quente, poeira
+  mina_avhur:       {r:60,  g:42,  b:18,  a:0.12, part:'#e8b860'},  // tumba egipcia: penumbra de tocha, poeira dourada
+  camara_avhur:     {r:72,  g:50,  b:16,  a:0.12, part:'#f4cf6a'},  // sala do trono: brilho dourado dos braseiros
+  valdarkram:       {r:28,  g:38,  b:48,  a:0.12, part:'#9fb4c0'},  // cemiterio: bruma fria
+  torre_andar1:     {r:30,  g:22,  b:46,  a:0.12, part:'#b89bff'},  // torre: penumbra roxa gotica
+  torre_andar2:     {r:32,  g:21,  b:48,  a:0.12, part:'#c0a0ff'},
+  torre_andar3:     {r:36,  g:20,  b:52,  a:0.12, part:'#c9a0ff'},
+  camara_varth:     {r:42,  g:18,  b:56,  a:0.12, part:'#caa6ff'},  // trono do Lorde: necrose densa
   salao:            {r:46,  g:34,  b:78,  a:0.12, part:'#caa6ff'},  // salao: penumbra sagrada
-  rasharan:         {r:232, g:182, b:92,  a:0.14, part:'#ffe6a0'},  // reino dourado do trigo
-  valoran:          {r:118, g:160, b:230, a:0.14, part:'#bfe0ff'},  // reino etereo azulado
-  fundamento:       {r:78,  g:58,  b:120, a:0.20, part:'#c89cff'},  // trono sombrio
+  rasharan:         {r:232, g:182, b:92,  a:0.12, part:'#ffe6a0'},  // reino dourado do trigo
+  valoran:          {r:118, g:160, b:230, a:0.12, part:'#bfe0ff'},  // reino etereo azulado
+  fundamento:       {r:78,  g:58,  b:120, a:0.12, part:'#c89cff'},  // trono sombrio
   falanor:          {r:150, g:210, b:200, a:0.12, part:'#d6fff4'},  // reino claro
-  fadrakor_litoral: {r:120, g:190, b:222, a:0.10, part:'#cfeeff'},  // litoral
-  fadrakor_selva:   {r:38,  g:108, b:58,  a:0.16, part:'#a9f0c0'},  // selva densa
-  fadrakor_vulcao:  {r:230, g:90,  b:40,  a:0.18, part:'#ffb070'},  // vulcao
-  repouso_dama:     {r:22,  g:44,  b:42,  a:0.10, part:'#a9f0c0'},  // mata fria esverdeada
-  planaltos_ermais: {r:150, g:170, b:190, a:0.10, part:'#dfeaf2'},  // planalto frio, neblina clara
-  floresta_ermo:    {r:16,  g:36,  b:28,  a:0.14, part:'#9fe0b0'},  // mata fechada, breu esverdeado (Ilex)
-  bosque_atalech:   {r:12,  g:28,  b:30,  a:0.16, part:'#a7d8e0'},  // floresta negra alema: frio, sombrio, neblina azulada
-  brasal:           {r:235, g:80,  b:25,  a:0.15, part:'#ffb070'},  // a Ferida do Mundo: ar de brasa
-  goela_1:          {r:120, g:45,  b:15,  a:0.32, part:'#ff9a50'},  // goela: penumbra de forja
-  goela_2:          {r:135, g:45,  b:12,  a:0.36, part:'#ff8a40'},  // mais fundo, mais quente
-  covil_krezath:    {r:255, g:70,  b:20,  a:0.34, part:'#ffab60'},  // o covil: calor do Devorador
+  fadrakor_litoral: {r:120, g:190, b:222, a:0.1, part:'#cfeeff'},  // litoral
+  fadrakor_selva:   {r:38,  g:108, b:58,  a:0.12, part:'#a9f0c0'},  // selva densa
+  fadrakor_vulcao:  {r:230, g:90,  b:40,  a:0.12, part:'#ffb070'},  // vulcao
+  repouso_dama:     {r:22,  g:44,  b:42,  a:0.1, part:'#a9f0c0'},  // mata fria esverdeada
+  planaltos_ermais: {r:150, g:170, b:190, a:0.1, part:'#dfeaf2'},  // planalto frio, neblina clara
+  floresta_ermo:    {r:16,  g:36,  b:28,  a:0.12, part:'#9fe0b0'},  // mata fechada, breu esverdeado (Ilex)
+  bosque_atalech:   {r:12,  g:28,  b:30,  a:0.12, part:'#a7d8e0'},  // floresta negra alema: frio, sombrio, neblina azulada
+  brasal:           {r:235, g:80,  b:25,  a:0.12, part:'#ffb070'},  // a Ferida do Mundo: ar de brasa
+  goela_1:          {r:120, g:45,  b:15,  a:0.12, part:'#ff9a50'},  // goela: penumbra de forja
+  goela_2:          {r:135, g:45,  b:12,  a:0.12, part:'#ff8a40'},  // mais fundo, mais quente
+  covil_krezath:    {r:255, g:70,  b:20,  a:0.12, part:'#ffab60'},  // o covil: calor do Devorador
   costa_maravai:    {r:255, g:210, b:130, a:0.05, part:'#f6dfa8'},  // sol dourado da costa
-  umbraval:         {r:14,  g:18,  b:52,  a:0.44, part:'#9ad0ff'},  // NOITE ETERNA: azul profundo
-  vespera:          {r:110, g:16,  b:30,  a:0.30, part:'#c9a0b0'},  // a Cidade Morta: sangue velho
+  umbraval:         {r:14,  g:18,  b:52,  a:0.12, part:'#9ad0ff'},  // NOITE ETERNA: azul profundo
+  vespera:          {r:110, g:16,  b:30,  a:0.12, part:'#c9a0b0'},  // a Cidade Morta: sangue velho
 };
 // mapas "magicos": as motas de ambiente brilham (faiscas etereas) mesmo de dia
 const GLOW_MAPS = new Set(['valdarkram','salao','rasharan','valoran','fundamento','falanor','fadrakor_vulcao','torre_andar1','torre_andar2','torre_andar3','camara_varth','goela_1','goela_2','covil_krezath','umbraval','vespera']);
@@ -445,6 +458,11 @@ const INT_THEMES = {
   casa_naiara:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a7a8a', kind:'quarto'},
   casa_caio:     {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e0865a', kind:'quarto'},
   casa_baixa:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a842', kind:'quarto'},
+  casinha_norte: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a7a8a', kind:'quarto'},
+  casinha_leste: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a7a8a', kind:'quarto'},
+  casinha_sul:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a7a8a', kind:'quarto'},
+  casa_dora:     {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#7ac06a', kind:'quarto'},
+  celeiro_colheita: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e8c860', kind:'loja'},
   cortico_baixa: {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#e0865a', kind:'quarto'},
   restaurante_jacquard: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e8c860', kind:'marmore'},
   torre_conclave:     {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#e8c860', kind:'marmore'},
@@ -1375,6 +1393,12 @@ function drawPlateauTile(c, ch, px, py, ts, gx, gy){
 }
 
 function drawTile(c, ch, px, py, ts, gx, gy){
+  try{ _drawTileInner(c, mapName, ch, px, py, ts, gx, gy); }catch(_e){
+    c.fillStyle = '#6f9854'; c.fillRect(px, py, ts, ts);
+    if(!window.__tileErr){ window.__tileErr = 1; _showErrBanner('tile ' + ch + '@' + mapName + ': ' + _e.message); }
+  }
+}
+function _drawTileInner(c, mapName, ch, px, py, ts, gx, gy){
   if(mapName === 'vinhedo' && ch === 'w'){
     c.fillStyle = (gx + gy) % 2 ? '#79a25c' : '#6f9854';
     c.fillRect(px, py, ts, ts);
@@ -5132,12 +5156,12 @@ function drawWitch(c, sx, sy, ts, p){
 }
 
 const SPIRIT_KIND = {
-  alma_errante: {body:'#cdd8ff', glow:'rgba(190,210,255,', eye:'#bfe0ff', a:0.70, face:'soft'},
-  assombracao:  {body:'#9fd8b0', glow:'rgba(120,210,150,', eye:'#d8ffe0', a:0.68, face:'soft'},
-  espectro:     {body:'#c9ccd6', glow:'rgba(200,205,220,', eye:'#ff5a5a', a:0.82, face:'skull'},
-  vulto:        {body:'#1b1a26', glow:'rgba(120,70,170,',  eye:'#b06bff', a:0.92, face:'void'},
-  alma_penada:  {body:'#c8a6e0', glow:'rgba(180,120,220,', eye:'#ffe070', a:0.74, face:'wail'},
-  aparicao_sepulcral: {body:'#aeb6c0', glow:'rgba(150,170,190,', eye:'#9fe0ff', a:0.78, face:'wail'},
+  alma_errante: {body:'#cdd8ff', glow:'rgba(190,210,255,', eye:'#bfe0ff', a:0.12, face:'soft'},
+  assombracao:  {body:'#9fd8b0', glow:'rgba(120,210,150,', eye:'#d8ffe0', a:0.12, face:'soft'},
+  espectro:     {body:'#c9ccd6', glow:'rgba(200,205,220,', eye:'#ff5a5a', a:0.12, face:'skull'},
+  vulto:        {body:'#1b1a26', glow:'rgba(120,70,170,',  eye:'#b06bff', a:0.12, face:'void'},
+  alma_penada:  {body:'#c8a6e0', glow:'rgba(180,120,220,', eye:'#ffe070', a:0.12, face:'wail'},
+  aparicao_sepulcral: {body:'#aeb6c0', glow:'rgba(150,170,190,', eye:'#9fe0ff', a:0.12, face:'wail'},
 };
 function drawSpirit(c, sx, sy, ts, p){
   const cx = sx + ts/2, t = performance.now();
@@ -5479,7 +5503,7 @@ function drawItemIcon(c, cx, cy, size, itemId, glow){
 //  + luz divina do Pofnir. Tudo desenhado por cima no frame(), sem mexer nos
 //  tiles ja assados nem na arte dos personagens.
 // ===========================================================================
-function isNightish(t){ if(typeof mapName !== 'undefined' && (mapName === 'umbraval' || mapName === 'vespera')) return true; return t < 0.24 || t > 0.72; }   // crepusculo/noite (Umbraval e Véspera: noite ETERNA)
+function isNightish(t){ return false; }   // ⚠️ REGRA DO MOON: escuridão visual BANIDA em TODOS os mapas   // crepusculo/noite (Umbraval e Véspera: noite ETERNA)
 
 function entityShadow(c, sx, sy, ts, p){
   // personagens e monstros ja desenham sombra propria; aqui so os bichos que faltavam
@@ -5628,11 +5652,11 @@ function drawVignette(c){
 // ---- NÉVOA RASTEIRA (rework visual): lençóis de bruma que derivam devagar ----
 // dá VOLUME e mistério aos mapas sombrios; desenhada POR CIMA das entidades.
 const MAP_FOG = {
-  valdarkram:       {hue:'166,186,200', a:0.070, n:5},   // bruma fria do cemitério
-  bosque_atalech:   {hue:'150,190,200', a:0.080, n:5},   // floresta negra: neblina azulada
+  valdarkram:       {hue:'166,186,200', a:0.07, n:5},   // bruma fria do cemitério
+  bosque_atalech:   {hue:'150,190,200', a:0.08, n:5},   // floresta negra: neblina azulada
   planaltos_ermais: {hue:'210,225,240', a:0.055, n:4},   // neblina clara de altitude
-  floresta_ermo:    {hue:'140,190,150', a:0.040, n:3},   // hálito verde da mata fechada
-  camara_varth:     {hue:'150,90,200',  a:0.060, n:4},   // miasma necrótico do trono
+  floresta_ermo:    {hue:'140,190,150', a:0.04, n:3},   // hálito verde da mata fechada
+  camara_varth:     {hue:'150,90,200',  a:0.06, n:4},   // miasma necrótico do trono
   mina_avhur:       {hue:'190,160,90',  a:0.045, n:3},   // pó dourado suspenso da tumba
   brasal:           {hue:'70,50,45',    a:0.075, n:5},   // fumaça da Ferida do Mundo
   covil_krezath:    {hue:'255,120,50',  a:0.055, n:4},   // ondas de calor do covil
@@ -6410,7 +6434,7 @@ function frame(now){
   if(mapName === 'repouso_dama'){
     const me = players.get(myId);
     const depth = me ? Math.max(0, Math.min(1, me.x / 100)) : 0.3;
-    const g = 0.20 + depth * 0.5;                 // 0.20 na boca -> ~0.70 na clareira
+    const g = 0.10;                               // REGRA DO MOON: sem breu
     ctx.fillStyle = 'rgba(6,9,14,' + g.toFixed(2) + ')';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }

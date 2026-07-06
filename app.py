@@ -112,6 +112,9 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "torre_conclave": "Salão do Conclave", "torre_observatorio": "O Observatório",
               "torre_escritorio": "Escritório do Arquimago", "torre_terraco": "Terraço da Alvorada",
               "mansao_prosperi": "Mansão Prosperi",
+              "casinha_norte": "Casinha do Norte", "casinha_leste": "Casinha do Leste",
+              "casinha_sul": "Casinha do Sul", "casa_dora": "Casa da Dora",
+              "celeiro_colheita": "Celeiro da Colheita",
               "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
               "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
               "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
@@ -192,7 +195,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v28: HOTFIX login + barra 6-0 blindada (06/jul)"
+BUILD_TAG = "v30: LUZ TOTAL - noite visual banida + tiles blindados + banner de erro (06/jul)"
 
 
 def _asset_version():
@@ -2932,6 +2935,16 @@ CASAS_ILHA = [
      "dest": "casa_baixa", "dx": 7, "dy": 6, "bx": 18, "by": 22},
     {"mapa": "baixa_da_egua", "cx": 31, "cy": 22, "w": 8, "h": 3,
      "dest": "cortico_baixa", "dx": 8, "dy": 6, "bx": 34, "by": 26},
+    {"mapa": "vilalbina", "cx": 3, "cy": 3, "w": 5, "h": 3,
+     "dest": "casinha_norte", "dx": 5, "dy": 4, "bx": 5, "by": 7},
+    {"mapa": "vilalbina", "cx": 37, "cy": 9, "w": 4, "h": 3,
+     "dest": "casinha_leste", "dx": 5, "dy": 4, "bx": 39, "by": 13},
+    {"mapa": "vilalbina", "cx": 10, "cy": 20, "w": 4, "h": 3,
+     "dest": "casinha_sul", "dx": 5, "dy": 4, "bx": 12, "by": 24},
+    {"mapa": "trigal_dourado", "cx": 38, "cy": 25, "w": 6, "h": 4,
+     "dest": "casa_dora", "dx": 6, "dy": 6, "bx": 41, "by": 30},
+    {"mapa": "pastos", "cx": 31, "cy": 20, "w": 10, "h": 6,
+     "dest": "celeiro_colheita", "dx": 8, "dy": 8, "bx": 36, "by": 27},
     {"mapa": "vilalbina", "cx": 3, "cy": 15, "w": 5, "h": 3,
      "dest": "casa_bibi", "dx": 6, "dy": 5, "bx": 5, "by": 19},
     {"mapa": "vilalbina", "cx": 10, "cy": 3, "w": 4, "h": 3,
@@ -5614,6 +5627,12 @@ def on_interact(_data=None):
                 room=player.get("map"))
         return True
 
+    if npc.get("id") == "npc:bito_ferradura":
+        _open_shop(player, npc, "Forja do Bito — equipamento fino", items.TIER_SETS["t2"],
+                   getattr(items, "TIER_PRICE", {}).get("t2", 140) if hasattr(items, "TIER_PRICE") else 140,
+                   potions=[])
+        return
+
     if npc.get("id") == "npc:chef_jacquard":
         _open_shop(player, npc, "Menu Jacquard ✶✶✶✶✶✶", [],
                    0, potions=[("bife_ancho", 350), ("petit_gateau", 180), ("hidromel", 120)])
@@ -5646,9 +5665,9 @@ def on_interact(_data=None):
                    potions=[("isca_viva", 25)])
         return
     if npc.get("id") == "npc:otto":
-        _open_shop(player, npc, "Empório do Otto", items.TIER_SETS["t2"],
-                   getattr(items, "TIER_PRICE", {}).get("t2", 140) if hasattr(items, "TIER_PRICE") else 140,
-                   potions=[("caneca_de_cerveja", 55)])
+        _open_shop(player, npc, "Empório do Otto — utilidades e mantimentos", [],
+                   0, potions=[("pocao_vida", 60), ("caneca_de_cerveja", 55), ("hidromel", 120),
+                               ("peixe_assado", 30), ("carne_caca", 40), ("pao_quente", 12)])
         return
 
     # QUADRO DE PROCURADOS: contratos da cidade (rotação de 6h)
