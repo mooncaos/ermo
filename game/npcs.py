@@ -1449,7 +1449,8 @@ ROSTER.append({
     "look": {"skin": "#c9b090", "cloak": "#f2c14e", "hat": "none", "hair": "#e8e8e8", "staff": True},
     "map": "templo_estrelado", "home": (16, 4), "radius": 1, "wanders": True,
     "step_every": 3.4, "solid": True, "kind": "person",
-    "greetings": ['Pofnir vê. Pofnir SEMPRE vê. E se preocupa com tudo. Como eu. Que honra pesada.', '*deixando um pires de leite* Pra... um amigo. Qualquer amigo branco que aparecer.', 'Uma vela por cada nascimento. A ala das velas está QUASE cheia. Bom sinal. Ou péssimo. AI.', 'Dormi duas horas. Sonhei com ameaças que ainda não existem. Anotei todas.', 'O Supremo é um gato branco e grande. Rir disso é heresia. E burrice.'],
+    "greetings": ['O menino Caio deu leite pro gato branco errado. ERRADO como? TODO gato branco é o certo. AI.',
+                  'Pofnir vê. Pofnir SEMPRE vê. E se preocupa com tudo. Como eu. Que honra pesada.', '*deixando um pires de leite* Pra... um amigo. Qualquer amigo branco que aparecer.', 'Uma vela por cada nascimento. A ala das velas está QUASE cheia. Bom sinal. Ou péssimo. AI.', 'Dormi duas horas. Sonhei com ameaças que ainda não existem. Anotei todas.', 'O Supremo é um gato branco e grande. Rir disso é heresia. E burrice.'],
 })
 ROSTER.append({
     "id": "npc:sumo_vargo", "name": "Suma Morwen",
@@ -1491,7 +1492,8 @@ ROSTER.append({
     "look": {"skin": "#c9b090", "cloak": "#8a7ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
     "map": "templo_estrelado", "home": (16, 25), "radius": 1, "wanders": True,
     "step_every": 3.4, "solid": True, "kind": "person",
-    "greetings": ['O Corvo esteve em todos os mundos. E fofoca sobre todos. Fofocar é LITURGIA.', 'Você chegou pela travessia, comprou na Rosa e olhou torto pro Otto. Eu SEI. Eu sempre sei.', '*um corvo pousa e crocita no ouvido dela* ...INTERESSANTE. Continue.', 'Se um corvo te encarar hoje... sorria. Ele conta pra Ele.', 'Segredo é oferenda. Me conta um e os deuses sorriem. Principalmente o meu.'],
+    "greetings": ["A Pluma... digo, EU soube que o Henri chamou o vinho litúrgico de 'suco abençoado'. O Celestino RIU.",
+                  'O Corvo esteve em todos os mundos. E fofoca sobre todos. Fofocar é LITURGIA.', 'Você chegou pela travessia, comprou na Rosa e olhou torto pro Otto. Eu SEI. Eu sempre sei.', '*um corvo pousa e crocita no ouvido dela* ...INTERESSANTE. Continue.', 'Se um corvo te encarar hoje... sorria. Ele conta pra Ele.', 'Segredo é oferenda. Me conta um e os deuses sorriem. Principalmente o meu.'],
 })
 ROSTER.append({
     "id": "npc:sumo_valiria", "name": "Suma Clara",
@@ -1535,7 +1537,8 @@ ROSTER.append({
     "look": {"skin": "#c9a06a", "cloak": "#4a6ab0", "hat": "none", "hood": "down", "hair": "#2a2a3a", "staff": True, "outfit": "mago_alvorada", "addons": [1, 2], "sex": "F"},
     "map": "torre_alvorada", "home": (6, 5), "radius": 2, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
-    "greetings": ["O Heron lidera. Eu organizo. O Conclave anda porque ALGUÉM lembra das chaves.",
+    "greetings": ["A Cecille fez a biblioteca 'parecer maior'. Agora ninguém acha a seção de história. PARABÉNS, Cecille.",
+                  "O Heron lidera. Eu organizo. O Conclave anda porque ALGUÉM lembra das chaves.",
                   "A magia me escolheu aos sete anos. Levei vinte pra parar de pedir desculpas por isso.",
                   "A cadeira do Cronista? Não toque. É dele. Será dele. O Heron acredita, então eu acredito.",
                   "Aqui ninguém pergunta de onde veio o seu dom. Só o que você fará com ele."],
@@ -1577,7 +1580,8 @@ ROSTER.append({
     "look": {"skin": "#a8845c", "cloak": "#4a7a8a", "hat": "none", "hair": "#1a1a20", "staff": False},
     "map": "vilalbina", "home": (14, 22), "radius": 4, "wanders": True,
     "step_every": 2.4, "solid": True, "kind": "person",
-    "greetings": ["O mar deu pouco hoje. O mar sabe o que faz. Eu é que não.",
+    "greetings": ['O Bruno trocou pão por peixe comigo. Melhor negócio da ilha. Não conta pro Otto.',
+                  "O mar deu pouco hoje. O mar sabe o que faz. Eu é que não.",
                   "O Tião jura que o peixe-rei existe. Quarenta anos jurando. Eu quase acredito.",
                   "Remendo rede melhor que muito marido remenda promessa."],
 })
@@ -1586,7 +1590,8 @@ ROSTER.append({
     "look": {"skin": "#e0c9a8", "cloak": "#c9b090", "hat": "none", "hair": "#6a4a2a", "staff": False},
     "map": "vilalbina", "home": (8, 8), "radius": 3, "wanders": True,
     "step_every": 2.8, "solid": True, "kind": "person",
-    "greetings": ["Pão quentinho! O trigo do Trigal, o fermento é segredo, o cheiro é de graça.",
+    "greetings": ['A Suma Clara elogiou meu pão. EU SEI que o dela é melhor. Santa E diplomata.',
+                  "Pão quentinho! O trigo do Trigal, o fermento é segredo, o cheiro é de graça.",
                   "A Suma Clara também faz pão de madrugada. Concorrência SANTA é a pior que tem.",
                   "Farinha na roupa não é sujeira. É uniforme."],
 })
@@ -1604,7 +1609,8 @@ ROSTER.append({
     "look": {"skin": "#a8845c", "cloak": "#3a4a5a", "hat": "cap", "hair": "#2a2a2a", "staff": False},
     "map": "prospera", "home": (38, 20), "radius": 5, "wanders": True,
     "step_every": 3.2, "solid": True, "kind": "person",
-    "greetings": ["Sem correria na praça. A fonte é da cidade, o mergulho é multa.",
+    "greetings": ['O menino Caio atravessou a praça em oito segundos. Recorde. Multei. Ele emoldurou a multa.',
+                  "Sem correria na praça. A fonte é da cidade, o mergulho é multa.",
                   "Lady Diana passa às seis. TUDO tem que estar perfeito às cinco e meia.",
                   "Ronda tranquila. Em Prospera até os pombos respeitam a fila."],
 })
@@ -1631,7 +1637,8 @@ ROSTER.append({
     "look": {"skin": "#a8845c", "cloak": "#c9a05a", "hat": "none", "hair": "#6a5a3a", "staff": False},
     "map": "trigal_dourado", "home": (18, 12), "radius": 5, "wanders": True,
     "step_every": 2.8, "solid": True, "kind": "person",
-    "greetings": ["O trigo cresceu numa noite, dizem. O MEU cresce em quatro meses e com reza.",
+    "greetings": ["O Lorde Fadogan mói minha colheita de graça 'entre vizinhos'. Nobreza é isso: renda alheia.",
+                  "O trigo cresceu numa noite, dizem. O MEU cresce em quatro meses e com reza.",
                   "O Rei Marth veio aqui uma vez. Conversou com a plantação. A plantação MELHOROU. Não questiono.",
                   "Espantalho novo. O corvo pousa NELE agora. Acho que virou amizade."],
 })
@@ -1640,13 +1647,95 @@ ROSTER.append({
     "look": {"skin": "#c9a06a", "cloak": "#7a8a5a", "hat": "none", "hair": "#d8d8d8", "staff": True},
     "map": "pastos", "home": (26, 16), "radius": 5, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
-    "greetings": ["Ovelha não foge. Ovelha EXPLORA. Quem foge é o meu sossego.",
+    "greetings": ['A Suma Iara assobia e o lobo VAI EMBORA. Eu assobio e as ovelhas RIEM. Cada um com seu dom.',
+                  "Ovelha não foge. Ovelha EXPLORA. Quem foge é o meu sossego.",
                   "O lobo negro rondou ontem. Assobiei o assobio da Iara. Ele foi embora. Ela ensina isso, sabia?",
                   "Céu limpo, capim alto, ninguém gritando meu nome. Dia perfeito."],
 })
 
 # ============ O SEGUNDO POVOAMENTO (rodada de julho/2026) ============
 # --- Vilalbina: a rendeira-pirata, o filósofo e o mosteiro ---
+ROSTER.append({"id": "npc:mestre_fanfarrao", "name": "Mestre Fanfarrão, o Cerimonialista",
+    "look": {"skin": "#c9a06a", "cloak": "#c9a842", "hat": "cap", "hood": "down", "hair": "#3a2a1a", "staff": False},
+    "map": "feirao_sao_celeste", "home": (24, 6), "radius": 5, "wanders": True, "step_every": 2.4,
+    "solid": True, "kind": "person",
+    "greetings": ["BEM-VINDOS AO FEIRÃO DE SÃO CELESTE! Hoje não tem evento. Mas o ANÚNCIO foi lindo, não foi?",
+                  "Feiras! Campeonatos! Festivais! Tudo acontecerá NESTE palco. Um dia. Em breve. Confia.",
+                  "São Celeste, o padroeiro: dizem que era um gato. Dizem que era um santo. Dizem MUITO.",
+                  "O palco está pronto, as tendas estão prontas, EU estou pronto. Só falta... o evento."],
+})
+ROSTER.append({"id": "npc:seu_juvenal", "name": "Seu Juvenal do Sobrado",
+    "look": {"skin": "#a8845c", "cloak": "#7a2e3a", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": False},
+    "map": "baixa_da_egua", "home": (18, 16), "radius": 4, "wanders": True, "step_every": 3.0,
+    "solid": True, "kind": "person",
+    "greetings": ["Aqui é a Baixa, meu amigo. Quebrada RAIZ. Meu sobrado só tem mármore no primeiro E no segundo andar.",
+                  "A Cidade Alta olha pra gente de cima. Geograficamente. Financeiramente somos SÓCIOS.",
+                  "Nasci aqui, fiquei rico aqui, morro aqui. Com vista pro haras e adega climatizada, mas AQUI."],
+})
+ROSTER.append({"id": "npc:dona_rita", "name": "Dona Rita das Éguas",
+    "look": {"skin": "#c9a06a", "cloak": "#4a6a3a", "hat": "none", "hood": "down", "hair": "#3a2a1a", "staff": False},
+    "map": "baixa_da_egua", "home": (38, 9), "radius": 3, "wanders": True, "step_every": 2.8,
+    "solid": True, "kind": "person",
+    "greetings": ["O bairro tem meu nome. Quer dizer, das minhas éguas. Mesma coisa.",
+                  "A corte inteira monta cavalo MEU. A Lady Diana cavalga uma cria da Estrela. Eu criei as duas.",
+                  "Égua boa é que nem fofoca boa: pura, veloz e todo mundo quer."],
+})
+ROSTER.append({"id": "npc:bito_ferradura", "name": "Bito Ferradura",
+    "look": {"skin": "#b09070", "cloak": "#3a3a4a", "hat": "cap", "hood": "down", "hair": "#2a1a10", "staff": False},
+    "map": "baixa_da_egua", "home": (30, 16), "radius": 4, "wanders": True, "step_every": 2.4,
+    "solid": True, "kind": "person",
+    "greetings": ["Ferro casco de égua de ouro. Literalmente: a Dona Rita pediu ferradura BANHADA.",
+                  "Na Baixa a gente se cumprimenta pelo nome e se mede pelo estábulo.",
+                  "Subir pra Cidade Alta? Pra quê? Aqui o ar cheira a feno e dinheiro."],
+})
+ROSTER.append({"id": "npc:nega_luzia", "name": "Nega Luzia, a Doceira da Baixa",
+    "look": {"skin": "#6a4a34", "cloak": "#e05a8a", "hat": "none", "hood": "down", "hair": "#1a1a20", "staff": False},
+    "map": "baixa_da_egua", "home": (12, 12), "radius": 4, "wanders": True, "step_every": 2.6,
+    "solid": True, "kind": "person",
+    "greetings": ["Doce da Baixa é doce de verdade: açúcar, capricho e uma pitada de deboche.",
+                  "Tem gente FINA de Prospera que manda buscar doce aqui escondido. Toda semana. Anônimo. Sei quem é.",
+                  "Rica eu? Sou. Mas doce bom não se faz com dinheiro, se faz com braço."],
+})
+ROSTER.append({"id": "npc:coelho_fofo", "name": "Fofo",
+    "look": {"skin": "#d8d0c0", "cloak": "#d8d0c0", "hat": "none", "hood": "down", "hair": "#d8d0c0", "staff": False},
+    "map": "jardim_templo", "home": (20, 20), "radius": 7, "wanders": True, "step_every": 1.2,
+    "solid": False, "kind": "rabbit",
+    "greetings": ["*mexe o nariz em altíssima frequência*", "*congela. te encara. some.*"],
+})
+ROSTER.append({"id": "npc:coelha_tufo", "name": "Tufo",
+    "look": {"skin": "#a8845c", "cloak": "#a8845c", "hat": "none", "hood": "down", "hair": "#a8845c", "staff": False},
+    "map": "jardim_templo", "home": (34, 34), "radius": 7, "wanders": True, "step_every": 1.3,
+    "solid": False, "kind": "rabbit",
+    "greetings": ["*rouba um trevo e foge com orgulho*", "*a Suma Sorte já tentou apostar corrida com ela. Perdeu.*"],
+})
+ROSTER.append({"id": "npc:cao_bilau", "name": "Bilau",
+    "look": {"skin": "#a8845c", "cloak": "#a8845c", "hat": "none", "hood": "down", "hair": "#a8845c", "staff": False},
+    "map": "vilalbina", "home": (16, 20), "radius": 8, "wanders": True, "step_every": 1.4,
+    "solid": False, "kind": "dog",
+    "greetings": ["*abana o rabo com o corpo inteiro*", "Au! *te acompanha por três passos e desiste*",
+                  "*fareja seu bolso com esperança profissional*"],
+})
+ROSTER.append({"id": "npc:galinha_cocota", "name": "Cocota",
+    "look": {"skin": "#e8e0d0", "cloak": "#e8e0d0", "hat": "none", "hood": "down", "hair": "#e8e0d0", "staff": False},
+    "map": "pastos", "home": (22, 18), "radius": 5, "wanders": True, "step_every": 1.8,
+    "solid": False, "kind": "chicken",
+    "greetings": ["Có? *te olha de lado, julgando*", "Có có CÓ! *anúncio importante sobre nada*"],
+})
+ROSTER.append({"id": "npc:galinha_nini", "name": "Nini",
+    "look": {"skin": "#c9803a", "cloak": "#c9803a", "hat": "none", "hood": "down", "hair": "#c9803a", "staff": False},
+    "map": "pastos", "home": (28, 20), "radius": 5, "wanders": True, "step_every": 2.0,
+    "solid": False, "kind": "chicken",
+    "greetings": ["*cisca com a dedicação de quem paga boleto*", "Có. *é tudo que você merece hoje*"],
+})
+ROSTER.append({"id": "npc:madre_aurora", "name": "Madre Aurora, Abadessa do Mosteiro",
+    "look": {"skin": "#c9b090", "cloak": "#e8e0d0", "hat": "none", "hood": "up", "hair": "#d8d8d8", "staff": False},
+    "map": "mosteiro_celeste", "home": (6, 3), "radius": 2, "wanders": True, "step_every": 3.6,
+    "solid": True, "kind": "person",
+    "greetings": ["Quarenta anos decorando os nomes dos Doze. Meus noviços erram TODOS. Eu respiro. Fundo.",
+                  "O Simão chamou Facalan de 'Falacan' na oração. A vela APAGOU sozinha. Coincidência? Reze que sim.",
+                  "Disciplina é amor com horário. Aqui se acorda com a aurora e se agradece por ela.",
+                  "A Flor tem dom. O Simão tem fé. Juntos dão UM noviço completo. Os Doze sabem o que fazem."],
+})
 ROSTER.append({"id": "npc:dona_ceci", "name": "Dona Ceci, mãe do Caio",
     "look": {"skin": "#c9a06a", "cloak": "#8a5a4a", "hat": "none", "hood": "down", "hair": "#3a2a1a", "staff": False},
     "map": "casa_caio", "home": (4, 4), "radius": 3, "wanders": True, "step_every": 2.8,
@@ -1668,7 +1757,7 @@ ROSTER.append({"id": "npc:dona_bibi", "name": "Dona Bibi, a Rendeira",
         "*olhando o mar escuro* Certas bandeiras a gente arria, mas nunca esquece."]})
 ROSTER.append({"id": "npc:lita", "name": "Lita, neta da Bibi",
     "look": {"skin": "#b09070", "cloak": "#8a5a8a", "hat": "none", "hood": "down", "hair": "#2a1a10", "staff": False, "sex": "F"},
-    "map": "vilalbina", "home": (10, 21), "radius": 4, "wanders": True, "step_every": 2.0,
+    "map": "vilalbina", "home": (15, 23), "radius": 4, "wanders": True, "step_every": 2.0,
     "solid": True, "kind": "person",
     "greetings": ["A vó diz que nunca foi pirata. Aí canta música de abordagem pra me ninar.",
         "Um dia eu costuro igual ela. Por ora, desmancho igual ninguém.",
@@ -1914,7 +2003,7 @@ ROSTER.append({"id": "npc:fadogan", "name": "Lorde Fadogan, o Moleiro Nobre",
         "O Rei Marth conversa com o trigo. Eu MOO o trigo. Ele planta a poesia; eu, o pão."]})
 ROSTER.append({"id": "npc:grum", "name": "Grum, o Capataz",
     "look": {"skin": "#a8845c", "cloak": "#5a4a34", "hat": "cap", "hood": "down", "hair": "#2a2a30", "staff": False, "sex": "M"},
-    "map": "trigal_dourado", "home": (12, 10), "radius": 5, "wanders": True, "step_every": 2.8,
+    "map": "trigal_dourado", "home": (12, 13), "radius": 5, "wanders": True, "step_every": 2.8,
     "solid": True, "kind": "person",
     "greetings": ["O Lorde diz 'colham com alegria'. Eu digo 'colham'. Funciona igual.",
         "Espantalho mudou de lugar de novo. NÃO olha pra mim. Eu não mexi. NINGUÉM mexe."]})
@@ -1960,7 +2049,7 @@ ROSTER.append({"id": "npc:gata_bruma", "name": "Bruma", "look": {"skin": "#8a8a9
     "map": "vilalbina", "home": (22, 10), "radius": 7, "wanders": True, "step_every": 1.8,
     "solid": False, "kind": "cat", "greetings": ["*te encara como se soubesse de algo* ...miau."]})
 ROSTER.append({"id": "npc:cao_almirante", "name": "Almirante", "look": {"skin": "#6a5a44", "cloak": "#6a5a44", "hat": "none", "hood": "down", "hair": "#6a5a44", "staff": False},
-    "map": "vilalbina", "home": (12, 20), "radius": 8, "wanders": True, "step_every": 1.2,
+    "map": "vilalbina", "home": (19, 22), "radius": 8, "wanders": True, "step_every": 1.2,
     "solid": False, "kind": "dog", "greetings": ["AU AU! *abana o rabo com patente de oficial*"]})
 ROSTER.append({"id": "npc:gato_duque", "name": "Duque", "look": {"skin": "#5a6a80", "cloak": "#5a6a80", "hat": "none", "hood": "down", "hair": "#5a6a80", "staff": False},
     "map": "prospera", "home": (40, 25), "radius": 7, "wanders": True, "step_every": 1.6,
@@ -1972,35 +2061,40 @@ ROSTER.append({
     "look": {"skin": "#c9a06a", "cloak": "#e05a6a", "hat": "none", "hair": "#3a2a1a", "staff": False},
     "map": "taverna_vilalbina", "home": (5, 1), "radius": 1, "wanders": True,
     "step_every": 2.6, "solid": True, "kind": "person",
-    "greetings": ['A melhor taverna do MUNDO. Anota aí. O Jorge que se cuide.', '*cantando desafinado* ...e o mar levouuu~ ...quê? Canto ótimo.', 'Cerveja gelada, peixe assado e fofoca fresca. O trio sagrado.', "O tio Baltazar vive me arrumando 'pretendente'. Eu vivo arrumando a taverna. Cada um com sua obra.", 'Prova o prato do dia. Se não for o melhor da tua vida, a próxima caneca é... pelo preço de sempre.', 'O Gaspar mora naquela mesa. Eu expulso, ele volta. Já é quase mobília. Mobília que FALA demais.'],
+    "greetings": ["O Gaspar bebeu e disse que a taverna do Jorge tem 'charme'. CHARME. Cortei a cerveja dele por uma hora.",
+                  'A melhor taverna do MUNDO. Anota aí. O Jorge que se cuide.', '*cantando desafinado* ...e o mar levouuu~ ...quê? Canto ótimo.', 'Cerveja gelada, peixe assado e fofoca fresca. O trio sagrado.', "O tio Baltazar vive me arrumando 'pretendente'. Eu vivo arrumando a taverna. Cada um com sua obra.", 'Prova o prato do dia. Se não for o melhor da tua vida, a próxima caneca é... pelo preço de sempre.', 'O Gaspar mora naquela mesa. Eu expulso, ele volta. Já é quase mobília. Mobília que FALA demais.'],
 })
 ROSTER.append({
     "id": "npc:tiao_iscas", "name": "Tião das Iscas",
     "look": {"skin": "#a8845c", "cloak": "#4a6a5a", "hat": "none", "hair": "#d8d8d8", "staff": False},
     "map": "iscas_cais", "home": (3, 1), "radius": 1, "wanders": True,
     "step_every": 3.2, "solid": True, "kind": "person",
-    "greetings": ['Isca viva, fresquinha. Colhida hoje. Ou ontem. Um dos dois.', 'Meu neto vai assumir a banca. Ele só não sabe ainda. Nem a mãe dele. Detalhes.', '*ronco leve, olhos abertos* ...tô acordado. Tô VIGIANDO.', 'O peixe-rei só morde com chuva. Ou foi com sol? Enfim: ele morde.', 'O Zé compra caixa fechada há quarenta anos. Ou trinta. Bons tempos aqueles, seja lá quando foram.'],
+    "greetings": ['A Naiara diz que meu peixe-rei não existe. A Bibi diz que já COSTUROU um. Confio na Bibi.',
+                  'Isca viva, fresquinha. Colhida hoje. Ou ontem. Um dos dois.', 'Meu neto vai assumir a banca. Ele só não sabe ainda. Nem a mãe dele. Detalhes.', '*ronco leve, olhos abertos* ...tô acordado. Tô VIGIANDO.', 'O peixe-rei só morde com chuva. Ou foi com sol? Enfim: ele morde.', 'O Zé compra caixa fechada há quarenta anos. Ou trinta. Bons tempos aqueles, seja lá quando foram.'],
 })
 ROSTER.append({
     "id": "npc:otto", "name": "Mercador Otto",
     "look": {"skin": "#c9b090", "cloak": "#5a4a8a", "hat": "none", "hair": "#8a6a3a", "staff": False},
     "map": "mercado_prospera", "home": (5, 1), "radius": 1, "wanders": True,
     "step_every": 2.8, "solid": True, "kind": "person",
-    "greetings": ['O Empório do Otto: se a ilha produz, eu vendo. Se não produz, eu importo.', '*pesando uma moeda* Hm. 0,3 gramas a menos. INTERESSANTE.', "Um dia abro filial no continente. 'Otto & Otto'. O segundo Otto sou eu também.", 'A senhora Diana em pessoa já pisou neste tapete. Eu não lavo mais o tapete. Brincadeira. Lavo.', 'Qualidade da capital, preço de... capital. Ora, estamos em Prospera!', 'O Dinis avaliou minha balança. Disse que pesa CERTO. Emoldurei o laudo.'],
+    "greetings": ['A Zélia vende fruta que CURA. Eu vendo armadura que PROTEGE. Prevenir, remediar... o cliente decide.',
+                  'O Empório do Otto: se a ilha produz, eu vendo. Se não produz, eu importo.', '*pesando uma moeda* Hm. 0,3 gramas a menos. INTERESSANTE.', "Um dia abro filial no continente. 'Otto & Otto'. O segundo Otto sou eu também.", 'A senhora Diana em pessoa já pisou neste tapete. Eu não lavo mais o tapete. Brincadeira. Lavo.', 'Qualidade da capital, preço de... capital. Ora, estamos em Prospera!', 'O Dinis avaliou minha balança. Disse que pesa CERTO. Emoldurei o laudo.'],
 })
 ROSTER.append({
     "id": "npc:rei_marth", "name": "Rei Avô Marth",
     "look": {"skin": "#c9a880", "cloak": "#c9a842", "hat": "none", "hood": "down", "hair": "#e8e8e8", "staff": True, "outfit": "x_marth", "sex": "M"},
     "map": "solar_prospera", "home": (8, 5), "radius": 1, "wanders": True,
     "step_every": 3.6, "solid": True, "kind": "person",
-    "greetings": ['Eu era criança quando me deram o Âmbar pra guardar. Criança. Imagina o medo.', '*falando com um pé de trigo* ...e foi isso que eu disse pra ela. Você entende, né?', 'Minha mãe sumiu numa noite sem lua. Se a encontrar... diga que o trigo está alto.', 'Onde eu piso e ORDENO, a terra produz. Mas a terra gosta mais de quem pede.', 'Meu filho não dorme. Minha filha não descansa. Eu plantei bem... eu acho.', 'O Fadogan MOI o que eu converso. Ele acha que discordamos. O pão acha que não.'],
+    "greetings": ['O Fadogan mói meu trigo há vinte anos. Nobre moendo pra rei. Só em Prosperina, meu amigo.',
+                  'Eu era criança quando me deram o Âmbar pra guardar. Criança. Imagina o medo.', '*falando com um pé de trigo* ...e foi isso que eu disse pra ela. Você entende, né?', 'Minha mãe sumiu numa noite sem lua. Se a encontrar... diga que o trigo está alto.', 'Onde eu piso e ORDENO, a terra produz. Mas a terra gosta mais de quem pede.', 'Meu filho não dorme. Minha filha não descansa. Eu plantei bem... eu acho.', 'O Fadogan MOI o que eu converso. Ele acha que discordamos. O pão acha que não.'],
 })
 ROSTER.append({
     "id": "npc:rainha_valesca", "name": "Rainha Avó Valesca",
     "look": {"skin": "#c9a880", "cloak": "#d8d2e0", "hat": "none", "hood": "down", "hair": "#d8d0c8", "staff": False, "outfit": "x_valesca", "sex": "F"},
     "map": "solar_prospera", "home": (11, 5), "radius": 1, "wanders": True,
     "step_every": 3.4, "solid": True, "kind": "person",
-    "greetings": ['Sente-se. Ninguém mente nesta sala. Nem tenta, é constrangedor.', 'O chá é às cinco. Guerras esperam. Impérios esperam. O chá, não.', 'Escrevo cartas que não envio. O papel aceita o que o correio não alcança.', 'Cordelia era a mais doce das duas crianças. Eu sei que ainda é. Onde quer que esteja.', 'Sinto falta de negociar. Uma última mesa, um último impasse... eu venceria, claro.'],
+    "greetings": ['Madame Valliet serve um chá... aceitável. O MEU é às cinco. O dela, quando dá. Diz tudo.',
+                  'Sente-se. Ninguém mente nesta sala. Nem tenta, é constrangedor.', 'O chá é às cinco. Guerras esperam. Impérios esperam. O chá, não.', 'Escrevo cartas que não envio. O papel aceita o que o correio não alcança.', 'Cordelia era a mais doce das duas crianças. Eu sei que ainda é. Onde quer que esteja.', 'Sinto falta de negociar. Uma última mesa, um último impasse... eu venceria, claro.'],
 })
 
 # A CÚPULA DE PROSPERINA
@@ -2009,28 +2103,32 @@ ROSTER.append({
     "look": {"skin": "#c9b090", "cloak": "#4a5568", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": True, "outfit": "x_heron", "sex": "M"},
     "map": "torre_alvorada", "home": (12, 2), "radius": 2, "wanders": True,
     "step_every": 2.6, "solid": True, "kind": "person",
-    "greetings": ['A cadeira na ponta da mesa está vazia. Está reservada. Sempre esteve.', 'No topo da torre cresce uma flor de Valdarkram. Eu a rego todo dia. Alguém precisa lembrar.', 'Varth foi meu amigo antes de ser o que é. O conhecimento não corrompe: a pressa sim.', 'O Conclave não busca poder. Busca um lugar pra quem a magia escolheu sem perguntar.', 'Marion nos enganou por anos dentro da Torre. Que talento. Que desperdício.', 'O jovem Elian engarrafou a alvorada. Eu disse que era pressa. Bebi. Pedi desculpas.'],
+    "greetings": ['O Tobias explodiu a estante três de novo. O Bramir não sabe. Que continue não sabendo.',
+                  'A cadeira na ponta da mesa está vazia. Está reservada. Sempre esteve.', 'No topo da torre cresce uma flor de Valdarkram. Eu a rego todo dia. Alguém precisa lembrar.', 'Varth foi meu amigo antes de ser o que é. O conhecimento não corrompe: a pressa sim.', 'O Conclave não busca poder. Busca um lugar pra quem a magia escolheu sem perguntar.', 'Marion nos enganou por anos dentro da Torre. Que talento. Que desperdício.', 'O jovem Elian engarrafou a alvorada. Eu disse que era pressa. Bebi. Pedi desculpas.'],
 })
 ROSTER.append({
     "id": "npc:lorde_dante", "name": "Lorde Prosperi Dante",
     "look": {"skin": "#b09070", "cloak": "#2e3a52", "hat": "none", "hood": "down", "hair": "#3a3226", "staff": False, "outfit": "x_dante", "sex": "M"},
     "map": "farol_margem", "home": (24, 17), "radius": 1, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
-    "greetings": ['Ainda não. Ninguém entra no farol. NINGUÉM.', 'Durmo pouco. O farol não dorme; por que eu dormiria?', '*olheiras fundas* Treinei a noite toda. Contra quem? ...contra mim.', 'Às vezes, lá dentro... esquece. O vento engana os ouvidos. SÓ o vento.', 'Escrevo um diário. Meu pai vai ler. Um dia. Quando eu descansar.'],
+    "greetings": ['Minha irmã manda doces anônimos. Todo mundo sabe. Ninguém conta. Prospera é assim.',
+                  'Ainda não. Ninguém entra no farol. NINGUÉM.', 'Durmo pouco. O farol não dorme; por que eu dormiria?', '*olheiras fundas* Treinei a noite toda. Contra quem? ...contra mim.', 'Às vezes, lá dentro... esquece. O vento engana os ouvidos. SÓ o vento.', 'Escrevo um diário. Meu pai vai ler. Um dia. Quando eu descansar.'],
 })
 ROSTER.append({
     "id": "npc:lady_diana", "name": "Lady da Alvorada Diana",
     "look": {"skin": "#c9a880", "cloak": "#7a2e3a", "hat": "none", "hood": "down", "hair": "#4a2e1a", "staff": False, "outfit": "x_diana", "sex": "F"},
     "map": "prospera", "home": (43, 27), "radius": 2, "wanders": True,
     "step_every": 2.4, "solid": True, "kind": "person",
-    "greetings": ['Prospera vai brilhar mais do que Valdarkram JAMAIS brilhou. Anote.', 'Dizem que meu olhar pesa. Ótimo. Coroas pesam; olhares que as merecem também.', 'Cavalgo sozinha ao amanhecer. A cidade acordando é o único conselheiro honesto.', 'Minhas rosas? Impossíveis. Floresceram mesmo assim. Aprenda com elas.', 'Meu irmão guarda o farol há tempo demais. Um dia eu o liberto. Um dia.'],
+    "greetings": ['O Otto pesou minha moeda na MINHA frente. Atrevido. Contratei ele pra pesar as do tesouro.',
+                  'Prospera vai brilhar mais do que Valdarkram JAMAIS brilhou. Anote.', 'Dizem que meu olhar pesa. Ótimo. Coroas pesam; olhares que as merecem também.', 'Cavalgo sozinha ao amanhecer. A cidade acordando é o único conselheiro honesto.', 'Minhas rosas? Impossíveis. Floresceram mesmo assim. Aprenda com elas.', 'Meu irmão guarda o farol há tempo demais. Um dia eu o liberto. Um dia.'],
 })
 ROSTER.append({
     "id": "npc:celestino", "name": "Arcebispo Rei Celestino",
     "look": {"skin": "#c9a880", "cloak": "#f0ead8", "hat": "none", "hood": "down", "hair": "#e8e8e8", "staff": False, "outfit": "x_celestino", "sex": "M"},
     "map": "templo_estrelado", "home": (16, 15), "radius": 1, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
-    "greetings": ['QUE OS DOZE TE OLHEM! ...perdão, a voz. Ela vem antes de mim.', 'Doze cultos, uma paz. É como reger doze corais cantando hinos diferentes. Eu amo. Eu sofro. Eu amo.', 'Este vinho? Estritamente litúrgico. A liturgia de hoje foi... generosa.', 'Faço vitrais em miniatura. As mãos rezam melhor quando ocupadas.', 'Um dia o mundo inteiro conhecerá os Doze. Começando por você, forasteiro.'],
+    "greetings": ['A Madre Aurora rege aquele mosteiro com mão de ferro e coração de vitral. Os Doze a estimam.',
+                  'QUE OS DOZE TE OLHEM! ...perdão, a voz. Ela vem antes de mim.', 'Doze cultos, uma paz. É como reger doze corais cantando hinos diferentes. Eu amo. Eu sofro. Eu amo.', 'Este vinho? Estritamente litúrgico. A liturgia de hoje foi... generosa.', 'Faço vitrais em miniatura. As mãos rezam melhor quando ocupadas.', 'Um dia o mundo inteiro conhecerá os Doze. Começando por você, forasteiro.'],
 })
 
 # DOM BALTAZAR ALBINA: o patriarca festeiro de Vilalbina.
@@ -2039,7 +2137,8 @@ ROSTER.append({
     "look": {"skin": "#c9a06a", "cloak": "#f0ead8", "hat": "none", "hair": "#d8d8d8", "staff": False},
     "map": "vilalbina", "home": (22, 12), "radius": 2, "wanders": True,
     "step_every": 2.4, "solid": True, "kind": "person",
-    "greetings": ['BEM-VINDO A VILALBINA! Todo barco que chega é festa. TRADIÇÃO!', 'Minha sobrinha Rosa... um partido, hein? Cozinha, canta... conhece ela? CASADO? Que pena.', '*movendo uma peça de damas* Sua vez. ...ah, é. Jogo sozinho. EU ganho sempre, pelo menos.', 'Conheço cada barco pelo casco, antes da bandeira. Aquele ali? Do Zé. Fácil demais.', 'Fica pra festa! Sempre tem festa. Quando não tem, a gente inventa o motivo.', 'A Bibi acha que sabe mais fofoca que eu. INOCENTE. Eu recebo os barcos; ela, os retalhos.'],
+    "greetings": ['A Bibi acha que sabe mais fofoca que eu. A Bibi TECE. Eu RECEBO navios. Fonte primária, minha cara.',
+                  'BEM-VINDO A VILALBINA! Todo barco que chega é festa. TRADIÇÃO!', 'Minha sobrinha Rosa... um partido, hein? Cozinha, canta... conhece ela? CASADO? Que pena.', '*movendo uma peça de damas* Sua vez. ...ah, é. Jogo sozinho. EU ganho sempre, pelo menos.', 'Conheço cada barco pelo casco, antes da bandeira. Aquele ali? Do Zé. Fácil demais.', 'Fica pra festa! Sempre tem festa. Quando não tem, a gente inventa o motivo.', 'A Bibi acha que sabe mais fofoca que eu. INOCENTE. Eu recebo os barcos; ela, os retalhos.'],
 })
 
 # ZECA, o Caravaneiro: a banca ambulante que roda a superfície inteira.

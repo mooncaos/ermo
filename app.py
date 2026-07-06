@@ -106,6 +106,7 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "casa_cecille": "Lar da Maga Cecille",
               "casa_bibi": "Ateliê da Dona Bibi", "padaria_bruno": "Padaria do Bruno",
               "casa_naiara": "Casa da Naiara", "casa_caio": "Casa do Caio",
+              "feirao_sao_celeste": "Feirão de São Celeste", "baixa_da_egua": "Baixa da Égua",
               "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
               "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
               "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
@@ -186,7 +187,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v13: 4 casas em Vilalbina + gatos com pelagem propria (06/jul)"
+BUILD_TAG = "v14: Feirao de Sao Celeste + Baixa da Egua + Madre + fofocas 2.0 + bichos (06/jul)"
 
 
 def _asset_version():

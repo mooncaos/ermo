@@ -2485,6 +2485,7 @@ def _cidade_alta():
             g[by][bx] = ";"
     _borda_mais(g, "west", 23, 26)
     ILHA_CASAS["cidade_alta"] = casas
+    _borda_mais(g, "south", 23, 26)
     return ["".join(r) for r in g]
 
 
@@ -2937,10 +2938,74 @@ MAPS["adega_angard"] = {"rows": _adega_angard(), "spawns": [(7, 7), (6, 7), (8, 
 MAPS["casa_fadogan"] = {"rows": _casa_fadogan(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 MAPS["casa_bramir"] = {"rows": _casa_bramir(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_cecille"] = {"rows": _casa_cecille(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+def _feirao_sao_celeste():
+    """O FEIRÃO DE SÃO CELESTE (50x34): a praça de eventos de Prosperina.
+    Calçadão de mármore, fileiras de tendas, palco monumental e a estátua
+    do santo. Aqui acontecem as feiras, os campeonatos e as festas."""
+    W, H = 50, 34
+    g = [["p" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "T" if x % 7 == 3 else "."
+        g[H - 1][x] = "T" if x % 7 == 3 else "."
+    for y in range(H):
+        g[y][0] = "T" if y % 6 == 3 else "."
+        g[y][W - 1] = "T" if y % 6 == 3 else "."
+    for y in range(1, H - 1):
+        for x in (1, 2, W - 3, W - 2):
+            g[y][x] = "."
+    for y in range(0, H):
+        for x in (23, 24, 25, 26):
+            g[y][x] = "p"
+    for ty in (7, 13, 19, 25):
+        for tx in (6, 10, 14, 18, 30, 34, 38, 42):
+            g[ty][tx] = "#"
+            g[ty][tx + 1] = "#"
+    for y in range(3, 6):
+        for x in range(20, 30):
+            g[y][x] = "p"
+    g[3][19] = "L"; g[3][30] = "L"
+    g[28][24] = "^"
+    g[28][22] = "L"; g[28][27] = "L"
+    for y in (6, 12, 18, 24, 30):
+        g[y][21] = "L"; g[y][28] = "L"
+    _borda_mais(g, "north", 23, 26)
+    _borda_mais(g, "south", 23, 26)
+    return ["".join(r) for r in g]
+
+
+def _baixa_da_egua():
+    """A BAIXA DA ÉGUA (50x28): a 'periferia' de Prosperina — onde ficavam
+    as éguas da corte. Hoje: sobrados chiques, haras de luxo e gente rica
+    que faz questão de dizer que é da quebrada."""
+    W, H = 50, 28
+    g = [["." for _ in range(W)] for _ in range(H)]
+    for y in range(0, H):                  # a rua principal (norte-sul)
+        for x in (23, 24, 25, 26):
+            g[y][x] = "p"
+    for x in range(4, 46):                 # a rua transversal
+        g[14][x] = "p"
+    # o HARAS (leste): cercado grande
+    for x in range(33, 46):
+        g[6][x] = "W"; g[12][x] = "W"
+    for y in range(6, 13):
+        g[y][33] = "W"; g[y][45] = "W"
+    g[12][38] = "p"; g[12][39] = "p"       # a porteira
+    for y in (8, 10):
+        for x in (36, 40, 43):
+            g[y][x] = "w"                  # feno
+    # luminárias da rua
+    for y in (4, 9, 14, 19, 24):
+        g[y][21] = "L"; g[y][28] = "L"
+    _borda_mais(g, "north", 23, 26)
+    return ["".join(r) for r in g]
+
+
 MAPS["casa_bibi"] = {"rows": _casa_bibi(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["padaria_bruno"] = {"rows": _padaria_bruno(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["casa_naiara"] = {"rows": _casa_naiara(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_caio"] = {"rows": _casa_caio(), "spawns": [(5, 5), (4, 5), (6, 5)]}
+MAPS["feirao_sao_celeste"] = {"rows": _feirao_sao_celeste(), "spawns": [(24, 4), (23, 4), (25, 4)]}
+MAPS["baixa_da_egua"] = {"rows": _baixa_da_egua(), "spawns": [(24, 4), (23, 4), (25, 4)]}
 
 
 MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(16, 29), (15, 29), (17, 29)]}
@@ -3063,7 +3128,11 @@ EDGE_LINKS = {
     "pastos":           {"east":  ("vinhedo",            4, 16, "right")},
     "jardim_templo":    {"west":  ("prospera",          82, 30, "left"),
                          "east":  ("cidade_alta",        4, 24, "right")},
-    "cidade_alta":      {"west":  ("jardim_templo",     50, 27, "left")},
+    "cidade_alta":      {"west":  ("jardim_templo",     50, 27, "left"),
+                         "south": ("feirao_sao_celeste", 24, 2, "down")},
+    "feirao_sao_celeste": {"north": ("cidade_alta",      24, 37, "up"),
+                           "south": ("baixa_da_egua",    24, 2, "down")},
+    "baixa_da_egua":    {"north": ("feirao_sao_celeste", 24, 31, "up")},
     "farol_margem":     {"north": ("prospera",          43, 58, "up")},
     "ermo":             {"south": ("descampado",      50, 4,  "down"),
                          "north": ("planaltos_ermais", 60, 117, "up"),

@@ -5223,6 +5223,58 @@ function drawApparition(c, px, py, ts, facing, moving, walk, name){
 }
 
 // Cachorro caramelo (o vira-lata que, nesse mundo, MIA).
+function drawRabbit(c, px, py, ts, facing, moving, walk, look){
+  const pelo = (look && look.skin) || '#d8d0c0';
+  const cx = px + ts*0.5;
+  const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*3 : 0;
+  const baseY = py + ts*0.74 - hop;
+  const dir = (facing === 'left') ? -1 : 1;
+  c.save();
+  c.globalAlpha = 0.2; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(cx, py + ts*0.82, ts*0.14, ts*0.05, 0, 0, Math.PI*2); c.fill();
+  c.globalAlpha = 1;
+  c.fillStyle = pelo;
+  c.beginPath(); c.ellipse(cx, baseY, ts*0.15, ts*0.12, 0, 0, Math.PI*2); c.fill();   // corpo
+  c.beginPath(); c.arc(cx + dir*ts*0.11, baseY - ts*0.1, ts*0.085, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(cx + dir*ts*0.07, baseY - ts*0.24, ts*0.028, ts*0.09, -dir*0.15, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(cx + dir*ts*0.14, baseY - ts*0.235, ts*0.028, ts*0.09, dir*0.2, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#f0b8c0';                                        // interior da orelha
+  c.beginPath(); c.ellipse(cx + dir*ts*0.14, baseY - ts*0.225, ts*0.013, ts*0.055, dir*0.2, 0, Math.PI*2); c.fill();
+  c.fillStyle = shade(pelo, 0.25);                                // rabinho
+  c.beginPath(); c.arc(cx - dir*ts*0.14, baseY + ts*0.02, ts*0.045, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#1a1a20';
+  c.beginPath(); c.arc(cx + dir*ts*0.13, baseY - ts*0.11, ts*0.016, 0, Math.PI*2); c.fill();
+  c.restore();
+}
+function drawChicken(c, px, py, ts, facing, moving, walk, look){
+  const pena = (look && look.skin) || '#e8e0d0';
+  const cx = px + ts*0.5;
+  const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*2.2 : 0;
+  const baseY = py + ts*0.72 - hop;
+  const dir = (facing === 'left') ? -1 : 1;
+  c.save();
+  c.globalAlpha = 0.2; c.fillStyle = '#000';
+  c.beginPath(); c.ellipse(cx, py + ts*0.82, ts*0.15, ts*0.05, 0, 0, Math.PI*2); c.fill();
+  c.globalAlpha = 1;
+  c.fillStyle = pena;                                            // corpo
+  c.beginPath(); c.ellipse(cx, baseY, ts*0.17, ts*0.14, 0, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(cx + dir*ts*0.12, baseY - ts*0.14, ts*0.09, 0, Math.PI*2); c.fill();
+  c.fillStyle = shade(pena, -0.18);                              // asa
+  c.beginPath(); c.ellipse(cx - dir*ts*0.04, baseY, ts*0.1, ts*0.08, dir*0.3, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#e05a4e';                                       // crista
+  c.beginPath(); c.arc(cx + dir*ts*0.12, baseY - ts*0.225, ts*0.035, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#e0a850';                                       // bico
+  c.beginPath(); c.moveTo(cx + dir*ts*0.2, baseY - ts*0.14);
+  c.lineTo(cx + dir*ts*0.27, baseY - ts*0.125); c.lineTo(cx + dir*ts*0.2, baseY - ts*0.10);
+  c.closePath(); c.fill();
+  c.fillStyle = '#1a1a20';                                       // olho
+  c.beginPath(); c.arc(cx + dir*ts*0.135, baseY - ts*0.155, ts*0.018, 0, Math.PI*2); c.fill();
+  c.strokeStyle = '#e0a850'; c.lineWidth = 1.4;                  // patas
+  const st = moving ? Math.sin((walk/WALK_CYCLE)*Math.PI*4)*2 : 0;
+  c.beginPath(); c.moveTo(cx - ts*0.05, baseY + ts*0.12); c.lineTo(cx - ts*0.05 + st, baseY + ts*0.2); c.stroke();
+  c.beginPath(); c.moveTo(cx + ts*0.05, baseY + ts*0.12); c.lineTo(cx + ts*0.05 - st, baseY + ts*0.2); c.stroke();
+  c.restore();
+}
 function drawDog(c, px, py, ts, facing, moving, walk, look){
   const cx = px + ts*0.5;
   const coat = (look && look.skin) || '#c8843a';
@@ -6171,6 +6223,8 @@ function frame(now){
     else if(p.kind === 'bird') drawCrow(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'cat') drawCat(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'dog') drawDog(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
+    else if(p.kind === 'chicken') drawChicken(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
+    else if(p.kind === 'rabbit') drawRabbit(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'toad') drawToad(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.look);
     else if(p.kind === 'apparition') drawApparition(ctx, sx, sy, TS, p.facing, p._moving, p.walk, p.name);
     else if(p.kind === 'mesa') drawMesaParty(ctx, sx, sy, TS, p);
@@ -15108,7 +15162,110 @@ function renderOutfits(){
     if(typeof mapName === 'undefined') return;
     c.save();
 
-    // ---- O SANTUÁRIO DOS DOZE: mármore negro, ouro e as doze luzes ----
+    // ---- O FEIRÃO DE SÃO CELESTE: opulência de festa permanente ----
+  if(mapName === 'feirao_sao_celeste'){
+    for(let fx = 4; fx < 46; fx += 6){                     // BANDEIROLAS entre postes
+      const bx2 = fx*TS - camX, by2 = 2.2*TS - camY;
+      if(bx2 > -TS*7 && bx2 < canvas.width + TS){
+        c.strokeStyle = 'rgba(60,50,40,0.5)'; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(bx2, by2);
+        c.quadraticCurveTo(bx2 + TS*3, by2 + TS*0.5, bx2 + TS*6, by2); c.stroke();
+        for(let k = 0; k < 6; k++){
+          const t2 = (k + 0.5)/6;
+          const px2 = bx2 + t2*TS*6;
+          const py2 = by2 + 4*Math.sin(Math.PI*t2)*TS*0.125 + Math.sin(now/400 + k)*1.5;
+          c.fillStyle = ['#e05a4e','#e8c860','#5aa9e0','#7ac06a','#b06ae0','#e08ae0'][k];
+          c.beginPath(); c.moveTo(px2 - 4, py2); c.lineTo(px2 + 4, py2);
+          c.lineTo(px2, py2 + 7); c.closePath(); c.fill();
+        }
+      }
+    }
+    const tendas = [[6,7],[10,7],[14,7],[18,7],[30,7],[34,7],[38,7],[42,7],
+                    [6,13],[10,13],[14,13],[18,13],[30,13],[34,13],[38,13],[42,13],
+                    [6,19],[10,19],[14,19],[18,19],[30,19],[34,19],[38,19],[42,19],
+                    [6,25],[10,25],[14,25],[18,25],[30,25],[34,25],[38,25],[42,25]];
+    tendas.forEach((t2, i) => {                            // TOLDOS listrados sobre as bancas
+      const tx2 = (t2[0] + 1)*TS - camX, ty2 = t2[1]*TS - camY;
+      if(tx2 < -TS*2 || tx2 > canvas.width + TS*2 || ty2 < -TS*2 || ty2 > canvas.height + TS*2) return;
+      const cor = ['#c43e5a','#3a6aaa','#3a8a5a','#c9a842'][i % 4];
+      c.fillStyle = cor;
+      c.beginPath(); c.moveTo(tx2 - TS*1.2, ty2 - TS*0.35);
+      c.lineTo(tx2 + TS*1.2, ty2 - TS*0.35); c.lineTo(tx2 + TS*1.35, ty2 + TS*0.1);
+      c.lineTo(tx2 - TS*1.35, ty2 + TS*0.1); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.55)';
+      for(let s2 = -1; s2 <= 1; s2++)
+        c.fillRect(tx2 + s2*TS*0.55 - TS*0.14, ty2 - TS*0.35, TS*0.28, TS*0.45);
+      c.fillStyle = shade(cor, -0.3);
+      c.fillRect(tx2 - TS*1.35, ty2 + TS*0.1, TS*2.7, 3);
+    });
+    const sx2 = 24.5*TS - camX, sy2 = 28*TS - camY;        // SÃO CELESTE dourado
+    if(sx2 > -TS*3 && sx2 < canvas.width + TS*3){
+      c.fillStyle = '#8f887c';
+      c.fillRect(sx2 - TS*0.6, sy2 - TS*0.2, TS*1.2, TS*0.5);
+      c.fillStyle = '#c9a842';
+      c.beginPath(); c.arc(sx2, sy2 - TS*1.5, TS*0.22, 0, Math.PI*2); c.fill();
+      c.fillRect(sx2 - TS*0.3, sy2 - TS*1.3, TS*0.6, TS*1.1);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.5 + 0.2*Math.sin(now/600);
+      c.fillStyle = '#ffe08a';
+      c.save(); c.translate(sx2, sy2 - TS*2.0); c.rotate(now/5000);
+      c.beginPath();
+      for(let i = 0; i < 10; i++){
+        const R = (i % 2 === 0) ? TS*0.24 : TS*0.1;
+        const a3 = i*Math.PI/5;
+        c[i ? 'lineTo' : 'moveTo'](Math.cos(a3)*R, Math.sin(a3)*R);
+      }
+      c.closePath(); c.fill(); c.restore(); c.restore();
+    }
+    const px3 = 25*TS - camX, py3 = 3*TS - camY;           // o PALCO: cortinas
+    if(py3 > -TS*4 && py3 < canvas.height + TS*4){
+      c.fillStyle = '#7a2e3a';
+      c.fillRect(px3 - TS*5, py3 - TS*1.4, TS*10, TS*1.2);
+      c.fillStyle = '#c9a842';
+      c.fillRect(px3 - TS*5, py3 - TS*1.4, TS*10, 4);
+      c.fillStyle = 'rgba(0,0,0,0.25)';
+      for(let k = -4; k <= 4; k++)
+        c.fillRect(px3 + k*TS*1.1 - 2, py3 - TS*1.3, 3, TS*1.05);
+    }
+  }
+
+  // ---- A BAIXA DA ÉGUA: quebrada de mármore ----
+  if(mapName === 'baixa_da_egua'){
+    const sobrados = [[8,8],[14,8],[8,20],[16,20],[30,20],[38,20]];
+    sobrados.forEach((s2, i) => {                          // SOBRADOS chiques
+      const sx3 = s2[0]*TS - camX, sy3 = s2[1]*TS - camY;
+      if(sx3 < -TS*5 || sx3 > canvas.width + TS*5 || sy3 < -TS*6 || sy3 > canvas.height + TS*3) return;
+      const cor = ['#e0d8c8','#d8c8b0','#e8e0d0'][i % 3];
+      c.fillStyle = cor;
+      c.fillRect(sx3, sy3 - TS*2.4, TS*3.4, TS*2.4);
+      c.fillStyle = '#7a2e3a';
+      c.beginPath(); c.moveTo(sx3 - TS*0.2, sy3 - TS*2.4);
+      c.lineTo(sx3 + TS*1.7, sy3 - TS*3.3); c.lineTo(sx3 + TS*3.6, sy3 - TS*2.4);
+      c.closePath(); c.fill();
+      c.fillStyle = '#ffdf9a';
+      c.fillRect(sx3 + TS*0.4, sy3 - TS*2.0, TS*0.6, TS*0.7);
+      c.fillRect(sx3 + TS*2.4, sy3 - TS*2.0, TS*0.6, TS*0.7);
+      c.fillStyle = '#5a3c20';
+      c.fillRect(sx3 + TS*1.4, sy3 - TS*0.9, TS*0.6, TS*0.9);
+      c.strokeStyle = '#c9a842'; c.lineWidth = 2;          // o toque de ouro da quebrada
+      c.strokeRect(sx3 + TS*0.35, sy3 - TS*2.05, TS*0.7, TS*0.8);
+      c.strokeRect(sx3 + TS*2.35, sy3 - TS*2.05, TS*0.7, TS*0.8);
+    });
+    for(const hx2 of [36, 40, 43]){                        // as ÉGUAS do haras (silhuetas vivas)
+      const ex2 = hx2*TS - camX, ey2 = 9.5*TS - camY + Math.sin(now/900 + hx2)*2;
+      if(ex2 < -TS*2 || ex2 > canvas.width + TS*2) continue;
+      c.fillStyle = ['#6a4a34','#3a2a1a','#c9c4bc'][(hx2) % 3];
+      c.beginPath(); c.ellipse(ex2, ey2, TS*0.42, TS*0.24, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(ex2 + TS*0.38, ey2 - TS*0.22, TS*0.14, TS*0.2, 0.5, 0, Math.PI*2); c.fill();
+      c.fillRect(ex2 - TS*0.3, ey2 + TS*0.1, TS*0.08, TS*0.28);
+      c.fillRect(ex2 + TS*0.22, ey2 + TS*0.1, TS*0.08, TS*0.28);
+      c.strokeStyle = '#1a1a20'; c.lineWidth = 2;          // crina
+      c.beginPath(); c.moveTo(ex2 + TS*0.3, ey2 - TS*0.36);
+      c.quadraticCurveTo(ex2 + TS*0.1, ey2 - TS*0.3, ex2 + TS*0.05, ey2 - TS*0.1); c.stroke();
+    }
+  }
+
+  // ---- O SANTUÁRIO DOS DOZE: mármore negro, ouro e as doze luzes ----
     if(mapName === 'jardim_templo'){
       const dx = 27.5*TS - camX, base = 30.2*TS - camY;
       if(dx > -TS*8 && dx < canvas.width + TS*8 && base > -TS*12 && base < canvas.height + TS*4){
