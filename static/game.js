@@ -14728,3 +14728,319 @@ var _PORTAS_VIVAS = [
     c.restore();
   };
 })();
+
+// ===========================================================================
+//  A OPULÊNCIA PROSPERIANA II: Versalhes, o Septo dos Doze e a Mansão.
+// ===========================================================================
+(function(){
+  const base4 = drawIlhaDecor;
+  drawIlhaDecor = function(c, now){
+    base4(c, now);
+    if(typeof mapName === 'undefined') return;
+    c.save();
+
+    // ---------- O SEPTO DOS DOZE (o templo do Ermo, reimaginado) ----------
+    if(mapName === 'ermo'){
+      const sx = 59.5*TS - camX, base = 7*TS - camY;
+      if(sx > -TS*10 && sx < canvas.width + TS*10 && base > -TS*12 && base < canvas.height + TS*6){
+        c.fillStyle = '#a8a094';                              // a escadaria
+        for(let s = 0; s < 3; s++)
+          c.fillRect(sx - TS*(3.4 - s*0.5), base + s*4, TS*(6.8 - s*1.0), 4);
+        for(const gx of [-4.2, 4.2]){                          // guardiões de pedra
+          const gxx = sx + gx*TS, gy = base - 2;
+          c.fillStyle = '#8f887c';
+          c.fillRect(gxx - 6, gy - 6, 12, 8);
+          c.beginPath(); c.ellipse(gxx, gy - 15, 5.5, 8, 0, 0, Math.PI*2); c.fill();
+          c.beginPath(); c.arc(gxx, gy - 26, 4, 0, Math.PI*2); c.fill();
+          c.fillStyle = 'rgba(255,220,120,' + (0.4 + 0.3*Math.sin(now/800 + gx)) + ')';
+          c.beginPath(); c.arc(gxx, gy - 26, 1.3, 0, Math.PI*2); c.fill();
+        }
+        const tw = TS*5.6, th2 = TS*2.6;                       // o TAMBOR
+        c.fillStyle = '#ded6c6';
+        c.fillRect(sx - tw/2, base - th2, tw, th2);
+        c.fillStyle = 'rgba(0,0,0,0.10)';
+        c.fillRect(sx + tw*0.18, base - th2, tw*0.32, th2);
+        for(let i = 0; i < 12; i++){                           // 12 janelas douradas
+          const wx = sx - tw/2 + tw*(i + 0.5)/12;
+          c.fillStyle = '#ffdf9a';
+          c.beginPath(); c.arc(wx, base - th2*0.55, 2.6, Math.PI, 0);
+          c.rect(wx - 2.6, base - th2*0.55, 5.2, 6); c.fill();
+        }
+        for(const ax of [-2.6, 2.6]){                          // agulhas laterais
+          const axx = sx + ax*TS;
+          c.fillStyle = '#cfc7b6';
+          c.fillRect(axx - 4, base - th2 - TS*1.5, 8, TS*1.5);
+          c.fillStyle = '#b8b0a0';
+          c.beginPath(); c.moveTo(axx - 5, base - th2 - TS*1.5);
+          c.lineTo(axx, base - th2 - TS*2.3); c.lineTo(axx + 5, base - th2 - TS*1.5);
+          c.closePath(); c.fill();
+          c.fillStyle = '#e0c060';
+          c.beginPath(); c.arc(axx, base - th2 - TS*2.35, 2, 0, Math.PI*2); c.fill();
+        }
+        c.fillStyle = '#cfc7b6';                               // A CÚPULA
+        c.beginPath(); c.ellipse(sx, base - th2, TS*2.9, TS*2.2, 0, Math.PI, 0); c.fill();
+        c.strokeStyle = 'rgba(90,80,60,0.4)'; c.lineWidth = 1.2;
+        for(const k of [-0.62, -0.24, 0.24, 0.62]){            // gomos
+          c.beginPath();
+          c.moveTo(sx + k*TS*2.9, base - th2);
+          c.quadraticCurveTo(sx + k*TS*1.6, base - th2 - TS*2.2, sx, base - th2 - TS*2.2);
+          c.stroke();
+        }
+        const ly = base - th2 - TS*2.2;                        // lanterna + estrela dos Doze
+        c.fillStyle = '#ded6c6'; c.fillRect(sx - 4, ly - 10, 8, 10);
+        c.save(); c.translate(sx, ly - 17); c.rotate(now/6000);
+        c.fillStyle = '#e8c860';
+        c.beginPath();
+        for(let i = 0; i < 24; i++){
+          const R = (i % 2 === 0) ? 9 : 3.8;
+          const a = i*Math.PI/12;
+          c[i ? 'lineTo' : 'moveTo'](Math.cos(a)*R, Math.sin(a)*R);
+        }
+        c.closePath(); c.fill(); c.restore();
+        c.save(); c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 0.4 + 0.15*Math.sin(now/600);
+        const sg = c.createRadialGradient(sx, ly - 17, 0, sx, ly - 17, TS*1.6);
+        sg.addColorStop(0, 'rgba(255,224,138,0.9)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = sg; c.beginPath(); c.arc(sx, ly - 17, TS*1.6, 0, Math.PI*2); c.fill();
+        c.restore();
+      }
+    }
+
+    // ---------- VERSALHES: o Solar dos Eméritos ----------
+    if(mapName === 'prospera'){
+      const cx0 = 53*TS - camX, base = 8*TS - camY;
+      if(cx0 > -TS*8 && cx0 < canvas.width + TS*8){
+        const w = TS*6.4, hh = TS*2.4;
+        c.fillStyle = '#3a4a6a';                               // MANSARDA ardósia
+        c.beginPath();
+        c.moveTo(cx0 - w/2 - 5, base - hh);
+        c.lineTo(cx0 - w*0.34, base - hh - TS*1.15);
+        c.lineTo(cx0 + w*0.34, base - hh - TS*1.15);
+        c.lineTo(cx0 + w/2 + 5, base - hh); c.closePath(); c.fill();
+        c.strokeStyle = 'rgba(255,255,255,0.10)'; c.lineWidth = 1;
+        for(let i = 1; i < 5; i++){
+          c.beginPath(); c.moveTo(cx0 - w*0.34 + i*w*0.68/5, base - hh - TS*1.15);
+          c.lineTo(cx0 - w/2 - 5 + i*(w + 10)/5, base - hh); c.stroke();
+        }
+        c.fillStyle = '#e0c060';                               // ornamentos dourados
+        for(const ox of [-0.30, 0, 0.30]){
+          c.beginPath(); c.arc(cx0 + ox*w, base - hh - TS*1.2, 2.4, 0, Math.PI*2); c.fill();
+        }
+        c.fillStyle = '#f2ead8';                               // frontão central
+        c.beginPath(); c.moveTo(cx0 - TS*1.1, base - hh);
+        c.lineTo(cx0, base - hh - TS*0.85); c.lineTo(cx0 + TS*1.1, base - hh);
+        c.closePath(); c.fill();
+        c.strokeStyle = '#c9a842'; c.lineWidth = 1.4; c.stroke();
+        c.save(); c.globalCompositeOperation = 'lighter';      // o sol do frontão
+        c.fillStyle = '#e8c860';
+        c.beginPath(); c.arc(cx0, base - hh - TS*0.32, 4.5, 0, Math.PI*2); c.fill();
+        c.globalAlpha = 0.8; c.strokeStyle = '#ffd97a'; c.lineWidth = 1.4;
+        for(let i = 0; i < 8; i++){
+          const a = i*Math.PI/4;
+          c.beginPath(); c.moveTo(cx0 + Math.cos(a)*6, base - hh - TS*0.32 + Math.sin(a)*6);
+          c.lineTo(cx0 + Math.cos(a)*9.5, base - hh - TS*0.32 + Math.sin(a)*9.5); c.stroke();
+        }
+        c.restore();
+        for(const px2 of [-0.42, -0.14, 0.14, 0.42]){          // pilastras
+          c.fillStyle = '#efe8d8';
+          c.fillRect(cx0 + px2*w - 3, base - hh, 6, hh);
+          c.fillStyle = '#d8cfba';
+          c.fillRect(cx0 + px2*w - 4.5, base - hh, 9, 3);
+          c.fillRect(cx0 + px2*w - 4.5, base - 4, 9, 4);
+        }
+        for(const wx of [-0.28, 0, 0.28]){                     // janelas altas com sacada
+          const jx = cx0 + wx*w, jy = base - hh*0.52;
+          c.fillStyle = '#ffdf9a';
+          c.beginPath(); c.arc(jx, jy - 6, 5.5, Math.PI, 0);
+          c.rect(jx - 5.5, jy - 6, 11, 14); c.fill();
+          c.strokeStyle = 'rgba(90,80,60,0.6)'; c.lineWidth = 1;
+          c.strokeRect(jx - 5.5, jy - 6, 11, 14);
+          c.strokeStyle = '#c9a842'; c.lineWidth = 1.2;        // balaústres
+          for(let b = -5; b <= 5; b += 2.5){
+            c.beginPath(); c.moveTo(jx + b, jy + 8); c.lineTo(jx + b, jy + 12); c.stroke();
+          }
+          c.beginPath(); c.moveTo(jx - 6.5, jy + 8); c.lineTo(jx + 6.5, jy + 8);
+          c.moveTo(jx - 6.5, jy + 12); c.lineTo(jx + 6.5, jy + 12); c.stroke();
+        }
+        for(const lx of [-3.6, 3.6]){                          // leões dourados + topiarias
+          const lxx = cx0 + lx*TS/1.0, lyy = base + TS*0.55;
+          c.fillStyle = '#d4af37';
+          c.fillRect(lxx - 4, lyy - 3, 8, 5);
+          c.beginPath(); c.arc(lxx + (lx > 0 ? -4 : 4), lyy - 6, 3.2, 0, Math.PI*2); c.fill();
+        }
+        for(const tx2 of [-2.2, 2.2]){
+          const txx = cx0 + tx2*TS;
+          c.fillStyle = '#7a5434'; c.fillRect(txx - 1.5, base + TS*0.5, 3, 7);
+          c.fillStyle = '#3f6a3a';
+          c.beginPath(); c.arc(txx, base + TS*0.42, 6, 0, Math.PI*2); c.fill();
+          c.fillStyle = 'rgba(255,255,255,0.12)';
+          c.beginPath(); c.arc(txx - 2, base + TS*0.36, 2.4, 0, Math.PI*2); c.fill();
+        }
+        c.fillStyle = '#3f6a3a';                               // jardim francês
+        for(const gx of [-1.4, 0.5]){
+          c.fillRect(cx0 + gx*TS - TS*0.5, base + TS*0.95, TS*0.9, 5);
+          c.fillStyle = '#e05a8a';
+          for(let f = 0; f < 3; f++)
+            c.fillRect(cx0 + gx*TS - TS*0.4 + f*TS*0.3, base + TS*0.95 + 1.5, 2, 2);
+          c.fillStyle = '#3f6a3a';
+        }
+      }
+      // bandeiras heráldicas nas muralhas + pombos da praça
+      for(const bx of [12, 30, 56, 74]){
+        const bxx = bx*TS - camX, byy = 2.2*TS - camY;
+        if(bxx < -TS || bxx > canvas.width + TS) continue;
+        c.fillStyle = '#8a2e3a';
+        c.beginPath(); c.moveTo(bxx - 4, byy); c.lineTo(bxx + 4, byy);
+        c.lineTo(bxx + 4, byy + 16 + Math.sin(now/400 + bx)*1.5);
+        c.lineTo(bxx, byy + 12); c.lineTo(bxx - 4, byy + 16 + Math.sin(now/400 + bx)*1.5);
+        c.closePath(); c.fill();
+        c.fillStyle = '#e0c060'; c.fillRect(bxx - 4, byy, 8, 2.4);
+      }
+      for(let i = 0; i < 3; i++){
+        const px3 = (40 + ((i*7 + Math.floor(now/2600)) % 9))*TS - camX;
+        const py3 = (25 + (i*2) % 4)*TS - camY;
+        if(px3 < -TS || px3 > canvas.width + TS) continue;
+        c.fillStyle = '#b8bcc4';
+        c.beginPath(); c.ellipse(px3, py3, 3, 2.2, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(px3 + 2.6, py3 - 1.8, 1.4, 0, Math.PI*2); c.fill();
+      }
+    }
+
+    // ---------- A MANSÃO PROSPERI (margem do farol) ----------
+    if(mapName === 'farol_margem'){
+      const cx0 = 10*TS - camX, topo = 6*TS - camY, w = TS*12, hh = TS*8;
+      if(cx0 > -TS*10 && cx0 < canvas.width + TS*14){
+        c.fillStyle = '#3a4a6a';                               // mansarda de ardósia
+        c.beginPath();
+        c.moveTo(cx0 - w/2 - 4, topo);
+        c.lineTo(cx0 - w*0.30, topo - TS*1.5);
+        c.lineTo(cx0 + w*0.30, topo - TS*1.5);
+        c.lineTo(cx0 + w/2 + 4, topo); c.closePath(); c.fill();
+        c.fillStyle = '#e0c060';
+        for(const ox of [-0.24, 0, 0.24]){
+          c.beginPath(); c.arc(cx0 + ox*w, topo - TS*1.56, 2.2, 0, Math.PI*2); c.fill();
+        }
+        const txx = cx0 + w*0.40;                              // a torrinha com bandeira
+        c.fillStyle = '#efe8d8'; c.fillRect(txx - 8, topo - TS*2.4, 16, TS*2.4);
+        c.fillStyle = '#3a4a6a';
+        c.beginPath(); c.moveTo(txx - 10, topo - TS*2.4);
+        c.lineTo(txx, topo - TS*3.2); c.lineTo(txx + 10, topo - TS*2.4); c.closePath(); c.fill();
+        c.strokeStyle = '#6a5a3a'; c.lineWidth = 1.6;
+        c.beginPath(); c.moveTo(txx, topo - TS*3.2); c.lineTo(txx, topo - TS*3.9); c.stroke();
+        c.fillStyle = '#e8c860';
+        c.beginPath(); c.moveTo(txx, topo - TS*3.9);
+        c.lineTo(txx + 12 + Math.sin(now/300)*2, topo - TS*3.66);
+        c.lineTo(txx, topo - TS*3.42); c.closePath(); c.fill();
+        c.fillStyle = '#8a6a2a';
+        c.fillText('🌾', txx + 2, topo - TS*3.55);
+        for(let i = 0; i < 5; i++){                            // varanda com balaústres
+          const bx2 = cx0 - w*0.34 + i*w*0.17;
+          c.fillStyle = '#ffdf9a';
+          c.beginPath(); c.arc(bx2, topo + TS*0.9, 5, Math.PI, 0);
+          c.rect(bx2 - 5, topo + TS*0.9, 10, 12); c.fill();
+          c.strokeStyle = 'rgba(90,80,60,0.55)'; c.lineWidth = 1;
+          c.strokeRect(bx2 - 5, topo + TS*0.9, 10, 12);
+        }
+        c.strokeStyle = '#efe8d8'; c.lineWidth = 1.4;
+        c.beginPath(); c.moveTo(cx0 - w*0.40, topo + TS*2.1); c.lineTo(cx0 + w*0.40, topo + TS*2.1); c.stroke();
+        for(let b = 0; b < 14; b++){
+          const bx3 = cx0 - w*0.40 + b*w*0.80/13;
+          c.beginPath(); c.moveTo(bx3, topo + TS*2.1); c.lineTo(bx3, topo + TS*2.3); c.stroke();
+        }
+        c.fillStyle = '#9a9a8e';                               // caminho de pedra ao farol
+        for(let s = 0; s < 7; s++){
+          c.fillRect(cx0 + w/2 + 8 + s*11, topo + TS*2.5 + Math.sin(s)*3, 8, 5);
+        }
+        for(const sx2 of [-0.46, 0.46]){                       // sebes
+          c.fillStyle = '#3f6a3a';
+          c.fillRect(cx0 + sx2*w - TS*0.5, topo + hh*0.34, TS, 6);
+        }
+      }
+    }
+
+    // ---------- DETALHES COM FORÇA: o pente-fino da ilha ----------
+    if(mapName === 'vilalbina'){
+      const vx = 8*TS - camX, vy = 4.4*TS - camY;              // varal entre casas
+      if(vx > -TS*4 && vx < canvas.width + TS*4){
+        c.strokeStyle = 'rgba(60,50,40,0.8)'; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(vx, vy); c.quadraticCurveTo(vx + TS*1.4, vy + 5, vx + TS*2.8, vy); c.stroke();
+        const rc = ['#e05a6a','#5aa9e0','#f2e05a','#e0e0e0'];
+        for(let i = 0; i < 4; i++){
+          const rx = vx + TS*0.4 + i*TS*0.62, ry = vy + 2 + Math.sin((i*1.3))*1.4;
+          c.fillStyle = rc[i];
+          c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx + 7, ry);
+          c.lineTo(rx + 6 + Math.sin(now/280 + i), ry + 9); c.lineTo(rx + 1 + Math.sin(now/280 + i), ry + 9);
+          c.closePath(); c.fill();
+        }
+      }
+      const gvx = 21*TS - camX, gvy = 23.6*TS - camY;          // gaivota pousada no cais
+      if(gvx > -TS && gvx < canvas.width + TS){
+        c.fillStyle = '#e8e8ee';
+        c.beginPath(); c.ellipse(gvx, gvy, 3.4, 2.4, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(gvx + 3, gvy - 2.2, 1.6, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#e0a040'; c.fillRect(gvx + 4.4, gvy - 2.6, 2, 1);
+      }
+    }
+    if(mapName === 'trigal_dourado'){
+      const ex = 22*TS - camX, ey = 15*TS - camY;              // O ESPANTALHO
+      if(ex > -TS*2 && ex < canvas.width + TS*2){
+        c.strokeStyle = '#6a4a24'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(ex, ey + 8); c.lineTo(ex, ey - 14); c.stroke();
+        c.beginPath(); c.moveTo(ex - 10, ey - 8); c.lineTo(ex + 10, ey - 8); c.stroke();
+        c.fillStyle = '#c9a05a';
+        c.beginPath(); c.arc(ex, ey - 16, 5, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#8a6a3a';
+        c.beginPath(); c.ellipse(ex, ey - 20, 7.5, 2.4, 0, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#e8ddc2';
+        c.beginPath(); c.moveTo(ex - 3, ey - 8); c.lineTo(ex + 3, ey - 8);
+        c.lineTo(ex + 4, ey + 3); c.lineTo(ex - 4, ey + 3); c.closePath(); c.fill();
+        c.fillStyle = '#1a1a20';                               // o corvo (Ele vê)
+        c.beginPath(); c.ellipse(ex + 9, ey - 10.5, 3, 2.2, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(ex + 11.6, ey - 12.2, 1.4, 0, Math.PI*2); c.fill();
+      }
+      const cwx = 30*TS - camX, cwy = 9*TS - camY;             // carroça de feno
+      if(cwx > -TS*2 && cwx < canvas.width + TS*2){
+        c.fillStyle = '#7a5434'; c.fillRect(cwx - 12, cwy - 6, 24, 8);
+        c.fillStyle = '#d8b86a';
+        c.beginPath(); c.ellipse(cwx, cwy - 9, 10, 5, 0, 0, Math.PI*2); c.fill();
+        c.strokeStyle = '#3e2a14'; c.lineWidth = 2;
+        c.beginPath(); c.arc(cwx - 7, cwy + 3, 4, 0, Math.PI*2); c.stroke();
+        c.beginPath(); c.arc(cwx + 7, cwy + 3, 4, 0, Math.PI*2); c.stroke();
+      }
+    }
+    if(mapName === 'vinhedo'){
+      const px4 = 41.5*TS - camX, py4 = 12.4*TS - camY;        // pérgola da adega
+      if(px4 > -TS*3 && px4 < canvas.width + TS*3){
+        c.strokeStyle = '#6a4a2a'; c.lineWidth = 2;
+        for(const gx of [-1.1, 1.1]){
+          c.beginPath(); c.moveTo(px4 + gx*TS, py4); c.lineTo(px4 + gx*TS, py4 - 14); c.stroke();
+        }
+        c.beginPath(); c.moveTo(px4 - TS*1.3, py4 - 14); c.lineTo(px4 + TS*1.3, py4 - 14); c.stroke();
+        c.fillStyle = '#3f6a3a';
+        for(let i = 0; i < 6; i++)
+          c.fillRect(px4 - TS*1.2 + i*TS*0.42, py4 - 17 + (i % 2)*2, TS*0.3, 4);
+        c.fillStyle = '#7a4a8a';
+        for(const ux of [-0.8, 0, 0.8]){
+          c.beginPath(); c.arc(px4 + ux*TS, py4 - 11, 2, 0, Math.PI*2); c.fill();
+        }
+      }
+    }
+    if(mapName === 'jardim_templo'){
+      for(const [ax, ay, rot] of [[27, 5, 0], [27, 50, 0], [5, 27, 1], [50, 27, 1]]){
+        const axx = (ax + 0.5)*TS - camX, ayy = (ay + 0.5)*TS - camY;
+        if(axx < -TS*2 || axx > canvas.width + TS*2 || ayy < -TS*2 || ayy > canvas.height + TS*2) continue;
+        c.save(); c.translate(axx, ayy); if(rot) c.rotate(Math.PI/2);
+        c.strokeStyle = '#8a8a94'; c.lineWidth = 3;
+        c.beginPath(); c.arc(0, 2, TS*0.9, Math.PI, 0); c.stroke();
+        const fc2 = ['#e05a8a','#f2c14e','#8a7ae0'];
+        for(let f = 0; f < 7; f++){
+          const a = Math.PI + f*Math.PI/6;
+          c.fillStyle = fc2[f % 3];
+          c.beginPath(); c.arc(Math.cos(a)*TS*0.9, 2 + Math.sin(a)*TS*0.9, 2, 0, Math.PI*2); c.fill();
+        }
+        c.restore();
+      }
+    }
+    c.restore();
+  };
+})();
