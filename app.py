@@ -2907,6 +2907,57 @@ def _try_casas_ilha(player):
     return False
 
 
+
+def _auto_portais(player):
+    """MUDANÇA DE MAPA É AUTOMÁTICA: pisou na porta/píer/alçapão, passou.
+    A tecla E fica reservada pro portal da Fenda (e interações de conteúdo)."""
+    agora = time.time()
+    # portas das casas da ilha (entra e sai pisando)
+    if _try_casas_ilha(player):
+        return True
+    # o domo do Santuário e a volta ao jardim
+    if _try_santuario(player):
+        return True
+    # o alçapão do templo -> Ossuário (e a volta)
+    try:
+        if _try_ossuario(player):
+            return True
+    except Exception:
+        pass
+    # a Torre: com passe livre entra pisando; sem passe, os grifos perguntam
+    if player.get("map") == "cidade_alta" and \
+       max(abs(player["x"] - 24), abs(player["y"] - 12)) <= 1:
+        f = player.get("ficha") or {}
+        if f.get("torre_ok"):
+            return _try_torre(player)
+        if player.get("_auto_cd", 0) <= agora:
+            player["_auto_cd"] = agora + 4
+            return _try_torre(player)
+        return False
+    if player.get("map") == "torre_alvorada" and player.get("y", 0) >= 10:
+        return _try_torre(player)
+    # a porta do Farol: o Lorde barra (com pausa pra não spammar)
+    if player.get("map") == "farol_margem" and 23 <= player.get("x", 0) <= 27 and \
+       player.get("y", 0) == 24:
+        if player.get("_auto_cd", 0) <= agora:
+            player["_auto_cd"] = agora + 4
+            return _try_farol(player)
+        return False
+    # a travessia: pisou no píer, o Zé assume (provas, juba ou viagem)
+    if (player.get("map") == "costa_maravai" and
+        max(abs(player["x"] - TRAVESSIA_COSTA[0]), abs(player["y"] - TRAVESSIA_COSTA[1])) <= 1) or \
+       (player.get("map") == "vilalbina" and player.get("y", 0) >= 24 and
+        18 <= player.get("x", 0) <= 27):
+        f = player.get("ficha") or {}
+        if f.get("prosperina") or player.get("map") == "vilalbina":
+            return _try_travessia(player)
+        if player.get("_auto_cd", 0) <= agora:
+            player["_auto_cd"] = agora + 3
+            return _try_travessia(player)
+        return False
+    return False
+
+
 def _gossip_line(npc_id=None):
     """Uma fofoca montada dos dados reais (boss, arena, fenda, mercado)."""
     pool = []
@@ -4734,6 +4785,13 @@ def on_move(data):
             except Exception:
                 pass
 
+    # PORTAIS AUTOMÁTICOS: pisou na porta/píer/alçapão, passou (E é só da Fenda)
+    try:
+        if _auto_portais(player):
+            return
+    except Exception:
+        pass
+
     # aggro: andou perto de um monstro em O Descampado -> a luta comeca.
     if mp == "descampado" and not player.get("in_combat") and not player.get("invisible"):
         near = [m for m in world.monsters_near("descampado", player["x"], player["y"], COMBAT_AGGRO)
@@ -4883,16 +4941,12 @@ def on_interact(_data=None):
        max(abs(_val.get("x", 0) - player["x"]), abs(_val.get("y", 0) - player["y"])) <= TALK_RADIUS:
         if _quest_deliver(request.sid, player, "chamado_valdris"):
             return
-    if _try_casas_ilha(player):
-        return                      # PORTA na frente: porta tem prioridade
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
         if not _try_fenda(player) and not _try_fenda_inside(player) and \
-           not _try_travessia(player) and not _try_ilha_bordas(player) and \
-           not _try_torre(player) and not _try_biblioteca(player) and \
-           not _try_farol(player) and not _try_santuario(player) and \
+           not _try_biblioteca(player) and \
            not _try_garden(player) and \
-           not _try_ossuario(player) and not _try_mastro(player) and \
+           not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \
            not _try_fish(player):        # no píer? joga a linha!
             _try_gather(player)          # senão, talvez haja um node de coleta
