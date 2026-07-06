@@ -2716,7 +2716,7 @@ def _try_torre(player):
        max(abs(player["x"] - 24), abs(player["y"] - 12)) <= 3:
         f = player.get("ficha") or {}
         if f.get("torre_ok"):
-            _go_to(request.sid, "torre_alvorada", 9, 11)
+            _go_to(request.sid, "torre_alvorada", 12, 12)
             emit("toast", {"text": "🗼 Os grifos se curvam. A Grande Biblioteca te recebe."})
             return True
         idx = int(time.time() // DAY_LENGTH) % len(ENIGMAS)
@@ -2724,7 +2724,7 @@ def _try_torre(player):
         emit("toast", {"text": "🦅 Os GRIFOS de pedra giram as cabeças: \"%s\" (responda no CHAT)" %
                        ENIGMAS[idx][0]})
         return True
-    if player.get("map") == "torre_alvorada" and player.get("y", 0) >= 10:
+    if player.get("map") == "torre_alvorada" and player.get("y", 0) >= 13:
         _go_to(request.sid, "cidade_alta", 24, 14)
         emit("toast", {"text": "🗼 De volta à esplanada dos grifos."})
         return True
@@ -2748,10 +2748,10 @@ def _try_santuario(player):
     """A porta do Santuário dos Doze (a estrutura central do círculo)."""
     if player.get("map") == "jardim_templo" and \
        max(abs(player["x"] - 27), abs(player["y"] - 27)) <= 4:
-        _go_to(request.sid, "templo_estrelado", 13, 24)
+        _go_to(request.sid, "templo_estrelado", 16, 29)
         emit("toast", {"text": "⭐ O Santuário dos Doze: mármore negro, doze altares, um silêncio antigo."})
         return True
-    if player.get("map") == "templo_estrelado" and player.get("y", 0) >= 25:
+    if player.get("map") == "templo_estrelado" and player.get("y", 0) >= 31:
         _go_to(request.sid, "jardim_templo", 27, 33)
         emit("toast", {"text": "🌿 De volta ao círculo do jardim."})
         return True
@@ -2880,13 +2880,13 @@ def on_outfit_set(data):
 # ===========================================================================
 CASAS_ILHA = [
     {"mapa": "vilalbina", "cx": 30, "cy": 3, "w": 5, "h": 3,
-     "dest": "taverna_vilalbina", "dx": 6, "dy": 5, "bx": 32, "by": 7},
+     "dest": "taverna_vilalbina", "dx": 8, "dy": 7, "bx": 32, "by": 7},
     {"mapa": "vilalbina", "cx": 30, "cy": 20, "w": 4, "h": 3,
-     "dest": "iscas_cais", "dx": 4, "dy": 3, "bx": 31, "by": 24},
+     "dest": "iscas_cais", "dx": 6, "dy": 5, "bx": 31, "by": 24},
     {"mapa": "prospera", "cx": 58, "cy": 20, "w": 5, "h": 3,
-     "dest": "mercado_prospera", "dx": 6, "dy": 5, "bx": 60, "by": 24},
+     "dest": "mercado_prospera", "dx": 8, "dy": 8, "bx": 60, "by": 24},
     {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
-     "dest": "solar_prospera", "dx": 7, "dy": 6, "bx": 52, "by": 9},
+     "dest": "solar_prospera", "dx": 10, "dy": 10, "bx": 52, "by": 9},
 ]
 
 

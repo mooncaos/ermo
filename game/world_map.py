@@ -2522,19 +2522,6 @@ def _farol_margem():
     return ["".join(r) for r in g]
 
 
-def _torre_alvorada():
-    """A Grande Biblioteca (19x13): estantes, espelhos de bronze."""
-    g = [list("F" + "1" * 17 + "F") for _ in range(13)]
-    g[0] = list("F" * 19)
-    g[12] = list("F" * 19)
-    for y in (3, 6, 9):
-        for x in range(3, 16):
-            if x not in (7, 11):
-                g[y][x] = "H"
-    g[1][4] = ";"
-    g[1][14] = ";"
-    return ["".join(r) for r in g]
-
 
 MAPS["vilalbina"] = {"rows": _vilalbina(), "spawns": [(22, 21), (21, 21), (23, 21)]}
 MAPS["trigal_dourado"] = {"rows": _trigal_dourado(), "spawns": [(4, 17), (4, 18), (5, 17)]}
@@ -2544,88 +2531,143 @@ MAPS["prospera"] = {"rows": _prospera(), "spawns": [(4, 30), (4, 31), (5, 30)]}
 MAPS["jardim_templo"] = {"rows": _jardim_templo(), "spawns": [(3, 27), (3, 28), (4, 27)]}
 MAPS["cidade_alta"] = {"rows": _cidade_alta(), "spawns": [(3, 24), (3, 25), (4, 24)]}
 MAPS["farol_margem"] = {"rows": _farol_margem(), "spawns": [(24, 2), (25, 2), (24, 3)]}
-def _templo_estrelado():
-    """O Santuário dos Doze (27x27): salão circular de mármore negro, 12 altares
-    em círculo (um por deus), o Arcebispo no centro. Saída ao sul."""
-    import math as _m
-    W, H = 27, 27
-    g = [["F" for _ in range(W)] for _ in range(H)]
-    cx, cy = 13, 13
-    for y in range(H):
-        for x in range(W):
-            if (x - cx) ** 2 + (y - cy) ** 2 <= 11.5 ** 2:
-                g[y][x] = "1"
-    for i in range(12):                    # os 12 altares (nichos na parede)
-        a = i * _m.pi * 2 / 12 - _m.pi / 2
-        tx, ty = int(cx + 9.6 * _m.cos(a)), int(cy + 9.6 * _m.sin(a))
-        g[ty][tx] = ";"
-    for y in range(cy + 10, H):            # o corredor de saída ao sul
-        g[y][12] = "1"
-        g[y][13] = "1"
-        g[y][14] = "1"
-    return ["".join(r) for r in g]
-
-
-MAPS["torre_alvorada"] = {"rows": _torre_alvorada(), "spawns": [(9, 11), (8, 11), (10, 11)]}
-MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(13, 24), (12, 24), (14, 24)]}
-
 
 def _taverna_vilalbina():
-    """A Taverna da Rosa (12x9): balcão, mesas e a festa de sempre."""
-    g = [list("F" + "1" * 10 + "F") for _ in range(9)]
-    g[0] = list("F" * 12)
-    g[8] = list("F" * 12)
-    for x in range(2, 7):
-        g[2][x] = "H"                     # o balcão
-    g[4][3] = "H"; g[4][8] = "H"          # mesas
-    g[6][3] = "H"; g[6][8] = "H"
-    g[1][9] = ";"
+    """A Taverna da Rosa (16x11): lareira, balcão, mesas de tapete, barris."""
+    g = [list("F" + "1" * 14 + "F") for _ in range(11)]
+    g[0] = list("FFFjjFFhhFFjjFFF")
+    g[10] = list("FFFFFFFDDFFFFFFF")
+    for x in range(3, 9):
+        g[2][x] = "#"
+    g[2][12] = "o"; g[3][12] = "o"; g[3][13] = "o"
+    for (mx, my) in ((3, 5), (8, 5), (12, 6), (5, 8), (10, 8)):
+        g[my][mx] = "k"
+        if my + 1 < 10:
+            g[my + 1][mx] = "2"
+    g[6][1] = "q"
     return ["".join(r) for r in g]
 
 
 def _iscas_cais():
-    """A Isqueria do Tião (9x7): barris de iscas e cheiro de maré."""
-    g = [list("F" + "1" * 7 + "F") for _ in range(7)]
-    g[0] = list("F" * 9)
-    g[6] = list("F" * 9)
-    g[2][2] = "H"; g[2][3] = "H"          # o balcão
-    g[4][6] = "H"                          # barril
-    g[1][6] = ";"
+    """A Isqueria do Tião (12x9): balcão, barris de isca, maré na janela."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(9)]
+    g[0] = list("FFjjFFFhFjjF")
+    g[8] = list("FFFFFDDFFFFF")
+    g[2][2] = "#"; g[2][3] = "#"; g[2][4] = "#"
+    g[3][9] = "o"; g[4][9] = "o"; g[4][8] = "o"
+    g[5][2] = "q"; g[6][2] = "q"
+    g[4][5] = "k"; g[5][5] = "2"
     return ["".join(r) for r in g]
 
 
 def _mercado_prospera():
-    """O Empório do Otto (13x9): prateleiras da capital."""
-    g = [list("F" + "1" * 11 + "F") for _ in range(9)]
-    g[0] = list("F" * 13)
-    g[8] = list("F" * 13)
-    for x in range(2, 6):
-        g[2][x] = "H"                     # balcão
-    for y in (4, 6):
-        for x in (8, 9, 10):
-            g[y][x] = "H"                 # prateleiras
-    g[1][10] = ";"
+    """O Empório do Otto (17x12): prateleiras fartas, tapete da capital."""
+    g = [list("F" + "1" * 15 + "F") for _ in range(12)]
+    g[0] = list("FFjjFFFhhFFFjjFFF")
+    g[11] = list("FFFFFFFDDFFFFFFFF")
+    for x in range(3, 8):
+        g[2][x] = "#"
+    for y in (4, 6, 8):
+        for x in (11, 12, 13, 14):
+            g[y][x] = "E"
+    for y in (5, 6):
+        for x in (4, 5, 6):
+            g[y][x] = "2"
+    g[8][2] = "q"; g[9][2] = "q"; g[9][3] = "o"
     return ["".join(r) for r in g]
 
 
 def _solar_prospera():
-    """O Solar dos Eméritos (14x10): tapete, lareira e memória."""
-    g = [list("F" + "1" * 12 + "F") for _ in range(10)]
-    g[0] = list("F" * 14)
-    g[9] = list("F" * 14)
-    for x in (3, 4):
-        g[2][x] = "H"                     # a lareira
-    g[2][5] = ";"
-    for x in (8, 9, 10):
-        g[4][x] = "H"                     # a grande mesa
-    g[6][2] = "H"; g[6][11] = "H"         # poltronas
+    """O Solar dos Eméritos (20x14): lareira dupla, mesa longa, memória."""
+    g = [list("F" + "1" * 18 + "F") for _ in range(14)]
+    g[0] = list("FFjjFFFFhhFFFFjjFFFF")
+    g[13] = list("FFFFFFFFFDDFFFFFFFFF")
+    for x in range(8, 12):
+        for y in range(2, 5):
+            g[y][x] = "2"
+    for x in (7, 8, 9, 10, 11, 12):
+        g[7][x] = "k"
+    g[7][6] = "^"; g[7][13] = "^"
+    g[3][2] = "q"; g[4][2] = "q"
+    g[3][17] = "E"; g[4][17] = "E"
+    g[10][3] = "k"; g[11][3] = "2"
+    g[10][16] = "k"; g[11][16] = "2"
+    g[2][14] = ";"
     return ["".join(r) for r in g]
 
 
-MAPS["taverna_vilalbina"] = {"rows": _taverna_vilalbina(), "spawns": [(6, 7), (5, 7), (7, 7)]}
-MAPS["iscas_cais"] = {"rows": _iscas_cais(), "spawns": [(4, 5), (3, 5), (5, 5)]}
-MAPS["mercado_prospera"] = {"rows": _mercado_prospera(), "spawns": [(6, 7), (5, 7), (7, 7)]}
-MAPS["solar_prospera"] = {"rows": _solar_prospera(), "spawns": [(7, 8), (6, 8), (8, 8)]}
+def _templo_estrelado():
+    """O Santuário dos Doze (33x33): mármore negro, pilares, bancos,
+    12 altares acesos e o tapete do Arcebispo."""
+    W, H = 33, 33
+    g = [["F" for _ in range(W)] for _ in range(H)]
+    cx, cy = 16, 15
+    for y in range(H):
+        for x in range(W):
+            if (x - cx) ** 2 + (y - cy) ** 2 <= 14.4 ** 2:
+                g[y][x] = "1"
+    for i in range(12):
+        a = i * math.pi * 2 / 12 - math.pi / 2
+        tx, ty = int(cx + 12.4 * math.cos(a)), int(cy + 12.4 * math.sin(a))
+        g[ty][tx] = ";"
+    for i in range(8):
+        a = i * math.pi / 4 + math.pi / 8
+        tx, ty = int(cx + 8.2 * math.cos(a)), int(cy + 8.2 * math.sin(a))
+        g[ty][tx] = "F"
+    for i in range(8):
+        a = i * math.pi / 4
+        tx, ty = int(cx + 5.6 * math.cos(a)), int(cy + 5.6 * math.sin(a))
+        g[ty][tx] = "^"
+    for y in range(cy - 1, cy + 2):
+        for x in range(cx - 1, cx + 2):
+            g[y][x] = "2"
+    for y in range(cy + 13, H):
+        for x in (cx - 1, cx, cx + 1):
+            g[y][x] = "2" if x == cx else "1"
+    g[H - 1][cx] = "D"
+    return ["".join(r) for r in g]
+
+
+def _torre_alvorada():
+    """A Grande Biblioteca (25x15): corredores de estantes, mesas de leitura."""
+    W, H = 25, 15
+    g = [list("F" + "1" * (W - 2) + "F") for _ in range(H)]
+    g[0] = list("F" * W)
+    g[H - 1] = list("F" * W)
+    for x in (3, 4, 20, 21):
+        g[0][x] = "j"
+    g[0][7] = ";"
+    g[0][17] = ";"
+    for x in (9, 10, 11, 12, 13, 14, 15):
+        g[0][x] = "E"
+    g[H - 1][11] = "D"
+    g[H - 1][12] = "D"
+    for y in (3, 6, 9):
+        for x in range(3, 22):
+            if x not in (8, 12, 16):
+                g[y][x] = "E"
+    for (mx, my) in ((6, 11), (12, 11), (18, 11)):
+        g[my][mx] = "k"
+        g[my + 1][mx] = "2"
+    g[1][3] = ";"
+    g[1][21] = ";"
+    return ["".join(r) for r in g]
+
+
+MAPS["torre_alvorada"] = {"rows": _torre_alvorada(), "spawns": [(12, 12), (11, 12), (13, 12)]}
+MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(16, 29), (15, 29), (17, 29)]}
+
+
+
+
+
+
+
+
+MAPS["taverna_vilalbina"] = {"rows": _taverna_vilalbina(), "spawns": [(8, 7), (7, 7), (9, 7)]}
+MAPS["iscas_cais"] = {"rows": _iscas_cais(), "spawns": [(6, 5), (5, 5), (7, 5)]}
+MAPS["mercado_prospera"] = {"rows": _mercado_prospera(), "spawns": [(8, 8), (7, 8), (9, 8)]}
+MAPS["solar_prospera"] = {"rows": _solar_prospera(), "spawns": [(10, 10), (9, 10), (11, 10)]}
 
 
 def _gotico_vespera():
