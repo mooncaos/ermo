@@ -2207,7 +2207,7 @@ def _weather_tick(now):
                 if max(abs(p2["x"] - rx), abs(p2["y"] - ry)) > 1:
                     continue
                 f2 = p2.get("ficha") or {}
-                if int(f2.get("hp", 0)) <= 0:
+                if int(f2.get("hp", 0)) <= 0 or p2.get("gm_god"):
                     continue
                 dano = max(5, int(f2.get("hp_max", 20)) * 15 // 100)
                 f2["hp"] = max(1, int(f2.get("hp", 1)) - dano)
@@ -3290,6 +3290,16 @@ def _rt_combat_loop():
                     socketio.emit("rt_dead", {"id": rival["id"]}, room=m.get("map"))
                     _MONSTER_RESPAWNS.append((rival["id"], time.time() + 90))
 
+            # o Mestre em god mode é intocável: restaura a cada volta do motor
+            for _gs, _gp in world.players.items():
+                if _gp.get("gm_god"):
+                    _gf = _gp.get("ficha") or {}
+                    if int(_gf.get("hp", 0)) < int(_gf.get("hp_max", 1)):
+                        _gf["hp"] = int(_gf.get("hp_max", 1))
+                        _gp["ficha"] = _gf
+                        socketio.emit("rt_pheal", {"amount": 0, "hp": _gf["hp"],
+                                      "hp_max": _gf.get("hp_max")}, to=_gs)
+
             # -------- monstros CAÇAM: aggro, perseguição, invocação e falas --------
             for mid, m in list(world.monsters.items()):
                 if not m.get("alive") or m.get("passive") or m.get("in_combat"):
@@ -3302,6 +3312,9 @@ def _rt_combat_loop():
                 alvo_pl = None
                 alvo_d = 999
                 _ag = m.get("_aggro_sid")
+                if _ag and (world.players.get(_ag) or {}).get("gm_god"):
+                    _ag = None
+                    m.pop("_aggro_sid", None)
                 if _ag and m.get("_aggro_until", 0) > now:
                     _p3 = world.players.get(_ag)
                     _f3 = (_p3 or {}).get("ficha") or {}
@@ -3312,7 +3325,7 @@ def _rt_combat_loop():
                         alvo_d = max(abs(m["x"] - _p3["x"]), abs(m["y"] - _p3["y"]))
                 if not alvo_sid:
                     for sid, pl in world.players.items():
-                        if pl.get("map") != m.get("map") or pl.get("invisible"):
+                        if pl.get("map") != m.get("map") or pl.get("invisible") or pl.get("gm_god"):
                             continue
                         fp = pl.get("ficha") or {}
                         if int(fp.get("hp", 0)) <= 0:
@@ -6097,6 +6110,31 @@ def on_chat(data):
     text = text.strip()[:120]
     if not text:
         return
+    # comandos do Mestre pelo chat (só GM; não vira balão)
+    if text.startswith("/") and gm.is_gm(player):
+        _parts = text[1:].split()
+        _cmd = (_parts[0] if _parts else "").lower()
+        if _cmd == "tp" and len(_parts) >= 2:
+            _mp2 = _parts[1].lower()
+            if _mp2 not in wm.MAPS:
+                _sug = ", ".join(sorted(wm.MAPS.keys()))
+                emit("toast", {"text": "🌀 Mapa '%s' não existe. Opções: %s" % (_mp2, _sug[:300])})
+                return
+            try:
+                _tx = int(_parts[2]); _ty = int(_parts[3])
+            except Exception:
+                _tx, _ty = wm.MAPS[_mp2]["spawns"][0]
+            if not rules.is_walkable(_tx, _ty, _mp2):
+                _tx, _ty = wm.MAPS[_mp2]["spawns"][0]
+            _go_to(request.sid, _mp2, _tx, _ty)
+            emit("toast", {"text": "🌀 Teleportado: %s (%d, %d)" % (_mp2, _tx, _ty)})
+            return
+        if _cmd == "onde":
+            emit("toast", {"text": "📍 %s (%d, %d)" % (player.get("map"), player.get("x", 0), player.get("y", 0))})
+            return
+        emit("toast", {"text": "🧙 Comandos do Mestre: /tp <mapa> [x y] · /onde"})
+        return
+
     smiter = world.nearest_smiter(player, HEAR_RADIUS)
     if smiter and npcs.contains_curse(text):
         _smite(player, smiter)
