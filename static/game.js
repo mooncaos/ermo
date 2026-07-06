@@ -12255,7 +12255,13 @@ var bindArcano = setInterval(()=>{
   socket.emit('grimoire_get');            // popula a hotbar ao entrar
   socket.emit('rt_abilities_get');        // e a barra de habilidades (6-0)
 
-  // ============ BARRA DE HABILIDADES (teclas 6-0) ============
+  socket.emit('rt_abilities_get');                    // pedido pós-init
+  setTimeout(() => socket.emit('rt_abilities_get'), 2200);   // e o retry de segurança
+}, 900);
+
+
+// ============ BARRA DE HABILIDADES (registro IMEDIATO — v27) ============
+(function(){
   const ABIL_ICO = {divine_smite:'⚔️', lay_on_hands:'🙌', rage:'😤', second_wind:'💨',
                     flurry:'👊', martial_arts:'🥋', bardic:'🎵', lamina_venenosa:'🗡️',
                     some_sombras:'🌑', milesima_saida:'🐇', aurora_valiria:'🌅',
@@ -12285,18 +12291,21 @@ var bindArcano = setInterval(()=>{
         '<div style="margin-top:1px;">' + (cdLeft ? cdLeft + 's' : ('tecla ' + ((i + 6) % 10))) + '</div>' +
         '<div style="position:absolute;top:1px;right:4px;font:700 9px Inter;color:#8a80a0;">' +
         ((i + 6) % 10) + '</div>';
-      s.onclick = () => socket.emit('rt_ability', {id: ab.id});
+      s.onclick = () => { if(socket) socket.emit('rt_ability', {id: ab.id}); };
       bar.appendChild(s);
     });
   }
-  socket.on('rt_abilities', d => { g.abils = (d && d.abilities) || []; 
-    (g.abils).forEach(ab => { if(ab.cd_left) g.abilCd[ab.id] = Date.now()/1000 + ab.cd_left; });
-    renderAbilbar(); });
-  socket.on('rt_ability_cd', d => {
-    if(!d || !d.id) return;
-    g.abilCd[d.id] = Date.now()/1000 + (d.secs || 10);
-    renderAbilbar();
-  });
+  (function _abilWire(){
+    if(!socket){ setTimeout(_abilWire, 100); return; }      // espera o socket NASCER
+    socket.on('rt_abilities', d => { g.abils = (d && d.abilities) || [];
+      (g.abils).forEach(ab => { if(ab.cd_left) g.abilCd[ab.id] = Date.now()/1000 + ab.cd_left; });
+      renderAbilbar(); });
+    socket.on('rt_ability_cd', d => {
+      if(!d || !d.id) return;
+      g.abilCd[d.id] = Date.now()/1000 + (d.secs || 10);
+      renderAbilbar();
+    });
+  })();
   setInterval(() => { if(g.abils.length) renderAbilbar(); }, 1000);
   window.addEventListener('keydown', ev => {
     if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
@@ -12304,10 +12313,10 @@ var bindArcano = setInterval(()=>{
     if(['6','7','8','9','0'].includes(k)){
       const idx = (k === '0') ? 4 : (parseInt(k) - 6);
       const ab = g.abils[idx];
-      if(ab) socket.emit('rt_ability', {id: ab.id});
+      if(ab && socket) socket.emit('rt_ability', {id: ab.id});
     }
   });
-}, 900);
+})();
 
 // ===========================================================================
 //  INTERIORES CUSTOMIZADOS: cada oficina com alma própria (arte à mão)
