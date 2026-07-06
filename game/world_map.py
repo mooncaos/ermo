@@ -2884,6 +2884,81 @@ def _casa_fadogan():
     return ["".join(r) for r in g]
 
 
+def _lojinha(estilo):
+    """Lojinha de rua de Prospera (13x9): balcão, vitrine e o toque do ofício."""
+    g = [list("F" + "1" * 11 + "F") for _ in range(9)]
+    g[0] = list("FFjFFjFFjFFjF")
+    g[8] = list("FFFFFDDFFFFFF")
+    g[2][2] = "#"; g[2][3] = "#"; g[2][4] = "#"          # o balcão
+    g[2][9] = "E"; g[3][10] = "q"
+    if estilo == "cadeira":      g[4][6] = "^"; g[4][8] = "^"        # barbearia
+    elif estilo == "estantes":   g[4][2] = "E"; g[5][2] = "E"; g[4][10] = "E"   # livraria
+    elif estilo == "flores":     g[4][2] = "w"; g[5][3] = "w"; g[4][10] = "w"   # floricultura
+    elif estilo == "mesa":       g[4][6] = "k"; g[5][6] = "^"        # alfaiate/luthier
+    elif estilo == "barris":     g[4][2] = "o"; g[5][2] = "o"; g[4][10] = "o"   # peixaria/queijaria
+    elif estilo == "forno":      g[2][7] = "h"; g[4][2] = "o"        # doceria
+    elif estilo == "chas":       g[4][4] = "k"; g[4][8] = "k"; g[5][4] = "^"; g[5][8] = "^"
+    return ["".join(r) for r in g]
+
+
+def _casa_valmont():
+    """A Casa Valmont (18x12): nobreza menor com espelho grande."""
+    g = [list("F" + "1" * 16 + "F") for _ in range(12)]
+    g[0] = list("FFjFFFjFFFFjFFFjFF")
+    g[11] = list("FFFFFFFFDDFFFFFFFF")
+    for y in range(3, 8):
+        g[y][8] = "2"; g[y][9] = "2"
+    g[2][4] = "P"; g[2][13] = "P"; g[1][8] = "P"; g[1][9] = "P"
+    g[4][3] = ";"; g[4][14] = ";"; g[8][3] = ";"
+    g[3][2] = "b"; g[3][15] = "b"; g[5][15] = "b"
+    g[7][4] = "k"; g[7][5] = "k"; g[6][4] = "^"; g[8][5] = "^"
+    g[2][2] = "h"; g[9][15] = "q"; g[3][6] = "_"
+    return ["".join(r) for r in g]
+
+
+def _embaixada():
+    """A Embaixada das Terras do Ermo (16x11): selos, mapas e um alçapão."""
+    g = [list("F" + "1" * 14 + "F") for _ in range(11)]
+    g[0] = list("FFjFFFjFFFjFFFjF")
+    g[10] = list("FFFFFFFDDFFFFFFF")
+    g[2][7] = "k"; g[2][8] = "k"; g[1][7] = "^"
+    g[2][2] = "P"; g[2][13] = "P"; g[4][2] = "E"; g[5][2] = "E"
+    g[4][13] = "E"; g[6][3] = ";"; g[6][12] = ";"
+    g[7][12] = "D"                                      # o ALÇAPÃO do porão 👀
+    g[5][7] = "2"; g[5][8] = "2"; g[6][7] = "2"; g[6][8] = "2"
+    return ["".join(r) for r in g]
+
+
+def _porao_sapopemba():
+    """O porão sapopembano (12x8): bandeira torta, rede e um cheiro de churrasco."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(8)]
+    g[0] = list("FFFFFFFFFFFF")
+    g[7] = list("FFFFFFFFFFFF")
+    g[1][5] = "P"                                        # a bandeira (torta)
+    g[2][2] = "b"; g[2][9] = "o"; g[4][9] = "o"
+    g[4][4] = "k"; g[4][5] = "k"; g[5][4] = "^"
+    g[2][7] = "h"                                        # a churrasqueira improvisada
+    g[6][2] = "D"                                        # a escada de volta
+    return ["".join(r) for r in g]
+
+
+def _casa_leiloes():
+    """O Martelo Dourado (18x12): palco do leiloeiro, plateia e o LOTE DO DIA."""
+    g = [list("F" + "1" * 16 + "F") for _ in range(12)]
+    g[0] = list("FFjFFjFFFFjFFjFFFF")
+    g[11] = list("FFFFFFFFDDFFFFFFFF")
+    for x in range(6, 12):
+        g[2][x] = "2"
+    g[2][8] = "#"; g[2][9] = "#"                          # o púlpito do martelo
+    g[1][8] = "P"; g[1][9] = "P"
+    for y in (5, 7, 9):
+        for x in (4, 6, 8, 10, 12):
+            g[y][x] = "^"                                  # a plateia
+    g[3][3] = ";"; g[3][14] = ";"; g[9][14] = "q"; g[8][14] = "q"
+    g[3][15] = "E"
+    return ["".join(r) for r in g]
+
+
 def _casinha_pesc(nome_var):
     """Casinha de pescador (10x7): simples, limpa, esperando a família."""
     g = [list("F" + "1" * 8 + "F") for _ in range(7)]
@@ -3061,6 +3136,20 @@ MAPS["casinha_leste"] = {"rows": _casinha_pesc(1), "spawns": [(5, 4), (4, 4), (5
 MAPS["casinha_sul"] = {"rows": _casinha_pesc(2), "spawns": [(5, 4), (4, 4), (5, 3)]}
 MAPS["casa_dora"] = {"rows": _casa_dora(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 MAPS["celeiro_colheita"] = {"rows": _celeiro_colheita(), "spawns": [(8, 8), (7, 8), (8, 7)]}
+MAPS["loja_barbearia"] = {"rows": _lojinha("cadeira"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_livraria"] = {"rows": _lojinha("estantes"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_floricultura"] = {"rows": _lojinha("flores"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_alfaiataria"] = {"rows": _lojinha("mesa"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_peixaria"] = {"rows": _lojinha("barris"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_queijaria"] = {"rows": _lojinha("barris"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_doceria"] = {"rows": _lojinha("forno"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_chas"] = {"rows": _lojinha("chas"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_luthier"] = {"rows": _lojinha("mesa"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_banca"] = {"rows": _lojinha("estantes"), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["casa_valmont"] = {"rows": _casa_valmont(), "spawns": [(8, 9), (9, 9), (8, 8)]}
+MAPS["embaixada_ermo"] = {"rows": _embaixada(), "spawns": [(7, 8), (8, 8), (7, 7)]}
+MAPS["porao_sapopemba"] = {"rows": _porao_sapopemba(), "spawns": [(3, 5), (4, 5), (3, 4)]}
+MAPS["casa_leiloes"] = {"rows": _casa_leiloes(), "spawns": [(8, 10), (9, 10), (8, 9)]}
 def _torre_conclave():
     """2º andar: o SALÃO DO CONCLAVE (21x14). A origem da magia do Ermo.
     Mesa de mármore rúnica, os cinco assentos, colunas, vitrais e o

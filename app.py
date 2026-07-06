@@ -115,6 +115,13 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "casinha_norte": "Casinha do Norte", "casinha_leste": "Casinha do Leste",
               "casinha_sul": "Casinha do Sul", "casa_dora": "Casa da Dora",
               "celeiro_colheita": "Celeiro da Colheita",
+              "loja_barbearia": "Barbearia do Seu Fino", "loja_livraria": "Livraria da Prosa",
+              "loja_floricultura": "Floricultura Petúnia", "loja_alfaiataria": "Alfaiataria Linho",
+              "loja_peixaria": "Peixaria do Almir", "loja_queijaria": "Queijaria Angard",
+              "loja_doceria": "Doceria da Sá Benta", "loja_chas": "Casa de Chás do Camomilo",
+              "loja_luthier": "Luthieria Mestre Corda", "loja_banca": "Banca do Zé Boato",
+              "casa_valmont": "Casa Valmont", "embaixada_ermo": "Embaixada das Terras do Ermo",
+              "porao_sapopemba": "Consulado de Sapopemba (?)", "casa_leiloes": "O Martelo Dourado",
               "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
               "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
               "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
@@ -195,7 +202,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v35: A AGENDA VIVA - liturgia, conclave, praca, cha, Jacquard nobre (06/jul)"
+BUILD_TAG = "v36: PROSPERA VIVA - 31 almas, 13 lojas e nobres, LOTE DO DIA, Caiques (06/jul)"
 
 
 def _asset_version():
@@ -2935,6 +2942,32 @@ CASAS_ILHA = [
      "dest": "casa_baixa", "dx": 7, "dy": 6, "bx": 18, "by": 22},
     {"mapa": "baixa_da_egua", "cx": 31, "cy": 22, "w": 8, "h": 3,
      "dest": "cortico_baixa", "dx": 8, "dy": 6, "bx": 34, "by": 26},
+    {"mapa": "prospera", "cx": 13, "cy": 4, "w": 5, "h": 3,
+     "dest": "loja_barbearia", "dx": 6, "dy": 6, "bx": 15, "by": 8},
+    {"mapa": "prospera", "cx": 21, "cy": 4, "w": 5, "h": 4,
+     "dest": "loja_livraria", "dx": 6, "dy": 6, "bx": 23, "by": 9},
+    {"mapa": "prospera", "cx": 59, "cy": 4, "w": 5, "h": 3,
+     "dest": "loja_floricultura", "dx": 6, "dy": 6, "bx": 61, "by": 8},
+    {"mapa": "prospera", "cx": 76, "cy": 4, "w": 6, "h": 3,
+     "dest": "loja_alfaiataria", "dx": 6, "dy": 6, "bx": 79, "by": 8},
+    {"mapa": "prospera", "cx": 4, "cy": 12, "w": 5, "h": 3,
+     "dest": "loja_peixaria", "dx": 6, "dy": 6, "bx": 6, "by": 16},
+    {"mapa": "prospera", "cx": 13, "cy": 12, "w": 6, "h": 4,
+     "dest": "loja_queijaria", "dx": 6, "dy": 6, "bx": 16, "by": 17},
+    {"mapa": "prospera", "cx": 67, "cy": 12, "w": 5, "h": 3,
+     "dest": "loja_doceria", "dx": 6, "dy": 6, "bx": 69, "by": 16},
+    {"mapa": "prospera", "cx": 4, "cy": 20, "w": 5, "h": 3,
+     "dest": "loja_chas", "dx": 6, "dy": 6, "bx": 6, "by": 24},
+    {"mapa": "prospera", "cx": 22, "cy": 20, "w": 5, "h": 3,
+     "dest": "loja_luthier", "dx": 6, "dy": 6, "bx": 24, "by": 24},
+    {"mapa": "prospera", "cx": 4, "cy": 44, "w": 6, "h": 4,
+     "dest": "loja_banca", "dx": 6, "dy": 6, "bx": 7, "by": 49},
+    {"mapa": "prospera", "cx": 76, "cy": 11, "w": 6, "h": 4,
+     "dest": "casa_valmont", "dx": 8, "dy": 9, "bx": 79, "by": 16},
+    {"mapa": "prospera", "cx": 22, "cy": 44, "w": 6, "h": 4,
+     "dest": "embaixada_ermo", "dx": 7, "dy": 8, "bx": 25, "by": 49},
+    {"mapa": "prospera", "cx": 77, "cy": 44, "w": 5, "h": 4,
+     "dest": "casa_leiloes", "dx": 8, "dy": 10, "bx": 79, "by": 49},
     {"mapa": "vilalbina", "cx": 3, "cy": 3, "w": 5, "h": 3,
      "dest": "casinha_norte", "dx": 5, "dy": 4, "bx": 5, "by": 7},
     {"mapa": "vilalbina", "cx": 37, "cy": 9, "w": 4, "h": 3,
@@ -3006,6 +3039,8 @@ TORRE_ESCADAS = [
     ("torre_escritorio",   3, 12,  "torre_observatorio", 13, 10),
     ("torre_escritorio",   15, 12, "torre_terraco",      3, 10),
     ("torre_terraco",      2, 11,  "torre_escritorio",  14, 11),
+    ("embaixada_ermo",     12, 7,  "porao_sapopemba",    3, 5),
+    ("porao_sapopemba",    2, 6,   "embaixada_ermo",    11, 7),
 ]
 
 
@@ -5627,6 +5662,28 @@ def on_interact(_data=None):
                 room=player.get("map"))
         return True
 
+    if npc.get("id") == "npc:almir":
+        _open_shop(player, npc, "Peixaria do Almir — fornecedor: Tião", [],
+                   0, potions=[("peixe_assado", 30), ("caldo_de_sururu", 55), ("moqueca_capixaba", 80)])
+        return
+    if npc.get("id") == "npc:brigitte":
+        _open_shop(player, npc, "Queijaria Angard", [],
+                   0, potions=[("queijo_angard", 45)])
+        return
+    if npc.get("id") == "npc:sa_benta":
+        _open_shop(player, npc, "Doceria da Sá Benta", [],
+                   0, potions=[("doce_da_baixa", 18), ("petit_gateau", 200)])
+        return
+    if npc.get("id") == "npc:camomilo":
+        _open_shop(player, npc, "Casa de Chás", [],
+                   0, potions=[("cha_da_calma", 15)])
+        return
+    if npc.get("id") == "npc:fagnin_valmont":
+        _lote = _lote_do_dia()
+        _open_shop(player, npc, "O LOTE DO DIA — Martelo Dourado", [],
+                   0, potions=[(_lote[0], _lote[1])])
+        return
+
     if npc.get("id") == "npc:bito_ferradura":
         _open_shop(player, npc, "Forja do Bito — equipamento fino", items.TIER_SETS["t2"],
                    getattr(items, "TIER_PRICE", {}).get("t2", 140) if hasattr(items, "TIER_PRICE") else 140,
@@ -6255,6 +6312,18 @@ def _mover_npc(nid, mp, ax, ay):
         socketio.emit("player_moved", _npc_moved_payload(ent), room=mp)
 
 
+def _lote_do_dia():
+    """O Martelo Dourado: um item raro rotativo, preço de leilão (3x), muda na alvorada."""
+    raros = sorted(i for i, d in items.ITEMS.items()
+                   if d.get("rarity") in ("raro", "epico", "lendario") and
+                   100 <= d.get("value", 0) <= 2000 and
+                   not i.startswith(("t2_", "t3_", "necro_", "x_")))
+    if not raros:
+        return ("pocao_vida", 300)
+    it = raros[_dia_num() % len(raros)]
+    return (it, int(items.ITEMS[it].get("value", 100) * 3))
+
+
 def _agenda_tick():
     """A Agenda Viva: sobrepõe a rotina base em horários especiais."""
     h = _hora_ciclo()
@@ -6308,6 +6377,29 @@ def _agenda_tick():
         if presentes and random.random() < 0.2:
             socketio.emit("speech", {"id": "npc:chef_jacquard",
                           "text": random.choice(_CHEF_SURTOS)}, room="restaurante_jacquard")
+    # ---- O CHÁ DAS 17h LOTADO: a corte paparica a Rainha-mãe ----
+    if 17 <= h < 18:
+        corte = ["npc:isolda_valmont", "npc:beatriz_valmont", "npc:dona_prosa",
+                 "npc:petunia", "npc:camomilo", "npc:dede_costureira", "npc:didi_costureira", "npc:dona_firmina"]
+        poss = [(3, 3), (9, 3), (3, 6), (9, 6), (5, 3), (7, 6), (5, 6), (7, 3)]
+        for i2, nid2 in enumerate(corte):
+            _mover_npc(nid2, "salao_cha", *poss[i2 % len(poss)])
+    # ---- A JANTA 19h-21h: fregueses no Jacquard ----
+    if 19 <= h < 21 and not noite:
+        for i3, nid3 in enumerate(["npc:otavio_valmont", "npc:mestre_linho", "npc:dona_prosa"]):
+            _mover_npc(nid3, "restaurante_jacquard", 2 + i3 * 4, 6)
+    # ---- COMPRADORES ALEATÓRIOS: gente circulando nas lojas ----
+    if not noite and not (16 <= h < 18):
+        lojas2 = ["loja_barbearia", "loja_livraria", "loja_floricultura", "loja_doceria",
+                  "loja_chas", "loja_banca", "loja_queijaria", "loja_peixaria"]
+        rua = ["npc:rosendo", "npc:rute", "npc:viuva_clarice", "npc:moco_elviro",
+               "npc:guarda_trovao", "npc:pedreiro_batista", "npc:professor_anselmo",
+               "npc:dona_pontuala", "npc:familia_pontual"]
+        slot = int(h * 2)
+        for k2 in range(3):
+            comprador = rua[(_dia_num() * 3 + slot + k2 * 4) % len(rua)]
+            loja2 = lojas2[(_dia_num() * 7 + slot * 3 + k2) % len(lojas2)]
+            _mover_npc(comprador, loja2, 5, 5)
     # ---- DANTE: recluso, salvo evento no São Celeste (ou raro passeio) ----
     if FEIRAO_EVENTO:
         _mover_npc("npc:lorde_dante", "feirao_sao_celeste", 24, 8)
