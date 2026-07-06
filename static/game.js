@@ -15354,6 +15354,12 @@ function renderOutfits(){
 //  PORTAS VIVAS: as casas entráveis se anunciam (porta grande, placa, luz).
 // ===========================================================================
 var _PORTAS_VIVAS = [
+  {mapa: 'cidade_alta', cx: 4,  cy: 4,  w: 5, h: 3, emoji: '🍎'},
+  {mapa: 'cidade_alta', cx: 4,  cy: 30, w: 5, h: 3, emoji: '🌶️'},
+  {mapa: 'cidade_alta', cx: 38, cy: 30, w: 6, h: 4, emoji: '⚗️'},
+  {mapa: 'cidade_alta', cx: 12, cy: 30, w: 5, h: 3, emoji: '💎'},
+  {mapa: 'prospera',   cx: 4,  cy: 4,  w: 6, h: 4, emoji: '🫖'},
+  {mapa: 'vilalbina',  cx: 36, cy: 15, w: 5, h: 3, emoji: '🕊️'},
   {mapa: 'vilalbina', cx: 36, cy: 15, w: 5, h: 3, emoji: '⛪'},
   {mapa: 'prospera', cx: 4, cy: 4, w: 6, h: 4, emoji: '🫖'},
   {mapa: 'cidade_alta', cx: 4, cy: 4, w: 5, h: 3, emoji: '🍑'},

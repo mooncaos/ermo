@@ -2816,17 +2816,54 @@ def _casa_loja(acc_seed):
 
 
 def _adega_angard():
-    """A Adega da Maison Angard (15x10): barris, queijos e dois retratos solenes."""
-    g = [list("F" + "1" * 13 + "F") for _ in range(10)]
-    g[0] = list("FFjFPFFhFFPFjFF")
-    g[9] = list("FFFFFFFDDFFFFFF")
-    for x in (2, 4, 10, 12):
-        g[2][x] = "o"; g[3][x] = "o"                               # as fileiras de barris
-    g[5][6] = "k"; g[5][7] = "k"; g[5][8] = "k"                    # a mesa de provas
-    g[6][5] = "^"; g[6][9] = "^"; g[4][7] = "2"
-    g[2][7] = "E"                                                  # a estante dos QUEIJOS
-    g[7][2] = "b"; g[7][12] = "b"                                  # os aposentos do casal
-    g[7][6] = "2"; g[7][7] = "2"; g[7][8] = "2"
+    """A MANSÃO ANGARD (26x16): rococó francês. Hall de retratos, jantar de
+    doze lugares, cozinha, suíte, adega e a ala dos oito criados."""
+    W, H = 26, 16
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x in (4, 8, 13, 17, 21) else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    # HALL central: tapete nobre + retratos da dinastia + candelabros
+    for y in range(4, 8):
+        for x in range(9, 17):
+            g[y][x] = "2"
+    for x in (10, 12, 14):
+        g[1][x] = "P"
+    g[3][9] = ";"; g[3][16] = ";"; g[8][9] = ";"; g[8][16] = ";"
+    g[2][12] = "h"                                    # a grande lareira do hall
+    # JANTAR (leste): mesa de doze lugares
+    for x in range(19, 24):
+        g[4][x] = "k"
+        g[3][x] = "^"; g[5][x] = "^"
+    # COZINHA (oeste): forno, balcão e barris
+    g[2][2] = "h"; g[3][2] = "#"; g[3][3] = "#"
+    g[5][2] = "o"; g[5][3] = "o"
+    # SUÍTE do casal (NE canto): camas, penteadeira, retrato
+    for y in range(2, 4):
+        for x in range(19, 24):
+            pass
+    g[7][20] = "F"; g[7][21] = "F"; g[7][22] = "F"; g[7][23] = "F"; g[7][24] = "F"
+    g[7][19] = "1"                                    # a porta da suíte... (sul do jantar)
+    g[9][20] = "b"; g[9][21] = "b"; g[8][23] = "_"; g[10][23] = "P"; g[10][20] = "2"
+    # ADEGA (SE baixo): os barris do Monsieur
+    for x in range(19, 24):
+        g[13][x] = "o"
+    g[12][21] = "o"
+    # ALA DOS CRIADOS (sul-oeste): oito camas e baús
+    g[10][1] = "F"
+    for x in range(1, 16):
+        g[10][x] = "F" if x not in (8,) else "1"
+    for i, x in enumerate((2, 4, 6, 8, 10, 12, 14)):
+        if i < 7:
+            g[12][x] = "b"
+    g[12][15] = "b"
+    for x in (3, 7, 11):
+        g[14][x] = "q"
+    g[13][1] = ";"
+    # portas principais (sul, centro)
+    g[H - 1][12] = "D"; g[H - 1][13] = "D"
     return ["".join(r) for r in g]
 
 

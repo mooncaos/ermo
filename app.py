@@ -184,7 +184,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v10b: povoamento (37 almas) + barra 6-0 no login (06/jul)"
+BUILD_TAG = "v11: placas nas lojas + Mansao Angard rococo + 8 criados (06/jul)"
 
 
 def _asset_version():
@@ -2929,7 +2929,7 @@ CASAS_ILHA = [
     {"mapa": "cidade_alta", "cx": 12, "cy": 30, "w": 5, "h": 3,
      "dest": "loja_dinis", "dx": 6, "dy": 6, "bx": 14, "by": 34},
     {"mapa": "vinhedo", "cx": 42, "cy": 12, "w": 5, "h": 3,
-     "dest": "adega_angard", "dx": 7, "dy": 7, "bx": 44, "by": 16},
+     "dest": "adega_angard", "dx": 12, "dy": 13, "bx": 44, "by": 16},
     {"mapa": "trigal_dourado", "cx": 8, "cy": 7, "w": 6, "h": 4,
      "dest": "casa_fadogan", "dx": 6, "dy": 6, "bx": 11, "by": 12},
     {"mapa": "cidade_alta", "cx": 4, "cy": 12, "w": 6, "h": 4,
