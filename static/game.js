@@ -14755,14 +14755,24 @@ var _PORTAS_VIVAS = [
           c.fillStyle = 'rgba(255,220,120,' + (0.4 + 0.3*Math.sin(now/800 + gx)) + ')';
           c.beginPath(); c.arc(gxx, gy - 26, 1.3, 0, Math.PI*2); c.fill();
         }
-        c.fillStyle = '#e6dece';                               // A FACHADA (cobre o corpo antigo)
-        c.fillRect(sx - TS*4.4, base - TS*5.8, TS*8.8, TS*5.8);
-        c.fillStyle = 'rgba(0,0,0,0.08)';
-        c.fillRect(sx + TS*1.6, base - TS*5.8, TS*2.8, TS*5.8);
-        c.strokeStyle = 'rgba(90,80,60,0.35)'; c.lineWidth = 1;
+        c.fillStyle = '#f0ebdf';                               // A FACHADA BRANCA (cobre TODO o corpo antigo)
+        c.fillRect(sx - TS*7.8, base - TS*5.8, TS*15.6, TS*5.8);
+        c.fillStyle = 'rgba(0,0,0,0.07)';
+        c.fillRect(sx + TS*2.6, base - TS*5.8, TS*5.2, TS*5.8);
+        c.strokeStyle = 'rgba(120,105,80,0.30)'; c.lineWidth = 1;
         for(let fl = 1; fl < 4; fl++){
-          c.beginPath(); c.moveTo(sx - TS*4.4, base - fl*TS*1.45);
-          c.lineTo(sx + TS*4.4, base - fl*TS*1.45); c.stroke();
+          c.beginPath(); c.moveTo(sx - TS*7.8, base - fl*TS*1.45);
+          c.lineTo(sx + TS*7.8, base - fl*TS*1.45); c.stroke();
+        }
+        for(const px5 of [-6.6, -5.2, 5.2, 6.6]){              // janelas nas alas
+          for(let fl = 0; fl < 3; fl++){
+            const jy2 = base - TS*1.0 - fl*TS*1.45;
+            c.fillStyle = '#ffdf9a';
+            c.beginPath(); c.arc(sx + px5*TS, jy2 - 5, 4.4, Math.PI, 0);
+            c.rect(sx + px5*TS - 4.4, jy2 - 5, 8.8, 11); c.fill();
+            c.strokeStyle = 'rgba(120,105,80,0.5)'; c.lineWidth = 1;
+            c.strokeRect(sx + px5*TS - 4.4, jy2 - 5, 8.8, 11);
+          }
         }
         for(const vx2 of [-3.2, -1.6, 1.6, 3.2]){              // vitrais laterais
           const vxx = sx + vx2*TS, vyy = base - TS*2.2;
