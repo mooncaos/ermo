@@ -2656,6 +2656,7 @@ def _torre_alvorada():
         g[my + 1][mx] = "2"
     g[1][3] = ";"
     g[1][21] = ";"
+    g[2][23] = "D"                      # a ESCADA que sobe (5 andares acima!)
     return ["".join(r) for r in g]
 
 
@@ -3013,6 +3014,152 @@ MAPS["casa_bibi"] = {"rows": _casa_bibi(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["padaria_bruno"] = {"rows": _padaria_bruno(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["casa_naiara"] = {"rows": _casa_naiara(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_caio"] = {"rows": _casa_caio(), "spawns": [(5, 5), (4, 5), (6, 5)]}
+def _torre_conclave():
+    """2º andar: o Salão do Conclave (17x12). A mesa das reuniões e a
+    cadeira do Cronista, à vista, sob o véu."""
+    W, H = 17, 12
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x in (4, 8, 12) else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    for x in range(5, 12):                 # a mesa do Conclave
+        g[5][x] = "k"
+        g[4][x] = "^"; g[6][x] = "^"
+    g[5][13] = "^"                          # a cabeceira do Heron
+    g[4][3] = ";"; g[7][3] = ";"; g[4][13] = ";"
+    g[2][8] = "P"                           # o brasão da Alvorada
+    g[8][2] = "E"; g[8][14] = "E"
+    g[6][3] = "2"; g[5][3] = "2"
+    g[H - 1][2] = "D"                       # escada DESCE (oeste)
+    g[H - 1][14] = "D"                      # escada SOBE (leste)
+    return ["".join(r) for r in g]
+
+
+def _torre_observatorio():
+    """3º andar: o Observatório (17x12). O telescópio, os mapas estelares
+    e a lua de Nherith espiando pela cúpula."""
+    W, H = 17, 12
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x % 3 == 1 else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    g[3][8] = "_"                           # o TELESCÓPIO (o instrumento)
+    g[2][8] = "2"; g[3][7] = "2"; g[3][9] = "2"; g[4][8] = "2"
+    g[5][3] = "k"; g[5][4] = "k"            # a mesa dos mapas estelares
+    g[6][12] = "E"; g[8][12] = "E"          # os atlas
+    g[8][3] = ";"; g[2][13] = ";"
+    g[H - 1][2] = "D"; g[H - 1][14] = "D"
+    return ["".join(r) for r in g]
+
+
+def _torre_escritorio():
+    """4º andar: o Escritório do Arquimago (17x12). Mapas de Valdarkram,
+    cartas antigas e quarenta anos de saudade organizada."""
+    W, H = 17, 12
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x in (5, 11) else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    g[3][7] = "k"; g[3][8] = "k"            # a escrivaninha
+    g[2][7] = "2"; g[2][8] = "2"
+    for x in (2, 3, 13, 14):
+        g[5][x] = "E"                       # as estantes de cartas
+    g[7][2] = "q"; g[7][3] = "q"            # os baús de Valdarkram
+    g[2][2] = "P"; g[2][14] = "P"           # os mapas emoldurados
+    g[8][8] = "2"; g[7][14] = ";"
+    g[H - 1][2] = "D"; g[H - 1][14] = "D"
+    return ["".join(r) for r in g]
+
+
+def _torre_terraco():
+    """5º andar: o TERRAÇO DA ALVORADA (17x13). A casa do Heron: a cama,
+    os pertences, o banco gasto... e a flor de Valdarkram no pedestal.
+    Ao amanhecer, ele a rega. Quem estiver lá, presencia."""
+    W, H = 17, 13
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    # o terraço é ABERTO: ameias no norte (janelas do céu)
+    for x in range(2, W - 2, 2):
+        g[0][x] = "j"
+    # o canto-lar do Heron (oeste)
+    g[2][2] = "b"; g[3][4] = "q"; g[2][5] = "E"
+    g[5][2] = "k"; g[5][3] = "^"
+    # o PEDESTAL DA FLOR (centro-leste, sob o céu)
+    g[4][12] = "^"
+    g[3][12] = "2"; g[5][12] = "2"; g[4][11] = "2"; g[4][13] = "2"
+    g[8][8] = "2"; g[8][9] = "2"            # o tapete do banco da vista
+    g[9][8] = "^"; g[9][9] = "^"
+    g[7][2] = ";"; g[7][14] = ";"
+    g[H - 1][2] = "D"                       # escada desce
+    return ["".join(r) for r in g]
+
+
+def _mansao_prosperi():
+    """A MANSÃO PROSPERI (24x16): a casa de Diana e Dante. O interior
+    MAIS LUXUOSO do jogo. O coração: o Salão do Conselho dos Prosperi."""
+    W, H = 24, 16
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x in (3, 7, 12, 16, 20) else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    # ---- HALL de entrada (sul-centro): tapete real e candelabros ----
+    for y in range(10, 15):
+        for x in (11, 12):
+            g[y][x] = "2"
+    g[13][9] = ";"; g[13][14] = ";"
+    # ---- O SALÃO DO CONSELHO (coração, centro): mesa redonda dos Prosperi ----
+    for y in range(5, 9):
+        for x in range(9, 15):
+            g[y][x] = "2"
+    g[6][10] = "k"; g[6][11] = "k"; g[6][12] = "k"; g[6][13] = "k"
+    g[7][10] = "k"; g[7][11] = "k"; g[7][12] = "k"; g[7][13] = "k"
+    g[5][10] = "^"; g[5][13] = "^"; g[8][10] = "^"; g[8][13] = "^"
+    g[5][9] = "^"; g[8][14] = "^"
+    g[4][11] = "P"; g[4][12] = "P"          # o BRASÃO do trigo (duplo)
+    # ---- GALERIA DOS PROSPERI (corredor norte): a história na parede ----
+    for x in (3, 6, 9, 14, 17, 20):
+        g[1][x] = "P"
+    g[2][3] = ";"; g[2][20] = ";"
+    # ---- ESTUFA DA DIANA (ala oeste): as rosas impossíveis sob vitral ----
+    for y in range(4, 9):
+        g[y][5] = "F"
+    g[6][5] = "1"
+    g[4][2] = "w"; g[5][3] = "w"; g[6][2] = "w"; g[7][3] = "w"; g[8][2] = "w"
+    g[4][3] = "2"; g[7][2] = "2"
+    # ---- SALA DE MÚSICA DO DANTE (ala leste) ----
+    for y in range(4, 9):
+        g[y][18] = "F"
+    g[6][18] = "1"
+    g[5][21] = "^"; g[5][20] = "2"          # o assento da janela (virado pro farol)
+    g[7][20] = "q"; g[7][21] = "E"          # o violão de infância e as partituras
+    # ---- QUARTO DA DIANA (SO) ----
+    for x in range(1, 8):
+        g[10][x] = "F"
+    g[10][4] = "1"
+    g[12][2] = "b"; g[12][3] = "b"; g[11][6] = "_"; g[13][6] = "2"; g[14][2] = "q"
+    # ---- QUARTO DO DANTE (SE): austero, com os desenhos de farol ----
+    for x in range(16, 23):
+        g[10][x] = "F"
+    g[10][19] = "1"
+    g[12][21] = "b"; g[11][17] = "k"; g[13][17] = "q"; g[11][21] = "P"
+    # ---- lareiras gêmeas do hall ----
+    g[9][2] = "h"; g[9][21] = "h"
+    g[H - 1][11] = "D"; g[H - 1][12] = "D"
+    return ["".join(r) for r in g]
+
+
 def _restaurante_jacquard():
     """O Restaurante Jacquard (16x11): seis estrelas, zero paciência.
     Salão de gala, cozinha aberta e a adega do Chef."""
@@ -3087,6 +3234,11 @@ MAPS["feirao_sao_celeste"] = {"rows": _feirao_sao_celeste(), "spawns": [(24, 4),
 MAPS["baixa_da_egua"] = {"rows": _baixa_da_egua(), "spawns": [(24, 4), (23, 4), (25, 4)]}
 MAPS["casa_baixa"] = {"rows": _casa_baixa(), "spawns": [(7, 6), (6, 6), (8, 6)]}
 MAPS["restaurante_jacquard"] = {"rows": _restaurante_jacquard(), "spawns": [(7, 8), (8, 8), (7, 7)]}
+MAPS["torre_conclave"] = {"rows": _torre_conclave(), "spawns": [(3, 9), (4, 9), (3, 8)]}
+MAPS["torre_observatorio"] = {"rows": _torre_observatorio(), "spawns": [(3, 9), (4, 9), (3, 8)]}
+MAPS["torre_escritorio"] = {"rows": _torre_escritorio(), "spawns": [(3, 9), (4, 9), (3, 8)]}
+MAPS["torre_terraco"] = {"rows": _torre_terraco(), "spawns": [(3, 9), (4, 9), (3, 8)]}
+MAPS["mansao_prosperi"] = {"rows": _mansao_prosperi(), "spawns": [(11, 13), (12, 13), (11, 12)]}
 MAPS["cortico_baixa"] = {"rows": _cortico_baixa(), "spawns": [(8, 6), (9, 6), (8, 5)]}
 
 

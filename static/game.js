@@ -447,6 +447,12 @@ const INT_THEMES = {
   casa_baixa:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a842', kind:'quarto'},
   cortico_baixa: {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#e0865a', kind:'quarto'},
   restaurante_jacquard: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e8c860', kind:'marmore'},
+  torre_conclave:     {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e8c860', kind:'loja'},
+  torre_observatorio: {f1:'#3a3a4e', f2:'#42425a', wall:'#22222e', acc:'#cfe0ff', kind:'comum'},
+  torre_escritorio:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a842', kind:'loja'},
+  torre_terraco:      {f1:'#8f887c', f2:'#99917f', wall:'#4a4438', acc:'#9b6dff', kind:'marmore'},
+  mansao_prosperi:    {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
+  ossuario:      {f1:'#5a544a', f2:'#645d52', wall:'#2a2620', acc:'#d8d0c0', kind:'comum'},
   casa_cecille: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#b06ae0', kind:'quarto'},
   taverna_vilalbina: {f1:'#6b4f34', f2:'#75583a', wall:'#33241a', acc:'#e05a6a', kind:'loja'},
   iscas_cais:        {f1:'#5f5340', f2:'#695c47', wall:'#2e2820', acc:'#5aa9e0', kind:'loja'},
@@ -1344,8 +1350,13 @@ function drawPlateauTile(c, ch, px, py, ts, gx, gy){
 }
 
 function drawTile(c, ch, px, py, ts, gx, gy){
-  if(mapName && (mapName === 'taverna' || mapName.indexOf('casa_')===0 || mapName.indexOf('loja_')===0 ||
-     mapName.indexOf('oficina_')===0 || _INT_EXTRA[mapName])){ drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
+  // ⚠️⚠️ REGRA ETERNA DO MOON (gravada em sangue, 06/jul/2026): INTERIOR SEM
+    // REGISTRO = PAREDES DE LUA = ÓDIO. Por isso o portão agora é AUTOMÁTICO:
+    // se o mapa tem entrada em INT_THEMES, ele É interior. TODO mapa interno
+    // novo DEVE ganhar seu tema em INT_THEMES — e nada mais precisa ser feito.
+    if(mapName && (INT_THEMES[mapName] || mapName === 'taverna' || mapName.indexOf('casa_')===0 ||
+     mapName.indexOf('loja_')===0 || mapName.indexOf('oficina_')===0 || _INT_EXTRA[mapName])){
+      drawInteriorTile(c, mapName, ch, px, py, ts, gx, gy); return; }
   if(mapName === 'descampado' && drawCampTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'repouso_dama' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
   if(mapName === 'floresta_ermo' && drawForestTile(c, ch, px, py, ts, gx, gy)) return;
@@ -15165,7 +15176,59 @@ function renderOutfits(){
     if(typeof mapName === 'undefined') return;
     c.save();
 
-    // ---- O FEIRÃO DE SÃO CELESTE: opulência de festa permanente ----
+    // ---- O OBSERVATÓRIO: o telescópio dourado ----
+  if(mapName === 'torre_observatorio'){
+    const tx2 = 8.5*TS - camX, ty2 = 3.5*TS - camY;
+    if(tx2 > -TS*3 && tx2 < canvas.width + TS*3){
+      c.save(); c.translate(tx2, ty2); c.rotate(-0.6);
+      c.fillStyle = '#8a6a3a';
+      c.fillRect(-TS*0.1, -TS*0.9, TS*0.2, TS*1.0);       // o tubo
+      c.fillStyle = '#c9a842';
+      c.fillRect(-TS*0.13, -TS*1.05, TS*0.26, TS*0.2);    // a lente
+      c.restore();
+      c.strokeStyle = '#5a4a2a'; c.lineWidth = 3;          // o tripé
+      c.beginPath(); c.moveTo(tx2, ty2); c.lineTo(tx2 - TS*0.3, ty2 + TS*0.45);
+      c.moveTo(tx2, ty2); c.lineTo(tx2 + TS*0.3, ty2 + TS*0.45);
+      c.moveTo(tx2, ty2); c.lineTo(tx2, ty2 + TS*0.5); c.stroke();
+      c.save(); c.globalCompositeOperation = 'lighter';    // poeira de estrelas
+      for(let i = 0; i < 5; i++){
+        const st = (now/2000 + i/5) % 1;
+        c.globalAlpha = 0.5*(1 - st);
+        c.fillStyle = '#cfe0ff';
+        c.fillRect(tx2 - TS*0.5 + i*TS*0.25, ty2 - TS*1.1 - st*TS*0.6, 2, 2);
+      }
+      c.restore();
+    }
+  }
+
+  // ---- O TERRAÇO: a flor de Valdarkram no pedestal ----
+  if(mapName === 'torre_terraco'){
+    const fx2 = 12.5*TS - camX, fy2 = 4.3*TS - camY;
+    if(fx2 > -TS*3 && fx2 < canvas.width + TS*3){
+      c.strokeStyle = '#4a6a3a'; c.lineWidth = 2.5;        // o caule
+      c.beginPath(); c.moveTo(fx2, fy2);
+      c.quadraticCurveTo(fx2 + 3, fy2 - TS*0.35, fx2, fy2 - TS*0.6); c.stroke();
+      c.fillStyle = '#7a5aa0';                             // as pétalas de Valdarkram
+      for(let p2 = 0; p2 < 5; p2++){
+        const a3 = p2*Math.PI*2/5 - Math.PI/2 + Math.sin(now/1500)*0.06;
+        c.beginPath();
+        c.ellipse(fx2 + Math.cos(a3)*TS*0.14, fy2 - TS*0.6 + Math.sin(a3)*TS*0.14,
+                  TS*0.11, TS*0.065, a3, 0, Math.PI*2);
+        c.fill();
+      }
+      c.fillStyle = '#e8c860';
+      c.beginPath(); c.arc(fx2, fy2 - TS*0.6, TS*0.06, 0, Math.PI*2); c.fill();
+      c.save(); c.globalCompositeOperation = 'lighter';    // a saudade que brilha
+      c.globalAlpha = 0.3 + 0.12*Math.sin(now/800);
+      const fg2 = c.createRadialGradient(fx2, fy2 - TS*0.6, 0, fx2, fy2 - TS*0.6, TS*0.9);
+      fg2.addColorStop(0, 'rgba(155,109,255,0.8)'); fg2.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = fg2;
+      c.beginPath(); c.arc(fx2, fy2 - TS*0.6, TS*0.9, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+  }
+
+  // ---- O FEIRÃO DE SÃO CELESTE: opulência de festa permanente ----
   if(mapName === 'feirao_sao_celeste'){
     for(let fx = 4; fx < 46; fx += 6){                     // BANDEIROLAS entre postes
       const bx2 = fx*TS - camX, by2 = 2.2*TS - camY;

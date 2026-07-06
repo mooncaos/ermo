@@ -109,6 +109,9 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "feirao_sao_celeste": "Feirão de São Celeste", "baixa_da_egua": "Baixa da Égua",
               "casa_baixa": "Sobrado dos Quatro", "cortico_baixa": "O Cortiço da Baixa",
               "restaurante_jacquard": "Restaurante Jacquard ✶✶✶✶✶✶",
+              "torre_conclave": "Salão do Conclave", "torre_observatorio": "O Observatório",
+              "torre_escritorio": "Escritório do Arquimago", "torre_terraco": "Terraço da Alvorada",
+              "mansao_prosperi": "Mansão Prosperi",
               "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
               "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
               "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
@@ -189,7 +192,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v17: Restaurante Jacquard 6 estrelas em Prospera (06/jul)"
+BUILD_TAG = "v19: Torre de 5 andares + Mansao Prosperi + Ritual da Alvorada (06/jul)"
 
 
 def _asset_version():
@@ -2921,6 +2924,8 @@ CASAS_ILHA = [
      "dest": "mercado_prospera", "dx": 8, "dy": 8, "bx": 60, "by": 24},
     {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
      "dest": "solar_prospera", "dx": 10, "dy": 10, "bx": 52, "by": 9},
+    {"mapa": "farol_margem", "cx": 4, "cy": 6, "w": 12, "h": 8,
+     "dest": "mansao_prosperi", "dx": 11, "dy": 13, "bx": 10, "by": 15},
     {"mapa": "prospera", "cx": 67, "cy": 4, "w": 6, "h": 4,
      "dest": "restaurante_jacquard", "dx": 7, "dy": 8, "bx": 70, "by": 9},
     {"mapa": "baixa_da_egua", "cx": 16, "cy": 18, "w": 4, "h": 3,
@@ -2979,6 +2984,18 @@ def _try_casas_ilha(player):
 
 
 
+TORRE_ESCADAS = [
+    ("torre_alvorada",     23, 2,  "torre_conclave",     3, 10),
+    ("torre_conclave",     2, 11,  "torre_alvorada",    22, 3),
+    ("torre_conclave",     14, 11, "torre_observatorio", 3, 10),
+    ("torre_observatorio", 2, 11,  "torre_conclave",    13, 10),
+    ("torre_observatorio", 14, 11, "torre_escritorio",   3, 10),
+    ("torre_escritorio",   2, 11,  "torre_observatorio", 13, 10),
+    ("torre_escritorio",   14, 11, "torre_terraco",      3, 10),
+    ("torre_terraco",      2, 11,  "torre_escritorio",  13, 10),
+]
+
+
 def _auto_portais(player):
     """MUDANÇA DE MAPA É AUTOMÁTICA: pisou na porta/píer/alçapão, passou.
     A tecla E fica reservada pro portal da Fenda (e interações de conteúdo)."""
@@ -2989,6 +3006,17 @@ def _auto_portais(player):
     def _selo():
         player["_porta_cd"] = agora + 0.9
         return True
+    # as ESCADAS da Torre da Alvorada (pisou no degrau, subiu/desceu)
+    for (mp2, ex, ey, dmp, dx2, dy2) in TORRE_ESCADAS:
+        if _mapa0 == mp2 and player.get("x") == ex and player.get("y") == ey:
+            _selo()
+            _go_to(request.sid, dmp, dx2, dy2)
+            emit("toast", {"text": "🌀 " + {"torre_conclave": "O Salão do Conclave.",
+                 "torre_observatorio": "O Observatório: a lua espia de volta.",
+                 "torre_escritorio": "O Escritório do Arquimago.",
+                 "torre_terraco": "O TERRAÇO DA ALVORADA. A flor está aqui.",
+                 "torre_alvorada": "De volta à Grande Biblioteca."}.get(dmp, dmp)})
+            return True
     # portas das casas da ilha (entra e sai pisando)
     if _try_casas_ilha(player):
         return _selo()
@@ -3920,6 +3948,24 @@ def _rt_combat_loop():
                         _gp["ficha"] = _gf
                         socketio.emit("rt_pheal", {"amount": 0, "hp": _gf["hp"],
                                       "hp_max": _gf.get("hp_max")}, to=_gs)
+
+            # -------- O RITUAL DA ALVORADA: o Heron rega a flor às 6h --------
+            if int(now * 5) % 20 == 0:
+                _tm6 = time.gmtime(now)
+                _hh6 = (_tm6.tm_hour - 3) % 24
+                if _hh6 == 6 and _tm6.tm_min < 10:
+                    for _tsid6, _tpl6 in list(world.players.items()):
+                        if _tpl6.get("is_npc") or _tpl6.get("map") != "torre_terraco":
+                            continue
+                        if _tpl6.get("_rito_flor", 0) > now:
+                            continue
+                        _tpl6["_rito_flor"] = now + 3600
+                        socketio.emit("speech", {"id": "npc:heron",
+                            "text": "*rega a flor em silêncio* Bom dia, Valdarkram. Mais um."},
+                            room="torre_terraco")
+                        socketio.emit("toast", {"text": "🌅 Você presencia o RITUAL DA ALVORADA. "
+                                                "Poucos já viram. A flor parece... agradecer."},
+                                      to=_tsid6)
 
             # -------- O CHÁ DAS CINCO: Língua de Prata no Salão --------
             if int(now * 5) % 20 == 0:

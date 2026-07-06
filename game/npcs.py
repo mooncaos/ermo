@@ -2114,7 +2114,7 @@ ROSTER.append({
 ROSTER.append({
     "id": "npc:heron", "name": "Arquimago Heron, o Que Ficou",
     "look": {"skin": "#c9b090", "cloak": "#4a5568", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": True, "outfit": "x_heron", "sex": "M"},
-    "map": "torre_alvorada", "home": (12, 2), "radius": 2, "wanders": True,
+    "map": "torre_terraco", "home": (4, 6), "radius": 2, "wanders": True,
     "step_every": 2.6, "solid": True, "kind": "person",
     "greetings": ['O Tobias explodiu a estante três de novo. O Bramir não sabe. Que continue não sabendo.',
                   'A cadeira na ponta da mesa está vazia. Está reservada. Sempre esteve.', 'No topo da torre cresce uma flor de Valdarkram. Eu a rego todo dia. Alguém precisa lembrar.', 'Varth foi meu amigo antes de ser o que é. O conhecimento não corrompe: a pressa sim.', 'O Conclave não busca poder. Busca um lugar pra quem a magia escolheu sem perguntar.', 'Marion nos enganou por anos dentro da Torre. Que talento. Que desperdício.', 'O jovem Elian engarrafou a alvorada. Eu disse que era pressa. Bebi. Pedi desculpas.'],
