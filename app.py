@@ -249,6 +249,11 @@ _pending_class = {}
 
 
 def _enter_world(player_id, row):
+    _lk0 = row.get("look")
+    if isinstance(_lk0, dict) and _lk0.get("outfit"):
+        _lk0["hat"] = "none"      # outfit vestido: sanea looks antigos do banco
+        _lk0["hood"] = "down"
+        _lk0["staff"] = False
     """Coloca a conta (ja com raca definida) no mundo e envia o estado inicial."""
     # Se a mesma conta ja estava conectada (outra aba), derruba a antiga.
     old_sid = world.sid_for_player(player_id)
@@ -3284,7 +3289,7 @@ def _rt_kill(sid, pl, m):
 def _rt_combat_loop():
     """O coração do tempo real: a cada 0.4s, resolve quem está pronto pra bater."""
     while True:
-        socketio.sleep(0.4)
+        socketio.sleep(0.2)
         if not COMBAT_RT:
             continue
         now = time.time()
@@ -3742,24 +3747,29 @@ def _rt_combat_loop():
                         if _viv < _maxs:
                             _rt_boss_summon(m, spec, min(2, _maxs - _viv))
                 if alvo_d > reach_m:
-                    # longe: PERSEGUE (um passo por vez, na velocidade do bicho)
-                    if m.get("_rt_step", 0) <= now:
-                        m["_rt_step"] = now + max(0.16, 2.0 / max(1, int(spec.get("speed", 5))))
+                    # TIBIA: PERSEGUE em rajada (até 3 passos por tick, no fôlego do bicho)
+                    _passo = max(0.14, 1.6 / max(1, int(spec.get("speed", 5))))
+                    _burst = 0
+                    while m.get("_rt_step", 0) <= now and _burst < 3:
+                        _burst += 1
+                        m["_rt_step"] = max(m.get("_rt_step", 0), now - _passo * 2) + _passo
                         dx = (1 if alvo_pl["x"] > m["x"] else (-1 if alvo_pl["x"] < m["x"] else 0))
                         dy = (1 if alvo_pl["y"] > m["y"] else (-1 if alvo_pl["y"] < m["y"] else 0))
+                        if max(abs(alvo_pl["x"] - m["x"]), abs(alvo_pl["y"] - m["y"])) <= reach_m:
+                            break
                         tent = []
                         if dx:
                             tent.append((m["x"] + dx, m["y"], "right" if dx > 0 else "left"))
                         if dy:
                             tent.append((m["x"], m["y"] + dy, "down" if dy > 0 else "up"))
                         random.shuffle(tent)
-                        # TIBIA: se o caminho direto trava, CONTORNA pelo lado
                         if not dy:
                             tent.append((m["x"], m["y"] + 1, "down"))
                             tent.append((m["x"], m["y"] - 1, "up"))
                         if not dx:
                             tent.append((m["x"] + 1, m["y"], "right"))
                             tent.append((m["x"] - 1, m["y"], "left"))
+                        _andou = False
                         for (tx, ty, fc) in tent:
                             if not rules.is_walkable(tx, ty, m.get("map")):
                                 continue
@@ -3771,9 +3781,12 @@ def _rt_combat_loop():
                                    for p in world.players.values()):
                                 continue
                             m["x"], m["y"], m["facing"] = tx, ty, fc
+                            _andou = True
                             socketio.emit("monsters_moved", {"map": m.get("map"),
                                           "moves": [{"id": mid, "x": tx, "y": ty, "facing": fc}]},
                                           room=m.get("map"))
+                            break
+                        if not _andou:
                             break
                     continue
                 if m.get("_rt_next", 0) > now:
