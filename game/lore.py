@@ -336,6 +336,147 @@ CANON = {
         "laco": "O cristal âmbar no peito: a pessoa amada AINDA está lá dentro.",
         "poder": "Cada nível recuperado é uma MEMÓRIA recuperada; o Salão das Classes foi ELE que construiu; sabe magias de outro mundo que aqui não existem.",
     },
+
+    # ============ PERSONALIDADES DE PROSPERINA (rodada de julho/2026) ============
+    "persona_ze_remo": {
+        "nome": 'Zé do Remo',
+        "temperamento": 'Zombeteiro filósofo do cais.',
+        "sonho": 'Morrer remando, nunca na cama.',
+        "hobby": 'Aposta corridas de caranguejo no cais.',
+    },
+    "persona_rosa_albina": {
+        "nome": 'Rosa Albina',
+        "temperamento": 'Explosiva e generosa.',
+        "sonho": 'Fazer a melhor taverna DO MUNDO — melhor que a do Jorge.',
+        "hobby": 'Canta desafinado limpando canecas.',
+    },
+    "persona_tiao_iscas": {
+        "nome": 'Tião das Iscas',
+        "temperamento": 'Tagarela de meias-verdades.',
+        "sonho": 'Que o neto assuma a banca.',
+        "hobby": 'Cochila de olho aberto na cadeira.',
+    },
+    "persona_otto": {
+        "nome": 'Mercador Otto',
+        "temperamento": 'Pomposo mas honesto.',
+        "sonho": 'Abrir filial no continente.',
+        "hobby": 'Pesa moedas por hobby: desconfia de todas.',
+    },
+    "persona_baltazar": {
+        "nome": 'Dom Baltazar',
+        "temperamento": 'Vovô bonachão de todos.',
+        "sonho": 'Ver a sobrinha Rosa feliz (e casada; ela não sabe).',
+        "hobby": 'Joga damas sozinho no cais.',
+    },
+    "persona_heron": {
+        "nome": 'Arquimago Heron',
+        "temperamento": 'Melancólico sereno.',
+        "sonho": 'Que o Cronista volte: a cadeira segue aberta.',
+        "hobby": 'Rega uma flor de Valdarkram no topo da torre.',
+    },
+    "persona_marth": {
+        "nome": 'Rei Avô Marth',
+        "temperamento": 'Sábio cansado e sorridente.',
+        "sonho": 'Reencontrar a mãe Fiona — ou o túmulo dela.',
+        "hobby": 'Conversa com o trigo como se fosse gente.',
+    },
+    "persona_valesca": {
+        "nome": 'Rainha Avó Valesca',
+        "temperamento": 'Matriarca doce e implacável; diplomata entediada.',
+        "sonho": 'Proteger a família de QUALQUER coisa; uma última grande negociação.',
+        "hobby": 'Chá das cinco inegociável; escreve cartas que nunca envia (pra Cordelia).',
+    },
+    "persona_celestino": {
+        "nome": 'Arcebispo Rei Celestino',
+        "temperamento": 'Fervor gentil, voz de trovão; político de batina com fé sincera.',
+        "sonho": 'Os Doze reconhecidos no mundo todo; manter a paz entre os 12 cultos.',
+        "hobby": "Vitrais em miniatura; vinhos 'litúrgicos'.",
+    },
+    "persona_dante": {
+        "nome": 'Lorde Dante',
+        "temperamento": 'Sentinela obcecado e insone; estoico de culpa antiga; aterrorizado por dentro.',
+        "sonho": 'NÃO deixar Valdris cruzar; um dia DESCANSAR; decifrar O QUE fala de dentro do Âmbar.',
+        "hobby": "Treina contra a própria sombra; diário pro pai; violão baixinho pro farol 'dormir'.",
+    },
+    "persona_diana": {
+        "nome": 'Lady Diana',
+        "temperamento": 'Regente perfeccionista e carismática; Olhar que Pesa; mãe da cidade, dura e amada.',
+        "sonho": 'Prospera brilhando mais que Valdarkram; suceder SEM guerra de corte; ver Dante livre do farol.',
+        "hobby": 'Doce novo por semana (anônima); cavalga ao amanhecer; rosas impossíveis.',
+    },
+    "persona_sumo_aurelian": {
+        "nome": 'Sumo Aurelian (Pofnir)',
+        "temperamento": 'Ansioso cósmico; sereno que dorme mal; vigilante gentil e metódico.',
+        "sonho": 'Prever TODAS as ameaças; UMA visão direta de Pofnir; proteger as crianças da ilha.',
+        "hobby": 'Alimenta gatos brancos (nunca se sabe); penas brancas; vela por nascimento.',
+    },
+    "persona_suma_morwen": {
+        "nome": 'Suma Morwen (Vargo)',
+        "temperamento": 'Fria e maternal ao mesmo tempo.',
+        "sonho": "Preparar a ilha pra 'Grande Passagem' que ela SONHOU.",
+        "hobby": 'Acende velas nos túmulos sem nome.',
+    },
+    "persona_sumo_tenaz": {
+        "nome": 'Sumo Tenaz (Martur)',
+        "temperamento": 'Lento de dar raiva, certeiro de dar medo.',
+        "sonho": 'Terminar o relógio de água de 100 anos (faltam 40).',
+        "hobby": 'Xadrez por carta: um lance por mês.',
+    },
+    "persona_suma_iara": {
+        "nome": 'Suma Iara (Facalan)',
+        "temperamento": 'Caçadora aposentada de olhar vivo.',
+        "sonho": 'Um último rastro digno antes do fim.',
+        "hobby": 'Ensina crianças a ler pegadas.',
+    },
+    "persona_sumo_vermeer": {
+        "nome": 'Sumo Vermeer (Drazun)',
+        "temperamento": 'Orgulhoso protetor dos draconatos.',
+        "sonho": 'Provar que ambição é VIRTUDE.',
+        "hobby": 'Cria salamandras num terrário.',
+    },
+    "persona_sumo_brakk": {
+        "nome": 'Sumo Brakk (Korgath)',
+        "temperamento": 'Ex-general de riso fácil.',
+        "sonho": 'Que a ilha NUNCA precise dele.',
+        "hobby": 'Luta braço com qualquer um que topar.',
+    },
+    "persona_suma_pluma": {
+        "nome": 'Suma Pluma (Corvo)',
+        "temperamento": 'Fofoqueira sagrada: é LITURGIA.',
+        "sonho": 'Saber TUDO de TODOS antes de todos.',
+        "hobby": 'Treina corvos pra trazer recados.',
+    },
+    "persona_suma_clara": {
+        "nome": 'Suma Clara (Valiria)',
+        "temperamento": 'Luminosa incansável; doce de aço (ex-paladina); maternal com todos, até os maus.',
+        "sonho": 'Curar todo doente que pisar na ilha; reacender a fé perdida; um hospital aberto até a inimigos.',
+        "hobby": 'Recebe a aurora antes do sol; canta pras ervas; pão de madrugada pros pobres.',
+    },
+    "persona_suma_selene": {
+        "nome": 'Suma Selene (Nherith)',
+        "temperamento": 'Sonâmbula lúcida de olheiras eternas; mistério ambulante.',
+        "sonho": 'Mapear os sonhos da ilha; sonhar o sonho de Nherith; interpretar a Grande Passagem da Morwen.',
+        "hobby": 'Borda constelações inexistentes; harpa pra lua cheia; mariposas prateadas.',
+    },
+    "persona_sumo_gozo": {
+        "nome": 'Sumo Gozo (José)',
+        "temperamento": 'Hedonista disciplinado (parece contradição, não é).',
+        "sonho": 'Ensinar a ilha a celebrar SEM culpa.',
+        "hobby": 'Dança com os gatos do cabaré, em espírito.',
+    },
+    "persona_sumo_ferro": {
+        "nome": 'Sumo Ferro (Bragor)',
+        "temperamento": 'Rude de mãos sagradas.',
+        "sonho": 'Forjar com o PRÓPRIO Bragor uma noite.',
+        "hobby": "Adota ferramentas velhas 'aposentadas'.",
+    },
+    "persona_suma_sorte": {
+        "nome": 'Suma Sorte (Nharé)',
+        "temperamento": 'Ex-fugitiva de passado nebuloso; sortuda constrangedora; otimista incorrigível.',
+        "sonho": 'PERDER uma aposta na vida; dar a segunda chance que ela recebeu; provar que Nharé ama a ilha.',
+        "hobby": 'Solta lebres de armadilhas; moeda pro cardápio; portas destrancadas por princípio.',
+    },
+
 }
 
 

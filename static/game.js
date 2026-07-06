@@ -468,7 +468,7 @@ function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
     if(gx % 2 === 0){ c.beginPath(); c.moveTo(px, py); c.lineTo(px, py+ts); c.stroke(); }
     if(gy % 2 === 0){ c.beginPath(); c.moveTo(px, py); c.lineTo(px+ts, py); c.stroke(); }
   };
-  const floorOf = () => { if(th.kind === 'marmore') marbleFloor(); else floorOf(); };
+  const floorOf = () => { if(th.kind === 'marmore') marbleFloor(); else woodFloor(); };
   const woodFloor = () => {
     c.fillStyle=th.f1; c.fillRect(px,py,ts,ts);
     c.fillStyle=th.f2; c.fillRect(px,py+(((gx+gy)%2))*ts*0.5,ts,ts*0.5);
@@ -14755,16 +14755,35 @@ var _PORTAS_VIVAS = [
           c.fillStyle = 'rgba(255,220,120,' + (0.4 + 0.3*Math.sin(now/800 + gx)) + ')';
           c.beginPath(); c.arc(gxx, gy - 26, 1.3, 0, Math.PI*2); c.fill();
         }
-        const tw = TS*5.6, th2 = TS*2.6;                       // o TAMBOR
+        c.fillStyle = '#e6dece';                               // A FACHADA (cobre o corpo antigo)
+        c.fillRect(sx - TS*4.4, base - TS*5.8, TS*8.8, TS*5.8);
+        c.fillStyle = 'rgba(0,0,0,0.08)';
+        c.fillRect(sx + TS*1.6, base - TS*5.8, TS*2.8, TS*5.8);
+        c.strokeStyle = 'rgba(90,80,60,0.35)'; c.lineWidth = 1;
+        for(let fl = 1; fl < 4; fl++){
+          c.beginPath(); c.moveTo(sx - TS*4.4, base - fl*TS*1.45);
+          c.lineTo(sx + TS*4.4, base - fl*TS*1.45); c.stroke();
+        }
+        for(const vx2 of [-3.2, -1.6, 1.6, 3.2]){              // vitrais laterais
+          const vxx = sx + vx2*TS, vyy = base - TS*2.2;
+          c.fillStyle = ['#e05a4e','#5aa9e0','#f2c14e','#7ac06a'][(vx2 + 4) % 4 | 0] || '#5aa9e0';
+          c.beginPath(); c.arc(vxx, vyy - 8, 6, Math.PI, 0);
+          c.rect(vxx - 6, vyy - 8, 12, 20); c.fill();
+          c.strokeStyle = 'rgba(40,30,20,0.6)'; c.lineWidth = 1.6;
+          c.beginPath(); c.arc(vxx, vyy - 8, 6, Math.PI, 0); c.stroke();
+          c.strokeRect(vxx - 6, vyy - 8, 12, 20);
+          c.beginPath(); c.moveTo(vxx, vyy - 13); c.lineTo(vxx, vyy + 12); c.stroke();
+        }
+        const tw = TS*5.6, th2 = TS*6.2;                       // o TAMBOR (sobre a fachada)
         c.fillStyle = '#ded6c6';
-        c.fillRect(sx - tw/2, base - th2, tw, th2);
+        c.fillRect(sx - tw/2, base - th2, tw, TS*2.6);
         c.fillStyle = 'rgba(0,0,0,0.10)';
         c.fillRect(sx + tw*0.18, base - th2, tw*0.32, th2);
         for(let i = 0; i < 12; i++){                           // 12 janelas douradas
           const wx = sx - tw/2 + tw*(i + 0.5)/12;
           c.fillStyle = '#ffdf9a';
-          c.beginPath(); c.arc(wx, base - th2*0.55, 2.6, Math.PI, 0);
-          c.rect(wx - 2.6, base - th2*0.55, 5.2, 6); c.fill();
+          c.beginPath(); c.arc(wx, base - th2 + TS*1.15, 2.6, Math.PI, 0);
+          c.rect(wx - 2.6, base - th2 + TS*1.15, 5.2, 6); c.fill();
         }
         for(const ax of [-2.6, 2.6]){                          // agulhas laterais
           const axx = sx + ax*TS;

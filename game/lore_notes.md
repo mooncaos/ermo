@@ -196,3 +196,13 @@ MAP_TITLES oficiais; spawns dos 5 NPCs validados em tiles livres.
   estantes que leem o CANON
 - ⏭️ Expansão futura: andares superiores (salas de estudo do Conclave, aposentos,
   e O TOPO DA ALVORADA — de onde a luz nasce)
+
+
+## 🎭 RODADA DE PERSONALIDADES DA ILHA (23 habitantes, decidido por Moon)
+Todos gravados em CANON como persona_*. Destaques de trama: DANTE ouve ALGO
+falar de dentro do Âmbar; MORWEN sonhou a 'GRANDE PASSAGEM' (profecia aberta)
+e SELENE quer interpretá-la; VALESCA escreve cartas nunca enviadas pra
+CORDELIA; ROSA × JORGE: guerra de tavernas; BALTAZAR quer casar a Rosa (ela
+não sabe); HERON rega uma flor de Valdarkram no topo da torre; AURELIAN
+alimenta gatos brancos (nunca se sabe qual é Pofnir); SORTE é ex-fugitiva.
+⏭️ Aplicado nos greetings dos NPCs (obra da mesma sessão).
