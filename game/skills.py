@@ -64,9 +64,8 @@ def ensure(ficha):
         return ficha["skills"]
     lvl = int(ficha.get("level", 1))
     base = 10 + max(0, lvl // 2)          # veterano não começa do zero
-    caster = _mult_for(ficha.get("class_id"), "magic") <= 1.3
     sk = {s: {"lvl": base, "t": 0} for s in SKILLS}
-    sk["magic"] = {"lvl": (max(0, lvl // 3) if caster else 0), "t": 0}
+    sk["magic"] = {"lvl": ml_floor(ficha.get("class_id"), lvl), "t": 0}
     ficha["skills"] = sk
     return sk
 
@@ -144,3 +143,21 @@ SPELL_FORMULAS = {
 HEAL_FORMULAS = {0: (0.6, 4, 1.0, 9), 1: (1.0, 8, 1.6, 16),
                  2: (1.6, 14, 2.4, 26), 3: (2.4, 22, 3.6, 40),
                  4: (3.2, 32, 4.8, 58), 5: (4.4, 46, 6.4, 82)}
+
+
+def ml_floor(class_id, level):
+    m = _mult_for(class_id, "magic")
+    if m <= 1.3:
+        return max(0, int(level) // 3)
+    if m <= 1.7:
+        return max(0, int(level) // 4)
+    return max(0, int(level) // 8)
+
+
+def recalibrate(ficha):
+    s = ensure(ficha)
+    piso = ml_floor(ficha.get("class_id"), int(ficha.get("level", 1)))
+    if int(s["magic"].get("lvl", 0)) < piso:
+        s["magic"]["lvl"] = piso
+        return True
+    return False

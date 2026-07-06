@@ -15,7 +15,20 @@ Regras da casa ja fixadas com o Moon:
 """
 from . import races
 
-MAX_LEVEL = 20
+MAX_LEVEL = 20        # fim das TABELAS 5e; o NIVEL em si nao tem mais teto
+
+
+def xp_for_level(n):
+    """XP acumulado pra atingir o nivel n (alem do 20: degraus crescendo 5%)."""
+    n = int(n)
+    if n < len(XP_TABLE):
+        return XP_TABLE[n]
+    total = XP_TABLE[-1]
+    delta = XP_TABLE[-1] - XP_TABLE[-2]
+    for k in range(len(XP_TABLE), n + 1):
+        delta = int(delta * 1.05)
+        total += delta
+    return total
 
 # XP ACUMULADO pra atingir cada nivel (index = nivel). Recalibrado junto com a
 # QUEDA DRASTICA do XP dos monstros (esqueleto era 1000, virou 90). Comeco (1-10)
@@ -47,7 +60,7 @@ _AVG = {6: 4, 8: 5, 10: 6, 12: 7}   # media fixa do dado (die//2 + 1)
 
 
 def proficiency_bonus(level):
-    return 2 + (max(1, min(MAX_LEVEL, level)) - 1) // 4
+    return 2 + (max(1, level) - 1) // 4
 
 
 def map_xp(mp):
@@ -61,8 +74,8 @@ def map_xp(mp):
 
 def level_for_xp(xp):
     lvl = 1
-    for L in range(2, MAX_LEVEL + 1):
-        if xp >= XP_TABLE[L]:
+    for L in range(2, 999):
+        if xp >= xp_for_level(L):
             lvl = L
         else:
             break
@@ -72,9 +85,8 @@ def level_for_xp(xp):
 def xp_progress(xp):
     """(xp_dentro_do_nivel, xp_total_do_nivel, nivel). No 20: (0, 0, 20)."""
     lvl = level_for_xp(xp)
-    if lvl >= MAX_LEVEL:
-        return (0, 0, MAX_LEVEL)
-    base, nxt = XP_TABLE[lvl], XP_TABLE[lvl + 1]
+
+    base, nxt = xp_for_level(lvl), xp_for_level(lvl + 1)
     return (xp - base, nxt - base, lvl)
 
 
@@ -106,7 +118,8 @@ def sync_asi(ficha):
     lvl = ficha.get("level", 1)
     seen = ficha.setdefault("asi_seen", [])
     pend = ficha.setdefault("pending_asi", [])
-    for L in sorted(asi_levels(cid)):
+    extras = [L for L in range(24, int(ficha.get("level", 1)) + 1, 4)]
+    for L in sorted(set(list(asi_levels(cid)) + extras)):
         if L <= lvl and L not in seen:
             seen.append(L)
             pend.append(L)
@@ -151,7 +164,8 @@ HALF_CASTERS = {"paladino", "patrulheiro"}
 
 
 def _slots_for(class_id, level):
-    level = max(1, min(MAX_LEVEL, level))
+    level = max(1, level)
+    level_tab = min(MAX_LEVEL, level)
     if class_id in FULL_CASTERS:
         row = _FULL_SLOTS.get(level, [])
     elif class_id in HALF_CASTERS:
@@ -166,7 +180,7 @@ def _slots_for(class_id, level):
 
 def _resource_maxes(ficha):
     cid = ficha.get("class_id")
-    lvl = max(1, min(MAX_LEVEL, int(ficha.get("level", 1))))
+    lvl = max(1, int(ficha.get("level", 1)))
     final = ficha.get("attrs_final") or ficha.get("attrs") or {}
     res = {}
     if cid == "barbaro":

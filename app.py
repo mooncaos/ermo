@@ -1145,6 +1145,10 @@ def on_quests_get(_data=None):
     if not ((player.get("ficha") or {}).get("skills") or {}).get("magic"):
         skills.ensure(player.get("ficha") or {})
         _quest_save(player)
+    elif skills.recalibrate(player.get("ficha") or {}):
+        _quest_save(player)
+        socketio.emit("toast", {"text": "\U0001F52E Seu Nivel Magico foi recalibrado pela sua vocacao! (tecla L)"},
+                      to=request.sid)
     _ft = (player.get("ficha") or {}).get("title")
     if _ft and player.get("title") != _ft:
         player["title"] = _ft
@@ -2988,7 +2992,7 @@ def _player_death(sid):
     # rebaixa de nivel (so come parte do que ja juntou pro proximo). Renasce no inicio.
     xp = int(f.get("xp", 0))
     lvl = int(f.get("level", 1))
-    thr = leveling.XP_TABLE[min(max(lvl, 1), leveling.MAX_LEVEL)]
+    thr = leveling.xp_for_level(max(lvl, 1))
     within = max(0, xp - thr)
     protect = int(f.get("death_protect", 0))          # benção da Xamã Miranda (vale 1 morte)
     eff_pct = max(0, 50 - protect)                    # 50% base menos a proteção
@@ -5152,7 +5156,7 @@ def on_gm_command(data):
 
     elif action == "setlevel":                            # ⚡ definir nível
         try:
-            lvl = max(1, min(leveling.MAX_LEVEL, int(p.get("level"))))
+            lvl = max(1, int(p.get("level")))
         except (TypeError, ValueError):
             return
         f = player.get("ficha") or {}
