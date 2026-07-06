@@ -11070,6 +11070,7 @@ function drawWorldOverlays(c, now){
     drawQuestMarks(c, now);
     drawRtAoes(c, now);
     drawGarden(c, now);
+    drawIlhaDecor(c, now);
     drawRtCombat(c, now);
     drawExitArrows(c, now);
     drawVignette(c, now);
@@ -11559,6 +11560,7 @@ function _applyWeather(t){
   if(t === 'chuva') _weather = {type: 'chuva', k: 0.75};
   else if(t === 'tempestade') _weather = {type: 'chuva', k: 1};
   else if(t === 'neblina') _weather = {type: 'nevoa', k: 1};
+  else if(t === 'neve') _weather = {type: 'neve', k: 1};
   else _weather = {type: null, k: 0};
 }
 var _fauna = [];
@@ -11572,6 +11574,12 @@ var socketOnReady_weather = setInterval(()=>{
     _fauna = []; _petTrail = [];
     if(nm === 'fenda'){ _fendaOpen = false; } else { _fendaFloor = 0; }
     _applyWeather(_serverWx);       // o CLIMA agora é lei do servidor
+    if(nm === 'vilalbina'){
+      for(let i=0;i<5;i++) _fauna.push({t:'gaivota', x: 30+Math.random()*250, y: 150+Math.random()*60, ph: Math.random()*9, voa: 0});
+    }
+    if(nm === 'trigal_dourado'){
+      for(let i=0;i<9;i++) _fauna.push({t:'borboleta', x: 20+Math.random()*300, y: 20+Math.random()*200, ph: Math.random()*9});
+    }
     if(nm === 'costa_maravai'){
       for(let i=0;i<10;i++) _fauna.push({t:'borboleta', x: 20+Math.random()*260, y: 10+Math.random()*130, ph: Math.random()*9});
       for(let i=0;i<6;i++)  _fauna.push({t:'gaivota', x: 30+Math.random()*250, y: 200+Math.random()*50, ph: Math.random()*9, voa: 0});
@@ -11598,6 +11606,24 @@ function drawWeather(c, now){
       c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx - 3, ry + 11); c.stroke();
     }
     c.fillStyle = 'rgba(90,120,160,0.06)'; c.fillRect(0, 0, canvas.width, canvas.height);
+    c.restore();
+  } else if(_weather.type === 'neve'){
+    c.save();
+    const n = Math.floor(90 * _weather.k);
+    for(let i = 0; i < n; i++){
+      const sz = 1.2 + (i % 3) * 0.9;
+      const fx = ((i*769 + now*(0.06 + (i%4)*0.02)) % (canvas.width + 40)) - 20
+                 + Math.sin(now/900 + i)*14;
+      const fy = ((i*523 + now*(0.05 + (i%3)*0.018)) % (canvas.height + 40)) - 20;
+      c.globalAlpha = 0.55 + (i % 4) * 0.1;
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.arc(fx, fy, sz, 0, Math.PI*2); c.fill();
+    }
+    c.globalAlpha = 1;
+    c.fillStyle = 'rgba(190,210,240,0.07)';
+    c.fillRect(0, 0, canvas.width, canvas.height);
+    c.fillStyle = 'rgba(255,255,255,0.05)';
+    c.fillRect(0, 0, canvas.width, canvas.height);
     c.restore();
   } else if(_weather.type === 'nevoa'){
     c.save();
@@ -13262,3 +13288,536 @@ function drawGarden(c, now){
     c.restore();
   }
 }
+
+
+// ===== casas e torres da ilha (geradas pelos mapas, pro decor) =====
+var _ILHA_CASAS = {"vilalbina": [[3, 3, 5, 3, "branca"], [10, 3, 4, 3, "branca"], [30, 3, 5, 3, "branca"], [37, 3, 4, 3, "branca"], [3, 9, 4, 3, "branca"], [37, 9, 4, 3, "branca"], [3, 15, 5, 3, "branca"], [36, 15, 5, 3, "branca"], [10, 20, 4, 3, "branca"], [30, 20, 4, 3, "branca"]], "trigal_dourado": [[8, 7, 6, 4, "fazenda"], [38, 25, 6, 4, "fazenda"]], "vinhedo": [[42, 12, 5, 3, "adega"]], "pastos": [[31, 20, 10, 6, "celeiro"]], "prospera": [[4, 4, 6, 4, "nobre"], [13, 4, 5, 3, "comum"], [21, 4, 5, 4, "comum"], [50, 4, 6, 4, "nobre"], [59, 4, 5, 3, "comum"], [67, 4, 6, 4, "nobre"], [76, 4, 6, 3, "comum"], [4, 12, 5, 3, "comum"], [13, 12, 6, 4, "comum"], [67, 12, 5, 3, "comum"], [76, 11, 6, 4, "nobre"], [4, 20, 5, 3, "comum"], [22, 20, 5, 3, "comum"], [58, 20, 5, 3, "comum"], [4, 44, 6, 4, "comum"], [13, 44, 5, 3, "comum"], [22, 44, 6, 4, "nobre"], [50, 44, 5, 3, "comum"], [59, 44, 6, 4, "comum"], [68, 44, 5, 3, "comum"], [77, 44, 5, 4, "nobre"], [4, 53, 5, 3, "comum"], [13, 53, 6, 3, "comum"], [50, 53, 5, 3, "comum"], [59, 53, 6, 3, "comum"], [68, 53, 5, 3, "comum"]], "_torres_templo": [[27, 10], [35, 12], [41, 18], [44, 27], [41, 35], [35, 41], [27, 44], [18, 41], [12, 35], [10, 27], [12, 18], [18, 12]], "jardim_templo": [], "cidade_alta": [[4, 4, 5, 3, "nobre"], [4, 12, 6, 4, "nobre"], [38, 4, 6, 4, "nobre"], [38, 12, 5, 3, "nobre"], [4, 30, 5, 3, "nobre"], [38, 30, 6, 4, "nobre"], [12, 30, 5, 3, "nobre"]], "farol_margem": [[4, 6, 12, 8, "mansao"]]};
+
+// ===========================================================================
+//  PROSPERINA, A ILHA-CELEIRO: o grande decor. Telhados de verdade, fonte,
+//  vitrais das doze torres, a Torre da Alvorada, o Farol do Âmbar.
+// ===========================================================================
+var _ILHA_PAL = {
+  branca:  {roof:'#c4553a', roofHi:'#d96a4c', wall:'#f2eee2', door:'#6a4326', win:'#ffd98a'},
+  comum:   {roof:'#6a7280', roofHi:'#7e8794', wall:'#d8d2c2', door:'#5a4430', win:'#ffd98a'},
+  nobre:   {roof:'#3a4e8a', roofHi:'#4a62a8', wall:'#e4ddc9', door:'#3a2c1a', win:'#ffe9a8', gold:true},
+  fazenda: {roof:'#8a4a3a', roofHi:'#a05a46', wall:'#c9b490', door:'#4a3018', win:'#ffd98a'},
+  celeiro: {roof:'#a33d30', roofHi:'#bf4c3c', wall:'#b5432f', door:'#f0ead8', win:'#f0ead8', barn:true},
+  adega:   {roof:'#5a3a5a', roofHi:'#6e4a6e', wall:'#d8ccb8', door:'#3a2438', win:'#e8c9ff'},
+  mansao:  {roof:'#b8963a', roofHi:'#d4b04c', wall:'#efe7d2', door:'#4a3416', win:'#fff0b8', gold:true},
+};
+var _DEUS_CORES = ['#f2c14e','#e05a4e','#5aa9e0','#7ac06a','#b06ae0','#e0865a',
+                   '#5ae0c9','#e05aa0','#c9e05a','#8a7ae0','#e0c95a','#7a8a99'];
+
+function _telhado(c, x, y, w, h, st, now){
+  const p = _ILHA_PAL[st] || _ILHA_PAL.comum;
+  const px = x*TS - camX, py = y*TS - camY, pw = w*TS, ph = h*TS;
+  if(px > canvas.width + TS || py > canvas.height + TS || px + pw < -TS || py + ph < -TS) return;
+  const wallH = Math.min(TS*0.55, ph*0.28);                 // a face sul aparente
+  c.fillStyle = p.wall;
+  c.fillRect(px, py + ph - wallH, pw, wallH);
+  c.fillStyle = 'rgba(0,0,0,0.12)';
+  c.fillRect(px, py + ph - wallH, pw, 3);
+  const doorW = Math.min(12, pw*0.2);                       // a porta
+  c.fillStyle = p.door;
+  c.fillRect(px + pw/2 - doorW/2, py + ph - wallH + 4, doorW, wallH - 4);
+  const nwin = Math.max(0, Math.floor(w/2) - 1);            // janelas acesas
+  for(let i = 0; i < nwin; i++){
+    const wx = px + (i + 0.75) * (pw/(nwin + 1)) - 3;
+    if(Math.abs(wx - (px + pw/2)) < doorW) continue;
+    c.fillStyle = p.win; c.fillRect(wx, py + ph - wallH + 6, 6, 7);
+    c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1; c.strokeRect(wx, py + ph - wallH + 6, 6, 7);
+  }
+  const roofH = ph - wallH;                                  // o telhado de duas águas
+  c.fillStyle = p.roof;  c.fillRect(px - 3, py - 3, pw + 6, roofH + 3);
+  c.fillStyle = p.roofHi; c.fillRect(px - 3, py - 3, pw + 6, (roofH + 3) * 0.46);
+  if(typeof _serverWx !== 'undefined' && _serverWx === 'neve'){
+    c.fillStyle = 'rgba(245,250,255,0.85)';
+    c.fillRect(px - 3, py - 3, pw + 6, (roofH + 3) * 0.34);
+    c.fillStyle = 'rgba(245,250,255,0.6)';
+    for(let sx2 = px - 3; sx2 < px + pw + 3; sx2 += 7)
+      c.fillRect(sx2, py - 3 + (roofH + 3)*0.34, 4, 2.5);
+  }
+  c.strokeStyle = 'rgba(0,0,0,0.22)'; c.lineWidth = 1;
+  for(let i = 1; i < w + 1; i++){                            // as telhas
+    c.beginPath(); c.moveTo(px - 3 + i*TS, py - 3); c.lineTo(px - 3 + i*TS, py - 3 + roofH + 3); c.stroke();
+  }
+  c.fillStyle = 'rgba(0,0,0,0.28)';                          // a cumeeira e o beiral
+  c.fillRect(px - 3, py - 3 + (roofH + 3) * 0.46 - 1.5, pw + 6, 3);
+  c.fillRect(px - 3, py + roofH - 2, pw + 6, 3);
+  if(p.gold){ c.fillStyle = '#ffd97a'; c.fillRect(px - 3, py - 3, pw + 6, 2.5); }
+  if(p.barn){                                                // o X branco do celeiro
+    c.strokeStyle = '#f0ead8'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(px + pw*0.25, py + 2); c.lineTo(px + pw*0.75, py + roofH - 4);
+    c.moveTo(px + pw*0.75, py + 2); c.lineTo(px + pw*0.25, py + roofH - 4); c.stroke();
+  }
+  if(st === 'mansao'){                                       // a bandeira Prosperi
+    const fx = px + pw - 6, fy = py - 3;
+    c.strokeStyle = '#7a6a4a'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx, fy - 22); c.stroke();
+    c.fillStyle = '#ffd24a';
+    c.beginPath(); c.moveTo(fx, fy - 22);
+    c.lineTo(fx + 14 + Math.sin(now/300)*2, fy - 18);
+    c.lineTo(fx, fy - 14); c.closePath(); c.fill();
+  }
+}
+
+function drawIlhaDecor(c, now){
+  if(typeof mapName === 'undefined' || !_ILHA_CASAS) return;
+  const casas = _ILHA_CASAS[mapName];
+  const naIlha = !!casas || mapName === 'jardim_templo' || mapName === 'farol_margem' || mapName === 'cidade_alta';
+  if(!naIlha) return;
+  c.save();
+
+  // ---- TRIGAL: o ouro balançando ----
+  if(mapName === 'trigal_dourado'){
+    c.fillStyle = 'rgba(224,182,74,0.32)';
+    for(let ty = 1; ty < 35; ty++){
+      if(ty === 17 || ty === 18) continue;
+      const sy = ty*TS - camY;
+      if(sy < -TS || sy > canvas.height + TS) continue;
+      c.fillRect(-camX + TS, sy, 54*TS, TS);
+    }
+    c.strokeStyle = '#c9982e'; c.lineWidth = 1.6;
+    for(let gx = 2; gx < 54; gx += 2){
+      const sx = gx*TS - camX;
+      if(sx < -TS || sx > canvas.width + TS) continue;
+      for(let gy = 2; gy < 34; gy += 2){
+        if(gy >= 16 && gy <= 19) continue;
+        const sy = gy*TS - camY;
+        if(sy < -TS || sy > canvas.height + TS) continue;
+        const sw = Math.sin(now/600 + gx*0.7 + gy*0.4)*2.5;
+        c.beginPath(); c.moveTo(sx + TS*0.5, sy + TS*0.85);
+        c.quadraticCurveTo(sx + TS*0.5 + sw, sy + TS*0.45, sx + TS*0.5 + sw*1.4, sy + TS*0.18);
+        c.stroke();
+        c.fillStyle = '#e8c050';
+        c.beginPath(); c.ellipse(sx + TS*0.5 + sw*1.4, sy + TS*0.14, 2.6, 4.6, sw*0.1, 0, Math.PI*2); c.fill();
+      }
+    }
+  }
+
+  // ---- VINHEDO: as parreiras ----
+  if(mapName === 'vinhedo'){
+    for(let vy = 7; vy < 28; vy++){
+      if(vy % 3 === 0 || vy === 16 || vy === 17) continue;
+      const sy = vy*TS - camY;
+      if(sy < -TS*2 || sy > canvas.height + TS) continue;
+      const x0 = 5*TS - camX, x1 = 47*TS - camX;
+      c.strokeStyle = '#6a4a2a'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(x0, sy + TS*0.35); c.lineTo(x1, sy + TS*0.35); c.stroke();
+      for(let vx = 6; vx < 47; vx += 2){
+        const sx = vx*TS - camX;
+        if(sx < -TS || sx > canvas.width + TS) continue;
+        c.fillStyle = '#3a6a2a';
+        c.beginPath(); c.arc(sx, sy + TS*0.32, 6.5, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#4a8a34';
+        c.beginPath(); c.arc(sx - 4, sy + TS*0.26, 4.5, 0, Math.PI*2);
+        c.arc(sx + 4, sy + TS*0.28, 4.5, 0, Math.PI*2); c.fill();
+        if((vx + vy) % 3 === 0){
+          c.fillStyle = '#6a3a8a';
+          c.beginPath(); c.arc(sx + 1, sy + TS*0.46, 2, 0, Math.PI*2);
+          c.arc(sx - 2, sy + TS*0.5, 2, 0, Math.PI*2);
+          c.arc(sx + 3, sy + TS*0.51, 2, 0, Math.PI*2); c.fill();
+        }
+      }
+    }
+  }
+
+  // ---- PASTOS: fardos de feno ----
+  if(mapName === 'pastos'){
+    for(const [hx, hy] of [[24, 6], [26, 9], [23, 24], [12, 15.6], [44, 15.6], [46, 3]]){
+      const sx = hx*TS - camX, sy = hy*TS - camY;
+      if(sx < -TS || sx > canvas.width + TS || sy < -TS || sy > canvas.height + TS) continue;
+      c.fillStyle = '#d8b04c';
+      c.beginPath(); c.arc(sx, sy, TS*0.36, 0, Math.PI*2); c.fill();
+      c.strokeStyle = '#a8842e'; c.lineWidth = 1.5;
+      for(let r = 4; r < TS*0.36; r += 4){ c.beginPath(); c.arc(sx, sy, r, 0, Math.PI*2); c.stroke(); }
+    }
+  }
+
+  // ---- os TELHADOS de todas as casas do mapa ----
+  if(casas){
+    for(const [x, y, w, h, st] of casas) _telhado(c, x, y, w, h, st, now);
+  }
+
+  // ---- VILALBINA: bandeirinhas da festa eterna ----
+  if(mapName === 'vilalbina'){
+    const fios = [[16, 9.6, 29, 9.6], [16, 16.4, 29, 16.4], [16, 9.6, 16, 16.4], [29, 9.6, 29, 16.4]];
+    const cores = ['#e05a4e', '#f2c14e', '#5aa9e0', '#7ac06a', '#e08ae0'];
+    for(const [ax, ay, bx, by] of fios){
+      const x0 = ax*TS - camX, y0 = ay*TS - camY, x1 = bx*TS - camX, y1 = by*TS - camY;
+      c.strokeStyle = 'rgba(90,70,50,0.8)'; c.lineWidth = 1.4;
+      c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo((x0+x1)/2, (y0+y1)/2 + 8, x1, y1); c.stroke();
+      const n = 8;
+      for(let i = 1; i < n; i++){
+        const t = i/n;
+        const fx = x0 + (x1-x0)*t, fy = y0 + (y1-y0)*t + 8*Math.sin(Math.PI*t)*0.9;
+        const sw2 = Math.sin(now/280 + i*1.3)*1.6;
+        c.fillStyle = cores[i % cores.length];
+        c.beginPath(); c.moveTo(fx - 4, fy); c.lineTo(fx + 4, fy); c.lineTo(fx + sw2, fy + 7); c.closePath(); c.fill();
+      }
+    }
+  }
+
+  // ---- PROSPERA: a fonte, os lampiões e as bandeiras ----
+  if(mapName === 'prospera'){
+    const fx = 37.5*TS - camX, fy = 25.5*TS - camY;      // A FONTE
+    if(fx > -TS*3 && fx < canvas.width + TS*3 && fy > -TS*3 && fy < canvas.height + TS*3){
+      c.fillStyle = '#8a8a94';
+      c.beginPath(); c.arc(fx, fy, TS*1.15, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#5a8ac9';
+      c.beginPath(); c.arc(fx, fy, TS*0.92, 0, Math.PI*2); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.35)';
+      for(let i = 0; i < 3; i++){
+        const rr = ((now/26 + i*38) % 100) / 100;
+        c.globalAlpha = 0.5*(1 - rr);
+        c.beginPath(); c.arc(fx, fy, TS*0.2 + rr*TS*0.7, 0, Math.PI*2); c.stroke();
+      }
+      c.globalAlpha = 1;
+      c.fillStyle = '#a0a0aa';
+      c.beginPath(); c.arc(fx, fy, TS*0.22, 0, Math.PI*2); c.fill();
+      for(let j = 0; j < 5; j++){                        // os jatos
+        const jt = (now/380 + j*1.7) % 2;
+        c.fillStyle = 'rgba(190,220,255,0.85)';
+        c.beginPath(); c.arc(fx + Math.cos(j*1.26)*6, fy - 10 - Math.sin(Math.min(1, jt)*Math.PI)*10, 2.2, 0, Math.PI*2); c.fill();
+      }
+    }
+    for(let lx = 6; lx < 84; lx += 8){                   // lampiões da avenida
+      for(const ly of [29.2, 32.2]){
+        const sx = lx*TS - camX, sy = ly*TS - camY;
+        if(sx < -TS || sx > canvas.width + TS || sy < -TS*2 || sy > canvas.height + TS) continue;
+        c.strokeStyle = '#3a3a42'; c.lineWidth = 2.4;
+        c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx, sy - 18); c.stroke();
+        c.save(); c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 0.55 + 0.18*Math.sin(now/300 + lx);
+        const g = c.createRadialGradient(sx, sy - 20, 0, sx, sy - 20, 13);
+        g.addColorStop(0, 'rgba(255,214,130,0.95)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g;
+        c.beginPath(); c.arc(sx, sy - 20, 13, 0, Math.PI*2); c.fill();
+        c.restore();
+        c.fillStyle = '#ffe9b0';
+        c.beginPath(); c.arc(sx, sy - 20, 3, 0, Math.PI*2); c.fill();
+      }
+    }
+    for(const [gx, gy] of [[41, 2.4], [45, 2.4], [41, 59.6], [45, 59.6], [2.4, 29], [2.4, 33], [83.6, 29], [83.6, 33]]){
+      const sx = gx*TS - camX, sy = gy*TS - camY;        // bandeiras dos portões
+      if(sx < -TS || sx > canvas.width + TS || sy < -TS*2 || sy > canvas.height + TS) continue;
+      c.strokeStyle = '#7a6a4a'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx, sy - 26); c.stroke();
+      c.fillStyle = '#ffd24a';
+      c.beginPath(); c.moveTo(sx, sy - 26);
+      c.lineTo(sx + 15 + Math.sin(now/260 + gx)*2.5, sy - 21);
+      c.lineTo(sx, sy - 16); c.closePath(); c.fill();
+    }
+  }
+
+  // ---- JARDIM: as 12 torres com vitrais (a luz pinta o chão) ----
+  if(mapName === 'jardim_templo' && _ILHA_CASAS._torres_templo){
+    _ILHA_CASAS._torres_templo.forEach(([tx, ty], i) => {
+      const sx = (tx + 1)*TS - camX, base = (ty + 2)*TS - camY;
+      if(sx < -TS*3 || sx > canvas.width + TS*3 || base < -TS*6 || base > canvas.height + TS*6) return;
+      const cor = _DEUS_CORES[i % 12];
+      c.save(); c.globalCompositeOperation = 'lighter';       // a luz no chão
+      c.globalAlpha = 0.16 + 0.07*Math.sin(now/700 + i);
+      const lg = c.createRadialGradient(sx, base + TS*0.6, 0, sx, base + TS*0.6, TS*2.2);
+      lg.addColorStop(0, cor); lg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = lg;
+      c.beginPath(); c.ellipse(sx, base + TS*0.6, TS*2.2, TS*1.1, 0, 0, Math.PI*2); c.fill();
+      c.restore();
+      const alt = TS*3.4;                                     // o corpo da torre
+      c.fillStyle = '#e8e2d4';
+      c.fillRect(sx - TS*0.8, base - alt, TS*1.6, alt);
+      c.fillStyle = 'rgba(0,0,0,0.14)';
+      c.fillRect(sx + TS*0.25, base - alt, TS*0.55, alt);
+      c.fillStyle = '#c9c2b0';                                // o topo cônico
+      c.beginPath(); c.moveTo(sx - TS*0.95, base - alt);
+      c.lineTo(sx, base - alt - TS*0.9); c.lineTo(sx + TS*0.95, base - alt); c.closePath(); c.fill();
+      c.save(); c.globalAlpha = 0.85 + 0.15*Math.sin(now/450 + i*2);   // O VITRAL
+      c.fillStyle = cor;
+      c.beginPath(); c.ellipse(sx, base - alt*0.62, TS*0.34, TS*0.52, 0, 0, Math.PI*2); c.fill();
+      c.strokeStyle = 'rgba(40,32,20,0.7)'; c.lineWidth = 2; c.stroke();
+      c.beginPath(); c.moveTo(sx, base - alt*0.62 - TS*0.52); c.lineTo(sx, base - alt*0.62 + TS*0.52);
+      c.moveTo(sx - TS*0.34, base - alt*0.62); c.lineTo(sx + TS*0.34, base - alt*0.62); c.stroke();
+      c.restore();
+    });
+    const ax = 27.5*TS - camX, ay = 27.5*TS - camY;           // o feixe do altar
+    c.save(); c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.10 + 0.05*Math.sin(now/900);
+    const ag = c.createLinearGradient(ax, ay - TS*7, ax, ay);
+    ag.addColorStop(0, 'rgba(255,244,200,0)'); ag.addColorStop(1, 'rgba(255,244,200,0.85)');
+    c.fillStyle = ag;
+    c.beginPath(); c.moveTo(ax - TS*0.4, ay); c.lineTo(ax - TS*1.6, ay - TS*7);
+    c.lineTo(ax + TS*1.6, ay - TS*7); c.lineTo(ax + TS*0.4, ay); c.closePath(); c.fill();
+    c.restore();
+  }
+
+  // ---- CIDADE ALTA: a Torre da Alvorada e os grifos ----
+  if(mapName === 'cidade_alta'){
+    const cx2 = 25*TS - camX, base = 11*TS - camY;
+    if(cx2 > -TS*8 && cx2 < canvas.width + TS*8){
+      const alt = TS*5.2;
+      c.fillStyle = '#ece6d6';                                 // o corpo monumental
+      c.fillRect(cx2 - TS*3.2, base - alt, TS*6.4, alt);
+      c.fillStyle = 'rgba(0,0,0,0.12)';
+      c.fillRect(cx2 + TS*1.2, base - alt, TS*2, alt);
+      c.strokeStyle = 'rgba(90,80,60,0.5)'; c.lineWidth = 1.5;
+      for(let fl = 1; fl <= 4; fl++){
+        c.beginPath(); c.moveTo(cx2 - TS*3.2, base - fl*alt/5); c.lineTo(cx2 + TS*3.2, base - fl*alt/5); c.stroke();
+        for(const wx of [-2.1, -0.7, 0.7, 2.1]){               // janelas em arco
+          const jx = cx2 + wx*TS, jy = base - fl*alt/5 + alt/10;
+          c.fillStyle = '#ffdf9a';
+          c.beginPath(); c.arc(jx, jy - 4, 4.5, Math.PI, 0);
+          c.rect(jx - 4.5, jy - 4, 9, 9); c.fill();
+        }
+      }
+      c.fillStyle = '#d4c9a8';                                 // o coroamento
+      c.beginPath(); c.moveTo(cx2 - TS*3.5, base - alt);
+      c.lineTo(cx2, base - alt - TS*1.4); c.lineTo(cx2 + TS*3.5, base - alt); c.closePath(); c.fill();
+      c.save(); c.globalCompositeOperation = 'lighter';        // A ALVORADA no topo
+      c.globalAlpha = 0.65 + 0.25*Math.sin(now/500);
+      const tg = c.createRadialGradient(cx2, base - alt - TS*1.2, 0, cx2, base - alt - TS*1.2, TS*2.4);
+      tg.addColorStop(0, 'rgba(255,224,138,0.95)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = tg;
+      c.beginPath(); c.arc(cx2, base - alt - TS*1.2, TS*2.4, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.fillStyle = '#fff2c0';
+      c.beginPath(); c.arc(cx2, base - alt - TS*1.2, 5, 0, Math.PI*2); c.fill();
+    }
+    for(const gx of [22, 27]){                                 // OS GRIFOS
+      const sx = (gx + 0.5)*TS - camX, sy = 12.6*TS - camY;
+      if(sx < -TS*2 || sx > canvas.width + TS*2) continue;
+      c.fillStyle = '#b5ada0';
+      c.fillRect(sx - 9, sy - 4, 18, 10);                      // o pedestal
+      c.beginPath(); c.ellipse(sx, sy - 12, 7, 9, 0, 0, Math.PI*2); c.fill();   // corpo
+      c.beginPath(); c.arc(sx + 5, sy - 20, 4.5, 0, Math.PI*2); c.fill();       // cabeça
+      c.fillStyle = '#c5bdb0';                                 // as asas abertas
+      c.beginPath(); c.moveTo(sx - 5, sy - 15); c.quadraticCurveTo(sx - 18, sy - 26, sx - 8, sy - 28);
+      c.quadraticCurveTo(sx - 6, sy - 20, sx - 3, sy - 17); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(sx + 7, sy - 16); c.quadraticCurveTo(sx + 19, sy - 27, sx + 10, sy - 29);
+      c.quadraticCurveTo(sx + 8, sy - 21, sx + 5, sy - 18); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,220,120,' + (0.5 + 0.4*Math.sin(now/700 + gx)) + ')';
+      c.beginPath(); c.arc(sx + 6.5, sy - 21, 1.2, 0, Math.PI*2); c.fill();     // o olho
+    }
+  }
+
+  // ---- FAROL: a luz do Âmbar girando sobre o mar ----
+  if(mapName === 'farol_margem'){
+    const fx = 25*TS - camX, base = 23*TS - camY;
+    if(fx > -TS*6 && fx < canvas.width + TS*6){
+      const alt = TS*6;
+      c.fillStyle = '#e8e0d0';
+      c.fillRect(fx - TS*1.6, base - alt, TS*3.2, alt);        // o fuste
+      c.fillStyle = '#c04a3a';                                 // as faixas
+      for(let b = 0; b < 3; b++) c.fillRect(fx - TS*1.6, base - alt + (b*2 + 0.7)*alt/6, TS*3.2, alt/9);
+      c.fillStyle = 'rgba(0,0,0,0.12)';
+      c.fillRect(fx + TS*0.5, base - alt, TS*1.1, alt);
+      c.fillStyle = '#5a5248';                                 // a galeria
+      c.fillRect(fx - TS*1.9, base - alt - 6, TS*3.8, 8);
+      c.fillStyle = '#3a352e';
+      c.fillRect(fx - TS*1.1, base - alt - TS*1.1, TS*2.2, TS*1.1);
+      const ang = now/900;                                     // O FEIXE DO ÂMBAR
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for(const dir of [0, Math.PI]){
+        const a = ang + dir;
+        const bx = fx, by = base - alt - TS*0.55;
+        const g2 = c.createLinearGradient(bx, by, bx + Math.cos(a)*TS*9, by + Math.sin(a)*TS*4.5);
+        g2.addColorStop(0, 'rgba(255,196,90,0.5)'); g2.addColorStop(1, 'rgba(255,196,90,0)');
+        c.fillStyle = g2;
+        c.beginPath(); c.moveTo(bx, by);
+        c.lineTo(bx + Math.cos(a - 0.16)*TS*9, by + Math.sin(a - 0.16)*TS*4.5);
+        c.lineTo(bx + Math.cos(a + 0.16)*TS*9, by + Math.sin(a + 0.16)*TS*4.5);
+        c.closePath(); c.fill();
+      }
+      c.globalAlpha = 0.75 + 0.25*Math.sin(now/220);
+      const ag2 = c.createRadialGradient(fx, base - alt - TS*0.55, 0, fx, base - alt - TS*0.55, TS*1.5);
+      ag2.addColorStop(0, 'rgba(255,214,110,1)'); ag2.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = ag2;
+      c.beginPath(); c.arc(fx, base - alt - TS*0.55, TS*1.5, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.save(); c.globalAlpha = 0.25 + 0.1*Math.sin(now/400);  // o reflexo no mar
+      c.fillStyle = '#ffce7a';
+      c.beginPath(); c.ellipse(fx, (26.5)*TS - camY, TS*1.8, TS*0.35, 0, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+  }
+  c.restore();
+}
+
+// ===========================================================================
+//  O SOPRO DE VIDA: chaminés, ameias e as partículas únicas de cada mapa.
+// ===========================================================================
+(function(){
+  const base = drawIlhaDecor;
+  drawIlhaDecor = function(c, now){
+    base(c, now);
+    if(typeof mapName === 'undefined') return;
+    const casas = _ILHA_CASAS && _ILHA_CASAS[mapName];
+    c.save();
+
+    // ---- chaminés fumegando (todas as casas da ilha) ----
+    if(casas){
+      for(const [x, y, w, h] of casas){
+        const cx2 = (x + w - 0.6)*TS - camX, cy2 = (y + 0.3)*TS - camY;
+        if(cx2 < -TS || cx2 > canvas.width + TS || cy2 < -TS*2 || cy2 > canvas.height + TS) continue;
+        c.fillStyle = '#6a5a4a';
+        c.fillRect(cx2 - 3, cy2 - 6, 6, 8);
+        for(let s = 0; s < 3; s++){
+          const t = ((now/1400 + s*0.33 + x*0.1) % 1);
+          c.globalAlpha = 0.28 * (1 - t);
+          c.fillStyle = '#c9c4bc';
+          c.beginPath();
+          c.arc(cx2 + Math.sin(now/700 + s + x)*3*t, cy2 - 8 - t*22, 2.5 + t*4.5, 0, Math.PI*2);
+          c.fill();
+        }
+        c.globalAlpha = 1;
+      }
+    }
+
+    // ---- ameias da muralha de Prospera ----
+    if(mapName === 'prospera'){
+      c.fillStyle = '#b6a079';
+      const W2 = 86, H2 = 62;
+      for(let mx = 0; mx < W2; mx += 2){
+        for(const my of [0, H2 - 1]){
+          const sx = mx*TS - camX, sy = my*TS - camY;
+          if(sx < -TS || sx > canvas.width + TS || sy < -TS || sy > canvas.height + TS) continue;
+          c.fillRect(sx + 2, sy - 4, TS - 8, 6);
+        }
+      }
+      for(let my = 0; my < H2; my += 2){
+        for(const mx of [0, W2 - 1]){
+          const sx = mx*TS - camX, sy = my*TS - camY;
+          if(sx < -TS || sx > canvas.width + TS || sy < -TS || sy > canvas.height + TS) continue;
+          c.fillRect(sx - 2, sy + 2, 6, TS - 8);
+        }
+      }
+    }
+
+    // ---- as partículas ÚNICAS de cada mapa ----
+    const P = (i, k, spd) => ((i*k + now*spd) % 1000) / 1000;
+    if(mapName === 'vilalbina'){                              // confetes da festa
+      const cores = ['#e05a4e','#f2c14e','#5aa9e0','#7ac06a','#e08ae0'];
+      for(let i = 0; i < 22; i++){
+        const px = (14 + P(i, 337, 0.006) * 17)*TS - camX;
+        const py = (8 + P(i, 211, 0.02) * 10)*TS - camY;
+        if(px < -TS || px > canvas.width + TS || py < -TS || py > canvas.height + TS) continue;
+        c.globalAlpha = 0.7;
+        c.fillStyle = cores[i % cores.length];
+        c.save(); c.translate(px, py); c.rotate(now/400 + i);
+        c.fillRect(-2.2, -1.4, 4.4, 2.8); c.restore();
+      }
+    }
+    if(mapName === 'trigal_dourado'){                          // palha ao vento
+      for(let i = 0; i < 26; i++){
+        const px = (P(i, 431, 0.05) * 58 - 1)*TS - camX;
+        const py = (2 + (i*7 % 32) + Math.sin(now/800 + i)*0.7)*TS - camY;
+        if(px < -TS || px > canvas.width + TS || py < -TS || py > canvas.height + TS) continue;
+        c.globalAlpha = 0.55;
+        c.strokeStyle = '#e8c86a'; c.lineWidth = 1.4;
+        c.beginPath(); c.moveTo(px, py); c.lineTo(px + 5, py - 1.6); c.stroke();
+      }
+    }
+    if(mapName === 'vinhedo'){                                 // folhinhas em espiral
+      for(let i = 0; i < 16; i++){
+        const t = P(i, 277, 0.018);
+        const px = ((i*13 % 50) + 2 + Math.sin(t*9 + i)*1.2)*TS - camX;
+        const py = (t * 34)*TS - camY;
+        if(px < -TS || px > canvas.width + TS || py < -TS || py > canvas.height + TS) continue;
+        c.globalAlpha = 0.6*(1 - t*0.4);
+        c.fillStyle = i % 3 ? '#6aa84a' : '#8a6a3a';
+        c.save(); c.translate(px, py); c.rotate(t*12 + i);
+        c.beginPath(); c.ellipse(0, 0, 3.4, 1.8, 0, 0, Math.PI*2); c.fill(); c.restore();
+      }
+    }
+    if(mapName === 'pastos'){                                  // penugem de dente-de-leão
+      for(let i = 0; i < 14; i++){
+        const t = P(i, 353, 0.012);
+        const px = ((i*11 % 50) + 1 + Math.sin(now/600 + i)*1.6)*TS - camX;
+        const py = ((1 - t) * 30 + 1)*TS - camY;
+        if(px < -TS || px > canvas.width + TS || py < -TS || py > canvas.height + TS) continue;
+        c.globalAlpha = 0.55*(0.4 + t*0.6);
+        c.fillStyle = '#f4f2ea';
+        c.beginPath(); c.arc(px, py, 1.6, 0, Math.PI*2); c.fill();
+        c.strokeStyle = 'rgba(244,242,234,0.5)'; c.lineWidth = 0.8;
+        for(let r = 0; r < 5; r++){
+          const a = r*1.256 + now/900;
+          c.beginPath(); c.moveTo(px, py); c.lineTo(px + Math.cos(a)*3.4, py + Math.sin(a)*3.4); c.stroke();
+        }
+      }
+    }
+    if(mapName === 'jardim_templo' && _ILHA_CASAS._torres_templo){   // motas dos deuses
+      _ILHA_CASAS._torres_templo.forEach(([tx, ty], di) => {
+        const bx = (tx + 1)*TS - camX, by = (ty + 1)*TS - camY;
+        if(bx < -TS*3 || bx > canvas.width + TS*3 || by < -TS*5 || by > canvas.height + TS*3) return;
+        c.save(); c.globalCompositeOperation = 'lighter';
+        for(let i = 0; i < 4; i++){
+          const t = P(i + di*4, 191, 0.02);
+          c.globalAlpha = 0.6*(1 - t);
+          c.fillStyle = _DEUS_CORES[di % 12];
+          c.beginPath();
+          c.arc(bx + Math.sin(t*7 + i + di)*TS*0.9, by + TS - t*TS*3.4, 1.8, 0, Math.PI*2);
+          c.fill();
+        }
+        c.restore();
+      });
+      for(let i = 0; i < 10; i++){                             // pétalas no círculo
+        const t = P(i, 449, 0.01);
+        const px = (23 + (i*3.1 % 9) + Math.sin(t*8 + i)*1.4)*TS - camX;
+        const py = (22 + t*11)*TS - camY;
+        if(px < -TS || px > canvas.width + TS || py < -TS || py > canvas.height + TS) continue;
+        c.globalAlpha = 0.65*(1 - t*0.5);
+        c.fillStyle = '#fdf6ec';
+        c.save(); c.translate(px, py); c.rotate(t*9 + i);
+        c.beginPath(); c.ellipse(0, 0, 2.8, 1.5, 0, 0, Math.PI*2); c.fill(); c.restore();
+      }
+    }
+    if(mapName === 'cidade_alta'){                             // poeira de luz da Alvorada
+      const ax = 25*TS - camX, top = (11*TS - camY) - TS*6.4;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for(let i = 0; i < 12; i++){
+        const t = P(i, 269, 0.016);
+        c.globalAlpha = 0.55*(1 - t);
+        c.fillStyle = '#ffe4a0';
+        c.beginPath();
+        c.arc(ax + Math.sin(t*6 + i)*TS*2.4, top + t*TS*7, 1.6 + (i%3)*0.6, 0, Math.PI*2);
+        c.fill();
+      }
+      c.restore();
+      const pt = (now/9000) % 1;                                // a página voando
+      if(pt < 0.5){
+        const px = pt*2*(canvas.width + 100) - 50;
+        const py = canvas.height*0.35 + Math.sin(pt*14)*40;
+        c.globalAlpha = 0.85;
+        c.fillStyle = '#f6f1e2';
+        c.save(); c.translate(px, py); c.rotate(Math.sin(pt*20)*0.6);
+        c.fillRect(-5, -6.5, 10, 13);
+        c.strokeStyle = 'rgba(90,80,60,0.5)'; c.lineWidth = 0.8;
+        for(let l = -3; l <= 3; l += 2){ c.beginPath(); c.moveTo(-3.5, l); c.lineTo(3.5, l); c.stroke(); }
+        c.restore();
+      }
+    }
+    if(mapName === 'farol_margem'){                            // spray do mar + motas no feixe
+      for(let i = 0; i < 8; i++){
+        const t = P(i, 199, 0.03);
+        const px = (19 + (i*1.6 % 12))*TS - camX;
+        const py = (25.4 - Math.sin(t*Math.PI)*0.9)*TS - camY;
+        if(px < -TS || px > canvas.width + TS) continue;
+        c.globalAlpha = 0.5*(1 - t);
+        c.fillStyle = '#dceefc';
+        c.beginPath(); c.arc(px, py, 1.6, 0, Math.PI*2); c.fill();
+      }
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const bx = 25*TS - camX, by = (23*TS - camY) - TS*6.55;
+      const ang = now/900;
+      for(let i = 0; i < 6; i++){
+        const t = P(i, 157, 0.04);
+        const d = t*TS*8;
+        c.globalAlpha = 0.5*(1 - t);
+        c.fillStyle = '#ffdf9a';
+        c.beginPath(); c.arc(bx + Math.cos(ang)*d, by + Math.sin(ang)*d*0.5, 1.6, 0, Math.PI*2); c.fill();
+      }
+      c.restore();
+    }
+    c.restore();
+  };
+})();

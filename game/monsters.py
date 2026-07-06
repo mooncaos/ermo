@@ -1655,3 +1655,17 @@ MONSTERS["carcaca"] = {"name": "Carcaça", "hp": 25, "ac": 5, "atk": 0,
     "dmg": {"n": 0, "d": 1}, "reach": 1, "speed": 1, "xp": 0, "dex": 0,
     "glyph": "🦴", "kind": "bicho", "passive": True,
     "drops": [["carne_caca", 0.9, 1, 2], ["couro_curtido", 0.5, 1, 1]], "bronze": [0, 5]}
+
+
+# ===========================================================================
+#  PROSPERINA: a fauna dos campos e os batedores da Rainha Cinzenta.
+# ===========================================================================
+TRIGAL_SPAWNS = [("javali", 14, 8), ("javali", 40, 28), ("javali", 24, 30),
+                 ("coelho", 10, 25), ("coelho", 30, 6), ("lebre", 46, 10),
+                 ("lebre", 18, 24), ("rato_gigante", 50, 30), ("rato_gigante", 6, 6)]
+VINHEDO_SPAWNS = [("veado", 10, 4), ("veado", 40, 3), ("coelho", 20, 30),
+                  ("coelho", 46, 30), ("javali", 6, 28), ("lobo", 48, 4)]
+PASTOS_SPAWNS = [("cervo", 24, 8), ("cervo", 13, 24), ("capivara", 26, 22),
+                 ("lobo", 3, 4), ("lobo", 3, 28), ("lobo_negro", 48, 3)]
+FAROL_MARGEM_SPAWNS = [("capanga", 6, 20), ("capanga", 14, 20),
+                       ("capanga_brutamontes", 30, 8)]

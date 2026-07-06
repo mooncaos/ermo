@@ -171,3 +171,28 @@ Vilalbina<->Trigal por interact; NPC Dom Baltazar na praça.
 Cidade Alta + Farol; decor client (casario BRANCO, trigo dourado, vitrais); NPCs restantes
 (Heron, gêmeos, Celestino, taverneiro local); cadeia de missões completa do Zé; enigmas
 dos grifos; interiores (Biblioteca lendo o CANON!); mobs da ilha (piratas no trigal?).
+
+## 🌙 A GRANDE RECONSTRUÇÃO NOTURNA (Sessão de Obra 2 — Prosperina refeita)
+Diagnóstico dos erros da 1ª obra: casas OCAS (miolo '1' no overworld), transição por E
+(ignorei o EDGE_LINKS nativo), ambiente sem identidade.
+✅ REFEITO: 8 geradores novos (casas MACIÇAS estilo do jogo); tiles '+' + EDGE_LINKS
+(travessia automática de borda como ermo↔descampado); _try_ilha_bordas aposentada;
+ILHA_CASAS exportada ao cliente (JSON gerado dos próprios mapas).
+✅ DECOR COMPLETO (drawIlhaDecor): telhados de duas águas com telhas/cumeeira/beiral/
+janelas acesas (7 paletas: branca/comum/nobre/fazenda/celeiro c/ X/adega/mansão c/
+bandeira); Vilalbina: BANDEIRINHAS de festa; Trigal: overlay DOURADO + espigas ondulando;
+Vinhedo: parreiras c/ cachos; Pastos: fardos de feno; Prospera: FONTE animada + lampiões
++ bandeiras nos portões; Jardim: as 12 TORRES c/ vitrais coloridos pintando o chão + feixe
+do altar; Cidade Alta: a TORRE DA ALVORADA monumental (4 andares de janelas, alvorada no
+topo) + GRIFOS c/ asas e olhos brilhando; Farol: fuste listrado + FEIXE DO ÂMBAR girando
++ reflexo no mar.
+✅ REFINOS: fonte fora da avenida; grifos ±3; _try_farol (Dante barra: "Ainda não.");
+MAP_TITLES oficiais; spawns dos 5 NPCs validados em tiles livres.
+⏭️ Próximo: mobs da ilha (piratas!), interiores (Mansão/Farol/arco do Âmbar), missões do Zé.
+
+## 🗼 NOTA: A TORRE DA ALVORADA (estrutura atual)
+- EXTERIOR: monumento na Cidade Alta (grifos + enigma na esplanada)
+- INTERIOR (térreo): A GRANDE BIBLIOTECA — onde o ARQUIMAGO HERON mora, entre as
+  estantes que leem o CANON
+- ⏭️ Expansão futura: andares superiores (salas de estudo do Conclave, aposentos,
+  e O TOPO DA ALVORADA — de onde a luz nasce)

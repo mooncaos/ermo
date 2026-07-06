@@ -46,7 +46,8 @@ import json
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-from game import (db, accounts, items, npcs, rules, valdris, classes, races, professions,
+from game import (db, accounts,
+                  lore, items, npcs, rules, valdris, classes, races, professions,
                   leveling, feats, class_features, monsters as monsters_def, combat,
                   spells as spells_def, abilities as abilities_def, gm)
 from game import secret_worlds, world_map as wm
@@ -100,6 +101,9 @@ FACTIONS = {"cria_vampirica": "vampiro", "vampiro_nobre": "vampiro", "vampiro_an
 BOSS_RESPAWN_MIN = 3600      # bosses grandes renascem entre 1 e 2 horas REAIS
 BOSS_RESPAWN_MAX = 7200
 MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Costa de Maravaí",
+              "vilalbina": "Vilalbina", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
+              "pastos": "Pastos & Fazendas", "prospera": "Prospera", "jardim_templo": "Jardim do Templo Estrelado",
+              "cidade_alta": "Cidade Alta", "farol_margem": "Margem do Farol", "torre_alvorada": "A Grande Biblioteca",
               "umbraval": "Umbraval", "vespera": "Véspera", "brasal": "Brasal",
               "floresta_ermo": "Floresta do Ermo", "repouso_dama": "Repouso da Dama",
               "avasham": "Avasham", "cova_colosso": "Cova do Colosso",
@@ -2184,11 +2188,14 @@ _OUTDOOR = ("ermo", "costa_maravai", "umbraval", "vespera", "brasal",
 def _weather_tick(now):
     if now > WEATHER.get("until", 0):
         WEATHER["type"] = random.choices(
-            ["limpo", "chuva", "neblina", "tempestade"], weights=[50, 25, 15, 10])[0]
+            ["limpo", "chuva", "neblina", "tempestade", "neve"],
+            weights=[44, 22, 13, 10, 11])[0]
         WEATHER["until"] = now + random.randint(480, 1080)
         socketio.emit("weather", {"type": WEATHER["type"]})
         if WEATHER["type"] == "tempestade":
             socketio.emit("toast", {"text": "⛈️ Uma TEMPESTADE desaba sobre o Ermo! Cuidado com os raios."})
+        elif WEATHER["type"] == "neve":
+            socketio.emit("toast", {"text": "❄️ NEVE! Flocos cobrem o mundo... até os telhados de Prosperina."})
         elif WEATHER["type"] == "neblina":
             socketio.emit("toast", {"text": "🌫️ Neblina densa... os umbrais gostam disso (+drop raro no Umbraval e em Véspera)."})
     if WEATHER["type"] == "tempestade" and random.random() < 0.5:
@@ -2230,7 +2237,8 @@ def _weather_tick(now):
                     socketio.emit("rt_dead", {"id": mm["id"]}, room=p0.get("map"))
 
 
-_PREVISAO = {"limpo": "Céu limpo, bom pra caçar longe.",
+_PREVISAO = {"neve": "Meus joelhos TRAVARAM: neve vindo. Esquenta o hidromel.",
+             "limpo": "Céu limpo, bom pra caçar longe.",
              "chuva": "Tá chovendo: dizem que as gosmas adoram.",
              "neblina": "Neblina fechada... os umbrais ficam generosos nela.",
              "tempestade": "TEMPESTADE! Se eu fosse você, não ficava embaixo de árvore."}
@@ -2552,7 +2560,9 @@ def _try_travessia(player):
 
 
 def _try_ilha_bordas(player):
-    """As bordas de Prosperina: Vilalbina <-> Trigal Dourado."""
+    """(Aposentada: as bordas da ilha agora usam EDGE_LINKS, como o resto do mundo.)"""
+    return False
+    
     if player.get("map") == "vilalbina" and player.get("x", 0) >= 41 and \
        12 <= player.get("y", 0) <= 15:
         _go_to(request.sid, "trigal_dourado", 3, 17)
@@ -2624,6 +2634,65 @@ def _try_ilha_bordas(player):
         emit("toast", {"text": "🏛️ O portão sul de Prospera."})
         return True
     return False
+
+
+
+# ===========================================================================
+#  OS GRIFOS DA TORRE: enigmas rotativos. A BIBLIOTECA: o cânone em estantes.
+# ===========================================================================
+ENIGMAS = [
+    ("Quanto mais se tira de mim, maior eu fico. O que sou?", ("buraco",)),
+    ("Tenho cidades sem casas, rios sem água e florestas sem árvores. O que sou?", ("mapa", "um mapa")),
+    ("Quanto mais eu seco, mais molhada eu fico. O que sou?", ("toalha", "a toalha")),
+    ("Estou sempre à sua frente, mas você nunca me viu. O que sou?", ("futuro", "o futuro")),
+    ("Tenho coroa e não sou rei; tenho escamas e não sou peixe. O que sou?", ("abacaxi",)),
+    ("Falo todas as línguas sem aprender nenhuma. O que sou?", ("eco", "o eco")),
+]
+
+
+def _try_torre(player):
+    """A porta da Torre: os grifos testam quem entra (enigma do dia do jogo)."""
+    if player.get("map") == "cidade_alta" and \
+       max(abs(player["x"] - 24), abs(player["y"] - 12)) <= 3:
+        f = player.get("ficha") or {}
+        if f.get("torre_ok"):
+            _go_to(request.sid, "torre_alvorada", 9, 11)
+            emit("toast", {"text": "🗼 Os grifos se curvam. A Grande Biblioteca te recebe."})
+            return True
+        idx = int(time.time() // DAY_LENGTH) % len(ENIGMAS)
+        player["_enigma"] = idx
+        emit("toast", {"text": "🦅 Os GRIFOS de pedra giram as cabeças: \"%s\" (responda no CHAT)" %
+                       ENIGMAS[idx][0]})
+        return True
+    if player.get("map") == "torre_alvorada" and player.get("y", 0) >= 10:
+        _go_to(request.sid, "cidade_alta", 24, 14)
+        emit("toast", {"text": "🗼 De volta à esplanada dos grifos."})
+        return True
+    return False
+
+
+def _try_farol(player):
+    """A porta do Farol da Prosperidade: o guardião ainda diz não."""
+    if player.get("map") != "farol_margem":
+        return False
+    if 22 <= player.get("x", 0) <= 28 and 22 <= player.get("y", 0) <= 25:
+        socketio.emit("speech", {"id": "npc:lorde_dante",
+            "text": "Ainda não. O que dorme lá em cima... ainda não te conhece."},
+            room="farol_margem")
+        emit("toast", {"text": "🔆 O Lorde Dante se põe diante da porta. Educado. IMÓVEL."})
+        return True
+    return False
+
+
+def _try_biblioteca(player):
+    """Entre as estantes: cada toque lê um pedaço do CÂNONE do mundo."""
+    if player.get("map") != "torre_alvorada" or player.get("y", 0) >= 10:
+        return False
+    cid = random.choice(list(lore.CANON.keys()))
+    v = lore.CANON[cid]
+    campo, rotulo = random.choice([("origem", "Origem"), ("laco", "Laços"), ("poder", "Poder")])
+    emit("toast", {"text": "📖 %s — %s: %s" % (v.get("nome", cid), rotulo, v.get(campo, "..."))})
+    return True
 
 
 def _gossip_line(npc_id=None):
@@ -3920,22 +3989,18 @@ def _monster_wander_loop():
         socketio.sleep(1.2)
         for mp in ("descampado", "repouso_dama", "avasham", "cova_colosso", "valdarkram", "mina_avhur", "camara_avhur",
                    "torre_andar1", "torre_andar2", "torre_andar3", "camara_varth", "floresta_ermo", "planaltos_ermais",
-                   "brasal", "goela_1", "goela_2", "covil_krezath", "costa_maravai", "umbraval", "vespera"):
+                   "brasal", "goela_1", "goela_2", "covil_krezath", "costa_maravai", "umbraval", "vespera",
+                   "trigal_dourado", "vinhedo", "pastos", "farol_margem"):
             moved = world.wander_monsters(mp)
             if moved:
                 socketio.emit("monsters_moved", {"map": mp, "moves": moved}, room=mp)
-            for sid, pl in list(world.players.items()):
-                if pl.get("map") != mp or pl.get("in_combat") or pl.get("invisible"):
-                    continue
-                near = [m for m in world.monsters_near(mp, pl["x"], pl["y"], COMBAT_AGGRO)
-                        if not m.get("in_combat") and not m.get("passive")]
-                if near:
-                    _start_combat(sid, near)
+            # (aposentado: o aggro agora e do motor de TEMPO REAL, nao de turnos)
 
 
 @socketio.on("combat_engage")
 def on_combat_engage(data):
     """Clicou num monstro pra iniciar a luta (alem do aggro automatico)."""
+    return   # (aposentado: alvo do tempo real; turnos nao existem mais)
     sid = request.sid
     player = world.players.get(sid)
     if not player or sid in COMBAT:
@@ -4563,6 +4628,8 @@ def on_interact(_data=None):
     if not npc:
         if not _try_fenda(player) and not _try_fenda_inside(player) and \
            not _try_travessia(player) and not _try_ilha_bordas(player) and \
+           not _try_torre(player) and not _try_biblioteca(player) and \
+           not _try_farol(player) and \
            not _try_garden(player) and \
            not _try_ossuario(player) and not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \
@@ -6110,6 +6177,20 @@ def on_chat(data):
     text = text.strip()[:120]
     if not text:
         return
+    # resposta pro enigma dos grifos
+    if player.get("_enigma") is not None:
+        _idx = player.pop("_enigma")
+        _resp = text.strip().lower()
+        if _resp in ENIGMAS[_idx][1]:
+            f = player.get("ficha") or {}
+            f["torre_ok"] = True
+            player["ficha"] = f
+            _quest_save(player)
+            emit("toast", {"text": "🦅✨ Os grifos se CURVAM: 'Sábio.' A Torre está aberta pra você. PARA SEMPRE."})
+        else:
+            emit("toast", {"text": "🦅 Os grifos viram o rosto: 'ERRADO.' (aperte E neles pra tentar de novo)"})
+        return
+
     # comandos do Mestre pelo chat (só GM; não vira balão)
     if text.startswith("/") and gm.is_gm(player):
         _parts = text[1:].split()

@@ -1445,6 +1445,48 @@ ROSTER.append({
     "greetings": ["..."], "contract_board": True,
 })
 
+# A CÚPULA DE PROSPERINA
+ROSTER.append({
+    "id": "npc:heron", "name": "Arquimago Heron, o Que Ficou",
+    "look": {"skin": "#d8c0a0", "cloak": "#c9a840", "hat": "wizard", "hair": "#e8e8e8", "staff": True},
+    "map": "torre_alvorada", "home": (9, 2), "radius": 2, "wanders": True,
+    "step_every": 2.6, "solid": True, "kind": "person",
+    "greetings": ["A Torre guarda mais do que livros. Guarda arrependimentos.",
+                  "Conheci o Varth antes do título. Éramos... amigos. Éramos.",
+                  "O Conclave busca acolhimento. Os deuses não nos devem nada — e é isso que dói.",
+                  "Há uma vaga aberta aqui. Guardada. Pra alguém que ainda escreve, do outro lado do mar."],
+})
+ROSTER.append({
+    "id": "npc:lorde_dante", "name": "Lorde Prosperi Dante",
+    "look": {"skin": "#c9a880", "cloak": "#f0d890", "hat": "none", "hair": "#3a2a1a", "staff": True},
+    "map": "farol_margem", "home": (24, 17), "radius": 1, "wanders": True,
+    "step_every": 3.0, "solid": True, "kind": "person",
+    "greetings": ["O farol não se apaga. EU não durmo. Funciona.",
+                  "A luz lá em cima? Não pergunte. É a resposta que eu temo.",
+                  "Minha irmã governa a ilha. Eu governo uma porta. A minha pesa mais.",
+                  "Se um dia um mago de olhos antigos vier do mar... me avise. E reze."],
+})
+ROSTER.append({
+    "id": "npc:lady_diana", "name": "Lady da Alvorada Diana",
+    "look": {"skin": "#c9a880", "cloak": "#e8e0f0", "hat": "none", "hair": "#2a1a10", "staff": False},
+    "map": "prospera", "home": (43, 27), "radius": 2, "wanders": True,
+    "step_every": 2.4, "solid": True, "kind": "person",
+    "greetings": ["Prospera alimenta um continente. Eu alimento Prospera. Alguma pergunta?",
+                  "Meu irmão guarda o farol. Eu guardo TODO O RESTO.",
+                  "Dizem que meu olhar pesa. Só quando a conversa é leve demais.",
+                  "A vovó Fiona sumiu numa noite sem lua. Quem a encontrar... não conte a ela onde estamos."],
+})
+ROSTER.append({
+    "id": "npc:celestino", "name": "Arcebispo Rei Celestino",
+    "look": {"skin": "#c9b090", "cloak": "#f0f0f8", "hat": "none", "hair": "#f0f0f0", "staff": True},
+    "map": "jardim_templo", "home": (27, 25), "radius": 2, "wanders": True,
+    "step_every": 3.0, "solid": True, "kind": "person",
+    "greetings": ["Doze torres, doze vozes. Eu apenas rejo o coro.",
+                  "O trigo cresceu numa noite. Eu estava lá. Nunca mais duvidei.",
+                  "Cada vitral pinta o chão com um deus. Ande devagar: você pisa em cores sagradas.",
+                  "Os Doze falam baixo. É preciso um silêncio do tamanho de um templo pra ouvir."],
+})
+
 # DOM BALTAZAR ALBINA: o patriarca festeiro de Vilalbina.
 ROSTER.append({
     "id": "npc:dom_baltazar", "name": "Dom Baltazar Albina",

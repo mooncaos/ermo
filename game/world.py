@@ -479,6 +479,14 @@ class World:
             _spawn(type_id, x, y, "torre_andar3")
         for (type_id, x, y) in monsters_def.CAMARA_VARTH_SPAWNS:
             _spawn(type_id, x, y, "camara_varth")
+        for (type_id, x, y) in monsters_def.TRIGAL_SPAWNS:
+            _spawn(type_id, x, y, "trigal_dourado")
+        for (type_id, x, y) in monsters_def.VINHEDO_SPAWNS:
+            _spawn(type_id, x, y, "vinhedo")
+        for (type_id, x, y) in monsters_def.PASTOS_SPAWNS:
+            _spawn(type_id, x, y, "pastos")
+        for (type_id, x, y) in monsters_def.FAROL_MARGEM_SPAWNS:
+            _spawn(type_id, x, y, "farol_margem")
         for (type_id, x, y) in monsters_def.FLORESTA_ERMO_SPAWNS:
             _spawn(type_id, x, y, "floresta_ermo")
         for (type_id, x, y) in monsters_def.PLANALTOS_ERMAIS_SPAWNS:
