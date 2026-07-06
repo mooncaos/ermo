@@ -95,18 +95,19 @@ FIGHT_DEF = {"off": 0.5, "bal": 0.75, "def": 1.0}
 
 
 def melee_max(atk, skill, level, mode="bal"):
-    return 0.085 * FIGHT_ATK.get(mode, 0.75) * atk * skill + level / 5.0
+    # REBALANCE jul/26: melee subiu de 0.085 pra 0.12 e o nível pesa mais (lvl/3.5).
+    return 0.12 * FIGHT_ATK.get(mode, 0.75) * atk * skill + level / 3.5
 
 
 def dist_max(atk, skill, level, mode="bal"):
-    return 0.09 * FIGHT_ATK.get(mode, 0.75) * atk * skill + level / 5.0
+    return 0.125 * FIGHT_ATK.get(mode, 0.75) * atk * skill + level / 3.5
 
 
 def roll_hit(maxdmg):
-    """O golpe: 12%% de erro natural; senão, entre 15%% e 100%% do máximo."""
-    if maxdmg <= 0 or random.random() < 0.12:
+    """O golpe: 8%% de erro natural; senão, entre 35%% e 100%% do máximo."""
+    if maxdmg <= 0 or random.random() < 0.08:
         return 0
-    return max(1, int(random.uniform(0.15, 1.0) * maxdmg))
+    return max(1, int(random.uniform(0.35, 1.0) * maxdmg))
 
 
 def block_value(def_total, shielding, mode="bal"):

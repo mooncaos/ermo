@@ -251,8 +251,7 @@ ROSTER = [
     {
         "id": valdris.NPC_ID,
         "name": valdris.NPC_NAME,
-        "look": {"skin": "#f1c9a5", "cloak": "#9b6dff", "hood": "up",
-                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "look": {"skin": "#d8c9b0", "cloak": "#5a2e7a", "hat": "none", "hood": "down", "hair": "#2a1a30", "staff": False, "outfit": "x_valdris", "sex": "M"},
         "home": (27, 27),
         "radius": 6,
         "wanders": True,
@@ -373,8 +372,7 @@ ROSTER = [
     },
     {
         "id": "npc:maria", "name": "Maria Cachorra",
-        "look": {"skin": "#c68642", "cloak": "#c0392b", "hood": "down",
-                 "hat": "cap", "hair": "#2a2233", "staff": False},
+        "look": {"skin": "#b09070", "cloak": "#5a5a64", "hat": "none", "hood": "down", "hair": "#2a2a30", "staff": False, "outfit": "x_maria", "sex": "F"},
         "home": (9, 8), "radius": 7, "wanders": True, "step_every": 1.0,
         "solid": True, "kind": "person",
         "murmurs": MARIA_MURMURS, "murmur_min": 15, "murmur_max": 22,
@@ -1146,8 +1144,7 @@ ROSTER.extend([
     },
     {
         "id": "npc:xama", "name": "Xamã Miranda",
-        "look": {"skin": "#7a5436", "cloak": "#4a6a4a", "hood": "up",
-                 "hat": "none", "hair": "#1a1410", "staff": True},
+        "look": {"skin": "#a8845c", "cloak": "#6a4a34", "hat": "none", "hood": "down", "hair": "#3a2a1a", "staff": True, "outfit": "x_miranda", "sex": "F"},
         "map": "descampado", "home": (41, 47), "radius": 2, "wanders": True,
         "step_every": 1.6, "solid": True, "kind": "person",
         "greetings": [
@@ -1505,7 +1502,7 @@ ROSTER.append({
 })
 ROSTER.append({
     "id": "npc:sumo_nherith", "name": "Suma Selene",
-    "look": {"skin": "#c9b090", "cloak": "#b06ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "look": {"skin": "#c9b090", "cloak": "#2a3055", "hat": "none", "hood": "down", "hair": "#e8e8e8", "staff": False, "outfit": "x_selene", "sex": "F"},
     "map": "templo_estrelado", "home": (6, 20), "radius": 1, "wanders": True,
     "step_every": 3.4, "solid": True, "kind": "person",
     "greetings": ['Nherith rege os sonhos. Dormiu, é hóspede Dela.', '*olhos fechados* ...você vai perder uma coisa amanhã. Ou perdeu ontem. Os sonhos não usam relógio.', 'Bordo constelações que ainda não existem. O céu uma hora alcança.', 'A Morwen sonhou a Grande Passagem. Eu vou decifrá-la. A lua me deve essa.', 'Minhas olheiras? Troféus. Cada noite mal dormida foi uma conversa com Ela.'],
@@ -1535,7 +1532,7 @@ ROSTER.append({
 # OS PRIMEIROS MAGOS DO CONCLAVE DA AURORA (a Torre da Alvorada)
 ROSTER.append({
     "id": "npc:maga_lyra", "name": "Maga Lyra, a Segunda Voz",
-    "look": {"skin": "#c9a06a", "cloak": "#5a7ac0", "hat": "wizard", "hair": "#2a2a3a", "staff": True},
+    "look": {"skin": "#c9a06a", "cloak": "#4a6ab0", "hat": "none", "hood": "down", "hair": "#2a2a3a", "staff": True, "outfit": "mago_alvorada", "addons": [1, 2], "sex": "F"},
     "map": "torre_alvorada", "home": (6, 5), "radius": 2, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
     "greetings": ["O Heron lidera. Eu organizo. O Conclave anda porque ALGUÉM lembra das chaves.",
@@ -1545,7 +1542,7 @@ ROSTER.append({
 })
 ROSTER.append({
     "id": "npc:mago_bramir", "name": "Mago Bramir, o Muro",
-    "look": {"skin": "#a8845c", "cloak": "#7a6a4a", "hat": "none", "hair": "#d8d8d8", "staff": True},
+    "look": {"skin": "#a8845c", "cloak": "#4a6ab0", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": True, "outfit": "mago_alvorada", "addons": [1, 2], "sex": "M"},
     "map": "torre_alvorada", "home": (18, 5), "radius": 2, "wanders": True,
     "step_every": 3.6, "solid": True, "kind": "person",
     "greetings": ["Abjuração. A magia de DIZER NÃO. Subestimada por todo tolo que já explodiu.",
@@ -1555,7 +1552,7 @@ ROSTER.append({
 })
 ROSTER.append({
     "id": "npc:maga_cecille", "name": "Maga Cecille, a Véspera",
-    "look": {"skin": "#e0c9a8", "cloak": "#b06ae0", "hat": "none", "hair": "#e8e0d0", "staff": False},
+    "look": {"skin": "#e0c9a8", "cloak": "#4a6ab0", "hat": "none", "hood": "down", "hair": "#e8e0d0", "staff": False, "outfit": "mago_alvorada", "addons": [1, 2], "sex": "F"},
     "map": "torre_alvorada", "home": (12, 8), "radius": 2, "wanders": True,
     "step_every": 2.8, "solid": True, "kind": "person",
     "greetings": ["Ilusão não é mentira. É a verdade ensaiando.",
@@ -1565,7 +1562,7 @@ ROSTER.append({
 })
 ROSTER.append({
     "id": "npc:aprendiz_tobias", "name": "Tobias, Aprendiz Prodígio",
-    "look": {"skin": "#c9a06a", "cloak": "#4a4a6a", "hat": "none", "hair": "#8a5a2a", "staff": False},
+    "look": {"skin": "#c9a06a", "cloak": "#4a6ab0", "hat": "none", "hood": "down", "hair": "#8a5a2a", "staff": False, "outfit": "mago_alvorada", "addons": [], "sex": "M"},
     "map": "torre_alvorada", "home": (12, 4), "radius": 3, "wanders": True,
     "step_every": 2.2, "solid": True, "kind": "person",
     "greetings": ["Eu NÃO explodi a estante três. Foi a estante que... tá, fui eu. NÃO CONTA PRO BRAMIR.",
@@ -1672,14 +1669,14 @@ ROSTER.append({
 })
 ROSTER.append({
     "id": "npc:rei_marth", "name": "Rei Avô Marth",
-    "look": {"skin": "#c9a880", "cloak": "#c9b44a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "look": {"skin": "#c9a880", "cloak": "#c9a842", "hat": "none", "hood": "down", "hair": "#e8e8e8", "staff": True, "outfit": "x_marth", "sex": "M"},
     "map": "solar_prospera", "home": (8, 5), "radius": 1, "wanders": True,
     "step_every": 3.6, "solid": True, "kind": "person",
     "greetings": ['Eu era criança quando me deram o Âmbar pra guardar. Criança. Imagina o medo.', '*falando com um pé de trigo* ...e foi isso que eu disse pra ela. Você entende, né?', 'Minha mãe sumiu numa noite sem lua. Se a encontrar... diga que o trigo está alto.', 'Onde eu piso e ORDENO, a terra produz. Mas a terra gosta mais de quem pede.', 'Meu filho não dorme. Minha filha não descansa. Eu plantei bem... eu acho.'],
 })
 ROSTER.append({
     "id": "npc:rainha_valesca", "name": "Rainha Avó Valesca",
-    "look": {"skin": "#c9a880", "cloak": "#e8e0f0", "hat": "none", "hair": "#d8d0c8", "staff": False},
+    "look": {"skin": "#c9a880", "cloak": "#d8d2e0", "hat": "none", "hood": "down", "hair": "#d8d0c8", "staff": False, "outfit": "x_valesca", "sex": "F"},
     "map": "solar_prospera", "home": (11, 5), "radius": 1, "wanders": True,
     "step_every": 3.4, "solid": True, "kind": "person",
     "greetings": ['Sente-se. Ninguém mente nesta sala. Nem tenta, é constrangedor.', 'O chá é às cinco. Guerras esperam. Impérios esperam. O chá, não.', 'Escrevo cartas que não envio. O papel aceita o que o correio não alcança.', 'Cordelia era a mais doce das duas crianças. Eu sei que ainda é. Onde quer que esteja.', 'Sinto falta de negociar. Uma última mesa, um último impasse... eu venceria, claro.'],
@@ -1688,28 +1685,28 @@ ROSTER.append({
 # A CÚPULA DE PROSPERINA
 ROSTER.append({
     "id": "npc:heron", "name": "Arquimago Heron, o Que Ficou",
-    "look": {"skin": "#d8c0a0", "cloak": "#c9a840", "hat": "wizard", "hair": "#e8e8e8", "staff": True},
+    "look": {"skin": "#c9b090", "cloak": "#4a5568", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": True, "outfit": "x_heron", "sex": "M"},
     "map": "torre_alvorada", "home": (12, 2), "radius": 2, "wanders": True,
     "step_every": 2.6, "solid": True, "kind": "person",
     "greetings": ['A cadeira na ponta da mesa está vazia. Está reservada. Sempre esteve.', 'No topo da torre cresce uma flor de Valdarkram. Eu a rego todo dia. Alguém precisa lembrar.', 'Varth foi meu amigo antes de ser o que é. O conhecimento não corrompe: a pressa sim.', 'O Conclave não busca poder. Busca um lugar pra quem a magia escolheu sem perguntar.', 'Marion nos enganou por anos dentro da Torre. Que talento. Que desperdício.'],
 })
 ROSTER.append({
     "id": "npc:lorde_dante", "name": "Lorde Prosperi Dante",
-    "look": {"skin": "#c9a880", "cloak": "#f0d890", "hat": "none", "hair": "#3a2a1a", "staff": True},
+    "look": {"skin": "#b09070", "cloak": "#2e3a52", "hat": "none", "hood": "down", "hair": "#3a3226", "staff": False, "outfit": "x_dante", "sex": "M"},
     "map": "farol_margem", "home": (24, 17), "radius": 1, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
     "greetings": ['Ainda não. Ninguém entra no farol. NINGUÉM.', 'Durmo pouco. O farol não dorme; por que eu dormiria?', '*olheiras fundas* Treinei a noite toda. Contra quem? ...contra mim.', 'Às vezes, lá dentro... esquece. O vento engana os ouvidos. SÓ o vento.', 'Escrevo um diário. Meu pai vai ler. Um dia. Quando eu descansar.'],
 })
 ROSTER.append({
     "id": "npc:lady_diana", "name": "Lady da Alvorada Diana",
-    "look": {"skin": "#c9a880", "cloak": "#e8e0f0", "hat": "none", "hair": "#2a1a10", "staff": False},
+    "look": {"skin": "#c9a880", "cloak": "#7a2e3a", "hat": "none", "hood": "down", "hair": "#4a2e1a", "staff": False, "outfit": "x_diana", "sex": "F"},
     "map": "prospera", "home": (43, 27), "radius": 2, "wanders": True,
     "step_every": 2.4, "solid": True, "kind": "person",
     "greetings": ['Prospera vai brilhar mais do que Valdarkram JAMAIS brilhou. Anote.', 'Dizem que meu olhar pesa. Ótimo. Coroas pesam; olhares que as merecem também.', 'Cavalgo sozinha ao amanhecer. A cidade acordando é o único conselheiro honesto.', 'Minhas rosas? Impossíveis. Floresceram mesmo assim. Aprenda com elas.', 'Meu irmão guarda o farol há tempo demais. Um dia eu o liberto. Um dia.'],
 })
 ROSTER.append({
     "id": "npc:celestino", "name": "Arcebispo Rei Celestino",
-    "look": {"skin": "#c9b090", "cloak": "#f0f0f8", "hat": "none", "hair": "#f0f0f0", "staff": True},
+    "look": {"skin": "#c9a880", "cloak": "#f0ead8", "hat": "none", "hood": "down", "hair": "#e8e8e8", "staff": False, "outfit": "x_celestino", "sex": "M"},
     "map": "templo_estrelado", "home": (16, 15), "radius": 1, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
     "greetings": ['QUE OS DOZE TE OLHEM! ...perdão, a voz. Ela vem antes de mim.', 'Doze cultos, uma paz. É como reger doze corais cantando hinos diferentes. Eu amo. Eu sofro. Eu amo.', 'Este vinho? Estritamente litúrgico. A liturgia de hoje foi... generosa.', 'Faço vitrais em miniatura. As mãos rezam melhor quando ocupadas.', 'Um dia o mundo inteiro conhecerá os Doze. Começando por você, forasteiro.'],

@@ -180,7 +180,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "3 Trajes de Missao: Nobre, Clerigo e Mago da Alvorada (06/jul v6)"
+BUILD_TAG = "Habilidades RT (6-0) + Rebalance Melee (06/jul v9)"
 
 
 def _asset_version():
@@ -3122,6 +3122,161 @@ def on_rt_lock_nearest(data=None):
         emit("toast", {"text": "🎯 Nenhum inimigo por perto."})
 
 
+ABIL_CD = {"divine_smite": 6, "lay_on_hands": 45, "rage": 60, "second_wind": 60,
+           "flurry": 8, "martial_arts": 5, "bardic": 20, "lamina_venenosa": 90,
+           "some_sombras": 60, "milesima_saida": 60, "aurora_valiria": 120,
+           "forma_facalan": 180, "sopro_draconico": 60}
+ABIL_MANA = {"divine_smite": 10, "flurry": 8, "sopro_draconico": 0}
+
+
+def _rt_abilities_payload(player):
+    f = player.get("ficha") or {}
+    ids = []
+    ids += abilities_def.for_class(f.get("class_id") or "")
+    ids += abilities_def.for_race((f.get("race") or {}).get("id") if isinstance(f.get("race"), dict)
+                                  else (f.get("race") or ""))
+    ids += list(f.get("god_abilities") or [])
+    out = []
+    now = time.time()
+    for aid in ids:
+        meta = abilities_def.get(aid)
+        if not meta or meta.get("slot") == "passive":
+            continue
+        out.append({"id": aid, "name": meta["name"], "desc": meta.get("desc", ""),
+                    "cd": ABIL_CD.get(aid, 10), "mana": ABIL_MANA.get(aid, 0),
+                    "cd_left": max(0, int(player.get("_cd_" + aid, 0) - now))})
+    return {"abilities": out}
+
+
+@socketio.on("rt_abilities_get")
+def on_rt_abilities_get(data=None):
+    player = world.players.get(request.sid)
+    if player:
+        emit("rt_abilities", _rt_abilities_payload(player))
+
+
+@socketio.on("rt_ability")
+def on_rt_ability(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    aid = (data or {}).get("id", "")
+    f = player.get("ficha") or {}
+    todas = (abilities_def.for_class(f.get("class_id") or "")
+             + abilities_def.for_race((f.get("race") or {}).get("id") if isinstance(f.get("race"), dict)
+                                      else (f.get("race") or ""))
+             + list(f.get("god_abilities") or []))
+    if aid not in todas:
+        emit("toast", {"text": "Essa habilidade não é sua."})
+        return
+    now = time.time()
+    if player.get("_cd_" + aid, 0) > now:
+        emit("toast", {"text": "⏳ %s em recarga (%ds)." %
+                       (abilities_def.get(aid)["name"], int(player["_cd_" + aid] - now))})
+        return
+    custo = ABIL_MANA.get(aid, 0)
+    mana = int(f.get("mana", 0))
+    if custo and mana < custo:
+        emit("toast", {"text": "Sem mana/ki para %s." % abilities_def.get(aid)["name"]})
+        return
+    lvl = int(f.get("level", 1))
+    if custo:
+        f["mana"] = mana - custo
+        emit("mana", {"mana": f["mana"], "max": f.get("mana_max", f["mana"])})
+
+    def _cura(qtd, txt):
+        hpm = int(f.get("hp_max", 1))
+        f["hp"] = min(hpm, int(f.get("hp", 0)) + qtd)
+        emit("rt_selfheal", {"amount": qtd, "hp": f["hp"], "hp_max": hpm})
+        emit("toast", {"text": txt % qtd})
+
+    if aid == "divine_smite":
+        player["_rt_smite_n"] = 1
+        emit("toast", {"text": "⚔️ CASTIGO DIVINO armado: o próximo golpe queima em luz radiante!"})
+    elif aid == "lay_on_hands":
+        _cura(5 * lvl, "🙌 Imposição das Mãos: +%d de vida.")
+    elif aid == "second_wind":
+        _cura(random.randint(1, 10) + lvl, "💨 Retomou o fôlego: +%d de vida.")
+    elif aid == "rage":
+        player["_rt_rage_until"] = now + 15
+        emit("toast", {"text": "😤 FÚRIA! 15s: seus golpes rasgam 50%% mais e o dano recebido cai pela metade."})
+    elif aid in ("flurry", "martial_arts"):
+        tid = player.get("rt_target")
+        m = world.monsters.get(tid)
+        if not m or not m.get("alive") or m.get("map") != player.get("map") or \
+           max(abs(m["x"] - player["x"]), abs(m["y"] - player["y"])) > 1:
+            emit("toast", {"text": "Sem alvo no alcance do punho."})
+            player["_cd_" + aid] = 0
+            return
+        golpes = 2 if aid == "flurry" else 1
+        _skl = skills.get_lvl(f, "fist")
+        for _ in range(golpes):
+            dmg = max(1, skills.roll_hit(skills.melee_max(6, _skl, lvl, f.get("fight_mode", "bal"))))
+            if player.get("_rt_rage_until", 0) > now:
+                dmg = int(dmg * 1.5)
+            m["hp"] = max(0, int(m["hp"]) - dmg)
+            socketio.emit("rt_hit", {"id": tid, "dmg": dmg, "crit": False, "by": request.sid,
+                                     "hp": m["hp"], "hp_max": m["hp_max"]}, room=player["map"])
+            if m["hp"] <= 0:
+                _rt_kill(request.sid, player, m)
+                break
+        skills.add_tries(f, "fist", golpes)
+        _mob_aggro(m, request.sid)
+    elif aid == "bardic":
+        player["_rt_bardic"] = 1
+        emit("toast", {"text": "🎵 Inspiração! O próximo golpe leva a música junto (+1d6)."})
+    elif aid == "lamina_venenosa":
+        player["_rt_venom_n"] = 10
+        emit("toast", {"text": "🗡️ Lâmina untada: os próximos 10 acertos ENVENENAM."})
+    elif aid == "some_sombras":
+        player["_rt_shadow"] = 1
+        player["_rt_forcecrit"] = 1
+        emit("toast", {"text": "🌑 Você some: o próximo golpe inimigo ERRA e o seu próximo sai da furtividade (crítico!)."})
+    elif aid == "milesima_saida":
+        _cura(random.randint(2, 12) + lvl // 2, "🐇 Milésima Saída: +%d de vida.")
+        player["_rt_shadow"] = 1
+        emit("toast", {"text": "🐇 ...e o próximo golpe contra você passa por onde você NÃO está."})
+    elif aid == "aurora_valiria":
+        player["_rt_aurora_until"] = now + 6
+        player["_rt_halfdmg_until"] = now + 9
+        emit("toast", {"text": "🌅 AURORA DE VALÍRIA: 6s intocável (dano recebido = 1), seu dano cai à metade por 9s."})
+    elif aid == "forma_facalan":
+        hpm = int(f.get("hp_max", 1))
+        f["hp"] = hpm
+        player["_rt_facalan_until"] = now + 10
+        emit("rt_selfheal", {"amount": hpm, "hp": f["hp"], "hp_max": hpm})
+        emit("toast", {"text": "🐆 FORMA DE FACALAN: vida cheia, garras 50%% mais fundas e couro de pantera por 10s!"})
+        socketio.emit("speech", {"id": request.sid, "text": "*vira uma pantera dourada*"},
+                      room=player.get("map"))
+    elif aid == "sopro_draconico":
+        tid = player.get("rt_target")
+        m = world.monsters.get(tid)
+        cxp, cyp = (m["x"], m["y"]) if (m and m.get("alive") and m.get("map") == player.get("map")) \
+                   else (player["x"], player["y"])
+        dano = sum(random.randint(1, 8) for _ in range(3)) + lvl
+        socketio.emit("rt_aoe", {"x": cxp, "y": cyp, "r": 2, "dtype": "fogo"}, room=player["map"])
+        for mm in list(world.monsters.values()):
+            if not mm.get("alive") or mm.get("map") != player.get("map"):
+                continue
+            if max(abs(mm["x"] - cxp), abs(mm["y"] - cyp)) > 2:
+                continue
+            mm["hp"] = max(0, int(mm["hp"]) - dano)
+            socketio.emit("rt_hit", {"id": mm["id"], "dmg": dano, "crit": False, "magic": True,
+                                     "dtype": "fogo", "by": request.sid,
+                                     "hp": mm["hp"], "hp_max": mm["hp_max"]}, room=player["map"])
+            _mob_aggro(mm, request.sid)
+            if mm["hp"] <= 0:
+                _rt_kill(request.sid, player, mm)
+        emit("toast", {"text": "🐉 SOPRO DRACÔNICO: %d de fogo em área!" % dano})
+    else:
+        emit("toast", {"text": "%s ainda não funciona no combate em tempo real (em breve!)."
+                       % abilities_def.get(aid)["name"]})
+        return
+    player["ficha"] = f
+    player["_cd_" + aid] = now + ABIL_CD.get(aid, 10)
+    emit("rt_ability_cd", {"id": aid, "secs": ABIL_CD.get(aid, 10)})
+
+
 @socketio.on("rt_target")
 def on_rt_target(data):
     """Tab / clique: escolhe (ou troca) o alvo do auto-ataque."""
@@ -3548,12 +3703,30 @@ def _rt_combat_loop():
                     _skill_up_toast(sid, skills.SKILL_NAMES.get(_sk_used, _sk_used), _up)
                 dmg = skills.roll_hit(_maxd)
                 crit = dmg > 0 and dmg >= int(_maxd * 0.92)
+                if pl.pop("_rt_forcecrit", 0) and dmg >= 0:
+                    dmg = int(_maxd); crit = True         # golpe saído das sombras
                 if post == "combatente" and dmg == 0:
                     dmg = max(1, int(_maxd * 0.3))    # fúria sagrada: nunca erra de verdade
                 if dmg == 0:
                     socketio.emit("rt_hit", {"id": tid, "dmg": 0, "miss": True, "by": sid,
                                              "hp": m["hp"], "hp_max": m["hp_max"]}, room=pl["map"])
                     continue
+                # ===== HABILIDADES ARMADAS (a hotbar 6-0) =====
+                if pl.get("_rt_smite_n", 0) > 0:
+                    pl["_rt_smite_n"] -= 1
+                    _sm = sum(random.randint(1, 8) for _ in range(3))
+                    dmg += _sm
+                    socketio.emit("toast", {"text": "⚔️ CASTIGO DIVINO! +%d radiante." % _sm}, to=sid)
+                if pl.get("_rt_bardic", 0):
+                    pl["_rt_bardic"] = 0
+                    dmg += random.randint(1, 6)
+                if pl.get("_rt_venom_n", 0) > 0:
+                    pl["_rt_venom_n"] -= 1
+                    dmg += max(2, _lv // 3)
+                if pl.get("_rt_rage_until", 0) > now or pl.get("_rt_facalan_until", 0) > now:
+                    dmg = int(dmg * 1.5)
+                if pl.get("_rt_halfdmg_until", 0) > now:
+                    dmg = max(1, dmg // 2)
                 if post == "soldado":
                     dmg = max(1, dmg // 4)                # o muro de Valíria fere pouco
                 elif post == "martir":
@@ -3982,6 +4155,18 @@ def _rt_combat_loop():
                     if _sup:
                         _skill_up_toast(alvo_sid, "Escudo", _sup)
                 dmg = max(0, dmg - skills.armor_reduce(_player_armor(alvo_pl)))
+                # ===== DEFESAS DAS HABILIDADES =====
+                if alvo_pl.pop("_rt_shadow", 0):
+                    dmg = 0
+                    socketio.emit("toast", {"text": "🌑 O golpe passa por onde você NÃO está."},
+                                  to=alvo_sid)
+                elif alvo_pl.get("_rt_aurora_until", 0) > time.time():
+                    dmg = min(dmg, 1)
+                else:
+                    if alvo_pl.get("_rt_rage_until", 0) > time.time():
+                        dmg = max(0, dmg // 2)
+                    if alvo_pl.get("_rt_facalan_until", 0) > time.time():
+                        dmg = max(0, dmg - 10)
                 alvo_pl["ficha"] = f
                 if dmg <= 0:
                     socketio.emit("rt_phit", {"dmg": 0, "block": True, "by": m.get("name", "?"),

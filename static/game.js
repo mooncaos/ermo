@@ -429,6 +429,7 @@ const INT_THEMES = {
   casa_camila:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#6db9f4', kind:'quarto'},
   casa_amanda:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#ff9a6b', kind:'quarto'},
   casa_comum:     {f1:'#6b5638', f2:'#73603f', wall:'#3a2c1c', acc:'#b08d57', kind:'comum'},
+  ala_sumos:    {f1:'#b7b2a6', f2:'#c2bcae', wall:'#4a4438', acc:'#c9a842', kind:'marmore'},
   casa_lyra:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#5a7ac0', kind:'quarto'},
   casa_bramir:  {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#7a6a4a', kind:'quarto'},
   casa_cecille: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#b06ae0', kind:'quarto'},
@@ -450,7 +451,7 @@ const INT_THEMES = {
   loja_armas:     {f1:'#494640', f2:'#524e47', wall:'#26231f', acc:'#9aa0aa', kind:'loja'},
 };
 function intTheme(m){ return INT_THEMES[m] || INT_THEMES.casa_comum; }
-var _INT_EXTRA = {taverna_vilalbina:1, iscas_cais:1, mercado_prospera:1, solar_prospera:1,
+var _INT_EXTRA = {ala_sumos:1, taverna_vilalbina:1, iscas_cais:1, mercado_prospera:1, solar_prospera:1,
                   templo_estrelado:1, templo_doze:1, torre_alvorada:1, arena:1};
 
 function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
@@ -12085,6 +12086,60 @@ var bindArcano = setInterval(()=>{
       if(d.ab) rtAddFloat((p.rx||p.x*TS)+(p.size||1)*TS/2, (p.ry||p.y*TS)-14, d.ab, '#a8ffb0', false); }
   });
   socket.emit('grimoire_get');            // popula a hotbar ao entrar
+  socket.emit('rt_abilities_get');        // e a barra de habilidades (6-0)
+
+  // ============ BARRA DE HABILIDADES (teclas 6-0) ============
+  const ABIL_ICO = {divine_smite:'⚔️', lay_on_hands:'🙌', rage:'😤', second_wind:'💨',
+                    flurry:'👊', martial_arts:'🥋', bardic:'🎵', lamina_venenosa:'🗡️',
+                    some_sombras:'🌑', milesima_saida:'🐇', aurora_valiria:'🌅',
+                    forma_facalan:'🐆', sopro_draconico:'🐉'};
+  g.abils = [];
+  g.abilCd = {};
+  function renderAbilbar(){
+    let bar = document.getElementById('abilbar');
+    if(!g.abils.length){ if(bar) bar.remove(); return; }
+    if(!bar){
+      bar = document.createElement('div');
+      bar.id = 'abilbar';
+      bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:76px;' +
+        'display:flex;gap:6px;z-index:40;pointer-events:auto;';
+      document.body.appendChild(bar);
+    }
+    bar.innerHTML = '';
+    g.abils.slice(0, 5).forEach((ab, i) => {
+      const cdLeft = Math.max(0, Math.ceil((g.abilCd[ab.id] || 0) - Date.now()/1000));
+      const s = document.createElement('div');
+      s.title = ab.name + ' — ' + ab.desc + (ab.mana ? ' (custo ' + ab.mana + ')' : '');
+      s.style.cssText = 'width:46px;height:46px;border-radius:9px;background:rgba(20,16,30,0.88);' +
+        'border:1.5px solid ' + (cdLeft ? '#4a4456' : '#c9a842') + ';display:flex;flex-direction:column;' +
+        'align-items:center;justify-content:center;cursor:pointer;user-select:none;position:relative;' +
+        'font:600 8px Inter;color:#cfc6e0;' + (cdLeft ? 'opacity:0.55;' : '');
+      s.innerHTML = '<div style="font-size:17px;line-height:1;">' + (ABIL_ICO[ab.id] || '✨') + '</div>' +
+        '<div style="margin-top:1px;">' + (cdLeft ? cdLeft + 's' : ('tecla ' + ((i + 6) % 10))) + '</div>' +
+        '<div style="position:absolute;top:1px;right:4px;font:700 9px Inter;color:#8a80a0;">' +
+        ((i + 6) % 10) + '</div>';
+      s.onclick = () => socket.emit('rt_ability', {id: ab.id});
+      bar.appendChild(s);
+    });
+  }
+  socket.on('rt_abilities', d => { g.abils = (d && d.abilities) || []; 
+    (g.abils).forEach(ab => { if(ab.cd_left) g.abilCd[ab.id] = Date.now()/1000 + ab.cd_left; });
+    renderAbilbar(); });
+  socket.on('rt_ability_cd', d => {
+    if(!d || !d.id) return;
+    g.abilCd[d.id] = Date.now()/1000 + (d.secs || 10);
+    renderAbilbar();
+  });
+  setInterval(() => { if(g.abils.length) renderAbilbar(); }, 1000);
+  window.addEventListener('keydown', ev => {
+    if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    const k = ev.key;
+    if(['6','7','8','9','0'].includes(k)){
+      const idx = (k === '0') ? 4 : (parseInt(k) - 6);
+      const ab = g.abils[idx];
+      if(ab) socket.emit('rt_ability', {id: ab.id});
+    }
+  });
 }, 900);
 
 // ===========================================================================
@@ -14680,6 +14735,267 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
       c.fillStyle = gg3; c.beginPath(); c.arc(gx2, gy2, u*5, 0, Math.PI*2); c.fill();
       c.restore();
     }
+  }
+
+  // ============ EXCLUSIVOS DOS NOBRES DE ERMOS (NPCs) ============
+  if(oid === 'x_valdris'){                                 // TERNO STEAMPUNK ROXO
+    c.fillStyle = '#3e1e56';                               // colete
+    c.fillRect(cx - bodyW*0.22, bodyTop + u, bodyW*0.44, bodyH*0.6);
+    c.fillStyle = '#5a2e7a';                               // lapelas do paletó
+    c.beginPath(); c.moveTo(cx - bodyW*0.34, bodyTop);
+    c.lineTo(cx - u*0.5, bodyTop + bodyH*0.34); c.lineTo(cx - bodyW*0.34, bodyTop + bodyH*0.5);
+    c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(cx + bodyW*0.34, bodyTop);
+    c.lineTo(cx + u*0.5, bodyTop + bodyH*0.34); c.lineTo(cx + bodyW*0.34, bodyTop + bodyH*0.5);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#e8c860'; c.lineWidth = u*0.8;        // CORRENTE do relógio
+    c.beginPath(); c.moveTo(cx - u*0.5, beltY - u*2);
+    c.quadraticCurveTo(cx + bodyW*0.16, beltY + u, cx + bodyW*0.3, beltY - u*1.5); c.stroke();
+    c.fillStyle = '#c9a842';
+    c.beginPath(); c.arc(cx + bodyW*0.3, beltY - u*1.5, u*1.2, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#c9c4bc';                               // botões
+    for(let i2 = 0; i2 < 3; i2++){
+      c.beginPath(); c.arc(cx, bodyTop + bodyH*(0.2 + i2*0.16), u*0.7, 0, Math.PI*2); c.fill();
+    }
+    c.fillStyle = '#2a1436';                               // CARTOLA
+    c.beginPath(); c.ellipse(cx, topY + u*0.6, hr*1.35, hr*0.36, 0, 0, Math.PI*2); c.fill();
+    c.fillRect(cx - hr*0.8, topY - hr*1.7, hr*1.6, hr*1.75);
+    c.fillStyle = '#5a2e7a'; c.fillRect(cx - hr*0.8, topY - u*1.4, hr*1.6, u*1.5);
+    c.strokeStyle = '#8a6a3a'; c.lineWidth = u*0.9;        // GOGGLES de bronze na faixa
+    c.beginPath(); c.arc(cx - hr*0.32, topY - u*0.6, u*1.3, 0, Math.PI*2);
+    c.arc(cx + hr*0.32, topY - u*0.6, u*1.3, 0, Math.PI*2); c.stroke();
+    c.fillStyle = 'rgba(160,220,255,0.55)';
+    c.beginPath(); c.arc(cx - hr*0.32, topY - u*0.6, u*0.9, 0, Math.PI*2);
+    c.arc(cx + hr*0.32, topY - u*0.6, u*0.9, 0, Math.PI*2); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter';      // faísca cósmica
+    c.globalAlpha = 0.5 + 0.3*Math.sin(now/300);
+    c.fillStyle = '#c9a0ff';
+    c.beginPath(); c.arc(cx + hr*1.2, topY - hr*1.2, u*0.9, 0, Math.PI*2); c.fill();
+    c.restore();
+  }
+  if(oid === 'x_heron'){                                   // o Que Ficou
+    c.fillStyle = 'rgba(120,130,150,0.35)';                // meio-manto
+    c.beginPath(); c.moveTo(cx - bodyW*0.5, bodyTop);
+    c.quadraticCurveTo(cx - bodyW*0.8 + sway, beltY, cx - bodyW*0.4 + sway, bodyBot + u*2);
+    c.lineTo(cx - bodyW*0.1, bodyBot); c.lineTo(cx - bodyW*0.2, bodyTop + u*2); c.closePath(); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter';      // estrelas APAGADAS caindo
+    for(let i2 = 0; i2 < 4; i2++){
+      const t2 = (now/2600 + i2/4) % 1;
+      c.globalAlpha = 0.35*(1 - t2);
+      c.fillStyle = '#9aa8c8';
+      c.fillRect(cx - bodyW*0.3 + i2*bodyW*0.2, bodyTop + bodyH*t2, u*0.8, u*0.8);
+    }
+    c.restore();
+    c.fillStyle = '#7a5aa0';                               // a FLOR de Valdarkram no peito
+    for(let p2 = 0; p2 < 5; p2++){
+      const a2 = p2*Math.PI*2/5 - Math.PI/2;
+      c.beginPath();
+      c.ellipse(cx + Math.cos(a2)*u*1.4, bodyTop + bodyH*0.26 + Math.sin(a2)*u*1.4, u*1, u*0.6, a2, 0, Math.PI*2);
+      c.fill();
+    }
+    c.fillStyle = '#e8c860';
+    c.beginPath(); c.arc(cx, bodyTop + bodyH*0.26, u*0.7, 0, Math.PI*2); c.fill();
+  }
+  if(oid === 'x_celestino'){                               // o Arcebispo Rei
+    const CORES12 = ['#f2c14e','#5a5a6a','#7a8a5a','#e0865a','#e05a4e','#a83838',
+                     '#8a7ae0','#f2e05a','#b06ae0','#e08ae0','#8a6a3a','#7ac06a'];
+    c.strokeStyle = '#c9a842'; c.lineWidth = u*1.1;        // casula com orla
+    c.beginPath(); c.moveTo(cx - bodyW*0.46, bodyTop + u);
+    c.lineTo(cx - bodyW*0.4, bodyBot); c.moveTo(cx + bodyW*0.46, bodyTop + u);
+    c.lineTo(cx + bodyW*0.4, bodyBot); c.stroke();
+    for(let i2 = 0; i2 < 12; i2++){                        // a RODA DOS DOZE no peito
+      const a2 = i2*Math.PI/6;
+      c.fillStyle = CORES12[i2];
+      c.beginPath();
+      c.arc(cx + Math.cos(a2)*u*2.6, bodyTop + bodyH*0.32 + Math.sin(a2)*u*2.6, u*0.7, 0, Math.PI*2);
+      c.fill();
+    }
+    c.fillStyle = '#e8c860';
+    c.beginPath(); c.arc(cx, bodyTop + bodyH*0.32, u*1, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#f0ead8';                               // a GRANDE MITRA
+    c.beginPath(); c.moveTo(cx - hr*0.8, topY + u);
+    c.quadraticCurveTo(cx - hr*0.55, topY - hr*2.1, cx, topY - hr*2.5);
+    c.quadraticCurveTo(cx + hr*0.55, topY - hr*2.1, cx + hr*0.8, topY + u);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#c9a842'; c.lineWidth = u; c.stroke();
+    c.beginPath(); c.moveTo(cx, topY - hr*2.5); c.lineTo(cx, topY + u); c.stroke();
+    c.save(); c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.3 + 0.1*Math.sin(now/600);
+    const hg2 = c.createRadialGradient(cx, hy, 0, cx, hy, hr*2.4);
+    hg2.addColorStop(0, 'rgba(255,236,180,0.6)'); hg2.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = hg2; c.beginPath(); c.arc(cx, hy, hr*2.4, 0, Math.PI*2); c.fill();
+    c.restore();
+  }
+  if(oid === 'x_marth'){                                   // a Palavra Fértil
+    c.strokeStyle = '#e8c860'; c.lineWidth = u*0.8;        // espigas subindo o manto
+    for(const ex2 of [-0.26, 0, 0.26]){
+      const bx3 = cx + bodyW*ex2;
+      c.beginPath(); c.moveTo(bx3, bodyBot - u); c.lineTo(bx3, bodyTop + bodyH*0.35); c.stroke();
+      for(let g2 = 0; g2 < 3; g2++){
+        const gy3 = bodyTop + bodyH*0.4 + g2*u*2.4;
+        c.beginPath(); c.moveTo(bx3, gy3); c.lineTo(bx3 - u*1.1, gy3 - u*1.1);
+        c.moveTo(bx3, gy3); c.lineTo(bx3 + u*1.1, gy3 - u*1.1); c.stroke();
+      }
+    }
+    c.strokeStyle = '#c9a842'; c.lineWidth = u*1.2;        // coroa simples de rei velho
+    c.beginPath(); c.arc(cx, hy - hr*0.2, hr*0.95, Math.PI*1.05, Math.PI*1.95); c.stroke();
+    c.fillStyle = '#c9a842';
+    for(const kx of [-0.5, 0, 0.5]){
+      c.beginPath(); c.moveTo(cx + kx*hr - u*0.7, hy - hr*1.02);
+      c.lineTo(cx + kx*hr, hy - hr*1.35); c.lineTo(cx + kx*hr + u*0.7, hy - hr*1.02);
+      c.closePath(); c.fill();
+    }
+  }
+  if(oid === 'x_valesca'){                                 // a Diplomata Encantada
+    c.fillStyle = '#e8e2ee';                               // gola alta de renda
+    c.beginPath(); c.ellipse(cx, bodyTop + u*0.5, bodyW*0.5, u*2.6, 0, 0, Math.PI*2); c.fill();
+    c.strokeStyle = 'rgba(150,140,170,0.6)'; c.lineWidth = u*0.5;
+    c.beginPath(); c.ellipse(cx, bodyTop + u*0.5, bodyW*0.5, u*2.6, 0, 0, Math.PI*2); c.stroke();
+    c.fillStyle = '#f4f0f6';                               // colar de pérolas
+    for(let i2 = -3; i2 <= 3; i2++){
+      c.beginPath(); c.arc(cx + i2*u*1.3, bodyTop + u*3.4 + Math.abs(i2)*u*0.35, u*0.55, 0, Math.PI*2); c.fill();
+    }
+    c.fillStyle = '#c9a842';                               // o broche-carta (as não enviadas)
+    c.fillRect(cx - u*1.4, bodyTop + bodyH*0.36, u*2.8, u*2);
+    c.strokeStyle = '#8a6a2a'; c.lineWidth = u*0.5;
+    c.beginPath(); c.moveTo(cx - u*1.4, bodyTop + bodyH*0.36);
+    c.lineTo(cx, bodyTop + bodyH*0.36 + u*1.1); c.lineTo(cx + u*1.4, bodyTop + bodyH*0.36); c.stroke();
+    c.strokeStyle = '#c9c4d4'; c.lineWidth = u*0.9;        // tiara fina
+    c.beginPath(); c.arc(cx, hy - hr*0.2, hr*0.9, Math.PI*1.15, Math.PI*1.85); c.stroke();
+  }
+  if(oid === 'x_dante'){                                   // o Sentinela do Farol
+    c.fillStyle = 'rgba(150,158,170,0.9)';                 // meia-armadura
+    c.fillRect(cx - bodyW*0.42, bodyTop + u, bodyW*0.84, bodyH*0.4);
+    c.strokeStyle = '#3a4252'; c.lineWidth = u*0.7;
+    c.strokeRect(cx - bodyW*0.42, bodyTop + u, bodyW*0.84, bodyH*0.4);
+    c.fillStyle = '#e8c860';                               // o FAROL no peito
+    c.fillRect(cx - u*0.8, bodyTop + bodyH*0.14, u*1.6, u*2.6);
+    c.beginPath(); c.arc(cx, bodyTop + bodyH*0.12, u*0.9, 0, Math.PI*2); c.fill();
+    c.save(); c.translate(backX, bodyTop + bodyH*0.35); c.rotate(0.5);   // O VIOLÃO nas costas
+    c.fillStyle = '#8a5a34';
+    c.beginPath(); c.ellipse(0, u*2, u*2.6, u*3.2, 0, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(0, -u*0.5, u*1.9, u*2.2, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#2a1c10';
+    c.beginPath(); c.arc(0, u*1.2, u*1, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#5a3c20'; c.fillRect(-u*0.5, -u*5.5, u, u*5);
+    c.strokeStyle = '#e8e2d0'; c.lineWidth = u*0.3;
+    for(const sx3 of [-0.3, 0, 0.3]){
+      c.beginPath(); c.moveTo(sx3*u, -u*5); c.lineTo(sx3*u, u*3.5); c.stroke();
+    }
+    c.restore();
+  }
+  if(oid === 'x_diana'){                                   // o Olhar que Pesa
+    c.fillStyle = '#8a9098';                               // UMA ombreira (a regente-guerreira)
+    c.beginPath(); c.ellipse(cx - bodyW*0.46, bodyTop + u*0.5, bodyW*0.32, u*3, -0.25, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#3a4252'; c.lineWidth = u*0.7;
+    c.beginPath(); c.ellipse(cx - bodyW*0.46, bodyTop + u*0.5, bodyW*0.32, u*3, -0.25, 0, Math.PI*2); c.stroke();
+    c.fillStyle = '#e8c860';                               // faixa de regente
+    c.beginPath(); c.moveTo(cx - bodyW*0.4, bodyTop + u);
+    c.lineTo(cx + bodyW*0.32, beltY); c.lineTo(cx + bodyW*0.44, beltY - u*1.6);
+    c.lineTo(cx - bodyW*0.26, bodyTop); c.closePath(); c.fill();
+    c.fillStyle = '#c43e5a';                               // a ROSA impossível no peito
+    for(let p2 = 0; p2 < 5; p2++){
+      const a2 = p2*Math.PI*2/5;
+      c.beginPath();
+      c.ellipse(cx + bodyW*0.14 + Math.cos(a2)*u, bodyTop + bodyH*0.3 + Math.sin(a2)*u, u*0.8, u*0.5, a2, 0, Math.PI*2);
+      c.fill();
+    }
+    c.fillStyle = '#8a1e34';
+    c.beginPath(); c.arc(cx + bodyW*0.14, bodyTop + bodyH*0.3, u*0.5, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#e8c860'; c.lineWidth = u;             // coroa pequena
+    c.beginPath(); c.arc(cx, hy - hr*0.2, hr*0.9, Math.PI*1.1, Math.PI*1.9); c.stroke();
+    c.fillStyle = '#e8c860';
+    c.beginPath(); c.moveTo(cx - u*0.7, hy - hr*1.0); c.lineTo(cx, hy - hr*1.35);
+    c.lineTo(cx + u*0.7, hy - hr*1.0); c.closePath(); c.fill();
+  }
+  if(oid === 'x_selene'){                                  // a Coruja da Lua em pessoa
+    c.save(); c.globalCompositeOperation = 'lighter';      // constelação bordada VIVA
+    c.globalAlpha = 0.8;
+    c.strokeStyle = 'rgba(160,180,255,0.5)'; c.lineWidth = u*0.4;
+    const pts = [[-0.2, 0.18], [0, 0.3], [0.18, 0.2], [0.1, 0.45], [-0.12, 0.5]];
+    c.beginPath();
+    for(let i2 = 0; i2 < pts.length; i2++){
+      const px3 = cx + bodyW*pts[i2][0], py3 = bodyTop + bodyH*pts[i2][1];
+      c[i2 ? 'lineTo' : 'moveTo'](px3, py3);
+    }
+    c.stroke();
+    c.fillStyle = '#cfe0ff';
+    for(const [qx2, qy2] of pts){
+      c.globalAlpha = 0.6 + 0.4*Math.sin(now/500 + qx2*9);
+      c.fillRect(cx + bodyW*qx2 - u*0.5, bodyTop + bodyH*qy2 - u*0.5, u, u);
+    }
+    c.restore();
+    c.strokeStyle = '#cfe0ff'; c.lineWidth = u*0.9;        // a LUA crescente na testa
+    c.beginPath(); c.arc(cx + u*0.4, hy - hr*0.55, u*1.3, Math.PI*0.35, Math.PI*1.65); c.stroke();
+    const ma = now/1500;                                   // a MARIPOSA prateada orbitando
+    const mx2 = cx + Math.cos(ma)*bodyW*0.8, my2 = hy + Math.sin(ma)*hr*1.6;
+    c.save(); c.translate(mx2, my2);
+    c.fillStyle = 'rgba(220,228,245,0.9)';
+    const wb = Math.sin(now/120)*0.5 + 0.8;
+    c.beginPath(); c.ellipse(-u*0.9*wb, 0, u*0.9*wb, u*0.55, -0.4, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(u*0.9*wb, 0, u*0.9*wb, u*0.55, 0.4, 0, Math.PI*2); c.fill();
+    c.restore();
+  }
+  if(oid === 'x_miranda'){                                 // a Xamã
+    c.strokeStyle = '#8a6a44'; c.lineWidth = u*0.7;        // franjas da bata
+    for(let i2 = -3; i2 <= 3; i2++){
+      const fx4 = cx + i2*bodyW*0.13;
+      c.beginPath(); c.moveTo(fx4, beltY + u);
+      c.lineTo(fx4, beltY + u*3 + Math.sin(now/300 + i2)*u*0.5); c.stroke();
+    }
+    c.fillStyle = '#f0ead8';                               // colar de OSSOS
+    for(let i2 = -2; i2 <= 2; i2++){
+      c.save(); c.translate(cx + i2*u*1.6, bodyTop + u*3 + Math.abs(i2)*u*0.5);
+      c.rotate(i2*0.2);
+      c.fillRect(-u*0.35, -u*0.9, u*0.7, u*1.8);
+      c.restore();
+    }
+    c.fillStyle = '#c43e3e';                               // pintura ritual
+    c.fillRect(cx - hr*0.55, hy + hr*0.42, hr*0.34, u*0.6);
+    c.fillRect(cx + hr*0.21, hy + hr*0.42, hr*0.34, u*0.6);
+    for(const [pa2, pc2] of [[-0.6, '#e0865a'], [0, '#7ac06a'], [0.6, '#5aa9e0']]){
+      c.save(); c.translate(cx + pa2*hr, topY - u*0.5); c.rotate(pa2*0.5);   // cocar de penas
+      c.fillStyle = pc2;
+      c.beginPath(); c.ellipse(0, -u*1.6, u*0.7, u*2, 0, 0, Math.PI*2); c.fill();
+      c.strokeStyle = 'rgba(40,30,20,0.5)'; c.lineWidth = u*0.3;
+      c.beginPath(); c.moveTo(0, -u*3.4); c.lineTo(0, 0); c.stroke();
+      c.restore();
+    }
+  }
+  if(oid === 'x_maria'){                                   // Maria Cachorra
+    c.fillStyle = '#8a8a94';                               // pelagem de lobo nos ombros
+    c.beginPath(); c.ellipse(cx, bodyTop + u, bodyW*0.56, u*3, 0, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#5a5a64'; c.lineWidth = u*0.4;
+    for(let i2 = -3; i2 <= 3; i2++){
+      c.beginPath(); c.moveTo(cx + i2*bodyW*0.14, bodyTop + u*2);
+      c.lineTo(cx + i2*bodyW*0.15, bodyTop + u*3.4); c.stroke();
+    }
+    c.fillStyle = '#f0ead8';                               // colar de PRESAS
+    for(let i2 = -2; i2 <= 2; i2++){
+      c.beginPath();
+      c.moveTo(cx + i2*u*1.7 - u*0.4, bodyTop + u*3.4);
+      c.lineTo(cx + i2*u*1.7, bodyTop + u*4.8 + Math.abs(i2)*u*0.3);
+      c.lineTo(cx + i2*u*1.7 + u*0.4, bodyTop + u*3.4); c.closePath(); c.fill();
+    }
+    c.fillStyle = '#7a2030';                               // a faixa de sacerdotisa RASGADA
+    c.beginPath(); c.moveTo(cx - bodyW*0.44, bodyTop + u);
+    c.lineTo(cx + bodyW*0.3, beltY + u); c.lineTo(cx + bodyW*0.42, beltY - u*0.5);
+    c.lineTo(cx - bodyW*0.3, bodyTop); c.closePath(); c.fill();
+    c.fillStyle = '#5a5a64';
+    for(const rp of [0.3, 0.55, 0.8]){                     // os rasgos
+      c.beginPath();
+      c.moveTo(cx - bodyW*0.44 + bodyW*0.8*rp, bodyTop + u + (beltY - bodyTop)*rp);
+      c.lineTo(cx - bodyW*0.44 + bodyW*0.8*rp + u, bodyTop + u*2.4 + (beltY - bodyTop)*rp);
+      c.lineTo(cx - bodyW*0.44 + bodyW*0.8*rp - u*0.4, bodyTop + u*1.6 + (beltY - bodyTop)*rp);
+      c.closePath(); c.fill();
+    }
+    c.save(); c.globalCompositeOperation = 'lighter';      // o frio de Vargo ao redor
+    c.globalAlpha = 0.16 + 0.06*Math.sin(now/700);
+    const mg2 = c.createRadialGradient(cx, bodyTop + bodyH*0.4, 0, cx, bodyTop + bodyH*0.4, ts*0.75);
+    mg2.addColorStop(0, 'rgba(150,170,200,0.7)'); mg2.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = mg2;
+    c.beginPath(); c.arc(cx, bodyTop + bodyH*0.4, ts*0.75, 0, Math.PI*2); c.fill();
+    c.restore();
   }
   c.restore();
 }
