@@ -2427,11 +2427,13 @@ def _jardim_templo():
             px, py = int(cx + rr * math.cos(a)), int(cy + rr * math.sin(a))
             if 0 < px < W - 1 and 0 < py < H - 1 and g[py][px] != "H":
                 g[py][px] = "p"
-    for y in range(cy - 3, cy + 4):
-        for x in range(cx - 3, cx + 4):
-            if abs(x - cx) + abs(y - cy) <= 4:
+    for y in range(cy - 4, cy + 5):
+        for x in range(cx - 4, cx + 5):
+            if abs(x - cx) + abs(y - cy) <= 6:
                 g[y][x] = "p"
-    g[cy][cx] = ";"
+    for y in range(cy - 2, cy + 3):        # O SANTUÁRIO (estrutura central maciça)
+        for x in range(cx - 2, cx + 3):
+            g[y][x] = "H"
     for x in range(0, cx):
         if g[27][x] != "H":
             g[27][x] = "p"
@@ -2542,7 +2544,30 @@ MAPS["prospera"] = {"rows": _prospera(), "spawns": [(4, 30), (4, 31), (5, 30)]}
 MAPS["jardim_templo"] = {"rows": _jardim_templo(), "spawns": [(3, 27), (3, 28), (4, 27)]}
 MAPS["cidade_alta"] = {"rows": _cidade_alta(), "spawns": [(3, 24), (3, 25), (4, 24)]}
 MAPS["farol_margem"] = {"rows": _farol_margem(), "spawns": [(24, 2), (25, 2), (24, 3)]}
+def _templo_estrelado():
+    """O Santuário dos Doze (27x27): salão circular de mármore negro, 12 altares
+    em círculo (um por deus), o Arcebispo no centro. Saída ao sul."""
+    import math as _m
+    W, H = 27, 27
+    g = [["F" for _ in range(W)] for _ in range(H)]
+    cx, cy = 13, 13
+    for y in range(H):
+        for x in range(W):
+            if (x - cx) ** 2 + (y - cy) ** 2 <= 11.5 ** 2:
+                g[y][x] = "1"
+    for i in range(12):                    # os 12 altares (nichos na parede)
+        a = i * _m.pi * 2 / 12 - _m.pi / 2
+        tx, ty = int(cx + 9.6 * _m.cos(a)), int(cy + 9.6 * _m.sin(a))
+        g[ty][tx] = ";"
+    for y in range(cy + 10, H):            # o corredor de saída ao sul
+        g[y][12] = "1"
+        g[y][13] = "1"
+        g[y][14] = "1"
+    return ["".join(r) for r in g]
+
+
 MAPS["torre_alvorada"] = {"rows": _torre_alvorada(), "spawns": [(9, 11), (8, 11), (10, 11)]}
+MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(13, 24), (12, 24), (14, 24)]}
 
 
 def _gotico_vespera():

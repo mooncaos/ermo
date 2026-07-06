@@ -13552,92 +13552,167 @@ function drawIlhaDecor(c, now){
     c.restore();
   }
 
-  // ---- CIDADE ALTA: a Torre da Alvorada e os grifos ----
+  // ---- CIDADE ALTA: a Torre da Alvorada MONUMENTAL + os grifos ----
   if(mapName === 'cidade_alta'){
     const cx2 = 25*TS - camX, base = 11*TS - camY;
-    if(cx2 > -TS*8 && cx2 < canvas.width + TS*8){
-      const alt = TS*5.2;
-      c.fillStyle = '#ece6d6';                                 // o corpo monumental
-      c.fillRect(cx2 - TS*3.2, base - alt, TS*6.4, alt);
+    if(cx2 > -TS*10 && cx2 < canvas.width + TS*10){
+      const alt = TS*7;
+      c.fillStyle = '#d8d0be';                                 // contrafortes
+      c.fillRect(cx2 - TS*4.1, base - alt*0.62, TS*0.8, alt*0.62);
+      c.fillRect(cx2 + TS*3.3, base - alt*0.62, TS*0.8, alt*0.62);
+      c.fillStyle = '#ece6d6';                                 // o corpo
+      c.fillRect(cx2 - TS*3.3, base - alt, TS*6.6, alt);
       c.fillStyle = 'rgba(0,0,0,0.12)';
-      c.fillRect(cx2 + TS*1.2, base - alt, TS*2, alt);
+      c.fillRect(cx2 + TS*1.3, base - alt, TS*2, alt);
       c.strokeStyle = 'rgba(90,80,60,0.5)'; c.lineWidth = 1.5;
-      for(let fl = 1; fl <= 4; fl++){
-        c.beginPath(); c.moveTo(cx2 - TS*3.2, base - fl*alt/5); c.lineTo(cx2 + TS*3.2, base - fl*alt/5); c.stroke();
-        for(const wx of [-2.1, -0.7, 0.7, 2.1]){               // janelas em arco
-          const jx = cx2 + wx*TS, jy = base - fl*alt/5 + alt/10;
+      for(let fl = 1; fl <= 5; fl++){
+        c.beginPath(); c.moveTo(cx2 - TS*3.3, base - fl*alt/6); c.lineTo(cx2 + TS*3.3, base - fl*alt/6); c.stroke();
+        for(const wx of [-2.3, -0.8, 0.8, 2.3]){
+          const jx = cx2 + wx*TS, jy = base - fl*alt/6 + alt/12;
           c.fillStyle = '#ffdf9a';
-          c.beginPath(); c.arc(jx, jy - 4, 4.5, Math.PI, 0);
-          c.rect(jx - 4.5, jy - 4, 9, 9); c.fill();
+          c.beginPath(); c.arc(jx, jy - 5, 5, Math.PI, 0); c.rect(jx - 5, jy - 5, 10, 11); c.fill();
+          c.strokeStyle = 'rgba(90,80,60,0.6)'; c.lineWidth = 1;
+          c.beginPath(); c.arc(jx, jy - 5, 5, Math.PI, 0); c.stroke();
         }
       }
-      c.fillStyle = '#d4c9a8';                                 // o coroamento
-      c.beginPath(); c.moveTo(cx2 - TS*3.5, base - alt);
-      c.lineTo(cx2, base - alt - TS*1.4); c.lineTo(cx2 + TS*3.5, base - alt); c.closePath(); c.fill();
-      c.save(); c.globalCompositeOperation = 'lighter';        // A ALVORADA no topo
-      c.globalAlpha = 0.65 + 0.25*Math.sin(now/500);
-      const tg = c.createRadialGradient(cx2, base - alt - TS*1.2, 0, cx2, base - alt - TS*1.2, TS*2.4);
-      tg.addColorStop(0, 'rgba(255,224,138,0.95)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
-      c.fillStyle = tg;
-      c.beginPath(); c.arc(cx2, base - alt - TS*1.2, TS*2.4, 0, Math.PI*2); c.fill();
+      c.save(); c.globalCompositeOperation = 'lighter';        // O SOL DO CONCLAVE na fachada
+      c.globalAlpha = 0.85;
+      c.fillStyle = '#e8b84a';
+      c.beginPath(); c.arc(cx2, base - alt*0.5, 9, 0, Math.PI*2); c.fill();
+      c.strokeStyle = '#ffd97a'; c.lineWidth = 2.4;
+      for(let i = 0; i < 8; i++){
+        const a = i*Math.PI/4 + now/3000;
+        c.beginPath(); c.moveTo(cx2 + Math.cos(a)*12, base - alt*0.5 + Math.sin(a)*12);
+        c.lineTo(cx2 + Math.cos(a)*17, base - alt*0.5 + Math.sin(a)*17); c.stroke();
+      }
       c.restore();
-      c.fillStyle = '#fff2c0';
-      c.beginPath(); c.arc(cx2, base - alt - TS*1.2, 5, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#d4c9a8';                                 // coroa de agulhas
+      for(const px2 of [-3.0, -1.5, 1.5, 3.0]){
+        c.beginPath(); c.moveTo(cx2 + px2*TS - 5, base - alt);
+        c.lineTo(cx2 + px2*TS, base - alt - TS*0.9); c.lineTo(cx2 + px2*TS + 5, base - alt); c.closePath(); c.fill();
+      }
+      c.beginPath(); c.moveTo(cx2 - TS*1.0, base - alt);
+      c.lineTo(cx2, base - alt - TS*1.9); c.lineTo(cx2 + TS*1.0, base - alt); c.closePath(); c.fill();
+      c.save(); c.globalCompositeOperation = 'lighter';        // a ALVORADA: sunburst rotativo
+      const ty2 = base - alt - TS*1.7;
+      c.globalAlpha = 0.5 + 0.2*Math.sin(now/500);
+      for(let i = 0; i < 10; i++){
+        const a = i*Math.PI/5 + now/1800;
+        const g3 = c.createLinearGradient(cx2, ty2, cx2 + Math.cos(a)*TS*3.2, ty2 + Math.sin(a)*TS*3.2);
+        g3.addColorStop(0, 'rgba(255,224,138,0.8)'); g3.addColorStop(1, 'rgba(0,0,0,0)');
+        c.strokeStyle = '#ffe08a'; c.lineWidth = 2; c.globalAlpha = 0.35;
+        c.beginPath(); c.moveTo(cx2, ty2); c.lineTo(cx2 + Math.cos(a)*TS*3.2, ty2 + Math.sin(a)*TS*3.2); c.stroke();
+      }
+      c.globalAlpha = 0.85;
+      const tg = c.createRadialGradient(cx2, ty2, 0, cx2, ty2, TS*2.2);
+      tg.addColorStop(0, 'rgba(255,232,160,1)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = tg; c.beginPath(); c.arc(cx2, ty2, TS*2.2, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.fillStyle = '#fff4cc';
+      c.beginPath(); c.arc(cx2, ty2, 5.5, 0, Math.PI*2); c.fill();
+      for(let i = 0; i < 3; i++){                              // livros orbitando o topo
+        const a = now/1600 + i*2.094;
+        const bx2 = cx2 + Math.cos(a)*TS*2.6, by2 = ty2 + Math.sin(a)*TS*1.1;
+        c.save(); c.translate(bx2, by2); c.rotate(Math.sin(a)*0.5);
+        c.fillStyle = ['#8a3a3a','#3a5a8a','#3a7a4a'][i]; c.fillRect(-4, -3, 8, 6);
+        c.fillStyle = '#e8d8a0'; c.fillRect(-4, -3, 1.4, 6);
+        c.restore();
+      }
     }
-    for(const gx of [22, 27]){                                 // OS GRIFOS
+    for(const gx of [22, 27]){                                 // OS GRIFOS (mantidos)
       const sx = (gx + 0.5)*TS - camX, sy = 12.6*TS - camY;
       if(sx < -TS*2 || sx > canvas.width + TS*2) continue;
       c.fillStyle = '#b5ada0';
-      c.fillRect(sx - 9, sy - 4, 18, 10);                      // o pedestal
-      c.beginPath(); c.ellipse(sx, sy - 12, 7, 9, 0, 0, Math.PI*2); c.fill();   // corpo
-      c.beginPath(); c.arc(sx + 5, sy - 20, 4.5, 0, Math.PI*2); c.fill();       // cabeça
-      c.fillStyle = '#c5bdb0';                                 // as asas abertas
+      c.fillRect(sx - 9, sy - 4, 18, 10);
+      c.beginPath(); c.ellipse(sx, sy - 12, 7, 9, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(sx + 5, sy - 20, 4.5, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#c5bdb0';
       c.beginPath(); c.moveTo(sx - 5, sy - 15); c.quadraticCurveTo(sx - 18, sy - 26, sx - 8, sy - 28);
       c.quadraticCurveTo(sx - 6, sy - 20, sx - 3, sy - 17); c.closePath(); c.fill();
       c.beginPath(); c.moveTo(sx + 7, sy - 16); c.quadraticCurveTo(sx + 19, sy - 27, sx + 10, sy - 29);
       c.quadraticCurveTo(sx + 8, sy - 21, sx + 5, sy - 18); c.closePath(); c.fill();
       c.fillStyle = 'rgba(255,220,120,' + (0.5 + 0.4*Math.sin(now/700 + gx)) + ')';
-      c.beginPath(); c.arc(sx + 6.5, sy - 21, 1.2, 0, Math.PI*2); c.fill();     // o olho
+      c.beginPath(); c.arc(sx + 6.5, sy - 21, 1.2, 0, Math.PI*2); c.fill();
     }
   }
 
-  // ---- FAROL: a luz do Âmbar girando sobre o mar ----
+  // ---- O FAROL DA PROSPERIDADE: arcano, rúnico, vivo ----
   if(mapName === 'farol_margem'){
     const fx = 25*TS - camX, base = 23*TS - camY;
-    if(fx > -TS*6 && fx < canvas.width + TS*6){
-      const alt = TS*6;
-      c.fillStyle = '#e8e0d0';
-      c.fillRect(fx - TS*1.6, base - alt, TS*3.2, alt);        // o fuste
-      c.fillStyle = '#c04a3a';                                 // as faixas
-      for(let b = 0; b < 3; b++) c.fillRect(fx - TS*1.6, base - alt + (b*2 + 0.7)*alt/6, TS*3.2, alt/9);
-      c.fillStyle = 'rgba(0,0,0,0.12)';
-      c.fillRect(fx + TS*0.5, base - alt, TS*1.1, alt);
-      c.fillStyle = '#5a5248';                                 // a galeria
-      c.fillRect(fx - TS*1.9, base - alt - 6, TS*3.8, 8);
-      c.fillStyle = '#3a352e';
-      c.fillRect(fx - TS*1.1, base - alt - TS*1.1, TS*2.2, TS*1.1);
-      const ang = now/900;                                     // O FEIXE DO ÂMBAR
+    if(fx > -TS*8 && fx < canvas.width + TS*8){
+      const alt = TS*7;
+      c.save(); c.globalCompositeOperation = 'lighter';        // o glifo na base
+      c.globalAlpha = 0.3 + 0.12*Math.sin(now/600);
+      c.strokeStyle = '#ffc45a'; c.lineWidth = 1.6;
+      c.save(); c.translate(fx, base + TS*0.5); c.rotate(now/2400);
+      c.beginPath(); c.ellipse(0, 0, TS*2.4, TS*1.0, 0, 0, Math.PI*2); c.stroke();
+      for(let i = 0; i < 8; i++){
+        const a = i*Math.PI/4;
+        c.beginPath(); c.arc(Math.cos(a)*TS*2.4, Math.sin(a)*TS*1.0, 2.4, 0, Math.PI*2); c.stroke();
+      }
+      c.restore(); c.restore();
+      c.fillStyle = '#efe8d8';                                 // o fuste de mármore
+      c.fillRect(fx - TS*1.5, base - alt, TS*3, alt);
+      c.fillStyle = 'rgba(0,0,0,0.10)';
+      c.fillRect(fx + TS*0.45, base - alt, TS*1.05, alt);
+      c.strokeStyle = 'rgba(120,100,70,0.35)'; c.lineWidth = 1;
+      for(let s = 1; s < 6; s++){ c.beginPath(); c.moveTo(fx - TS*1.5, base - s*alt/6); c.lineTo(fx + TS*1.5, base - s*alt/6); c.stroke(); }
+      c.save(); c.globalCompositeOperation = 'lighter';        // RUNAS em espiral subindo
+      for(let i = 0; i < 10; i++){
+        const t = ((now/3200 + i/10) % 1);
+        const ry = base - t*alt, rx = fx + Math.sin(t*10 + i)*TS*1.05;
+        c.globalAlpha = 0.75*Math.sin(t*Math.PI);
+        c.fillStyle = '#ffcf6a';
+        c.font = '800 9px serif';
+        c.fillText(['ᚨ','ᚱ','ᚷ','ᛗ','ᛒ','ᛟ'][i % 6], rx - 3, ry);
+      }
+      for(let r = 0; r < 3; r++){                              // anéis de energia ascendentes
+        const t = ((now/2200 + r/3) % 1);
+        c.globalAlpha = 0.4*(1 - t);
+        c.strokeStyle = '#ffd98a'; c.lineWidth = 2;
+        c.beginPath(); c.ellipse(fx, base - t*alt, TS*(1.5 + t*0.5), TS*0.34, 0, 0, Math.PI*2); c.stroke();
+      }
+      c.restore();
+      c.fillStyle = '#c9bfa8';                                 // a galeria
+      c.fillRect(fx - TS*2.0, base - alt - 6, TS*4, 8);
+      for(const gx of [-1.7, -0.6, 0.6, 1.7]){                 // a GAIOLA ARCANA
+        c.strokeStyle = '#8a7a5a'; c.lineWidth = 2.4;
+        c.beginPath(); c.moveTo(fx + gx*TS, base - alt - 4);
+        c.quadraticCurveTo(fx + gx*TS*0.5, base - alt - TS*1.8, fx, base - alt - TS*2.1); c.stroke();
+      }
+      const gy = base - alt - TS*1.05;                         // O ÂMBAR: gema facetada girando
+      c.save(); c.translate(fx, gy); c.rotate(now/1100);
+      c.fillStyle = '#ffb84a';
+      c.beginPath(); c.moveTo(0, -8); c.lineTo(6, -2); c.lineTo(4, 6); c.lineTo(-4, 6); c.lineTo(-6, -2); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,240,190,0.85)';
+      c.beginPath(); c.moveTo(0, -8); c.lineTo(6, -2); c.lineTo(0, 0); c.closePath(); c.fill();
+      c.restore();
       c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.8 + 0.2*Math.sin(now/210);
+      const ag2 = c.createRadialGradient(fx, gy, 0, fx, gy, TS*1.9);
+      ag2.addColorStop(0, 'rgba(255,206,110,0.95)'); ag2.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = ag2; c.beginPath(); c.arc(fx, gy, TS*1.9, 0, Math.PI*2); c.fill();
+      const ang = now/900;                                     // o feixe (mantido e reforçado)
       for(const dir of [0, Math.PI]){
         const a = ang + dir;
-        const bx = fx, by = base - alt - TS*0.55;
-        const g2 = c.createLinearGradient(bx, by, bx + Math.cos(a)*TS*9, by + Math.sin(a)*TS*4.5);
-        g2.addColorStop(0, 'rgba(255,196,90,0.5)'); g2.addColorStop(1, 'rgba(255,196,90,0)');
+        const g2 = c.createLinearGradient(fx, gy, fx + Math.cos(a)*TS*10, gy + Math.sin(a)*TS*5);
+        g2.addColorStop(0, 'rgba(255,196,90,0.55)'); g2.addColorStop(1, 'rgba(255,196,90,0)');
         c.fillStyle = g2;
-        c.beginPath(); c.moveTo(bx, by);
-        c.lineTo(bx + Math.cos(a - 0.16)*TS*9, by + Math.sin(a - 0.16)*TS*4.5);
-        c.lineTo(bx + Math.cos(a + 0.16)*TS*9, by + Math.sin(a + 0.16)*TS*4.5);
+        c.beginPath(); c.moveTo(fx, gy);
+        c.lineTo(fx + Math.cos(a - 0.15)*TS*10, gy + Math.sin(a - 0.15)*TS*5);
+        c.lineTo(fx + Math.cos(a + 0.15)*TS*10, gy + Math.sin(a + 0.15)*TS*5);
         c.closePath(); c.fill();
       }
-      c.globalAlpha = 0.75 + 0.25*Math.sin(now/220);
-      const ag2 = c.createRadialGradient(fx, base - alt - TS*0.55, 0, fx, base - alt - TS*0.55, TS*1.5);
-      ag2.addColorStop(0, 'rgba(255,214,110,1)'); ag2.addColorStop(1, 'rgba(0,0,0,0)');
-      c.fillStyle = ag2;
-      c.beginPath(); c.arc(fx, base - alt - TS*0.55, TS*1.5, 0, Math.PI*2); c.fill();
+      for(let i = 0; i < 8; i++){                              // motas âmbar em espiral
+        const t = ((now/2600 + i/8) % 1);
+        c.globalAlpha = 0.7*(1 - t);
+        c.fillStyle = '#ffdf9a';
+        c.beginPath(); c.arc(fx + Math.cos(t*9 + i)*TS*(1.9 - t), base - t*alt*1.15, 1.8, 0, Math.PI*2); c.fill();
+      }
       c.restore();
-      c.save(); c.globalAlpha = 0.25 + 0.1*Math.sin(now/400);  // o reflexo no mar
+      c.save(); c.globalAlpha = 0.28 + 0.12*Math.sin(now/380);
       c.fillStyle = '#ffce7a';
-      c.beginPath(); c.ellipse(fx, (26.5)*TS - camY, TS*1.8, TS*0.35, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(fx, 26.5*TS - camY, TS*2.2, TS*0.4, 0, 0, Math.PI*2); c.fill();
       c.restore();
     }
   }
@@ -14063,3 +14138,197 @@ function renderOutfits(){
     if((_outfitsData||{}).atual) socket.emit('outfit_set', {outfit: _outfitsData.atual, sex: b.getAttribute('data-sx')});
   }));
 }
+
+// ===========================================================================
+//  OPULÊNCIA DE PROSPERINA: o Domo dos Doze, estátuas, moinho, botes, barris.
+// ===========================================================================
+(function(){
+  const base2 = drawIlhaDecor;
+  drawIlhaDecor = function(c, now){
+    base2(c, now);
+    if(typeof mapName === 'undefined') return;
+    c.save();
+
+    // ---- o DOMO do Santuário (centro do círculo do jardim) ----
+    if(mapName === 'jardim_templo'){
+      const dx = 27.5*TS - camX, dy = 27.5*TS - camY;
+      if(dx > -TS*5 && dx < canvas.width + TS*5 && dy > -TS*5 && dy < canvas.height + TS*5){
+        c.fillStyle = '#2a2530';                               // o corpo de mármore negro
+        c.beginPath(); c.ellipse(dx, dy - TS*0.4, TS*2.6, TS*1.9, 0, 0, Math.PI*2); c.fill();
+        const dg = c.createRadialGradient(dx - TS*0.8, dy - TS*1.4, 0, dx, dy - TS*0.6, TS*2.8);
+        dg.addColorStop(0, 'rgba(120,110,140,0.55)'); dg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = dg;
+        c.beginPath(); c.ellipse(dx, dy - TS*0.4, TS*2.6, TS*1.9, 0, 0, Math.PI*2); c.fill();
+        for(let i = 0; i < 12; i++){                           // as 12 gemas na cúpula
+          const a = i*Math.PI/6 + now/5000;
+          const gx = dx + Math.cos(a)*TS*1.9, gy = dy - TS*0.5 + Math.sin(a)*TS*1.15;
+          c.save(); c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = 0.75 + 0.25*Math.sin(now/400 + i);
+          c.fillStyle = _DEUS_CORES[i];
+          c.beginPath(); c.arc(gx, gy, 2.6, 0, Math.PI*2); c.fill();
+          c.restore();
+        }
+        c.fillStyle = '#e0c060';                               // a porta dourada (sul)
+        c.fillRect(dx - 5, dy + TS*0.9, 10, TS*0.6);
+        c.strokeStyle = '#8a6a2a'; c.lineWidth = 1.2; c.strokeRect(dx - 5, dy + TS*0.9, 10, TS*0.6);
+        c.save(); c.globalCompositeOperation = 'lighter';      // o óculo: feixe do céu
+        c.globalAlpha = 0.35 + 0.15*Math.sin(now/700);
+        const og = c.createRadialGradient(dx, dy - TS*1.6, 0, dx, dy - TS*1.6, TS*1.3);
+        og.addColorStop(0, 'rgba(255,244,210,0.95)'); og.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = og; c.beginPath(); c.arc(dx, dy - TS*1.6, TS*1.3, 0, Math.PI*2); c.fill();
+        c.restore();
+      }
+      const cant = [[16,16],[38,16],[16,38],[38,38]];          // canteiros vívidos
+      const fcores = ['#e05a8a','#f2c14e','#8a7ae0','#5aa9e0','#e0865a'];
+      for(const [qx, qy] of cant){
+        for(let i = 0; i < 7; i++){
+          const fx2 = (qx + (i*1.7 % 4))*TS - camX, fy2 = (qy + (i*2.3 % 3))*TS - camY;
+          if(fx2 < -TS || fx2 > canvas.width + TS || fy2 < -TS || fy2 > canvas.height + TS) continue;
+          c.fillStyle = fcores[i % 5];
+          c.beginPath(); c.arc(fx2, fy2, 2.2, 0, Math.PI*2); c.fill();
+          c.fillStyle = '#f4e8a0';
+          c.beginPath(); c.arc(fx2, fy2, 0.9, 0, Math.PI*2); c.fill();
+        }
+      }
+    }
+
+    // ---- o INTERIOR do Santuário: noite estrelada e as 12 luzes ----
+    if(mapName === 'templo_estrelado'){
+      c.fillStyle = 'rgba(14,12,22,0.45)';                     // o mármore negro
+      c.fillRect(0, 0, canvas.width, canvas.height);
+      for(let i = 0; i < 40; i++){                             // estrelas no teto
+        const sx = ((i*397) % 27)*TS - camX, sy = ((i*211) % 27)*TS - camY;
+        if(sx < 0 || sx > canvas.width || sy < 0 || sy > canvas.height) continue;
+        c.globalAlpha = 0.4 + 0.4*Math.sin(now/600 + i*2);
+        c.fillStyle = '#fdf6dc';
+        c.fillRect(sx, sy, 1.6, 1.6);
+      }
+      c.globalAlpha = 1;
+      for(let i = 0; i < 12; i++){                             // as 12 luzes dos altares
+        const a = i*Math.PI/6 - Math.PI/2;
+        const lx = (13.5 + 9.6*Math.cos(a))*TS - camX, ly = (13.5 + 9.6*Math.sin(a))*TS - camY;
+        c.save(); c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 0.30 + 0.12*Math.sin(now/500 + i);
+        const lg = c.createRadialGradient(lx, ly, 0, lx, ly, TS*1.9);
+        lg.addColorStop(0, _DEUS_CORES[i]); lg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = lg;
+        c.beginPath(); c.arc(lx, ly, TS*1.9, 0, Math.PI*2); c.fill();
+        c.restore();
+      }
+      const ax = 13.5*TS - camX, ay = 13.5*TS - camY;          // o círculo do Arcebispo
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.4;
+      c.strokeStyle = '#ffd97a'; c.lineWidth = 1.6;
+      c.save(); c.translate(ax, ay); c.rotate(now/3000);
+      c.beginPath(); c.arc(0, 0, TS*1.6, 0, Math.PI*2); c.stroke();
+      for(let i = 0; i < 12; i++){
+        const a = i*Math.PI/6;
+        c.beginPath(); c.arc(Math.cos(a)*TS*1.6, Math.sin(a)*TS*1.6, 2, 0, Math.PI*2); c.stroke();
+      }
+      c.restore(); c.restore();
+    }
+
+    // ---- PROSPERA: as estátuas douradas dos fundadores + o mercado ----
+    if(mapName === 'prospera'){
+      for(const [ex, lado] of [[35, -1], [40, 1]]){
+        const sx = ex*TS - camX, sy = 25.5*TS - camY;
+        if(sx > -TS*2 && sx < canvas.width + TS*2 && sy > -TS*3 && sy < canvas.height + TS*2){
+          c.fillStyle = '#8a8a94';
+          c.fillRect(sx - 7, sy, 14, 8);                        // pedestal
+          c.fillStyle = '#d4af37';                              // a figura dourada
+          c.beginPath(); c.ellipse(sx, sy - 9, 4.6, 7, 0, 0, Math.PI*2); c.fill();
+          c.beginPath(); c.arc(sx, sy - 19, 3.4, 0, Math.PI*2); c.fill();
+          c.strokeStyle = '#d4af37'; c.lineWidth = 2.4;
+          c.beginPath(); c.moveTo(sx + lado*4, sy - 12);
+          c.lineTo(sx + lado*9, sy - 22); c.stroke();           // braço erguido
+          c.fillStyle = lado < 0 ? '#e8c050' : '#c9d8ff';
+          c.beginPath(); c.arc(sx + lado*9, sy - 23, 2.2, 0, Math.PI*2); c.fill();
+          c.save(); c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = 0.25 + 0.1*Math.sin(now/600 + ex);
+          const gg = c.createRadialGradient(sx, sy - 12, 0, sx, sy - 12, TS*1.3);
+          gg.addColorStop(0, 'rgba(255,220,120,0.8)'); gg.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = gg; c.beginPath(); c.arc(sx, sy - 12, TS*1.3, 0, Math.PI*2); c.fill();
+          c.restore();
+        }
+      }
+      const toldos = [[46, 23.6, '#c43e3e'], [48.7, 27.4, '#3a6aaa'], [51, 23.6, '#3a7a4a']];
+      for(const [txx, tyy, cor] of toldos){                     // barracas do mercado
+        const sx = txx*TS - camX, sy = tyy*TS - camY;
+        if(sx < -TS*2 || sx > canvas.width + TS*2 || sy < -TS*2 || sy > canvas.height + TS*2) continue;
+        c.fillStyle = '#8a6a4a'; c.fillRect(sx - 1.2, sy, 2.4, 10);
+        c.fillRect(sx + TS*1.3 - 1.2, sy, 2.4, 10);
+        for(let i = 0; i < 5; i++){
+          c.fillStyle = i % 2 ? '#f0ead8' : cor;
+          c.fillRect(sx - 4 + i*(TS*1.3 + 8)/5, sy - 6, (TS*1.3 + 8)/5, 7);
+        }
+        c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(sx - 4, sy + 1, TS*1.3 + 8, 2);
+      }
+    }
+
+    // ---- TRIGAL: o moinho de vento ----
+    if(mapName === 'trigal_dourado'){
+      const mx = 11*TS - camX, my = 7*TS - camY;
+      if(mx > -TS*4 && mx < canvas.width + TS*4 && my > -TS*4 && my < canvas.height + TS*4){
+        c.fillStyle = '#b59a72';
+        c.beginPath(); c.moveTo(mx - TS*0.9, my + TS*0.4);
+        c.lineTo(mx - TS*0.55, my - TS*2.2); c.lineTo(mx + TS*0.55, my - TS*2.2);
+        c.lineTo(mx + TS*0.9, my + TS*0.4); c.closePath(); c.fill();
+        c.fillStyle = '#8a4a3a';
+        c.beginPath(); c.moveTo(mx - TS*0.7, my - TS*2.2);
+        c.lineTo(mx, my - TS*3); c.lineTo(mx + TS*0.7, my - TS*2.2); c.closePath(); c.fill();
+        c.save(); c.translate(mx, my - TS*2.0); c.rotate(now/1300);   // as pás girando
+        c.strokeStyle = '#5a4428'; c.lineWidth = 2.6;
+        c.fillStyle = 'rgba(240,234,216,0.9)';
+        for(let i = 0; i < 4; i++){
+          c.rotate(Math.PI/2);
+          c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -TS*1.6); c.stroke();
+          c.fillRect(-1, -TS*1.6, 8, TS*1.1);
+          c.strokeRect(-1, -TS*1.6, 8, TS*1.1);
+        }
+        c.restore();
+        c.fillStyle = '#3a2c18';
+        c.beginPath(); c.arc(mx, my - TS*2.0, 2.6, 0, Math.PI*2); c.fill();
+      }
+    }
+
+    // ---- VILALBINA: botes no mar + flâmulas no cais ----
+    if(mapName === 'vilalbina'){
+      for(const [bx, ph] of [[12, 0], [32, 2.4]]){
+        const sx = bx*TS - camX, sy = 26.2*TS - camY + Math.sin(now/800 + ph)*1.6;
+        if(sx < -TS*2 || sx > canvas.width + TS*2) continue;
+        c.fillStyle = '#7a5434';
+        c.beginPath(); c.moveTo(sx - 12, sy); c.quadraticCurveTo(sx, sy + 7, sx + 12, sy);
+        c.lineTo(sx + 9, sy - 3.4); c.lineTo(sx - 9, sy - 3.4); c.closePath(); c.fill();
+        c.strokeStyle = '#4a3018'; c.lineWidth = 1.4;
+        c.beginPath(); c.moveTo(sx, sy - 3.4); c.lineTo(sx, sy - 13); c.stroke();
+        c.fillStyle = '#f0ead8';
+        c.beginPath(); c.moveTo(sx, sy - 13); c.lineTo(sx + 8 + Math.sin(now/300 + bx), sy - 9.5);
+        c.lineTo(sx, sy - 6.5); c.closePath(); c.fill();
+      }
+      for(const fx2 of [18, 26]){                               // flâmulas do cais
+        const sx = fx2*TS - camX, sy = 24.4*TS - camY;
+        if(sx < -TS || sx > canvas.width + TS) continue;
+        c.strokeStyle = '#6a5a4a'; c.lineWidth = 1.8;
+        c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx, sy - 18); c.stroke();
+        c.fillStyle = '#5aa9e0';
+        c.beginPath(); c.moveTo(sx, sy - 18); c.lineTo(sx + 10 + Math.sin(now/260 + fx2)*2, sy - 14.5);
+        c.lineTo(sx, sy - 11); c.closePath(); c.fill();
+      }
+    }
+
+    // ---- VINHEDO: os barris da adega ----
+    if(mapName === 'vinhedo'){
+      for(const [bx, by] of [[41, 15.6], [42.3, 15.8], [41.6, 14.8]]){
+        const sx = bx*TS - camX, sy = by*TS - camY;
+        if(sx < -TS || sx > canvas.width + TS || sy < -TS || sy > canvas.height + TS) continue;
+        c.fillStyle = '#8a5a34';
+        c.beginPath(); c.ellipse(sx, sy, 5.4, 6.4, 0, 0, Math.PI*2); c.fill();
+        c.strokeStyle = '#4a3018'; c.lineWidth = 1.2;
+        c.beginPath(); c.ellipse(sx, sy, 5.4, 6.4, 0, 0, Math.PI*2); c.stroke();
+        c.beginPath(); c.moveTo(sx - 5.4, sy - 2); c.lineTo(sx + 5.4, sy - 2);
+        c.moveTo(sx - 5.4, sy + 2); c.lineTo(sx + 5.4, sy + 2); c.stroke();
+      }
+    }
+    c.restore();
+  };
+})();

@@ -101,7 +101,7 @@ FACTIONS = {"cria_vampirica": "vampiro", "vampiro_nobre": "vampiro", "vampiro_an
 BOSS_RESPAWN_MIN = 3600      # bosses grandes renascem entre 1 e 2 horas REAIS
 BOSS_RESPAWN_MAX = 7200
 MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Costa de Maravaí",
-              "vilalbina": "Vilalbina", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
+              "templo_estrelado": "Santuário dos Doze", "vilalbina": "Vilalbina", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
               "pastos": "Pastos & Fazendas", "prospera": "Prospera", "jardim_templo": "Jardim do Templo Estrelado",
               "cidade_alta": "Cidade Alta", "farol_margem": "Margem do Farol", "torre_alvorada": "A Grande Biblioteca",
               "umbraval": "Umbraval", "vespera": "Véspera", "brasal": "Brasal",
@@ -2686,6 +2686,20 @@ def _try_farol(player):
     return False
 
 
+def _try_santuario(player):
+    """A porta do Santuário dos Doze (a estrutura central do círculo)."""
+    if player.get("map") == "jardim_templo" and \
+       max(abs(player["x"] - 27), abs(player["y"] - 27)) <= 4:
+        _go_to(request.sid, "templo_estrelado", 13, 24)
+        emit("toast", {"text": "⭐ O Santuário dos Doze: mármore negro, doze altares, um silêncio antigo."})
+        return True
+    if player.get("map") == "templo_estrelado" and player.get("y", 0) >= 25:
+        _go_to(request.sid, "jardim_templo", 27, 33)
+        emit("toast", {"text": "🌿 De volta ao círculo do jardim."})
+        return True
+    return False
+
+
 def _try_biblioteca(player):
     """Entre as estantes: cada toque lê um pedaço do CÂNONE do mundo."""
     if player.get("map") != "torre_alvorada" or player.get("y", 0) >= 10:
@@ -4738,7 +4752,7 @@ def on_interact(_data=None):
         if not _try_fenda(player) and not _try_fenda_inside(player) and \
            not _try_travessia(player) and not _try_ilha_bordas(player) and \
            not _try_torre(player) and not _try_biblioteca(player) and \
-           not _try_farol(player) and \
+           not _try_farol(player) and not _try_santuario(player) and \
            not _try_garden(player) and \
            not _try_ossuario(player) and not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \

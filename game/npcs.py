@@ -1445,6 +1445,93 @@ ROSTER.append({
     "greetings": ["..."], "contract_board": True,
 })
 
+
+# OS 12 SUMO-SACERDOTES do Templo Estrelado (um altar por deus).
+ROSTER.append({
+    "id": "npc:sumo_pofnir", "name": "Sumo Aurelian",
+    "look": {"skin": "#c9b090", "cloak": "#f2c14e", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (13, 4), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Pofnir vê. Pofnir SEMPRE vê. E se preocupa com tudo.', 'O Supremo é um gato branco e grande. Rir disso é heresia. E burrice.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_vargo", "name": "Suma Morwen",
+    "look": {"skin": "#c9b090", "cloak": "#5a5a6a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (17, 5), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Vargo não leva. Vargo ACOMPANHA. Há diferença.', "Toda alma que chega de outro mundo passou pela coleira d'Ele."],
+})
+ROSTER.append({
+    "id": "npc:sumo_martur", "name": "Sumo Tenaz",
+    "look": {"skin": "#c9b090", "cloak": "#7a8a5a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (20, 8), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Martur conta os séculos como você conta moedas.', 'A pressa é a única blasfêmia que o Jabuti reconhece.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_facalan", "name": "Suma Iara",
+    "look": {"skin": "#c9b090", "cloak": "#e0865a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (21, 13), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Facalan não tem dono, não tem templo, não tem paciência.', 'Este altar é vazio de propósito. Ela caça onde quer.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_drazun", "name": "Sumo Vermeer",
+    "look": {"skin": "#c9b090", "cloak": "#e05a4e", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (20, 17), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Drazun sonha em brasa. Os dragões são os sonhos que escaparam.', 'A ambição é sagrada. O que você fez com a sua hoje?'],
+})
+ROSTER.append({
+    "id": "npc:sumo_korgath", "name": "Sumo Brakk",
+    "look": {"skin": "#c9b090", "cloak": "#a83838", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (17, 20), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['KORGATH não pede reza. Pede SUOR.', 'A guerra é a oração; a cicatriz, o amém.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_corvo", "name": "Suma Pluma",
+    "look": {"skin": "#c9b090", "cloak": "#8a7ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (13, 21), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['O Corvo esteve em todos os mundos. E fofoca sobre todos.', 'Se um corvo te encarar hoje... sorria. Ele conta pra Ele.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_valiria", "name": "Suma Clara",
+    "look": {"skin": "#c9b090", "cloak": "#f2e05a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (8, 20), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Valiria acende o que a noite tentou apagar.', 'Toda aurora é a assinatura Dela.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_nherith", "name": "Suma Selene",
+    "look": {"skin": "#c9b090", "cloak": "#b06ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (5, 17), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Nherith rege os sonhos. Dormiu, é hóspede Dela.', 'A lua é o olho aberto da Coruja.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_jose", "name": "Sumo Gozo",
+    "look": {"skin": "#c9b090", "cloak": "#e08ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (4, 13), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['José entende os prazeres. Por isso o acorrentaram.', 'Um brinde é uma prece curta. Saúde!'],
+})
+ROSTER.append({
+    "id": "npc:sumo_bragor", "name": "Sumo Ferro",
+    "look": {"skin": "#c9b090", "cloak": "#8a6a3a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (5, 8), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Bragor jura pelo metal. O metal não mente.', 'Todo juramento honesto ecoa na Forja Dele.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_nhare", "name": "Suma Sorte",
+    "look": {"skin": "#c9b090", "cloak": "#7ac06a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (8, 5), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Nharé é a segunda chance que você não merecia.', 'Apostou? Ela viu. Escapou? Agradeça a Ela.'],
+})
+
 # A CÚPULA DE PROSPERINA
 ROSTER.append({
     "id": "npc:heron", "name": "Arquimago Heron, o Que Ficou",
@@ -1479,7 +1566,7 @@ ROSTER.append({
 ROSTER.append({
     "id": "npc:celestino", "name": "Arcebispo Rei Celestino",
     "look": {"skin": "#c9b090", "cloak": "#f0f0f8", "hat": "none", "hair": "#f0f0f0", "staff": True},
-    "map": "jardim_templo", "home": (27, 25), "radius": 2, "wanders": True,
+    "map": "templo_estrelado", "home": (13, 13), "radius": 1, "wanders": True,
     "step_every": 3.0, "solid": True, "kind": "person",
     "greetings": ["Doze torres, doze vozes. Eu apenas rejo o coro.",
                   "O trigo cresceu numa noite. Eu estava lá. Nunca mais duvidei.",
