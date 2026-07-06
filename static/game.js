@@ -14490,34 +14490,96 @@ function renderOutfits(){
     if(typeof mapName === 'undefined') return;
     c.save();
 
-    // ---- o DOMO do Santuário (centro do círculo do jardim) ----
+    // ---- O SANTUÁRIO DOS DOZE: mármore negro, ouro e as doze luzes ----
     if(mapName === 'jardim_templo'){
-      const dx = 27.5*TS - camX, dy = 27.5*TS - camY;
-      if(dx > -TS*5 && dx < canvas.width + TS*5 && dy > -TS*5 && dy < canvas.height + TS*5){
-        c.fillStyle = '#2a2530';                               // o corpo de mármore negro
-        c.beginPath(); c.ellipse(dx, dy - TS*0.4, TS*2.6, TS*1.9, 0, 0, Math.PI*2); c.fill();
-        const dg = c.createRadialGradient(dx - TS*0.8, dy - TS*1.4, 0, dx, dy - TS*0.6, TS*2.8);
-        dg.addColorStop(0, 'rgba(120,110,140,0.55)'); dg.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = dg;
-        c.beginPath(); c.ellipse(dx, dy - TS*0.4, TS*2.6, TS*1.9, 0, 0, Math.PI*2); c.fill();
-        for(let i = 0; i < 12; i++){                           // as 12 gemas na cúpula
-          const a = i*Math.PI/6 + now/5000;
-          const gx = dx + Math.cos(a)*TS*1.9, gy = dy - TS*0.5 + Math.sin(a)*TS*1.15;
+      const dx = 27.5*TS - camX, base = 30.2*TS - camY;
+      if(dx > -TS*8 && dx < canvas.width + TS*8 && base > -TS*12 && base < canvas.height + TS*4){
+        c.fillStyle = '#8f887c';                               // escadaria de mármore
+        for(let s = 0; s < 2; s++)
+          c.fillRect(dx - TS*(2.0 - s*0.4), base + s*4, TS*(4.0 - s*0.8), 4);
+        const tw = TS*5.2, th2 = TS*2.3;                       // o TAMBOR negro
+        c.fillStyle = '#221c2e';
+        c.fillRect(dx - tw/2, base - th2, tw, th2);
+        const sh = c.createLinearGradient(dx - tw/2, 0, dx + tw/2, 0);
+        sh.addColorStop(0, 'rgba(255,255,255,0.10)'); sh.addColorStop(0.35, 'rgba(255,255,255,0)');
+        sh.addColorStop(0.8, 'rgba(0,0,0,0.25)'); sh.addColorStop(1, 'rgba(0,0,0,0.30)');
+        c.fillStyle = sh; c.fillRect(dx - tw/2, base - th2, tw, th2);
+        c.fillStyle = '#c9a842';                               // frisos dourados
+        c.fillRect(dx - tw/2, base - th2, tw, 2);
+        c.fillRect(dx - tw/2, base - 3, tw, 3);
+        const CORES = _DEUS_CORES || ['#f2c14e','#5a5a6a','#7a8a5a','#e0865a','#e05a4e','#a83838','#8a7ae0','#f2e05a','#b06ae0','#e08ae0','#8a6a3a','#7ac06a'];
+        for(let i = 0; i < 12; i++){                           // 12 nichos, um por deus
+          const nx = dx - tw/2 + tw*(i + 0.5)/12;
           c.save(); c.globalCompositeOperation = 'lighter';
-          c.globalAlpha = 0.75 + 0.25*Math.sin(now/400 + i);
-          c.fillStyle = _DEUS_CORES[i];
+          c.globalAlpha = 0.85 + 0.15*Math.sin(now/500 + i);
+          c.fillStyle = CORES[i % 12];
+          c.beginPath(); c.arc(nx, base - th2*0.5, 2.6, Math.PI, 0);
+          c.rect(nx - 2.6, base - th2*0.5, 5.2, 6.5); c.fill();
+          c.restore();
+        }
+        c.fillStyle = '#2a2438';                               // A CÚPULA negra
+        c.beginPath(); c.ellipse(dx, base - th2, TS*2.7, TS*2.05, 0, Math.PI, 0); c.fill();
+        const dg = c.createRadialGradient(dx - TS*0.9, base - th2 - TS*1.3, 0, dx, base - th2 - TS*0.6, TS*2.9);
+        dg.addColorStop(0, 'rgba(150,140,180,0.5)'); dg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = dg;
+        c.beginPath(); c.ellipse(dx, base - th2, TS*2.7, TS*2.05, 0, Math.PI, 0); c.fill();
+        c.strokeStyle = 'rgba(201,168,66,0.85)'; c.lineWidth = 1.6;
+        for(const k of [-0.66, -0.33, 0, 0.33, 0.66]){         // gomos DOURADOS
+          c.beginPath();
+          c.moveTo(dx + k*TS*2.7, base - th2);
+          c.quadraticCurveTo(dx + k*TS*1.5, base - th2 - TS*2.05, dx, base - th2 - TS*2.05);
+          c.stroke();
+        }
+        for(let i = 0; i < 12; i++){                           // as 12 GEMAS no anel
+          const a = Math.PI + i*Math.PI/11;
+          const gx = dx + Math.cos(a)*TS*2.55, gy = base - th2 + Math.sin(a)*TS*1.9;
+          c.save(); c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = 0.8 + 0.2*Math.sin(now/400 + i);
+          c.fillStyle = CORES[i % 12];
           c.beginPath(); c.arc(gx, gy, 2.6, 0, Math.PI*2); c.fill();
           c.restore();
         }
-        c.fillStyle = '#e0c060';                               // a porta dourada (sul)
-        c.fillRect(dx - 5, dy + TS*0.9, 10, TS*0.6);
-        c.strokeStyle = '#8a6a2a'; c.lineWidth = 1.2; c.strokeRect(dx - 5, dy + TS*0.9, 10, TS*0.6);
-        c.save(); c.globalCompositeOperation = 'lighter';      // o óculo: feixe do céu
-        c.globalAlpha = 0.35 + 0.15*Math.sin(now/700);
-        const og = c.createRadialGradient(dx, dy - TS*1.6, 0, dx, dy - TS*1.6, TS*1.3);
-        og.addColorStop(0, 'rgba(255,244,210,0.95)'); og.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = og; c.beginPath(); c.arc(dx, dy - TS*1.6, TS*1.3, 0, Math.PI*2); c.fill();
+        const ly = base - th2 - TS*2.05;                       // coroa: estrela dos Doze
+        c.fillStyle = '#c9a842'; c.fillRect(dx - 3.4, ly - 8, 6.8, 8);
+        c.save(); c.translate(dx, ly - 15); c.rotate(now/6000);
+        c.fillStyle = '#e8c860';
+        c.beginPath();
+        for(let i = 0; i < 24; i++){
+          const R = (i % 2 === 0) ? 8 : 3.4;
+          const a = i*Math.PI/12;
+          c[i ? 'lineTo' : 'moveTo'](Math.cos(a)*R, Math.sin(a)*R);
+        }
+        c.closePath(); c.fill(); c.restore();
+        c.save(); c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 0.4 + 0.15*Math.sin(now/600);
+        const hg = c.createRadialGradient(dx, ly - 15, 0, dx, ly - 15, TS*1.5);
+        hg.addColorStop(0, 'rgba(255,224,138,0.9)'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = hg; c.beginPath(); c.arc(dx, ly - 15, TS*1.5, 0, Math.PI*2); c.fill();
+        for(let i = 0; i < 6; i++){                            // motas das doze cores orbitando
+          const t = (now/3000 + i/6) % 1;
+          const a = t*Math.PI*2;
+          c.globalAlpha = 0.6;
+          c.fillStyle = CORES[(i*2) % 12];
+          c.beginPath(); c.arc(dx + Math.cos(a)*TS*3.1, base - th2 - TS*0.6 + Math.sin(a)*TS*1.1, 1.8, 0, Math.PI*2); c.fill();
+        }
         c.restore();
+        c.fillStyle = '#c9a842';                               // portal dourado em arco
+        c.beginPath(); c.arc(dx, base - 8, 8.5, Math.PI, 0);
+        c.rect(dx - 8.5, base - 8, 17, 8); c.fill();
+        c.fillStyle = '#171223';
+        c.beginPath(); c.arc(dx, base - 7, 6, Math.PI, 0);
+        c.rect(dx - 6, base - 7, 12, 7); c.fill();
+        for(const bx of [-1.6, 1.6]){                          // braseiros azulados
+          const bxx = dx + bx*TS;
+          c.fillStyle = '#3a3a46'; c.fillRect(bxx - 2.4, base - 5, 4.8, 6);
+          c.save(); c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = 0.7 + 0.3*Math.sin(now/240 + bx);
+          c.fillStyle = '#8ab0ff';
+          c.beginPath(); c.moveTo(bxx, base - 13);
+          c.quadraticCurveTo(bxx + 3.4, base - 8.5, bxx, base - 5);
+          c.quadraticCurveTo(bxx - 3.4, base - 8.5, bxx, base - 13); c.fill();
+          c.restore();
+        }
       }
       const cant = [[16,16],[38,16],[16,38],[38,38]];          // canteiros vívidos
       const fcores = ['#e05a8a','#f2c14e','#8a7ae0','#5aa9e0','#e0865a'];
@@ -14745,9 +14807,9 @@ var _PORTAS_VIVAS = [
       if(sx > -TS*10 && sx < canvas.width + TS*10 && base > -TS*12 && base < canvas.height + TS*6){
         c.fillStyle = '#a8a094';                              // a escadaria
         for(let s = 0; s < 3; s++)
-          c.fillRect(sx - TS*(3.4 - s*0.5), base + s*4, TS*(6.8 - s*1.0), 4);
+          c.fillRect(sx - TS*(3.4 - s*0.5), base + TS*1.1 + s*4, TS*(6.8 - s*1.0), 4);
         for(const gx of [-4.2, 4.2]){                          // guardiões de pedra
-          const gxx = sx + gx*TS, gy = base - 2;
+          const gxx = sx + gx*TS, gy = base + TS*1.1;
           c.fillStyle = '#8f887c';
           c.fillRect(gxx - 6, gy - 6, 12, 8);
           c.beginPath(); c.ellipse(gxx, gy - 15, 5.5, 8, 0, 0, Math.PI*2); c.fill();
@@ -14755,10 +14817,10 @@ var _PORTAS_VIVAS = [
           c.fillStyle = 'rgba(255,220,120,' + (0.4 + 0.3*Math.sin(now/800 + gx)) + ')';
           c.beginPath(); c.arc(gxx, gy - 26, 1.3, 0, Math.PI*2); c.fill();
         }
-        c.fillStyle = '#f0ebdf';                               // A FACHADA BRANCA (cobre TODO o corpo antigo)
-        c.fillRect(sx - TS*7.8, base - TS*5.8, TS*15.6, TS*5.8);
+        c.fillStyle = '#f0ebdf';                               // A FACHADA BRANCA (até o chão!)
+        c.fillRect(sx - TS*7.8, base - TS*5.8, TS*15.6, TS*6.9);
         c.fillStyle = 'rgba(0,0,0,0.07)';
-        c.fillRect(sx + TS*2.6, base - TS*5.8, TS*5.2, TS*5.8);
+        c.fillRect(sx + TS*2.6, base - TS*5.8, TS*5.2, TS*6.9);
         c.strokeStyle = 'rgba(120,105,80,0.30)'; c.lineWidth = 1;
         for(let fl = 1; fl < 4; fl++){
           c.beginPath(); c.moveTo(sx - TS*7.8, base - fl*TS*1.45);
@@ -14783,6 +14845,21 @@ var _PORTAS_VIVAS = [
           c.beginPath(); c.arc(vxx, vyy - 8, 6, Math.PI, 0); c.stroke();
           c.strokeRect(vxx - 6, vyy - 8, 12, 20);
           c.beginPath(); c.moveTo(vxx, vyy - 13); c.lineTo(vxx, vyy + 12); c.stroke();
+        }
+        for(const pdx of [-1, 0, 1]){                          // PORTAL TRIPLO dourado
+          const pxx = sx + pdx*TS*1.15;
+          c.fillStyle = '#c9a842';
+          c.beginPath(); c.arc(pxx, base + TS*0.25, TS*0.44, Math.PI, 0);
+          c.rect(pxx - TS*0.44, base + TS*0.25, TS*0.88, TS*0.75); c.fill();
+          c.fillStyle = '#241c30';
+          c.beginPath(); c.arc(pxx, base + TS*0.32, TS*0.32, Math.PI, 0);
+          c.rect(pxx - TS*0.32, base + TS*0.32, TS*0.64, TS*0.68); c.fill();
+          c.save(); c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = 0.30 + 0.10*Math.sin(now/500 + pdx);
+          const pg = c.createRadialGradient(pxx, base + TS*0.7, 0, pxx, base + TS*0.7, TS*0.8);
+          pg.addColorStop(0, 'rgba(255,220,140,0.8)'); pg.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = pg; c.beginPath(); c.arc(pxx, base + TS*0.7, TS*0.8, 0, Math.PI*2); c.fill();
+          c.restore();
         }
         const tw = TS*5.6, th2 = TS*6.2;                       // o TAMBOR (sobre a fachada)
         c.fillStyle = '#ded6c6';

@@ -101,7 +101,7 @@ FACTIONS = {"cria_vampirica": "vampiro", "vampiro_nobre": "vampiro", "vampiro_an
 BOSS_RESPAWN_MIN = 3600      # bosses grandes renascem entre 1 e 2 horas REAIS
 BOSS_RESPAWN_MAX = 7200
 MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Costa de Maravaí",
-              "templo_estrelado": "Santuário dos Doze", "vilalbina": "Vilalbina",
+              "templo_estrelado": "Templo Estrelado", "vilalbina": "Vilalbina",
               "taverna_vilalbina": "Taverna da Rosa", "iscas_cais": "Isqueria do Tião",
               "mercado_prospera": "Empório do Otto", "solar_prospera": "Solar dos Eméritos", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
               "pastos": "Pastos & Fazendas", "prospera": "Prospera", "jardim_templo": "Jardim do Templo Estrelado",
@@ -177,6 +177,9 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 
 # ----------------------------------------------------------------- paginas
+
+BUILD_TAG = "Templo Estrelado DIGNO no jardim + Septo Branco no Ermo (06/jul v2)"
+
 
 def _asset_version():
     """Carimbo de versao dos estaticos = data de modificacao do game.js. Muda a
@@ -2749,7 +2752,7 @@ def _try_santuario(player):
     if player.get("map") == "jardim_templo" and \
        max(abs(player["x"] - 27), abs(player["y"] - 27)) <= 4:
         _go_to(request.sid, "templo_estrelado", 16, 29)
-        emit("toast", {"text": "⭐ O Santuário dos Doze: mármore negro, doze altares, um silêncio antigo."})
+        emit("toast", {"text": "⭐ O Templo Estrelado: mármore negro, doze altares, um silêncio antigo."})
         return True
     if player.get("map") == "templo_estrelado" and player.get("y", 0) >= 31:
         _go_to(request.sid, "jardim_templo", 27, 33)
@@ -6529,6 +6532,9 @@ def on_chat(data):
         return
     text = (data or {}).get("text", "")
     if not isinstance(text, str):
+        return
+    if text.strip().lower() in ("/versao", "/versão", "/v"):
+        emit("toast", {"text": "🏷️ Build: %s | asset %s" % (BUILD_TAG, _asset_version())})
         return
     text = text.strip()[:120]
     if not text:
