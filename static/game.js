@@ -4119,7 +4119,7 @@ function drawHat(c, hx, topY, hr, kind, cloak, facing){
     else c.fillRect(hx-bw/2, topY+hr*0.02, bw, 2);
   }
 }
-function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
+function _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, walk){
   const cx = px + ts/2;
   const cyc = ((walk||0) % WALK_CYCLE) / WALK_CYCLE;
   const frame = cyc < 0.5 ? 0 : 1;
@@ -13015,6 +13015,7 @@ function closeRunes(){ if(_runesEl){ _runesEl.remove(); _runesEl = null; } }
 window.addEventListener('keydown', e=>{
   if(typeof started === 'undefined' || !started || typingInField(e)) return;
   if(e.code === 'KeyL'){ e.preventDefault(); openSkills(); }
+  if(e.code === 'KeyO'){ e.preventDefault(); openOutfits(); }
   if(e.code === 'KeyR'){ e.preventDefault(); openRunes(); }
 });
 
@@ -13821,3 +13822,244 @@ function drawIlhaDecor(c, now){
     c.restore();
   };
 })();
+
+
+// ===========================================================================
+//  OUTFITS DO ERMO: o wrapper veste o boneco (base + acessórios + addons).
+//  Masculino e feminino: o corpo segue look.sex; acessórios ganham variações.
+// ===========================================================================
+function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
+  _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, walk);
+  try{ drawOutfitExtras(c, px, py, ts, look || {}, facing, moving, walk); }catch(e){}
+}
+
+function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
+  const oid = look.outfit;
+  if(!oid) return;
+  const ads = look.addons || [];
+  const fem = (look.sex === 'F');
+  const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const cx = px + ts/2, headY = py + ts*0.22, hipY = py + ts*0.62, backX = facing === 'left' ? cx + 4 : cx - 4;
+  c.save();
+
+  if(oid === 'aldeao'){
+    if(ads.includes(1)){                                     // chapéu de palha
+      c.fillStyle = '#d8b86a';
+      c.beginPath(); c.ellipse(cx, headY - 3, 8.5, 3.4, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(cx, headY - 5, 4.6, 3.2, 0, 0, Math.PI*2); c.fill();
+      c.strokeStyle = '#a8842e'; c.lineWidth = 1;
+      c.beginPath(); c.ellipse(cx, headY - 3, 8.5, 3.4, 0, 0, Math.PI*2); c.stroke();
+      if(fem){ c.fillStyle = '#c04a5a'; c.fillRect(cx - 4.5, headY - 5.4, 9, 1.8); }
+    }
+    if(ads.includes(2)){                                     // mochila
+      c.fillStyle = '#7a5a34';
+      c.fillRect(backX - 3.4, py + ts*0.36, 6.8, 8);
+      c.strokeStyle = '#4a3418'; c.lineWidth = 1; c.strokeRect(backX - 3.4, py + ts*0.36, 6.8, 8);
+      c.fillStyle = '#9a7a4a'; c.fillRect(backX - 3.4, py + ts*0.36, 6.8, 2.4);
+    }
+  }
+
+  if(oid === 'cacador'){
+    if(ads.includes(1)){                                     // capuz + pena
+      c.fillStyle = '#3a462c';
+      c.beginPath(); c.arc(cx, headY - 2, 5.6, Math.PI*0.95, Math.PI*2.05); c.fill();
+      c.strokeStyle = '#1a1a12'; c.lineWidth = 1.4;
+      c.beginPath(); c.moveTo(cx + 3, headY - 6.5); c.quadraticCurveTo(cx + 8, headY - 10, cx + 9.5, headY - 5); c.stroke();
+    }
+    if(ads.includes(2)){                                     // aljava
+      c.save(); c.translate(backX, py + ts*0.42); c.rotate(0.5);
+      c.fillStyle = '#6a4a2a'; c.fillRect(-2.4, -1, 4.8, 10);
+      c.strokeStyle = '#e8e2d0'; c.lineWidth = 1;
+      for(const fx of [-1.2, 0.8]){ c.beginPath(); c.moveTo(fx, -1); c.lineTo(fx - 1, -4.5); c.stroke(); }
+      c.restore();
+    }
+  }
+
+  if(oid === 'mercenario'){
+    c.fillStyle = '#a83838';                                 // a faixa (base)
+    c.fillRect(cx - 5.5, py + ts*0.5, 11, 2.2);
+    if(ads.includes(1)){                                     // ombreira
+      c.fillStyle = '#8a8a94';
+      c.beginPath(); c.ellipse(cx - 5, py + ts*0.34, 3.8, 2.8, -0.3, 0, Math.PI*2); c.fill();
+      c.strokeStyle = '#3a3a42'; c.lineWidth = 1; c.stroke();
+    }
+    if(ads.includes(2)){                                     // capa do campeão
+      const sw = Math.sin(now/240 + px)*1.6;
+      c.fillStyle = 'rgba(168,42,42,0.92)';
+      c.beginPath(); c.moveTo(backX - 4.5, py + ts*0.34);
+      c.quadraticCurveTo(backX - 6 + sw, py + ts*0.62, backX - 3.5 + sw, py + ts*0.82);
+      c.lineTo(backX + 3.5 + sw, py + ts*0.82);
+      c.quadraticCurveTo(backX + 6 + sw, py + ts*0.62, backX + 4.5, py + ts*0.34);
+      c.closePath(); c.fill();
+    }
+  }
+
+  if(oid === 'aprendiz'){
+    if(ads.includes(1)){                                     // chapéu pontudo
+      c.fillStyle = '#4a4a7a';
+      const aba = fem ? 8.6 : 7.2;
+      c.beginPath(); c.ellipse(cx, headY - 2.5, aba, 2.8, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.moveTo(cx - 4.4, headY - 3);
+      c.quadraticCurveTo(cx - 1, headY - 12, cx + 2.5, headY - 13.5);
+      c.quadraticCurveTo(cx + 2.5, headY - 7, cx + 4.4, headY - 3); c.closePath(); c.fill();
+      c.fillStyle = '#8a7ae0'; c.fillRect(cx - 4.4, headY - 4.4, 8.8, 1.6);
+    }
+    if(ads.includes(2)){                                     // grimório no quadril
+      c.fillStyle = '#5a3a8a'; c.fillRect(cx + 3.6, hipY, 5, 6.4);
+      c.fillStyle = '#e8d8a0'; c.fillRect(cx + 3.6, hipY, 1.2, 6.4);
+      c.strokeStyle = '#c9a842'; c.lineWidth = 0.8; c.strokeRect(cx + 3.6, hipY, 5, 6.4);
+    }
+  }
+
+  if(oid === 'pescador'){
+    if(ads.includes(1)){                                     // chapéu de iscas
+      c.fillStyle = '#4a6a5a';
+      c.beginPath(); c.ellipse(cx, headY - 3, 7.6, 3, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(cx, headY - 5, 4.2, Math.PI, Math.PI*2); c.fill();
+      for(const [ix, cor] of [[-5, '#e05a4e'], [0, '#f2c14e'], [5, '#5aa9e0']]){
+        c.fillStyle = cor;
+        c.beginPath(); c.arc(cx + ix, headY - 1.2 + Math.sin(now/300 + ix)*0.6, 1.3, 0, Math.PI*2); c.fill();
+      }
+    }
+    if(ads.includes(2)){                                     // o troféu no cinto
+      c.save(); c.translate(cx - 5.5, hipY + 2); c.rotate(-0.9);
+      c.fillStyle = '#d8b04c';
+      c.beginPath(); c.ellipse(0, 0, 4.2, 1.8, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.moveTo(3.6, 0); c.lineTo(6, -2); c.lineTo(6, 2); c.closePath(); c.fill();
+      c.restore();
+    }
+  }
+
+  if(oid === 'andarilho'){
+    if(ads.includes(1)){                                     // aba larga de couro
+      c.fillStyle = '#6a4a2a';
+      c.beginPath(); c.ellipse(cx, headY - 2.6, 9, 3.2, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(cx, headY - 4.6, 4.4, 2.8, 0, 0, Math.PI*2); c.fill();
+      c.strokeStyle = '#3a2814'; c.lineWidth = 1;
+      c.beginPath(); c.ellipse(cx, headY - 2.6, 9, 3.2, 0, 0, Math.PI*2); c.stroke();
+    }
+    if(ads.includes(2)){                                     // lanterna acesa
+      const ly = hipY + 3 + Math.sin(now/350)*0.8;
+      c.strokeStyle = '#3a3a42'; c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(cx + 5.5, hipY); c.lineTo(cx + 6.5, ly - 2); c.stroke();
+      c.fillStyle = '#2a2a32'; c.fillRect(cx + 5, ly - 2, 3.4, 4.6);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      const g = c.createRadialGradient(cx + 6.7, ly, 0, cx + 6.7, ly, 7);
+      g.addColorStop(0, 'rgba(255,206,110,0.9)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(cx + 6.7, ly, 7, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.fillStyle = '#ffe9b0'; c.fillRect(cx + 5.8, ly - 1, 1.8, 2.6);
+    }
+  }
+
+  if(oid === 'guardiao'){
+    c.fillStyle = '#c9b44a';                                 // o brasão (base)
+    c.beginPath(); c.moveTo(cx, py + ts*0.42); c.lineTo(cx - 2.4, py + ts*0.48);
+    c.lineTo(cx, py + ts*0.56); c.lineTo(cx + 2.4, py + ts*0.48); c.closePath(); c.fill();
+    if(ads.includes(1)){                                     // elmo com plumas
+      c.fillStyle = '#9aa0aa';
+      c.beginPath(); c.arc(cx, headY - 2.5, 5.4, Math.PI*0.9, Math.PI*2.1); c.fill();
+      c.fillStyle = fem ? '#e05a8a' : '#c43e3e';
+      for(let i = -1; i <= 1; i++){
+        c.beginPath(); c.ellipse(cx + i*2.2, headY - 9 + Math.abs(i), 1.4, 3.6, i*0.2, 0, Math.PI*2); c.fill();
+      }
+    }
+    if(ads.includes(2)){                                     // estandarte às costas
+      c.strokeStyle = '#6a5a3a'; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(backX, py + ts*0.36); c.lineTo(backX, py - 8); c.stroke();
+      const sw = Math.sin(now/300 + px)*1.6;
+      c.fillStyle = '#c9b44a';
+      c.beginPath(); c.moveTo(backX, py - 8);
+      c.lineTo(backX + 9 + sw, py - 5.5); c.lineTo(backX, py - 3); c.closePath(); c.fill();
+    }
+  }
+
+  if(oid === 'mergulhador'){
+    c.save(); c.globalCompositeOperation = 'lighter';        // runas na roupa (base)
+    c.globalAlpha = 0.5 + 0.3*Math.sin(now/420);
+    c.fillStyle = '#a06aff';
+    c.fillRect(cx - 3.5, py + ts*0.44, 1.6, 1.6);
+    c.fillRect(cx + 2, py + ts*0.5, 1.6, 1.6);
+    c.restore();
+    if(ads.includes(1)){                                     // máscara da Fenda
+      c.fillStyle = '#3a2a5a'; c.fillRect(cx - 4.6, headY - 1.4, 9.2, 3);
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.7 + 0.3*Math.sin(now/260);
+      c.fillStyle = '#b088ff'; c.fillRect(cx - 3, headY - 0.7, 2, 1.6); c.fillRect(cx + 1, headY - 0.7, 2, 1.6);
+      c.restore();
+    }
+    if(ads.includes(2)){                                     // FRAGMENTOS ORBITAIS
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for(let i = 0; i < 3; i++){
+        const a = now/800 + i*2.094;
+        const ox = cx + Math.cos(a)*11, oy = py + ts*0.42 + Math.sin(a)*5;
+        c.globalAlpha = 0.85;
+        c.fillStyle = '#a06aff';
+        c.save(); c.translate(ox, oy); c.rotate(a*2);
+        c.beginPath(); c.moveTo(0, -3); c.lineTo(2.2, 0); c.lineTo(0, 3); c.lineTo(-2.2, 0); c.closePath(); c.fill();
+        c.restore();
+        const g = c.createRadialGradient(ox, oy, 0, ox, oy, 6);
+        g.addColorStop(0, 'rgba(160,106,255,0.55)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(ox, oy, 6, 0, Math.PI*2); c.fill();
+      }
+      c.restore();
+    }
+  }
+  c.restore();
+}
+
+// ===========================================================================
+//  O GUARDA-ROUPA (tecla O): escolher outfit, ver missões de addon, ♂/♀.
+// ===========================================================================
+var _outfitsEl = null, _outfitsData = null;
+socket.on('outfits', d => { _outfitsData = d; renderOutfits(); });
+
+function openOutfits(){
+  if(_outfitsEl){ closeOutfits(); return; }
+  _outfitsEl = document.createElement('div');
+  _outfitsEl.id = 'outfitsPanel';
+  _outfitsEl.style.cssText = 'position:fixed;inset:0;z-index:233;display:flex;align-items:center;justify-content:center;background:rgba(6,8,14,0.66);';
+  _outfitsEl.addEventListener('click', ev=>{ if(ev.target === _outfitsEl) closeOutfits(); });
+  document.body.appendChild(_outfitsEl);
+  renderOutfits();
+  socket.emit('outfits_get');
+}
+function closeOutfits(){ if(_outfitsEl){ _outfitsEl.remove(); _outfitsEl = null; } }
+function renderOutfits(){
+  if(!_outfitsEl) return;
+  const d = _outfitsData || {outfits: [], atual: '', sex: 'M'};
+  let h = '<div style="width:min(420px,94vw);max-height:80vh;overflow:auto;background:#101828;border:1px solid #3a5a8a;border-radius:14px;padding:14px;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'+
+    '<span style="font:800 15px Cinzel,serif;color:#e0c98a;">🎨 Guarda-Roupa</span>'+
+    '<span>'+[['M','♂'],['F','♀']].map(s=>
+      '<button data-sx="'+s[0]+'" style="padding:4px 10px;margin-left:4px;background:'+(d.sex===s[0]?'#2a3a5a':'#141c2e')+';border:1px solid '+(d.sex===s[0]?'#8ac0f0':'#2a3a5a')+';border-radius:8px;color:#c9d8ff;font:800 12px Inter;cursor:pointer;">'+s[1]+'</button>').join('')+'</span></div>'+
+    '<div style="font:500 10.5px Inter;color:#7a86a8;margin-bottom:10px;">Outfit libera por NÍVEL. Addon é TROFÉU: cumpra a façanha. Tecla O abre/fecha.</div>';
+  for(const o of (d.outfits||[])){
+    const atual = d.atual === o.id;
+    h += '<div style="margin-bottom:10px;padding:9px;background:#0c1422;border:1px solid '+(atual?'#e0c98a':'#22304a')+';border-radius:10px;'+(o.aberto?'':'opacity:0.55;')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+      '<span style="font:800 12.5px Inter;color:'+(atual?'#e0c98a':'#c9d8ff')+';"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:'+o.cloak+';border:1px solid '+o.accent+';margin-right:5px;"></span>'+o.nome+(atual?' ✦':'')+'</span>'+
+      (o.aberto ? '<button data-of="'+o.id+'" style="padding:4px 12px;background:#1a2a44;border:1px solid #3a5a8a;border-radius:8px;color:#8ac0f0;font:800 10.5px Inter;cursor:pointer;">VESTIR</button>'
+                : '<span style="font:800 10.5px Inter;color:#5a6a88;">🔒 nível '+o.lvl+'</span>')+'</div>'+
+      '<div style="font:500 10px Inter;color:#7a86a8;margin:3px 0 6px;">'+o.desc+'</div>';
+    o.addons.forEach((a, i)=>{
+      const pct = Math.min(100, Math.round(a.tem*100/a.alvo));
+      h += '<div style="margin-top:5px;">'+
+        '<div style="display:flex;justify-content:space-between;"><span style="font:700 10px Inter;color:'+(a.ok?'#8ae0a0':'#a8b4d0')+';">'+(a.ok?'✓ ':'')+'Addon '+(i+1)+': '+a.nome+'</span>'+
+        '<span style="font:700 10px Inter;color:#e0c98a;">'+a.tem+'/'+a.alvo+'</span></div>'+
+        '<div style="height:5px;background:#0a1220;border-radius:3px;overflow:hidden;margin-top:2px;">'+
+        '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+(a.ok?'#3aa86a':'#3a6aaa')+','+(a.ok?'#8ae0a0':'#8ac0f0')+');"></div></div>'+
+        '<div style="font:500 9px Inter;color:#5a6a88;">'+a.desc+'</div></div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  _outfitsEl.innerHTML = h;
+  _outfitsEl.querySelectorAll('[data-of]').forEach(b=> b.addEventListener('click', ()=>{
+    socket.emit('outfit_set', {outfit: b.getAttribute('data-of'), sex: (_outfitsData||{}).sex || 'M'});
+  }));
+  _outfitsEl.querySelectorAll('[data-sx]').forEach(b=> b.addEventListener('click', ()=>{
+    if(_outfitsData){ _outfitsData.sex = b.getAttribute('data-sx'); renderOutfits(); }
+    if((_outfitsData||{}).atual) socket.emit('outfit_set', {outfit: _outfitsData.atual, sex: b.getAttribute('data-sx')});
+  }));
+}

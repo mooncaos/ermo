@@ -47,7 +47,7 @@ from flask import Flask, render_template, request, jsonify, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from game import (db, accounts,
-                  lore, items, npcs, rules, valdris, classes, races, professions,
+                  lore, outfits, items, npcs, rules, valdris, classes, races, professions,
                   leveling, feats, class_features, monsters as monsters_def, combat,
                   spells as spells_def, abilities as abilities_def, gm)
 from game import secret_worlds, world_map as wm
@@ -1013,6 +1013,7 @@ def _quest_deliver(sid, player, qid):
     if rw.get("bronze"):
         player["wallet"] = int(player.get("wallet", 0)) + int(rw["bronze"])
         if qid.startswith("ct_"):
+            _op(player, "ct")
             _aju = min(int(MARKET.get("chest", 0)), int(rw["bronze"]) // 2)
             if _aju > 0:
                 MARKET["chest"] = int(MARKET.get("chest", 0)) - _aju
@@ -2352,6 +2353,7 @@ def _invasion_tick(now):
                 if not p2:
                     continue
                 p2["wallet"] = int(p2.get("wallet", 0)) + 400
+                _op(p2, "invas")
                 socketio.emit("wallet", {"bronze": p2.get("wallet", 0)}, to=s2)
                 _pool = _rarity_pool("raro")
                 if _pool:
@@ -2688,11 +2690,114 @@ def _try_biblioteca(player):
     """Entre as estantes: cada toque lê um pedaço do CÂNONE do mundo."""
     if player.get("map") != "torre_alvorada" or player.get("y", 0) >= 10:
         return False
+    _op(player, "estantes")
     cid = random.choice(list(lore.CANON.keys()))
     v = lore.CANON[cid]
     campo, rotulo = random.choice([("origem", "Origem"), ("laco", "Laços"), ("poder", "Poder")])
     emit("toast", {"text": "📖 %s — %s: %s" % (v.get("nome", cid), rotulo, v.get(campo, "..."))})
     return True
+
+
+
+# ===========================================================================
+#  OUTFITS: os 8 básicos do Ermo (masculino e feminino), addons por façanha.
+# ===========================================================================
+def _op(player, chave, n=1):
+    f = player.get("ficha") or {}
+    o = f.setdefault("op", {})
+    o[chave] = int(o.get(chave, 0)) + n
+    player["ficha"] = f
+
+
+def _outfit_delivery(player, npc_id):
+    """Entregas automáticas de addon ao falar com o NPC certo (consome da bolsa)."""
+    f = player.get("ficha") or {}
+    o = f.setdefault("op", {})
+    fez = []
+    def _drena(iid, chave, alvo):
+        falta = alvo - int(o.get(chave, 0))
+        if falta <= 0:
+            return 0
+        tem = _bag_count(player, iid)
+        usa = min(tem, falta)
+        if usa > 0:
+            items.remove_from_bag(player["inventory"], iid, usa)
+            o[chave] = int(o.get(chave, 0)) + usa
+            fez.append("%dx %s" % (usa, (items.get(iid) or {}).get("name", iid)))
+        return usa
+    if npc_id == "npc:cigana":
+        _drena("erva_solar", "ervas_s", 50)
+        _drena("erva_lunar", "ervas_l", 20)
+    elif npc_id == "npc:mestre_bragan":
+        _drena("flecha", "flechas", 300)
+        _drena("couro_curtido", "couros", 50)
+    elif npc_id == "npc:heron":
+        _drena("runa_em_branco", "runas", 10)
+    if fez:
+        player["ficha"] = f
+        _quest_save(player)
+        _persist_loadout(player)
+        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        emit("toast", {"text": "📦 Entrega de addon: %s. Veja o progresso na tecla O!" % ", ".join(fez)})
+
+
+def _outfits_payload(player):
+    f = player.get("ficha") or {}
+    aw = int((ARENA_RECORDS.get(player.get("name", "")) or {}).get("w", 0))
+    prog = outfits.progress(f, arena_w=aw)
+    lvl = int(f.get("level", 1))
+    out = []
+    for o in outfits.OUTFITS:
+        ads = []
+        for (nome, chave, alvo, desc) in outfits.ADDONS[o["id"]]:
+            ads.append({"nome": nome, "desc": desc, "alvo": alvo,
+                        "tem": min(prog.get(chave, 0), alvo),
+                        "ok": prog.get(chave, 0) >= alvo})
+        out.append({"id": o["id"], "nome": o["nome"], "lvl": o["lvl"],
+                    "desc": o["desc"], "cloak": o["cloak"], "accent": o["accent"],
+                    "aberto": lvl >= o["lvl"], "addons": ads})
+    return {"outfits": out, "atual": (player.get("look") or {}).get("outfit", ""),
+            "sex": (player.get("look") or {}).get("sex", "M")}
+
+
+@socketio.on("outfits_get")
+def on_outfits_get(data=None):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    emit("outfits", _outfits_payload(player))
+
+
+@socketio.on("outfit_set")
+def on_outfit_set(data):
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    oid = (data or {}).get("outfit", "")
+    sex = (data or {}).get("sex")
+    o = outfits.by_id(oid)
+    f = player.get("ficha") or {}
+    if not o or int(f.get("level", 1)) < o["lvl"]:
+        emit("toast", {"text": "🔒 Esse outfit ainda não é seu."})
+        return
+    look = player.get("look") or {}
+    look["outfit"] = oid
+    look["cloak"] = o["cloak"]
+    if sex in ("M", "F"):
+        look["sex"] = sex
+    aw = int((ARENA_RECORDS.get(player.get("name", "")) or {}).get("w", 0))
+    prog = outfits.progress(f, arena_w=aw)
+    look["addons"] = [i + 1 for i, (_, ch, alvo, _) in enumerate(outfits.ADDONS[oid])
+                      if prog.get(ch, 0) >= alvo]
+    player["look"] = look
+    _persist_loadout(player)
+    try:
+        _world_refresh(player.get("map"))
+    except Exception:
+        pass
+    emit("toast", {"text": "🎨 Vestindo: %s %s" % (o["nome"],
+                   "(full addons!)" if len(look["addons"]) == 2 else "")})
+    emit("outfits", _outfits_payload(player))
 
 
 def _gossip_line(npc_id=None):
@@ -2952,6 +3057,9 @@ def _rt_kill(sid, pl, m):
                                             (pl.get("name", "Alguém"), _rnome)})
             break
 
+    _op(pl, "kills")
+    if m.get("type") in outfits.FERAS:
+        _op(pl, "feras")
     if m.get("type") == "carcaca" and m.get("_owner"):
         _dono = world.monsters.get(m.get("_owner"))
         if _dono and _dono.get("alive"):
@@ -2965,6 +3073,7 @@ def _rt_kill(sid, pl, m):
                 _hp2 = world.players.get(_hs)
                 if _hp2:
                     _hp2["wallet"] = int(_hp2.get("wallet", 0)) + 300
+                    _op(_hp2, "embosc")
                     socketio.emit("wallet", {"bronze": _hp2.get("wallet", 0)}, to=_hs)
             socketio.emit("toast", {"text": "🐴 Caravana SALVA! O Zeca paga 300 de bronze a cada herói."})
     if m.get("_invasion"):
@@ -4846,6 +4955,11 @@ def on_interact(_data=None):
         emit("couraria_open", _marion_payload(player, greet))
         return
 
+    try:
+        _outfit_delivery(player, npc.get("id"))
+    except Exception:
+        pass
+
     # ZECA: a banca ambulante da caravana
     if npc.get("_spec", {}).get("caravaneiro"):
         _open_shop(player, npc, "🐴 Banca do Zeca" + (" (saqueada...)" if CARAVAN.get("raided") else ""),
@@ -5293,6 +5407,7 @@ def on_fish_hit(data):
     if not player or time.time() - player.get("_fishing", 0) > 12:
         return
     player["_fishing"] = 0
+    _op(player, "pesca")
     # PESCA LENDÁRIA: clima + hora + isca viva invocam as lendas das águas
     _turno_p = _turno_do_dia()
     _lend = None
@@ -5310,6 +5425,9 @@ def on_fish_hit(data):
         _nomef = (items.get(_lend) or {}).get("name", _lend)
         _persist_loadout(player)
         emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        f.setdefault("op", {}).setdefault("lend", [])
+        if _lend not in f["op"]["lend"]:
+            f["op"]["lend"].append(_lend)
         socketio.emit("toast", {"text": "🎣🌟 %s fisgou %s de %.1f kg!!" %
                                 (player.get("name", "Alguém"), _nomef, _peso)})
         if _peso > float(FISH_RECORDS.get("kg", 0)):
