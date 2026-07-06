@@ -558,6 +558,19 @@ function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
       c.beginPath(); c.arc(px + ts*0.5, py + ts*0.42, ts*0.08, 0, Math.PI*2); c.fill();
       break;
     }
+    case 'P': {                                        // RETRATO (moldura dourada)
+      c.fillStyle = th.wall; c.fillRect(px, py, ts, ts);
+      c.fillStyle = '#c9a842';
+      c.fillRect(px + ts*0.16, py + ts*0.10, ts*0.68, ts*0.72);
+      c.fillStyle = '#2c2418';
+      c.fillRect(px + ts*0.22, py + ts*0.16, ts*0.56, ts*0.60);
+      c.fillStyle = '#c9b090';                          // o retratado
+      c.beginPath(); c.arc(px + ts*0.5, py + ts*0.38, ts*0.11, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(px + ts*0.5, py + ts*0.62, ts*0.15, ts*0.13, 0, 0, Math.PI); c.fill();
+      c.strokeStyle = 'rgba(255,220,120,0.35)'; c.lineWidth = 1;
+      c.strokeRect(px + ts*0.16, py + ts*0.10, ts*0.68, ts*0.72);
+      break;
+    }
     case '2': {                                        // tapete (borda na cor da casa)
       floorOf();
       c.fillStyle='#7a2530'; c.fillRect(px+ts*0.03,py+ts*0.03,ts*0.94,ts*0.94);
@@ -6174,7 +6187,9 @@ function frame(now){
 
   // ---- ciclo de dia e noite: tinte por cima de tudo ----
   const tint = dayTint(dayTime);
-  const indoors = mapName && (mapName.indexOf('casa_') === 0 || mapName.indexOf('loja_') === 0); // dentro: aconchegante
+  const indoors = mapName && (mapName === 'taverna' || mapName.indexOf('casa_') === 0 ||
+    mapName.indexOf('loja_') === 0 || mapName.indexOf('oficina_') === 0 ||
+    (typeof _INT_EXTRA !== 'undefined' && _INT_EXTRA[mapName])); // dentro: aconchegante
   if(tint && !indoors){ ctx.fillStyle = tint; ctx.fillRect(0, 0, canvas.width, canvas.height); }
   if(phaseEl){
     const ph = phaseName(dayTime);

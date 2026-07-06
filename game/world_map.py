@@ -2563,7 +2563,7 @@ def _iscas_cais():
 def _mercado_prospera():
     """O Empório do Otto (17x12): prateleiras fartas, tapete da capital."""
     g = [list("F" + "1" * 15 + "F") for _ in range(12)]
-    g[0] = list("FFjjFFFhhFFFjjFFF")
+    g[0] = list("FFjjFFFhhFPFjjFFF")
     g[11] = list("FFFFFFFDDFFFFFFFF")
     for x in range(3, 8):
         g[2][x] = "#"
@@ -2580,7 +2580,7 @@ def _mercado_prospera():
 def _solar_prospera():
     """O Solar dos Eméritos (20x14): lareira dupla, mesa longa, memória."""
     g = [list("F" + "1" * 18 + "F") for _ in range(14)]
-    g[0] = list("FFjjFFFFhhFFFFjjFFFF")
+    g[0] = list("FFjjFPFFhhFFPFjjFFFF")
     g[13] = list("FFFFFFFFFDDFFFFFFFFF")
     for x in range(8, 12):
         for y in range(2, 5):
