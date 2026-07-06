@@ -194,6 +194,20 @@ RECIPES = {
 #  O ARSENAL TIBIA: machados e maças na forja, lanças e bestas na marcenaria,
 #  munição em lote barato, e as RUNAS gravadas pelo alquimista.
 # ===========================================================================
+RECIPES["costureiro"].extend([
+    {"out": "opulencia_capuz",  "need": {"tecido_prosperiano": 4, "fio_dourado": 2}, "lvl": 9,  "xp": 400},
+    {"out": "opulencia_botas",  "need": {"tecido_prosperiano": 4, "fio_dourado": 2}, "lvl": 9,  "xp": 400},
+    {"out": "opulencia_calcas", "need": {"tecido_prosperiano": 5, "fio_dourado": 3}, "lvl": 10, "xp": 600},
+    {"out": "opulencia_tunica", "need": {"tecido_prosperiano": 7, "fio_dourado": 4}, "lvl": 10, "xp": 900},
+])
+
+RECIPES["alquimista"].extend([
+    {"out": "elixir_alvorada", "need": {"erva_luminosa": 6, "cogumelo_raro": 3, "cristal_arcano": 1}, "lvl": 8,  "xp": 300},
+    {"out": "casca_de_pedra",  "need": {"erva_luminosa": 4, "minerio_ferro": 5, "cogumelo_raro": 2}, "lvl": 8,  "xp": 300},
+    {"out": "sangue_de_fenix", "need": {"erva_luminosa": 8, "cogumelo_raro": 4, "cristal_arcano": 2}, "lvl": 10, "xp": 500},
+    {"out": "nevoa_de_nhare",  "need": {"erva_luminosa": 5, "cogumelo_raro": 3, "cristal_arcano": 1}, "lvl": 9,  "xp": 400},
+])
+
 RECIPES["ferreiro"].extend([
     {"out": "machadinha",         "need": {"barra_de_ferro": 1, "madeira_carvalho": 1},  "lvl": 1, "xp": 16},
     {"out": "machado_lenhador",   "need": {"barra_de_ferro": 2, "madeira_carvalho": 1},  "lvl": 2, "xp": 26},

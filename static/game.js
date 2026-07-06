@@ -430,6 +430,14 @@ const INT_THEMES = {
   casa_amanda:    {f1:'#6b4f34', f2:'#74563a', wall:'#3a2a1a', acc:'#ff9a6b', kind:'quarto'},
   casa_comum:     {f1:'#6b5638', f2:'#73603f', wall:'#3a2c1c', acc:'#b08d57', kind:'comum'},
   ala_sumos:    {f1:'#b7b2a6', f2:'#c2bcae', wall:'#4a4438', acc:'#c9a842', kind:'marmore'},
+  mosteiro_celeste: {f1:'#9a9488', f2:'#a49e90', wall:'#44403a', acc:'#c9a842', kind:'comum'},
+  salao_cha:    {f1:'#b7b2a6', f2:'#c2bcae', wall:'#4a4438', acc:'#d8a8b8', kind:'marmore'},
+  loja_zelia:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e0865a', kind:'loja'},
+  loja_fuao:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#a83838', kind:'loja'},
+  loja_elian:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a6ab0', kind:'loja'},
+  loja_dinis:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9c4d4', kind:'loja'},
+  adega_angard: {f1:'#5f4a38', f2:'#66513e', wall:'#2c2016', acc:'#7a2e3a', kind:'comum'},
+  casa_fadogan: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a05a', kind:'comum'},
   casa_lyra:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#5a7ac0', kind:'quarto'},
   casa_bramir:  {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#7a6a4a', kind:'quarto'},
   casa_cecille: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#b06ae0', kind:'quarto'},
@@ -451,7 +459,7 @@ const INT_THEMES = {
   loja_armas:     {f1:'#494640', f2:'#524e47', wall:'#26231f', acc:'#9aa0aa', kind:'loja'},
 };
 function intTheme(m){ return INT_THEMES[m] || INT_THEMES.casa_comum; }
-var _INT_EXTRA = {ala_sumos:1, taverna_vilalbina:1, iscas_cais:1, mercado_prospera:1, solar_prospera:1,
+var _INT_EXTRA = {ala_sumos:1, mosteiro_celeste:1, salao_cha:1, adega_angard:1, taverna_vilalbina:1, iscas_cais:1, mercado_prospera:1, solar_prospera:1,
                   templo_estrelado:1, templo_doze:1, torre_alvorada:1, arena:1};
 
 function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
@@ -7412,6 +7420,8 @@ function applyRarityName(el, rarity, rc){
 }
 
 function equipItem(itemId){
+  const _cat = catalog[itemId] || {};
+  if(_cat.kind === 'consumivel' || _cat.heal || _cat.buff){ if(socket) socket.emit('item_consume', { item: itemId }); return; }
   if(socket) socket.emit('equip', { item: itemId });
   // EFEITO DE EQUIPAR (rework): o personagem brilha na cor da raridade
   const def = catalog[itemId]; if(!def) return;
@@ -15344,6 +15354,14 @@ function renderOutfits(){
 //  PORTAS VIVAS: as casas entráveis se anunciam (porta grande, placa, luz).
 // ===========================================================================
 var _PORTAS_VIVAS = [
+  {mapa: 'vilalbina', cx: 36, cy: 15, w: 5, h: 3, emoji: '⛪'},
+  {mapa: 'prospera', cx: 4, cy: 4, w: 6, h: 4, emoji: '🫖'},
+  {mapa: 'cidade_alta', cx: 4, cy: 4, w: 5, h: 3, emoji: '🍑'},
+  {mapa: 'cidade_alta', cx: 4, cy: 30, w: 5, h: 3, emoji: '🌶️'},
+  {mapa: 'cidade_alta', cx: 38, cy: 30, w: 6, h: 4, emoji: '⚗️'},
+  {mapa: 'cidade_alta', cx: 12, cy: 30, w: 5, h: 3, emoji: '💎'},
+  {mapa: 'vinhedo', cx: 42, cy: 12, w: 5, h: 3, emoji: '🍷'},
+  {mapa: 'trigal_dourado', cx: 8, cy: 7, w: 6, h: 4, emoji: '🌾'},
   {mapa: 'cidade_alta', cx: 4,  cy: 12, w: 6, h: 4, emoji: '🎼'},
   {mapa: 'cidade_alta', cx: 38, cy: 12, w: 5, h: 3, emoji: '🛡️'},
   {mapa: 'cidade_alta', cx: 38, cy: 4,  w: 6, h: 4, emoji: '🌙'},
@@ -15694,7 +15712,9 @@ var _PORTAS_VIVAS = [
       }
     }
     if(mapName === 'trigal_dourado'){
-      const ex = 22*TS - camX, ey = 15*TS - camY;              // O ESPANTALHO
+      const _espPool = [[22, 15], [9, 26], [34, 21], [15, 8], [42, 30]];
+      const _espHoje = _espPool[Math.floor(Date.now()/86400000) % _espPool.length];
+      const ex = _espHoje[0]*TS - camX, ey = _espHoje[1]*TS - camY;   // O ESPANTALHO (ele... muda?)
       if(ex > -TS*2 && ex < canvas.width + TS*2){
         c.strokeStyle = '#6a4a24'; c.lineWidth = 2;
         c.beginPath(); c.moveTo(ex, ey + 8); c.lineTo(ex, ey - 14); c.stroke();

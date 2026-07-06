@@ -103,7 +103,11 @@ BOSS_RESPAWN_MAX = 7200
 MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Costa de Maravaí",
               "templo_estrelado": "Templo Estrelado", "ala_sumos": "Ala dos Sumos",
               "casa_lyra": "Lar da Maga Lyra", "casa_bramir": "Lar do Mago Bramir",
-              "casa_cecille": "Lar da Maga Cecille", "vilalbina": "Vilalbina",
+              "casa_cecille": "Lar da Maga Cecille",
+              "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
+              "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
+              "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
+              "adega_angard": "Adega da Maison Angard", "casa_fadogan": "Casa do Lorde Fadogan", "vilalbina": "Vilalbina",
               "taverna_vilalbina": "Taverna da Rosa", "iscas_cais": "Isqueria do Tião",
               "mercado_prospera": "Empório do Otto", "solar_prospera": "Solar dos Eméritos", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
               "pastos": "Pastos & Fazendas", "prospera": "Prospera", "jardim_templo": "Jardim do Templo Estrelado",
@@ -180,7 +184,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v9b: habilidades + melee + outfits NPC verificados (06/jul)"
+BUILD_TAG = "v10b: povoamento (37 almas) + barra 6-0 no login (06/jul)"
 
 
 def _asset_version():
@@ -317,6 +321,7 @@ def _enter_world(player_id, row):
     player["ficha"] = ficha   # guarda na memoria (saber se ja tem classe etc.)
     leveling.recompute(ficha)  # garante nivel/vida/proficiencia coerentes com o XP
 
+    emit("rt_abilities", _rt_abilities_payload(player))   # a barra 6-0 na entrada
     emit("init", {
         "id": request.sid,
         "map": world.map_payload(mp),
@@ -849,7 +854,7 @@ def on_rt_cast(data):
 
 def _player_armor(pl):
     """Soma a armadura de tudo equipado (padrão Tibia)."""
-    tot = 0
+    tot = 6 if pl.get("_bf_pedra", 0) > time.time() else 0
     for iid in (pl.get("equipment") or {}).values():
         tot += int((items.get(iid) or {}).get("armor", 0))
     return tot
@@ -2911,6 +2916,22 @@ CASAS_ILHA = [
      "dest": "mercado_prospera", "dx": 8, "dy": 8, "bx": 60, "by": 24},
     {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
      "dest": "solar_prospera", "dx": 10, "dy": 10, "bx": 52, "by": 9},
+    {"mapa": "vilalbina", "cx": 36, "cy": 15, "w": 5, "h": 3,
+     "dest": "mosteiro_celeste", "dx": 6, "dy": 6, "bx": 38, "by": 19},
+    {"mapa": "prospera", "cx": 4, "cy": 4, "w": 6, "h": 4,
+     "dest": "salao_cha", "dx": 7, "dy": 7, "bx": 7, "by": 9},
+    {"mapa": "cidade_alta", "cx": 4, "cy": 4, "w": 5, "h": 3,
+     "dest": "loja_zelia", "dx": 6, "dy": 6, "bx": 6, "by": 8},
+    {"mapa": "cidade_alta", "cx": 4, "cy": 30, "w": 5, "h": 3,
+     "dest": "loja_fuao", "dx": 6, "dy": 6, "bx": 6, "by": 34},
+    {"mapa": "cidade_alta", "cx": 38, "cy": 30, "w": 6, "h": 4,
+     "dest": "loja_elian", "dx": 6, "dy": 6, "bx": 41, "by": 35},
+    {"mapa": "cidade_alta", "cx": 12, "cy": 30, "w": 5, "h": 3,
+     "dest": "loja_dinis", "dx": 6, "dy": 6, "bx": 14, "by": 34},
+    {"mapa": "vinhedo", "cx": 42, "cy": 12, "w": 5, "h": 3,
+     "dest": "adega_angard", "dx": 7, "dy": 7, "bx": 44, "by": 16},
+    {"mapa": "trigal_dourado", "cx": 8, "cy": 7, "w": 6, "h": 4,
+     "dest": "casa_fadogan", "dx": 6, "dy": 6, "bx": 11, "by": 12},
     {"mapa": "cidade_alta", "cx": 4, "cy": 12, "w": 6, "h": 4,
      "dest": "casa_lyra", "dx": 6, "dy": 6, "bx": 7, "by": 17},
     {"mapa": "cidade_alta", "cx": 38, "cy": 12, "w": 5, "h": 3,
@@ -3725,6 +3746,8 @@ def _rt_combat_loop():
                     dmg += max(2, _lv // 3)
                 if pl.get("_rt_rage_until", 0) > now or pl.get("_rt_facalan_until", 0) > now:
                     dmg = int(dmg * 1.5)
+                if pl.get("_bf_dano", 0) > now:
+                    dmg = int(dmg * 1.15)
                 if pl.get("_rt_halfdmg_until", 0) > now:
                     dmg = max(1, dmg // 2)
                 if post == "soldado":
@@ -3878,6 +3901,43 @@ def _rt_combat_loop():
                         _gp["ficha"] = _gf
                         socketio.emit("rt_pheal", {"amount": 0, "hp": _gf["hp"],
                                       "hp_max": _gf.get("hp_max")}, to=_gs)
+
+            # -------- O CHÁ DAS CINCO: Língua de Prata no Salão --------
+            if int(now * 5) % 20 == 0:
+                _tm = time.gmtime(now)
+                _hh = (_tm.tm_hour - 3) % 24
+                if _hh == 17 and _tm.tm_min < 30:
+                    for _tsid, _tpl in list(world.players.items()):
+                        if _tpl.get("is_npc") or _tpl.get("map") != "salao_cha":
+                            continue
+                        if _tpl.get("_bf_prata", 0) > now:
+                            continue
+                        _tpl["_bf_prata"] = now + 1800
+                        socketio.emit("toast", {"text": "🫖✨ LÍNGUA DE PRATA! O chá da Rainha "
+                                                "toca sua voz: 15%% de desconto em toda loja por 30 minutos."},
+                                      to=_tsid)
+                        socketio.emit("speech", {"id": "npc:madame_clo",
+                                                 "text": "Cinco em ponto. *serve* A Rainha manda lembranças."},
+                                      room="salao_cha")
+                elif _hh == 16 and _tm.tm_min == 58:
+                    for _tsid, _tpl in list(world.players.items()):
+                        if not _tpl.get("is_npc") and _tpl.get("map") == "prospera":
+                            socketio.emit("toast", {"text": "🫖 O chá das cinco vai começar no Salão da Rainha!"},
+                                          to=_tsid)
+
+            # -------- SANGUE DE FÊNIX: regeneração dos elixires --------
+            if int(now * 5) % 15 == 0:
+                for _rsid, _rpl in list(world.players.items()):
+                    if _rpl.get("is_npc") or _rpl.get("_bf_regen", 0) <= now:
+                        continue
+                    _rf = _rpl.get("ficha") or {}
+                    _hp0 = int(_rf.get("hp", 0))
+                    _hpm = int(_rf.get("hp_max", 1))
+                    if 0 < _hp0 < _hpm:
+                        _rf["hp"] = min(_hpm, _hp0 + 2)
+                        _rpl["ficha"] = _rf
+                        socketio.emit("rt_selfheal", {"amount": 2, "hp": _rf["hp"],
+                                                      "hp_max": _hpm}, to=_rsid)
 
             # -------- monstros CAÇAM: aggro, perseguição, invocação e falas --------
             for mid, m in list(world.monsters.items()):
@@ -4156,7 +4216,11 @@ def _rt_combat_loop():
                         _skill_up_toast(alvo_sid, "Escudo", _sup)
                 dmg = max(0, dmg - skills.armor_reduce(_player_armor(alvo_pl)))
                 # ===== DEFESAS DAS HABILIDADES =====
-                if alvo_pl.pop("_rt_shadow", 0):
+                if alvo_pl.get("_bf_nevoa", 0) > time.time() and random.random() < 0.10:
+                    dmg = 0
+                    socketio.emit("toast", {"text": "🐇 A Névoa de Nharé te tirou do caminho."},
+                                  to=alvo_sid)
+                elif alvo_pl.pop("_rt_shadow", 0):
                     dmg = 0
                     socketio.emit("toast", {"text": "🌑 O golpe passa por onde você NÃO está."},
                                   to=alvo_sid)
@@ -5039,6 +5103,39 @@ def _persist_loadout(player):
         print("erro salvando equipamento:", exc)
 
 
+@socketio.on("item_consume")
+def on_item_consume(data):
+    """Come a fruta / bebe o elixir no mundo aberto."""
+    player = world.players.get(request.sid)
+    if not player:
+        return
+    iid = (data or {}).get("item")
+    cat = items.get(iid) or {}
+    if cat.get("kind") != "consumivel" or _bag_count(player, iid) < 1:
+        return
+    f = player.get("ficha") or {}
+    if not f.get("class_id"):
+        return
+    now = time.time()
+    items.remove_from_bag(player["inventory"], iid, 1)
+    if cat.get("buff"):
+        secs = int(cat.get("buff_secs", 600))
+        player["_bf_" + cat["buff"]] = now + secs
+        nomes = {"dano": "+15%% de dano", "pedra": "+6 de armadura",
+                 "regen": "regeneracao continua", "nevoa": "10%% de esquiva"}
+        emit("toast", {"text": "%s: %s por %d minutos!" %
+                       (cat.get("name", "Elixir"), nomes.get(cat["buff"], "efeito"), secs // 60)})
+    elif cat.get("heal"):
+        hp0 = int(f.get("hp", 1))
+        f["hp"] = min(int(f.get("hp_max", 1)), hp0 + int(cat["heal"]))
+        player["ficha"] = f
+        socketio.emit("rt_selfheal", {"amount": f["hp"] - hp0, "hp": f["hp"],
+                                      "hp_max": f.get("hp_max")}, to=request.sid)
+        emit("toast", {"text": "%s: +%d de vida." % (cat.get("name", "?"), f["hp"] - hp0)})
+    _persist_loadout(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+
+
 @socketio.on("equip")
 def on_equip(data):
     player = world.players.get(request.sid)
@@ -5297,7 +5394,10 @@ def on_interact(_data=None):
 
     # Xamã Miranda (Descampado): troca drops de chefe por proteção contra a morte
     if npc.get("_spec", {}).get("xama"):
-        greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
+        _gspec = npc.get("_spec", {})
+        _gsn = _gspec.get("greetings_night")
+        greet = random.choice((_gsn if (_gsn and _is_night()) and random.random() < 0.6 else None)
+                              or _gspec.get("greetings") or ["..."])
         emit("xama_open", _xama_payload(player, greet))
         return
 
@@ -5388,13 +5488,19 @@ def on_interact(_data=None):
 
     # Couraria do Valdir (Ermo, noroeste): compra couro de bicho por 5x o preço normal
     if npc.get("_spec", {}).get("couraria"):
-        greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
+        _gspec = npc.get("_spec", {})
+        _gsn = _gspec.get("greetings_night")
+        greet = random.choice((_gsn if (_gsn and _is_night()) and random.random() < 0.6 else None)
+                              or _gspec.get("greetings") or ["..."])
         emit("couraria_open", _couraria_payload(player, greet))
         return
 
     # Marion, a Bruxa (valdarkram, do lado do Coveiro): compra Moeda de Avhur por 2500 cada
     if npc.get("_spec", {}).get("buys_avhur"):
-        greet = random.choice(npc.get("_spec", {}).get("greetings") or ["..."])
+        _gspec = npc.get("_spec", {})
+        _gsn = _gspec.get("greetings_night")
+        greet = random.choice((_gsn if (_gsn and _is_night()) and random.random() < 0.6 else None)
+                              or _gspec.get("greetings") or ["..."])
         emit("couraria_open", _marion_payload(player, greet))
         return
 
@@ -5413,6 +5519,35 @@ def on_interact(_data=None):
                    potions=[("caneca_de_cerveja", 40), ("hidromel_do_ermo", 100),
                             ("prato_do_dia", 150), ("pinga_do_jorge", 60)])
         return
+
+    if npc.get("id") == "npc:zelia":
+        return _open_shop(player, npc, "🍑 Quitanda das Frutas Divinas", None, 0,
+                          potions=[("caju_do_sol", 45), ("ameixa_da_lua", 40), ("uva_do_tempo", 30),
+                                   ("pessego_da_sorte", 42), ("figo_do_punho", 44), ("roma_do_corvo", 38)])
+    if npc.get("id") == "npc:fuao":
+        return _open_shop(player, npc, "🌶️ Especiarias do Outro Continente", None, 0,
+                          potions=[("erva_luminosa", 60), ("cogumelo_raro", 120), ("cristal_arcano", 400)])
+    if npc.get("id") == "npc:dona_bibi":
+        return _open_shop(player, npc, "🧵 Ateliê da Opulência (materiais)", None, 0,
+                          potions=[("tecido_prosperiano", 600), ("fio_dourado", 250)])
+    if npc.get("id") == "npc:dinis":
+        melhor, mval = None, -1
+        for s in (player.get("inventory") or []):
+            cat2 = items.get(s.get("item")) or {}
+            v2 = int(cat2.get("value", 0))
+            if v2 > mval:
+                melhor, mval = cat2, v2
+        if melhor:
+            socketio.emit("speech", {"id": npc["id"],
+                "text": "*lupa no olho* Hm... %s. Raridade: %s. Eu pagaria... %d de bronze. "
+                        "E eu NUNCA pago a mais." % (melhor.get("name", "?"),
+                        melhor.get("rarity", "comum").upper(), mval)},
+                room=player.get("map"))
+        else:
+            socketio.emit("speech", {"id": npc["id"],
+                "text": "Mochila vazia? Volte quando tiver TESOUROS, não intenções."},
+                room=player.get("map"))
+        return True
 
     if npc.get("id") == "npc:celestino":
         _fb = player.get("ficha") or {}
@@ -5747,6 +5882,12 @@ def _open_shop(player, npc, title, sets, price, potions=None, extra=None):
     mp = player.get("map", "ermo")
     greet = npc.get("_spec", {}).get("greetings") or ["Da uma olhada na mercadoria."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greet)}, room=mp)
+    if player.get("_bf_prata", 0) > time.time():
+        price = max(1, int(price * 85 // 100))
+        if potions:
+            potions = [(pi, max(1, int(pp * 85 // 100))) for (pi, pp) in potions]
+        socketio.emit("toast", {"text": "🫖 Língua de Prata: 15%% de desconto nesta loja!"},
+                      to=request.sid)
     cat = _shop_catalog(sets, price) if sets else []
     prices = {}
     for sec in cat:

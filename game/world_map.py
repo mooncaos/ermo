@@ -2769,7 +2769,91 @@ def _casa_cecille():
 
 
 MAPS["ala_sumos"] = {"rows": _ala_sumos(), "spawns": [(14, 12), (13, 12), (15, 12)]}
+def _mosteiro_celeste():
+    """Mosteiro de São Celeste (13x9): capela pequena, celas e a horta da Flor."""
+    g = [list("F" + "1" * 11 + "F") for _ in range(9)]
+    g[0] = list("FFjF/F;F/FjFF")
+    g[8] = list("FFFFFDDFFFFFF")
+    g[2][2] = "b"; g[2][4] = "b"; g[2][8] = "b"; g[2][10] = "b"   # as celas dos noviços
+    g[4][6] = ";"                                                  # o altar de São Celeste
+    g[5][5] = "^"; g[5][7] = "^"                                   # bancos de oração
+    g[3][2] = "E"                                                  # os pergaminhos do Simão
+    g[6][9] = "2"; g[6][10] = "2"                                  # a horta da Flor (interna!)
+    g[6][2] = "k"                                                  # a mesa das refeições
+    return ["".join(r) for r in g]
+
+
+def _salao_cha():
+    """O Salão de Chá da Rainha (14x10): às cinco em ponto, a Língua de Prata."""
+    g = [list("F" + "1" * 12 + "F") for _ in range(10)]
+    g[0] = list("FFjFFPFFPFFjFF")
+    g[9] = list("FFFFFFDDFFFFFF")
+    for x in range(3, 11):
+        g[4][x] = "2" if x % 2 else "2"                            # o tapete central
+    g[3][3] = "k"; g[3][4] = "k"; g[5][3] = "^"; g[2][3] = "^"     # mesa 1
+    g[3][9] = "k"; g[3][10] = "k"; g[5][10] = "^"; g[2][10] = "^"  # mesa 2
+    g[6][6] = "k"; g[6][7] = "k"                                   # a mesa da Rainha
+    g[7][5] = "^"; g[7][8] = "^"
+    g[1][6] = "h"                                                  # a lareira do samovar
+    g[6][2] = "o"                                                  # o barril de folhas raras
+    return ["".join(r) for r in g]
+
+
+def _casa_loja(acc_seed):
+    """Casa-loja nobre (12x8): balcão na frente, o lar da família atrás."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(8)]
+    g[0] = list("FFjFFhFFjFFF")
+    g[7] = list("FFFFFDDFFFFF")
+    for x in range(3, 9):
+        g[4][x] = "#"                                              # o balcão
+    g[4][6] = "1"                                                  # a passagem do balcão
+    g[2][2] = "E"; g[2][9] = "E"                                   # prateleiras da loja
+    g[1][2] = "b"; g[1][9] = "b"                                   # as camas da família
+    g[2][5] = "k"                                                  # a mesa de casa
+    g[5][2] = "q"; g[5][9] = "o"                                   # estoque
+    g[6][5] = "2"; g[6][6] = "2"
+    return ["".join(r) for r in g]
+
+
+def _adega_angard():
+    """A Adega da Maison Angard (15x10): barris, queijos e dois retratos solenes."""
+    g = [list("F" + "1" * 13 + "F") for _ in range(10)]
+    g[0] = list("FFjFPFFhFFPFjFF")
+    g[9] = list("FFFFFFFDDFFFFFF")
+    for x in (2, 4, 10, 12):
+        g[2][x] = "o"; g[3][x] = "o"                               # as fileiras de barris
+    g[5][6] = "k"; g[5][7] = "k"; g[5][8] = "k"                    # a mesa de provas
+    g[6][5] = "^"; g[6][9] = "^"; g[4][7] = "2"
+    g[2][7] = "E"                                                  # a estante dos QUEIJOS
+    g[7][2] = "b"; g[7][12] = "b"                                  # os aposentos do casal
+    g[7][6] = "2"; g[7][7] = "2"; g[7][8] = "2"
+    return ["".join(r) for r in g]
+
+
+def _casa_fadogan():
+    """A casa-moinho do Lorde Fadogan (13x9): sacos, brasão e farinha no ar."""
+    g = [list("F" + "1" * 11 + "F") for _ in range(9)]
+    g[0] = list("FFjFFPFFFjFFF")
+    g[8] = list("FFFFFDDFFFFFF")
+    g[2][2] = "o"; g[2][3] = "o"                                   # os silos de grão
+    g[2][9] = "q"; g[3][9] = "q"; g[4][9] = "q"                    # sacos de farinha
+    g[4][5] = "k"; g[4][6] = "k"                                   # a mesa do lorde
+    g[5][4] = "^"; g[5][7] = "^"
+    g[6][2] = "b"                                                  # a cama
+    g[1][6] = "h"                                                  # a lareira do pão
+    g[6][6] = "2"; g[6][7] = "2"
+    return ["".join(r) for r in g]
+
+
 MAPS["casa_lyra"] = {"rows": _casa_lyra(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["mosteiro_celeste"] = {"rows": _mosteiro_celeste(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["salao_cha"] = {"rows": _salao_cha(), "spawns": [(7, 7), (6, 7), (8, 7)]}
+MAPS["loja_zelia"] = {"rows": _casa_loja(1), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_fuao"] = {"rows": _casa_loja(2), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_elian"] = {"rows": _casa_loja(3), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["loja_dinis"] = {"rows": _casa_loja(4), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["adega_angard"] = {"rows": _adega_angard(), "spawns": [(7, 7), (6, 7), (8, 7)]}
+MAPS["casa_fadogan"] = {"rows": _casa_fadogan(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 MAPS["casa_bramir"] = {"rows": _casa_bramir(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_cecille"] = {"rows": _casa_cecille(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 
