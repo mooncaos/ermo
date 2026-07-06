@@ -1217,3 +1217,56 @@ for _iid, _i in ITEMS.items():
         extra = " [Def %d · Escudo]" % int(_i.get("def", 0))
         if extra not in (_i.get("desc") or ""):
             _i["desc"] = (_i.get("desc") or "").rstrip() + extra
+
+
+# ===========================================================================
+#  OS 25 CONJUNTOS DA CARAVANA: 5 temas x 5 arquétipos, exclusivos do Zeca
+#  (flag "caravana": nunca dropam, nunca entram em pool: só na banca dele).
+# ===========================================================================
+_CV_TEMAS = [("andarilho", "do Andarilho", "#8a9a6a", 1.0, "raro"),
+             ("duna", "das Dunas Cantantes", "#d0b060", 1.15, "raro"),
+             ("bruma", "da Bruma Eterna", "#7a8ab0", 1.3, "epico"),
+             ("sangue", "do Pacto de Sangue", "#a03848", 1.45, "epico"),
+             ("estrela", "da Estrela Caída", "#c9b8ff", 1.65, "lendario")]
+_CV_ARQ = [("lamina", "sword", "Lâmina", {"n": 3, "d": 8, "flat": 6}, 26),
+           ("cajado", "club", "Cajado", {"n": 2, "d": 10, "flat": 5}, 22),
+           ("arco", "distance", "Arco", {"n": 2, "d": 8, "flat": 5}, 24),
+           ("machado", "axe", "Machado", {"n": 3, "d": 10, "flat": 6}, 28),
+           ("maca", "club", "Maça", {"n": 3, "d": 10, "flat": 7}, 27)]
+
+
+def _caravana_sets():
+    for (tid, tnome, cor, mult, rar) in _CV_TEMAS:
+        for (aid, wcl, anome, dmg, atk) in _CV_ARQ:
+            base = "cv_%s_%s" % (tid, aid)
+            w = {"name": "%s %s" % (anome, tnome), "kind": "weapon", "stackable": False,
+                 "color": cor, "slot": "hand", "visual": "bow" if wcl == "distance" else ("hammer" if aid in ("maca", "cajado") else "sword"),
+                 "wclass": wcl, "atk": int(atk * mult), "def": max(4, int(atk * mult * 0.55)),
+                 "rarity": rar, "caravana": True,
+                 "dmg": {"n": dmg["n"], "d": dmg["d"], "flat": int(dmg["flat"] * mult)},
+                 "value": int(3200 * mult * mult),
+                 "desc": "Peça do Conjunto %s: só a banca do Zeca tem." % tnome}
+            if wcl == "distance":
+                w["range"] = 5
+                w["ammo"] = "flecha" if aid == "arco" else None
+                if not w["ammo"]:
+                    w.pop("ammo")
+            yield base + "_arma", w
+            yield base + "_peito", {"name": "Couraça %s" % tnome, "kind": "armor",
+                "stackable": False, "color": cor, "slot": "chest", "visual": "armor",
+                "rarity": rar, "caravana": True, "armor": int(6 * mult), "ward": int(3 * mult),
+                "value": int(2600 * mult * mult),
+                "desc": "Peça do Conjunto %s: só a banca do Zeca tem." % tnome}
+            yield base + "_pernas", {"name": "Grevas %s" % tnome, "kind": "armor",
+                "stackable": False, "color": cor, "slot": "legs", "visual": "legs",
+                "rarity": rar, "caravana": True, "armor": int(4 * mult), "speed": 1 if mult >= 1.3 else 0,
+                "value": int(2000 * mult * mult),
+                "desc": "Peça do Conjunto %s: só a banca do Zeca tem." % tnome}
+            yield base + "_amuleto", {"name": "Amuleto %s" % tnome, "kind": "trinket",
+                "stackable": False, "color": cor, "slot": "neck", "visual": "necklace",
+                "rarity": rar, "caravana": True, "atk": int(2 * mult), "ward": int(3 * mult),
+                "value": int(2400 * mult * mult),
+                "desc": "Peça do Conjunto %s: só a banca do Zeca tem." % tnome}
+
+
+ITEMS.update(dict(_caravana_sets()))

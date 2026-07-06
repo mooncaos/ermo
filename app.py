@@ -87,6 +87,7 @@ def _rarity_pool(r):
     if r not in _RARITY_POOLS:
         _RARITY_POOLS[r] = [iid for iid, it in items.ITEMS.items()
                             if it.get("rarity") == r and not it.get("forged")
+                            and not it.get("caravana")
                             and it.get("kind") in ("weapon", "armor", "trinket")]
     return _RARITY_POOLS[r]
 
@@ -2213,6 +2214,140 @@ _PREVISAO = {"limpo": "Céu limpo, bom pra caçar longe.",
              "tempestade": "TEMPESTADE! Se eu fosse você, não ficava embaixo de árvore."}
 
 
+
+# ===========================================================================
+#  A CARAVANA DO ZECA: circuito pela superfície, emboscadas, banca rotativa.
+#  + INVASÕES: cidades sitiadas, defesa recompensada.
+# ===========================================================================
+CARAVAN_ROUTE = [("ermo", 46, 46, "a praça do Ermo"),
+                 ("costa_maravai", 30, 30, "a Vila Caiçara"),
+                 ("descampado", 25, 25, "o Descampado"),
+                 ("floresta_ermo", 30, 30, "a Floresta do Ermo"),
+                 ("umbraval", 40, 40, "o Umbraval"),
+                 ("vespera", 20, 40, "Véspera")]
+CARAVAN = {"idx": 0, "state": "parado", "until": 0, "cycle": 0,
+           "raided": False, "helpers": set()}
+
+
+def _caravan_stock():
+    """A banca do ciclo: 2 peças de conjunto + 2 raros + 3 materiais em conta."""
+    rng = random.Random(CARAVAN["cycle"])
+    cv = [k for k, v in items.ITEMS.items() if v.get("caravana")]
+    stock = []
+    for k in rng.sample(cv, 2):
+        stock.append((k, int(int(items.get(k).get("value", 2000)) * 1.1)))
+    pool_r = _rarity_pool("raro") + _rarity_pool("epico")
+    for k in rng.sample(pool_r, min(2, len(pool_r))):
+        stock.append((k, int(int(items.get(k).get("value", 1500)) * 1.15)))
+    mats = [i for i in ("barra_de_ferro", "essencia_lunar", "gema_bruta", "couro_curtido",
+                        "madeira_carvalho", "essencia_solar", "runa_em_branco")
+            if items.exists(i)]
+    for k in rng.sample(mats, 3):
+        stock.append((k, max(5, int(int(items.get(k).get("value", 60)) * 0.7))))
+    if CARAVAN.get("raided"):
+        stock = stock[:len(stock) // 2]
+    return stock
+
+
+def _caravan_tick(now):
+    if now < CARAVAN.get("until", 0):
+        return
+    parada = CARAVAN_ROUTE[CARAVAN["idx"]]
+    if CARAVAN["state"] == "parado":
+        CARAVAN["state"] = "viajando"
+        CARAVAN["until"] = now + 300
+        prox = CARAVAN_ROUTE[(CARAVAN["idx"] + 1) % len(CARAVAN_ROUTE)]
+        socketio.emit("toast", {"text": "🐴 A caravana do Zeca partiu rumo a %s!" % prox[3]})
+        _npc_travel("npc:zeca", "fenda", 1, 1)      # na estrada: fora de cena
+        return
+    # chegou na próxima parada
+    CARAVAN["idx"] = (CARAVAN["idx"] + 1) % len(CARAVAN_ROUTE)
+    CARAVAN["cycle"] += 1
+    CARAVAN["raided"] = False
+    CARAVAN["helpers"] = set()
+    CARAVAN["state"] = "parado"
+    CARAVAN["until"] = now + 1200
+    mp, x, y, nome = CARAVAN_ROUTE[CARAVAN["idx"]]
+    _npc_travel("npc:zeca", mp, x, y)
+    socketio.emit("toast", {"text": "🐴 A caravana do Zeca chegou em %s! Banca aberta por 20 min." % nome})
+    if random.random() < 0.35:
+        _spawn_wave(mp, x, y, 5, "_caravan_raid",
+                    "⚔️ A caravana do Zeca foi EMBOSCADA em %s! Defendam a banca!" % nome)
+        CARAVAN["raid_until"] = now + 300
+
+
+def _spawn_wave(mp, cx, cy, n, flag, aviso):
+    """Uma onda hostil brota ao redor de um ponto (emboscada ou invasão)."""
+    import uuid
+    pool = [t for t, s in monsters_def.MONSTERS.items()
+            if not s.get("boss") and not s.get("passive")
+            and 60 <= int(s.get("hp", 0)) <= 700]
+    novos = 0
+    for _ in range(n * 5):
+        if novos >= n:
+            break
+        t = random.choice(pool)
+        s2 = monsters_def.MONSTERS[t]
+        tx = cx + random.randint(-4, 4)
+        ty = cy + random.randint(-4, 4)
+        if not rules.is_walkable(tx, ty, mp):
+            continue
+        nid = "wv:" + uuid.uuid4().hex[:8]
+        world.monsters[nid] = {"id": nid, "type": t, "name": s2.get("name", t),
+            "map": mp, "x": tx, "y": ty,
+            "hp": int(s2.get("hp", 60)), "hp_max": int(s2.get("hp", 60)),
+            "ac": int(s2.get("ac", 12)), "size": int(s2.get("size", 1)),
+            "glyph": s2.get("glyph"), "alive": True, "in_combat": False,
+            "temp": True, flag: True, "_spawn": (t, tx, ty),
+            "_rt_next": 0, "_rt_next_f": 0}
+        novos += 1
+    if novos:
+        try:
+            _world_refresh(mp)
+        except Exception:
+            pass
+        socketio.emit("toast", {"text": aviso})
+
+
+INVASION = {"until": 0, "helpers": set(), "cidade": "", "on": False}
+
+
+def _invasion_tick(now):
+    if INVASION["on"]:
+        vivos = any(m.get("_invasion") and m.get("alive") for m in world.monsters.values())
+        if not vivos:
+            INVASION["on"] = False
+            for s2 in list(INVASION["helpers"]):
+                p2 = world.players.get(s2)
+                if not p2:
+                    continue
+                p2["wallet"] = int(p2.get("wallet", 0)) + 400
+                socketio.emit("wallet", {"bronze": p2.get("wallet", 0)}, to=s2)
+                _pool = _rarity_pool("raro")
+                if _pool:
+                    _rid = random.choice(_pool)
+                    items.add_to_bag(p2.setdefault("inventory", []), _rid, 1)
+                    socketio.emit("rare_drop", {"rarity": "raro", "item": _rid,
+                        "name": (items.get(_rid) or {}).get("name", _rid),
+                        "color": RARE_COLORS.get("raro")}, to=s2)
+                    socketio.emit("loadout", {"bag": p2["inventory"],
+                        "equipment": p2["equipment"]}, to=s2)
+            socketio.emit("toast", {"text": "🛡️ %s foi DEFENDIDA! O baú comunitário pagou os heróis." %
+                                    INVASION.get("cidade", "A cidade")})
+        elif now > INVASION.get("until", 0):
+            for mid in [k for k, m in list(world.monsters.items()) if m.get("_invasion")]:
+                world.monsters.pop(mid, None)
+            INVASION["on"] = False
+            socketio.emit("toast", {"text": "💔 Os invasores saquearam %s e sumiram na noite..." %
+                                    INVASION.get("cidade", "a cidade")})
+        return
+    if random.random() < 0.004:                     # ~1 invasão a cada 2h de tick
+        alvo = random.choice([("ermo", 49, 47, "o Ermo"), ("costa_maravai", 30, 30, "a Vila Caiçara")])
+        INVASION.update({"on": True, "until": now + 480, "helpers": set(), "cidade": alvo[3]})
+        _spawn_wave(alvo[0], alvo[1], alvo[2], 9, "_invasion",
+                    "⚔️🔥 INVASÃO em %s! Às armas: defendam a cidade!" % alvo[3])
+
+
 def _gossip_line(npc_id=None):
     """Uma fofoca montada dos dados reais (boss, arena, fenda, mercado)."""
     pool = []
@@ -2470,6 +2605,17 @@ def _rt_kill(sid, pl, m):
                                             (pl.get("name", "Alguém"), _rnome)})
             break
 
+    if m.get("_caravan_raid"):
+        CARAVAN["helpers"].add(sid)
+        if not any(x.get("_caravan_raid") and x.get("alive") for x in world.monsters.values()):
+            for _hs in list(CARAVAN["helpers"]):
+                _hp2 = world.players.get(_hs)
+                if _hp2:
+                    _hp2["wallet"] = int(_hp2.get("wallet", 0)) + 300
+                    socketio.emit("wallet", {"bronze": _hp2.get("wallet", 0)}, to=_hs)
+            socketio.emit("toast", {"text": "🐴 Caravana SALVA! O Zeca paga 300 de bronze a cada herói."})
+    if m.get("_invasion"):
+        INVASION["helpers"].add(sid)
     _cod = f.setdefault("codex", {"m": {}, "i": {}, "l": {}})
     _cod.setdefault("m", {})[m.get("type")] = int(_cod["m"].get(m.get("type"), 0)) + 1
     _check_titles(sid, pl)
@@ -4286,6 +4432,12 @@ def on_interact(_data=None):
         emit("couraria_open", _marion_payload(player, greet))
         return
 
+    # ZECA: a banca ambulante da caravana
+    if npc.get("_spec", {}).get("caravaneiro"):
+        _open_shop(player, npc, "🐴 Banca do Zeca" + (" (saqueada...)" if CARAVAN.get("raided") else ""),
+                   [], 0, potions=_caravan_stock())
+        return
+
     # JORGE: previsão do tempo + o balcão da taverna
     if npc.get("_spec", {}).get("taverneiro"):
         socketio.emit("speech", {"id": npc["id"],
@@ -4776,6 +4928,8 @@ def _npc_routine_loop():
             _contract_refresh()
             _npc_agenda_tick()
             _weather_tick(time.time())
+            _caravan_tick(time.time())
+            _invasion_tick(time.time())
         except Exception:
             pass
         noite = _is_night()

@@ -1445,6 +1445,19 @@ ROSTER.append({
     "greetings": ["..."], "contract_board": True,
 })
 
+# ZECA, o Caravaneiro: a banca ambulante que roda a superfície inteira.
+ROSTER.append({
+    "id": "npc:zeca", "name": "Zeca, o Caravaneiro",
+    "look": {"skin": "#b98a5a", "cloak": "#7a5a2a", "hat": "straw", "hair": "#4a3a2a", "staff": True},
+    "map": "ermo", "home": (46, 46), "radius": 1, "wanders": True,
+    "step_every": 2.5, "solid": True, "kind": "person",
+    "greetings": ["Cheguei, cheguei! Mercadoria que ANDA até você!",
+                  "A estrada é longa e a banca é curta: aproveita.",
+                  "Isso aqui? Só EU tenho. Palavra de caravaneiro.",
+                  "Já fui assaltado três vezes esse mês. O preço reflete o trauma."],
+    "caravaneiro": True,
+})
+
 # A Goblin do Cofre: roubou o cofre de Lorde Varth e se escondeu no canto sudeste
 # da câmara. Vende o set Necrótico (épico, melhor que o do Coveiro) por bronze +
 # Símbolos de Varth.
