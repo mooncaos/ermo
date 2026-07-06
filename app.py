@@ -2563,6 +2563,66 @@ def _try_ilha_bordas(player):
         _go_to(request.sid, "vilalbina", 40, 13)
         emit("toast", {"text": "🏘️ Vilalbina, branca contra o mar."})
         return True
+    if player.get("map") == "trigal_dourado" and player.get("x", 0) >= 53 and \
+       16 <= player.get("y", 0) <= 19:
+        _go_to(request.sid, "prospera", 3, 30)
+        emit("toast", {"text": "🏛️ PROSPERA: a capital de pedra branca se abre atrás da muralha."})
+        return True
+    if player.get("map") == "prospera" and player.get("x", 0) <= 2 and \
+       29 <= player.get("y", 0) <= 32:
+        _go_to(request.sid, "trigal_dourado", 53, 17)
+        emit("toast", {"text": "🌾 De volta ao mar de espigas."})
+        return True
+    if player.get("map") == "prospera" and player.get("y", 0) <= 2 and \
+       41 <= player.get("x", 0) <= 44:
+        _go_to(request.sid, "vinhedo", 26, 32)
+        emit("toast", {"text": "🍇 O Vinhedo: fileiras de parreiras até onde a vista alcança."})
+        return True
+    if player.get("map") == "vinhedo" and player.get("y", 0) >= 32 and \
+       24 <= player.get("x", 0) <= 27:
+        _go_to(request.sid, "prospera", 43, 3)
+        emit("toast", {"text": "🏛️ O portão norte de Prospera."})
+        return True
+    if player.get("map") == "vinhedo" and player.get("x", 0) <= 1 and \
+       15 <= player.get("y", 0) <= 18:
+        _go_to(request.sid, "pastos", 26, 15)
+        emit("toast", {"text": "🐄 Os Pastos: cercados, celeiros e o cheiro de fazenda."})
+        return True
+    if player.get("map") == "pastos" and player.get("x", 0) >= 50 and \
+       14 <= player.get("y", 0) <= 17:
+        _go_to(request.sid, "vinhedo", 2, 16)
+        emit("toast", {"text": "🍇 De volta às parreiras."})
+        return True
+    if player.get("map") == "prospera" and player.get("x", 0) >= 84 and \
+       29 <= player.get("y", 0) <= 32:
+        _go_to(request.sid, "jardim_templo", 2, 27)
+        emit("toast", {"text": "⭐ O Jardim do Templo Estrelado: doze torres, doze deuses, um círculo."})
+        return True
+    if player.get("map") == "jardim_templo" and player.get("x", 0) <= 1 and \
+       26 <= player.get("y", 0) <= 29:
+        _go_to(request.sid, "prospera", 83, 30)
+        emit("toast", {"text": "🏛️ O portão leste de Prospera."})
+        return True
+    if player.get("map") == "jardim_templo" and player.get("x", 0) >= 52 and \
+       26 <= player.get("y", 0) <= 29:
+        _go_to(request.sid, "cidade_alta", 2, 24)
+        emit("toast", {"text": "🗼 A CIDADE ALTA: e a Torre da Alvorada tocando o céu."})
+        return True
+    if player.get("map") == "cidade_alta" and player.get("x", 0) <= 1 and \
+       23 <= player.get("y", 0) <= 26:
+        _go_to(request.sid, "jardim_templo", 51, 27)
+        emit("toast", {"text": "⭐ O círculo das doze torres."})
+        return True
+    if player.get("map") == "prospera" and player.get("y", 0) >= 60 and \
+       41 <= player.get("x", 0) <= 44:
+        _go_to(request.sid, "farol_margem", 24, 2)
+        emit("toast", {"text": "🔆 A Margem do Farol: a pira da Prosperidade queima na ponta do mundo."})
+        return True
+    if player.get("map") == "farol_margem" and player.get("y", 0) <= 1 and \
+       23 <= player.get("x", 0) <= 26:
+        _go_to(request.sid, "prospera", 43, 59)
+        emit("toast", {"text": "🏛️ O portão sul de Prospera."})
+        return True
     return False
 
 

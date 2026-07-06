@@ -2248,6 +2248,265 @@ MAPS["vilalbina"] = {"rows": _vilalbina(), "spawns": [(22, 22), (21, 22), (23, 2
 MAPS["trigal_dourado"] = {"rows": _trigal_dourado(), "spawns": [(3, 17), (3, 18), (4, 17)]}
 
 
+def _vinhedo():
+    """O Vinhedo & Pomares (52x34): fileiras de parreiras, pomar ao norte."""
+    import random as _r
+    rng = _r.Random(1212)
+    W, H = 52, 34
+    g = [["." for _ in range(W)] for _ in range(H)]
+    for y in range(6, H - 4):
+        if y % 3 != 0:
+            for x in range(4, W - 4):
+                if x % 2 == 0:
+                    g[y][x] = "d"
+    for x in range(3, W - 3, 4):                 # o pomar
+        g[2][x] = "T"
+        g[3][x + 2 if x + 2 < W else x] = "T"
+    for x in range(0, W):                        # a trilha
+        g[16][x] = "p"
+        g[17][x] = "p"
+    for y in range(16, H):                       # descida ao sul (pastos)
+        g[y][25] = "p"
+        g[y][26] = "p"
+    g[10][8] = ";"
+    g[10][43] = ";"
+    return ["".join(r) for r in g]
+
+
+def _pastos():
+    """Os Pastos & Fazendas (52x32): cercados, celeiro, gado imaginado."""
+    W, H = 52, 32
+    g = [["." for _ in range(W)] for _ in range(H)]
+    def cercado(cx, cy, w, h):
+        for xx in range(cx, cx + w):
+            g[cy][xx] = "H"
+            g[cy + h - 1][xx] = "H"
+        for yy in range(cy, cy + h):
+            g[yy][cx] = "H"
+            g[yy][cx + w - 1] = "H"
+        g[cy][cx + w // 2] = "1"
+    cercado(6, 5, 14, 9)
+    cercado(30, 5, 15, 9)
+    cercado(6, 19, 14, 9)
+    # o celeiro grande
+    for xx in range(30, 42):
+        g[19][xx] = "H"
+        g[27][xx] = "H"
+    for yy in range(19, 28):
+        g[yy][30] = "H"
+        g[yy][41] = "H"
+    for yy in range(20, 27):
+        for xx in range(31, 41):
+            g[yy][xx] = "1"
+    g[27][35] = "D"
+    for x in range(0, W):
+        g[15][x] = "p"
+        g[16][x] = "p"
+    for y in range(0, 16):
+        g[y][25] = "p" if g[y][25] == "." else g[y][25]
+        g[y][26] = "p" if g[y][26] == "." else g[y][26]
+    return ["".join(r) for r in g]
+
+
+def _prospera():
+    """PROSPERA (86x62): a grande capital de pedra branca. Muralha, canal com
+    pontes, praça-mercado, distritos de casario, avenida real."""
+    W, H = 86, 62
+    g = [["." for _ in range(W)] for _ in range(H)]
+    for x in range(W):                            # muralha externa
+        g[0][x] = "H"
+        g[H - 1][x] = "H"
+    for y in range(H):
+        g[y][0] = "H"
+        g[y][W - 1] = "H"
+    g[30][0] = "p"; g[31][0] = "p"                # portão OESTE (Trigal)
+    g[0][42] = "p"; g[0][43] = "p"                # portão NORTE (Vinhedo)
+    g[30][W - 1] = "p"; g[31][W - 1] = "p"        # portão LESTE (Jardim do Templo)
+    g[H - 1][42] = "p"; g[H - 1][43] = "p"        # portão SUL (o Farol)
+    # o canal cortando a cidade (com 3 pontes 'p')
+    for x in range(1, W - 1):
+        g[38][x] = "~"
+        g[39][x] = "~"
+    for px in (12, 43, 72):
+        g[38][px] = "p"; g[39][px] = "p"
+        g[38][px + 1] = "p"; g[39][px + 1] = "p"
+    # avenida real (vertical) + avenida do portão (horizontal)
+    for y in range(1, H - 1):
+        g[y][42] = "p" if g[y][42] != "~" or True and g[y][42] == "~" and False else g[y][42]
+    for y in range(1, H - 1):
+        if g[y][42] == ".":
+            g[y][42] = "p"
+        if g[y][43] == ".":
+            g[y][43] = "p"
+    for x in range(1, W - 1):
+        if g[30][x] == ".":
+            g[30][x] = "p"
+        if g[31][x] == ".":
+            g[31][x] = "p"
+    # a praça-mercado central
+    for y in range(24, 30):
+        for x in range(34, 52):
+            if g[y][x] == ".":
+                g[y][x] = "p"
+    for (bx, by) in ((35, 25), (50, 25), (35, 28), (50, 28)):
+        g[by][bx] = ";"
+    # distritos de casario branco
+    def casa(cx, cy, w=6, h=5):
+        if cx + w >= W - 1 or cy + h >= H - 1:
+            return
+        for xx in range(cx, cx + w):
+            g[cy][xx] = "H"
+            g[cy + h - 1][xx] = "H"
+        for yy in range(cy, cy + h):
+            g[yy][cx] = "H"
+            g[yy][cx + w - 1] = "H"
+        for yy in range(cy + 1, cy + h - 1):
+            for xx in range(cx + 1, cx + w - 1):
+                g[yy][xx] = "1"
+        g[cy + h - 1][cx + w // 2] = "D"
+    import random as _r
+    rng = _r.Random(2024)
+    for (cx, cy) in ((5, 5), (14, 5), (23, 5), (50, 5), (59, 5), (68, 5),
+                     (5, 14), (14, 14), (68, 14), (77, 5),
+                     (5, 44), (14, 44), (23, 44), (50, 44), (59, 44), (68, 44),
+                     (5, 53), (23, 53), (50, 53), (68, 53), (77, 44)):
+        casa(cx, cy)
+    for (tx, ty) in ((30, 10), (56, 12), (20, 34), (64, 34), (30, 50), (60, 56)):
+        g[ty][tx] = "T"
+    return ["".join(r) for r in g]
+
+
+MAPS["vinhedo"] = {"rows": _vinhedo(), "spawns": [(3, 16), (3, 17), (4, 16)]}
+MAPS["pastos"] = {"rows": _pastos(), "spawns": [(26, 2), (25, 2), (26, 3)]}
+MAPS["prospera"] = {"rows": _prospera(), "spawns": [(3, 30), (3, 31), (4, 30)]}
+
+
+def _jardim_templo():
+    """O Jardim do Templo Estrelado (54x54): 12 torres finas em CÍRCULO (uma
+    por deus), ligadas por um anel de mármore; jardim sagrado ao redor."""
+    import math as _m
+    W, H = 54, 54
+    g = [["." for _ in range(W)] for _ in range(H)]
+    import random as _r
+    rng = _r.Random(12)
+    for _ in range(70):                            # o jardim: canteiros e árvores
+        x, y = rng.randint(2, W - 3), rng.randint(2, H - 3)
+        if g[y][x] == ".":
+            g[y][x] = rng.choice([",", ",", "d", "T"])
+    cx, cy, R = 27, 27, 17
+    for i in range(12):                            # as 12 torres (2x2 sólidas)
+        a = i * _m.pi * 2 / 12 - _m.pi / 2
+        tx, ty = int(cx + R * _m.cos(a)), int(cy + R * _m.sin(a))
+        for dx in (0, 1):
+            for dy in (0, 1):
+                g[ty + dy][tx + dx] = "H"
+    for deg in range(0, 720):                      # o anel de mármore ligando tudo
+        a = deg * _m.pi / 360
+        for rr in (R - 3, R + 3):
+            px, py = int(cx + rr * _m.cos(a)), int(cy + rr * _m.sin(a))
+            if 0 < px < W - 1 and 0 < py < H - 1 and g[py][px] != "H":
+                g[py][px] = "p"
+    for y in range(cy - 3, cy + 4):                # o círculo central do altar
+        for x in range(cx - 3, cx + 4):
+            if abs(x - cx) + abs(y - cy) <= 4:
+                g[y][x] = "p"
+    g[cy][cx] = ";"
+    for x in range(0, cx - 3):                     # a alameda de entrada (oeste)
+        g[27][x] = "p"
+        g[28][x] = "p"
+    for x in range(cx + 3, W):                     # a alameda leste (Cidade Alta)
+        g[27][x] = "p"
+        g[28][x] = "p"
+    return ["".join(r) for r in g]
+
+
+def _cidade_alta():
+    """A Cidade Alta (50x40): o distrito do saber. A TORRE DA ALVORADA ao
+    centro-norte, GRIFOS de pedra flanqueando a entrada, casario nobre."""
+    W, H = 50, 40
+    g = [["." for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "H"
+    # A TORRE: bloco 10x8 com portal ao sul
+    for xx in range(20, 30):
+        g[4][xx] = "H"
+        g[11][xx] = "H"
+    for yy in range(4, 12):
+        g[yy][20] = "H"
+        g[yy][29] = "H"
+    for yy in range(5, 11):
+        for xx in range(21, 29):
+            g[yy][xx] = "1"
+    g[11][24] = "D"
+    g[13][22] = "Y"                                # os GRIFOS de pedra
+    g[13][26] = "Y"
+    for y in range(12, H):                         # a esplanada da torre
+        for x in range(22, 27):
+            g[y][x] = "p"
+    for x in range(0, 22):                         # a rua do saber (oeste)
+        g[24][x] = "p"
+        g[25][x] = "p"
+    def casa(cx, cy, w=6, h=5):
+        for xx in range(cx, cx + w):
+            g[cy][xx] = "H"
+            g[cy + h - 1][xx] = "H"
+        for yy in range(cy, cy + h):
+            g[yy][cx] = "H"
+            g[yy][cx + w - 1] = "H"
+        for yy in range(cy + 1, cy + h - 1):
+            for xx in range(cx + 1, cx + w - 1):
+                g[yy][xx] = "1"
+        g[cy + h - 1][cx + w // 2] = "D"
+    for (cx, cy) in ((4, 5), (4, 14), (38, 5), (38, 14), (4, 30), (38, 30), (12, 30)):
+        casa(cx, cy)
+    for (bx, by) in ((21, 13), (27, 13), (10, 24), (40, 24)):
+        if g[by][bx] == ".":
+            g[by][bx] = ";"
+    return ["".join(r) for r in g]
+
+
+def _farol_margem():
+    """A Margem do Farol (34x28): a ponta extrema. O FAROL DA PROSPERIDADE
+    ergue-se sobre o mar; a sede dos Prosperi ao lado."""
+    W, H = 34, 28
+    g = [["." for _ in range(W)] for _ in range(H)]
+    for x in range(W):                             # o mar ao sul
+        g[H - 1][x] = "~"
+        g[H - 2][x] = "~"
+    for y in range(H - 6, H - 2):                  # a península de pedra
+        for x in range(20, 30):
+            g[y][x] = "p"
+    # O FAROL: torre 4x4 na ponta
+    for yy in range(H - 9, H - 5):
+        for xx in range(23, 27):
+            g[yy][xx] = "H"
+    g[H - 5][24] = "D"
+    # a sede Prosperi (mansão)
+    for xx in range(4, 16):
+        g[6][xx] = "H"
+        g[14][xx] = "H"
+    for yy in range(6, 15):
+        g[yy][4] = "H"
+        g[yy][15] = "H"
+    for yy in range(7, 14):
+        for xx in range(5, 15):
+            g[yy][xx] = "1"
+    g[14][9] = "D"
+    for y in range(0, H - 6):                      # o caminho do portão ao farol
+        g[y][24] = "p" if g[y][24] == "." else g[y][24]
+        g[y][25] = "p" if g[y][25] == "." else g[y][25]
+    for x in range(9, 25):
+        g[16][x] = "p"
+    g[18][22] = ";"
+    g[18][27] = ";"
+    return ["".join(r) for r in g]
+
+
+MAPS["jardim_templo"] = {"rows": _jardim_templo(), "spawns": [(2, 27), (2, 28), (3, 27)]}
+MAPS["cidade_alta"] = {"rows": _cidade_alta(), "spawns": [(2, 24), (2, 25), (3, 24)]}
+MAPS["farol_margem"] = {"rows": _farol_margem(), "spawns": [(24, 2), (25, 2), (24, 3)]}
+
+
 def _gotico_vespera():
     """O entorno do castelo de Varth vira um cemitério gótico: lápides, árvores
     mortas e braseiros no anel externo, entrada cerimonial com tapete de pedra."""
