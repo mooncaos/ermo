@@ -1907,16 +1907,26 @@ def _duel_end(win_sid, lose_sid, wo=False):
 #  CÉREBRO DE CHEFE (tempo real): falas, invocação e perseguição.
 # ===========================================================================
 BOSS_LINES = {
-    "velho_bob":       ["GRUNF! Minha praia, minhas regras!", "Os filhos da mata ouvem o velho... VEM, CRIANÇADA!", "Você tem cheiro de almoço.", "Tem os ovão bem grandão, o nome dele é BOB."],
-    "maraja":          ["CURVE-SE. A savana inteira já se curvou.", "Minha juba já viu cem como você virarem poeira.", "RUGIDO é aviso. Só dou UM."],
-    "lorde_varth":     ["A Torre não recebe visitas. Recebe SÚDITOS.", "Atalech sussurra seu nome... e ri.", "Eu já morri uma vez. Foi TÉDIO."],
-    "krezath":         ["FOME. Sempre a FOME.", "Você não é inimigo. É PRATO.", "O Devorador agradece a entrega."],
-    "farao_avhur":     ["Mil anos de areia, e VOCÊ me acorda?", "Meus mineiros cavam até no além.", "A eternidade é MINHA por direito."],
-    "colosso_avasham": ["A MONTANHA. ANDA.", "Pequeno. Tão... pequeno.", "Avasham lembra. Avasham ESMAGA."],
-    "urso_rei":        ["O bosque tem UM rei. Ajoelhe.", "Minhas garras escreveram a lei daqui.", "GRRRAAAH! Fora do meu reino!"],
-    "vulkar":          ["O Brasal arde em MIM.", "Cinzas. É o que sobra de heróis.", "Sinta o calor da Ferida."],
-    "dama_noite":      ["Shhh... a noite é um veludo, e eu sou a costureira.", "Que olhos lindos. Serão meus.", "Dance comigo. A última dança."],
-    "maurao":          ["Ô, chegou o corajoso. SEGURA ESSA.", "Aqui embaixo quem manda é o MAURÃO.", "Vou te ensinar a nadar. No chão."],
+    "velho_bob":       ["GRUNF! Minha praia, minhas regras!", "Os filhos da mata ouvem o velho... VEM, CRIANÇADA!", "Você tem cheiro de almoço.", "Tem os ovão bem grandão, o nome dele é BOB.",
+                        "A pérola CANTA na minha barriga quando a maré sobe.", "A velha da peixaria? GRUNF. Não conheço. NUNCA me deu banana."],
+    "maraja":          ["CURVE-SE. A savana inteira já se curvou.", "Minha juba já viu cem como você virarem poeira.", "RUGIDO é aviso. Só dou UM.",
+                        "Meu rei dorme na areia. Eu ainda escuto por ordens.", "Antes dos homens... éramos NÓS os reis."],
+    "lorde_varth":     ["A Torre não recebe visitas. Recebe SÚDITOS.", "Atalech sussurra seu nome... e ri.", "Eu já morri uma vez. Foi TÉDIO.",
+                        "Eu vi Valdarkram queimar. Eu ACENDI o fósforo.", "A morte me recusou. Agora ela se ARREPENDE."],
+    "krezath":         ["FOME. Sempre a FOME.", "Você não é inimigo. É PRATO.", "O Devorador agradece a entrega.",
+                        "Papai Drazun... não veio me buscar.", "O mago da torre me fez ASSIM. Fome. FOME."],
+    "farao_avhur":     ["Mil anos de areia, e VOCÊ me acorda?", "Meus mineiros cavam até no além.", "A eternidade é MINHA por direito.",
+                        "Enterrei algo... o quê? ONDE?! AAARGH!", "Minhas moedas... quem as junta, me JUNTA."],
+    "colosso_avasham": ["A MONTANHA. ANDA.", "Pequeno. Tão... pequeno.", "Avasham lembra. Avasham ESMAGA.",
+                        "Sono... mil anos... SEM SONO.", "Cada pedra daqui. Sou EU. Todas."],
+    "urso_rei":        ["O bosque tem UM rei. Ajoelhe.", "Minhas garras escreveram a lei daqui.", "GRRRAAAH! Fora do meu reino!",
+                        "O bosque sussurra mentiras doces. EU NÃO OUÇO.", "Caio eu... cai a muralha. Pense nisso, pequeno."],
+    "vulkar":          ["O Brasal arde em MIM.", "Cinzas. É o que sobra de heróis.", "Sinta o calor da Ferida.",
+                        "O ferreiro lá de cima marteja no MEU ritmo. Ele sabe?", "Eu era só uma fagulha. Aí aprendi a QUERER."],
+    "dama_noite":      ["Shhh... a noite é um veludo, e eu sou a costureira.", "Que olhos lindos. Serão meus.", "Dance comigo. A última dança.",
+                        "As viúvas rezam por mim. Cada prece... um véu novo.", "Recusei a mordida. Virei coisa PIOR."],
+    "maurao":          ["Ô, chegou o corajoso. SEGURA ESSA.", "Aqui embaixo quem manda é o MAURÃO.", "Vou te ensinar a nadar. No chão.",
+                        "Meu irmão limpa mato. EU limpo problemas.", "O antigo chefão confiou em mim. Erro DELE."],
     "_":               ["Você OUSA?!", "Mais um pro monte.", "GRRRAAAH!"],
 }
 
@@ -2122,7 +2132,7 @@ def _turno_do_dia(now=None):
 
 _TAVERNA_SPOTS = [(4, 5), (6, 6), (8, 5), (12, 6), (14, 5), (7, 8), (13, 8), (16, 6), (11, 4)]
 _SOCIAVEIS = ["npc:mestre_bragan", "npc:mestre_bartolo", "npc:mestra_petra", "npc:maricota",
-              "npc:lazaro", "npc:cronista", "npc:chica"]
+              "npc:lazaro", "npc:cronista", "npc:chica", "npc:xama_miranda"]
 _VIAGENS_TARDE = {
     "npc:maricota":     ("ermo", 46, 47),
     "npc:mestre_bragan": ("oficina_joalheiro", 5, 5),
@@ -2146,8 +2156,11 @@ def _npc_agenda_tick():
             continue
         _hora = int(time.time() // (DAY_LENGTH / 4))   # gira a cada quarto de dia DO JOGO
         _folga = [s for s in _SOCIAVEIS if (abs(hash(s)) + _hora) % len(_SOCIAVEIS) < 3]
-        if turno == "noite" or (turno in ("manha", "tarde") and nid in _folga) or \
-           (turno == "madruga" and nid == "npc:lazaro"):
+        if nid == "npc:xama_miranda" and turno in ("manha", "tarde") and \
+           (abs(hash(nid)) + int(time.time() // (DAY_LENGTH / 4))) % 3 == 0:
+            destino = ("templo_doze", 7, 6)      # a sobrinha visita os tios
+        elif turno == "noite" or (turno in ("manha", "tarde") and nid in _folga) or \
+             (turno == "madruga" and nid == "npc:lazaro"):
             destino = ("taverna",) + _TAVERNA_SPOTS[abs(hash(nid)) % len(_TAVERNA_SPOTS)]
         elif turno == "tarde" and nid in _VIAGENS_TARDE:
             destino = _VIAGENS_TARDE[nid]

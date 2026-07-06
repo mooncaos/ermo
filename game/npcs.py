@@ -1476,3 +1476,62 @@ ROSTER.append({
     ],
     "goblin_cofre": True,
 })
+
+
+# ===========================================================================
+#  FALAS DO CÂNONE (Etapa de Lore): cada morador ecoa sua própria história.
+#  Aplicadas por substring do id — NPCs fora do cânone ficam intactos.
+# ===========================================================================
+_LORE_GREETS = {
+    "maricota":  ["O mar me contou uma coisa hoje... ah, nada não, esquece.",
+                  "Javali?! QUE javali? Nunca alimentei javali NENHUM. Próximo assunto."],
+    "bragan":    ["Tem noite que o martelo acha o ritmo sozinho... vem lá de baixo, do vale. Nem pergunta.",
+                  "Forjei pra guarda de Valdarkram, sabia? Não bastou. NUNCA mais não basta."],
+    "petra":     ["O desenho da Chave da Fenda? Eu SONHEI. Não pergunte mais.",
+                  "Lapidei pra corte de Valdarkram... essas mãos já seguraram coroas."],
+    "bartolo":   ["O Bragan aprendeu tudo comigo! Ou foi o contrário? DETALHE.",
+                  "Guardo um retalho de cada trabalho. O primeiro? Uma bainha... de um CERTO ferreiro."],
+    "solene":    ["Os ossos lá embaixo têm nome. Eu conheço todos. TODOS.",
+                  "Os Doze respondem, sabia? Baixinho. Um por vez."],
+    "cronista":  ["Um dia a Torre da Alvorada vai me aceitar de volta. Esta crônica é meu bilhete.",
+                  "A última página de Valdarkram? Está guardada. Ninguém lê. NINGUÉM."],
+    "lazaro":    ["Todo mato que eu limpo é uma dívida que eu pago.",
+                  "São Cipriano me ensinou demais. Aqui... aqui eu desaprendo."],
+    "chica":     ["Na Sapopemba de LÁ os pombos também me obedeciam, viu...",
+                  "A Beth chegou chorando, saiu rindo. Coisa minha. Segredo meu."],
+    "jorge":     ["Meu pai morreu devendo. Eu paguei TUDO. Esta casa é limpa.",
+                  "Aqui dentro é terreno neutro. Juramento antigo. Até o Maurão respeita."],
+    "zeca":      ["Eu podia ir pra QUALQUER reino, sabia? Mas... e a caravana? E a MULA?",
+                  "A mula é sócia. Metade dos preços foi ideia dela."],
+    "cigana":    ["Desci de Véspera quando a noite ficou barulhenta demais. Vocês não OUVEM como eu.",
+                  "Minhas cartas nunca mentem. Eu... às vezes."],
+    "milton":    ["Sexta tem dominó marcado. Nunca perco de vez... engraçado isso, né?",
+                  "O mar me devolveu três vezes. Deve gostar da minha teimosia."],
+    "remo":      ["Naquela noite tirei quarenta de Valdarkram. O rio ajudou.",
+                  "De quem foge de algo, eu não cobro. Regra antiga."],
+    "conchinha": ["O mar deixou presente na porta de novo hoje. Bobo, esse mar.",
+                  "Filha de sereia, eu? *sorri* Deixa o povo falar."],
+    "xama":   ["Falacan me criou, sabia? Os Doze são meus tios. Os SEUS também, ora.",
+                  "Os bichos reclamam de você. Brincadeira. Ou não."],
+    "marion":    ["Moedas de Avhur? Pago 2500. Não pergunte por quê, querido.",
+                  "Dez anos disfarçada na Torre da Alvorada. Eles nunca souberam. NUNCA."],
+    "peteco":    ["Já te contei que fui general? Ou pirata? Tanto faz, ESTRANGEIRO.",
+                  "Qualquer arma. Três dias. Não pergunta COMO, estrangeiro."],
+    "fernando":  ["O Galo cantou à meia-noite de novo. Cê ouviu? OUVIU.",
+                  "Esse bar é IGUALZINHO ao de lá. Tábua por tábua. Da memória."],
+    "sucuri":    ["Na Terra eu era MONSTRO no LoL, mano. Elo? Deixa quieto.",
+                  "Acabei de tomar banho e já tô suado. Genética, irmão."],
+    "macio":     ["AI! Pisei numa pedra... CHAMA A UPA! Chama a UPA!!",
+                  "Red pill é estilo de vida, mano. *chora baixinho*"],
+    "piadista":  ["Quer ouvir uma? Ah, essa é boa... vocês vão MORRER de rir. De rir, né?",
+                  "Minhas piadas nunca falham. É quase... profético."],
+    "bala":      ["Bala Chita, mano! Da BOA. Vargo deixou eu trazer a lembrança.",
+                  "O nome? História longa. Envolve um doce. Fim."],
+}
+for _spec in ROSTER:
+    _nid = str(_spec.get("id", ""))
+    for _k, _falas in _LORE_GREETS.items():
+        if _k in _nid:
+            _spec.setdefault("greetings", [])
+            _spec["greetings"] = list(_spec["greetings"]) + _falas
+            break
