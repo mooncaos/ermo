@@ -192,7 +192,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v19: Torre de 5 andares + Mansao Prosperi + Ritual da Alvorada (06/jul)"
+BUILD_TAG = "v25: revisao critica - nuvens no chao, patio da torre, texturas (06/jul)"
 
 
 def _asset_version():
@@ -2985,14 +2985,14 @@ def _try_casas_ilha(player):
 
 
 TORRE_ESCADAS = [
-    ("torre_alvorada",     23, 2,  "torre_conclave",     3, 10),
-    ("torre_conclave",     2, 11,  "torre_alvorada",    22, 3),
-    ("torre_conclave",     14, 11, "torre_observatorio", 3, 10),
-    ("torre_observatorio", 2, 11,  "torre_conclave",    13, 10),
-    ("torre_observatorio", 14, 11, "torre_escritorio",   3, 10),
-    ("torre_escritorio",   2, 11,  "torre_observatorio", 13, 10),
-    ("torre_escritorio",   14, 11, "torre_terraco",      3, 10),
-    ("torre_terraco",      2, 11,  "torre_escritorio",  13, 10),
+    ("torre_alvorada",     23, 2,  "torre_conclave",     4, 12),
+    ("torre_conclave",     3, 13,  "torre_alvorada",    22, 3),
+    ("torre_conclave",     17, 13, "torre_observatorio", 3, 10),
+    ("torre_observatorio", 2, 11,  "torre_conclave",    16, 12),
+    ("torre_observatorio", 14, 11, "torre_escritorio",   4, 11),
+    ("torre_escritorio",   3, 12,  "torre_observatorio", 13, 10),
+    ("torre_escritorio",   15, 12, "torre_terraco",      3, 10),
+    ("torre_terraco",      2, 11,  "torre_escritorio",  14, 11),
 ]
 
 

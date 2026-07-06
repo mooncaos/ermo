@@ -431,12 +431,12 @@ const INT_THEMES = {
   casa_comum:     {f1:'#6b5638', f2:'#73603f', wall:'#3a2c1c', acc:'#b08d57', kind:'comum'},
   ala_sumos:    {f1:'#b7b2a6', f2:'#c2bcae', wall:'#4a4438', acc:'#c9a842', kind:'marmore'},
   mosteiro_celeste: {f1:'#9a9488', f2:'#a49e90', wall:'#44403a', acc:'#c9a842', kind:'comum'},
-  salao_cha:    {f1:'#b7b2a6', f2:'#c2bcae', wall:'#4a4438', acc:'#d8a8b8', kind:'marmore'},
+  salao_cha:    {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
   loja_zelia:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e0865a', kind:'loja'},
   loja_fuao:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#a83838', kind:'loja'},
   loja_elian:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a6ab0', kind:'loja'},
-  loja_dinis:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9c4d4', kind:'loja'},
-  adega_angard: {f1:'#5f4a38', f2:'#66513e', wall:'#2c2016', acc:'#7a2e3a', kind:'comum'},
+  loja_dinis:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e8c860', kind:'loja'},
+  adega_angard: {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
   casa_fadogan: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a05a', kind:'comum'},
   casa_lyra:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#5a7ac0', kind:'quarto'},
   casa_bramir:  {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#7a6a4a', kind:'quarto'},
@@ -447,7 +447,7 @@ const INT_THEMES = {
   casa_baixa:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a842', kind:'quarto'},
   cortico_baixa: {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#e0865a', kind:'quarto'},
   restaurante_jacquard: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e8c860', kind:'marmore'},
-  torre_conclave:     {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e8c860', kind:'loja'},
+  torre_conclave:     {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#e8c860', kind:'marmore'},
   torre_observatorio: {f1:'#3a3a4e', f2:'#42425a', wall:'#22222e', acc:'#cfe0ff', kind:'comum'},
   torre_escritorio:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a842', kind:'loja'},
   torre_terraco:      {f1:'#8f887c', f2:'#99917f', wall:'#4a4438', acc:'#9b6dff', kind:'marmore'},
@@ -476,6 +476,9 @@ var _INT_EXTRA = {ala_sumos:1, mosteiro_celeste:1, salao_cha:1, adega_angard:1, 
                   templo_estrelado:1, templo_doze:1, torre_alvorada:1, arena:1};
 
 function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
+  const _tema0 = INT_THEMES[mapName];
+  const _luxo = _tema0 && _tema0.kind === 'marmore';
+
   const th = intTheme(map);
   const marbleFloor = () => {
     c.fillStyle = th.f1; c.fillRect(px, py, ts, ts);
@@ -504,7 +507,20 @@ function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
   };
   switch(ch){
     case '1': floorOf(); break;
-    case 'j': {                                        // JANELA (vidro azul, caixilho, luz)
+    case 'j': {
+      if(_luxo){
+        c.fillStyle = _tema0.wall; c.fillRect(px, py, ts, ts);
+        const _vc = ['rgba(122,90,160,0.9)','rgba(58,106,170,0.9)','rgba(201,168,66,0.9)'];
+        for(let v2 = 0; v2 < 3; v2++){
+          c.fillStyle = _vc[(gx + v2) % 3];
+          c.fillRect(px + 3 + v2*(ts - 6)/3, py + 3, (ts - 6)/3 - 1, ts - 6);
+        }
+        c.save(); c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 0.25 + 0.1*Math.sin(now/800 + gx);
+        c.fillStyle = '#ffe9a8'; c.fillRect(px + 3, py + 3, ts - 6, ts - 6); c.restore();
+        c.strokeStyle = '#1a1a20'; c.lineWidth = 1.5; c.strokeRect(px + 3, py + 3, ts - 6, ts - 6);
+        return;
+      }                                        // JANELA (vidro azul, caixilho, luz)
       floorOf();
       c.fillStyle = th.wall; c.fillRect(px, py, ts, ts);
       c.fillStyle = '#6db9f4';
@@ -596,7 +612,16 @@ function drawInteriorTile(c, map, ch, px, py, ts, gx, gy){
       c.strokeRect(px + ts*0.16, py + ts*0.10, ts*0.68, ts*0.72);
       break;
     }
-    case '2': {                                        // tapete (borda na cor da casa)
+    case '2': {
+      if(_luxo){
+        c.fillStyle = (gx + gy) % 2 ? '#8a2434' : '#7a1e2c';
+        c.fillRect(px, py, ts, ts);
+        c.strokeStyle = 'rgba(232,200,96,0.75)'; c.lineWidth = 1.6;
+        if(gy % 3 === 0){ c.beginPath(); c.moveTo(px, py + 3); c.lineTo(px + ts, py + 3); c.stroke();
+          c.strokeRect(px + ts*0.3, py + ts*0.25, ts*0.4, ts*0.4); }
+        if(gy % 3 === 2){ c.beginPath(); c.moveTo(px, py + ts - 3); c.lineTo(px + ts, py + ts - 3); c.stroke(); }
+        return;
+      }                                        // tapete (borda na cor da casa)
       floorOf();
       c.fillStyle='#7a2530'; c.fillRect(px+ts*0.03,py+ts*0.03,ts*0.94,ts*0.94);
       c.strokeStyle=th.acc; c.lineWidth=Math.max(1,ts*0.04);
@@ -1350,6 +1375,66 @@ function drawPlateauTile(c, ch, px, py, ts, gx, gy){
 }
 
 function drawTile(c, ch, px, py, ts, gx, gy){
+  if(mapName === 'vinhedo' && ch === 'w'){
+    c.fillStyle = (gx + gy) % 2 ? '#79a25c' : '#6f9854';
+    c.fillRect(px, py, ts, ts);
+    if((gx*11 + gy*17) % 5 === 0){ c.fillStyle = 'rgba(0,0,0,0.06)'; c.fillRect(px + ((gx*3)%(ts-10)) + 3, py + ((gy*5)%(ts-10)) + 3, 7, 7); }
+    c.strokeStyle = '#5a4a2a'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(px + 3, py + ts - 2); c.lineTo(px + 3, py + 4);
+    c.moveTo(px + ts - 3, py + ts - 2); c.lineTo(px + ts - 3, py + 4);
+    c.moveTo(px + 3, py + 6); c.lineTo(px + ts - 3, py + 6); c.stroke();
+    c.fillStyle = '#4a7a3a';
+    c.beginPath(); c.ellipse(px + ts*0.5, py + 8, ts*0.42, ts*0.2, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#6a3a7a';
+    for(const uv of [[0.3, 0.55], [0.68, 0.5]])
+      for(let u2 = 0; u2 < 4; u2++){
+        c.beginPath(); c.arc(px + ts*uv[0] + (u2 % 2)*3.4 - 1.7, py + ts*uv[1] + Math.floor(u2/2)*3.4, 2.3, 0, Math.PI*2); c.fill();
+      }
+    return;
+  }
+  if(mapName === 'prospera' && ch === 'L'){
+    c.fillStyle = (gx + gy) % 2 ? '#79a25c' : '#6f9854';
+    c.fillRect(px, py, ts, ts);
+    if((gx*11 + gy*17) % 5 === 0){ c.fillStyle = 'rgba(0,0,0,0.06)'; c.fillRect(px + ((gx*3)%(ts-10)) + 3, py + ((gy*5)%(ts-10)) + 3, 7, 7); }
+    for(let f2 = 0; f2 < 4; f2++){
+      c.fillStyle = ['#e05a8a','#e8c860','#b06ae0','#e0865a'][f2];
+      c.beginPath(); c.arc(px + 5 + f2*(ts - 10)/3, py + ts - 5 - (f2 % 2)*4, 2.4, 0, Math.PI*2); c.fill();
+    }
+    c.fillStyle = '#5a4a2a'; c.fillRect(px + ts/2 - 2, py + 4, 4, ts - 8);
+    const lg2 = c.createRadialGradient(px + ts/2, py + 4, 0, px + ts/2, py + 4, ts*0.7);
+    lg2.addColorStop(0, 'rgba(255,223,154,0.75)'); lg2.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = lg2; c.beginPath(); c.arc(px + ts/2, py + 4, ts*0.7, 0, Math.PI*2); c.fill();
+    return;
+  }
+  if(mapName === 'cidade_alta' && ch === 'H' && gx >= 20 && gx <= 29 && gy >= 8 && gy <= 10){
+    c.fillStyle = (gx + gy) % 2 ? '#a49b87' : '#9a917d';   // o pátio de pedra da torre
+    c.fillRect(px, py, ts, ts);
+    c.fillStyle = 'rgba(0,0,0,0.08)';
+    if((gx*5 + gy*11) % 4 === 0) c.fillRect(px + 4, py + 4, ts - 8, ts - 8);
+    return;
+  }
+  if(ch === '.' && _ILHA_FLORAL[mapName] && ((gx*7 + gy*13) % 13 === 0)){
+    c.fillStyle = (gx + gy) % 2 ? '#79a25c' : '#6f9854';
+    c.fillRect(px, py, ts, ts);
+    if((gx*11 + gy*17) % 5 === 0){ c.fillStyle = 'rgba(0,0,0,0.06)'; c.fillRect(px + ((gx*3)%(ts-10)) + 3, py + ((gy*5)%(ts-10)) + 3, 7, 7); }
+    const _fc = ['#e05a8a','#e8c860','#f0f0f0','#b06ae0','#e0865a'][(gx + gy*3) % 5];
+    c.strokeStyle = '#4a7a3a'; c.lineWidth = 1.4;
+    c.beginPath(); c.moveTo(px + ts*0.35, py + ts*0.75); c.lineTo(px + ts*0.35, py + ts*0.5);
+    c.moveTo(px + ts*0.65, py + ts*0.8); c.lineTo(px + ts*0.65, py + ts*0.58); c.stroke();
+    c.fillStyle = _fc;
+    c.beginPath(); c.arc(px + ts*0.35, py + ts*0.47, 2.6, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(px + ts*0.65, py + ts*0.55, 2.2, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#ffe9a8';
+    c.beginPath(); c.arc(px + ts*0.35, py + ts*0.47, 1, 0, Math.PI*2); c.fill();
+    return;
+  }
+  if(mapName === 'baixa_da_egua' && ch === 'H'){          // a Baixa tem mansõezinhas próprias
+    c.fillStyle = (gx + gy) % 2 ? '#79a25c' : '#6f9854';
+    c.fillRect(px, py, ts, ts);
+    c.fillStyle = 'rgba(0,0,0,0.12)';
+    c.fillRect(px, py, ts, ts);
+    return;
+  }
   // ⚠️⚠️ REGRA ETERNA DO MOON (gravada em sangue, 06/jul/2026): INTERIOR SEM
     // REGISTRO = PAREDES DE LUA = ÓDIO. Por isso o portão agora é AUTOMÁTICO:
     // se o mapa tem entrada em INT_THEMES, ele É interior. TODO mapa interno
@@ -15176,7 +15261,375 @@ function renderOutfits(){
     if(typeof mapName === 'undefined') return;
     c.save();
 
-    // ---- O OBSERVATÓRIO: o telescópio dourado ----
+    // ---- PROSPERA: a FONTE MONUMENTAL ----
+  if(mapName === 'prospera'){
+    const fx2 = 36*TS - camX + TS/2, fy2 = 23*TS - camY + TS/2;
+    if(fx2 > -TS*4 && fx2 < canvas.width + TS*4 && fy2 > -TS*4 && fy2 < canvas.height + TS*4){
+      c.fillStyle = '#8f887c'; c.beginPath(); c.arc(fx2, fy2, TS*1.35, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#3a6a8a'; c.beginPath(); c.arc(fx2, fy2, TS*1.1, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#8f887c'; c.beginPath(); c.arc(fx2, fy2, TS*0.32, 0, Math.PI*2); c.fill();
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for(let j2 = 0; j2 < 6; j2++){
+        const a4 = j2*Math.PI/3 + now/3000;
+        const t4 = (now/900 + j2/6) % 1;
+        const wx2 = fx2 + Math.cos(a4)*TS*(0.35 + t4*0.6);
+        const wy2 = fy2 + Math.sin(a4)*TS*(0.35 + t4*0.6) - Math.sin(Math.PI*t4)*TS*0.55;
+        c.globalAlpha = 0.8*(1 - t4);
+        c.fillStyle = '#bfe6ff'; c.beginPath(); c.arc(wx2, wy2, 2.6, 0, Math.PI*2); c.fill();
+      }
+      c.restore();
+      c.fillStyle = '#e8c860';
+      for(const mo of [[-0.5, 0.3], [0.4, -0.4], [0.1, 0.6]])
+        c.fillRect(fx2 + TS*mo[0], fy2 + TS*mo[1], 3, 3);
+    }
+  }
+
+  // ---- FAROL: o facho varrendo ----
+  if(mapName === 'farol_margem'){
+    const lx2 = 25*TS - camX, ly2 = 9*TS - camY;
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const ang2 = now/2400;
+    for(const dir2 of [0, Math.PI]){
+      const a5 = ang2 + dir2;
+      const gr2 = c.createLinearGradient(lx2, ly2, lx2 + Math.cos(a5)*TS*14, ly2 + Math.sin(a5)*TS*14);
+      gr2.addColorStop(0, 'rgba(255,233,168,0.34)'); gr2.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = gr2;
+      c.beginPath(); c.moveTo(lx2, ly2);
+      c.lineTo(lx2 + Math.cos(a5 - 0.09)*TS*14, ly2 + Math.sin(a5 - 0.09)*TS*14);
+      c.lineTo(lx2 + Math.cos(a5 + 0.09)*TS*14, ly2 + Math.sin(a5 + 0.09)*TS*14);
+      c.closePath(); c.fill();
+    }
+    c.globalAlpha = 0.7 + 0.25*Math.sin(now/300);
+    c.fillStyle = '#ffe9a8'; c.beginPath(); c.arc(lx2, ly2, TS*0.22, 0, Math.PI*2); c.fill();
+    c.restore();
+  }
+
+  // ---- CIDADE ALTA: A TORRE DA ALVORADA MONUMENTAL (5 andares ao céu) ----
+  if(mapName === 'cidade_alta'){
+    const bx3 = 25*TS - camX, by3 = 11*TS - camY;         // a base (centro x, pé y)
+    if(bx3 > -TS*8 && bx3 < canvas.width + TS*8 && by3 > -TS*14 && by3 < canvas.height + TS*4){
+      const ALT = TS*10.2;
+      // o corpo afilado (pedra da alvorada)
+      const grd3 = c.createLinearGradient(bx3 - TS*2.4, 0, bx3 + TS*2.4, 0);
+      grd3.addColorStop(0, '#9a917d'); grd3.addColorStop(0.5, '#c2b89f'); grd3.addColorStop(1, '#8a8170');
+      c.fillStyle = grd3;
+      c.beginPath();
+      c.moveTo(bx3 - TS*3.1, by3);
+      c.lineTo(bx3 - TS*1.5, by3 - ALT);
+      c.lineTo(bx3 + TS*1.5, by3 - ALT);
+      c.lineTo(bx3 + TS*3.1, by3);
+      c.closePath(); c.fill();
+      // os 5 anéis dourados (um por andar interno!)
+      c.strokeStyle = '#c9a842'; c.lineWidth = 3;
+      const nomes5 = 5;
+      for(let an2 = 1; an2 <= nomes5; an2++){
+        const yy2 = by3 - ALT*an2/(nomes5 + 0.6);
+        const half = TS*(3.1 - 1.6*(an2/(nomes5 + 0.6)));
+        c.beginPath(); c.moveTo(bx3 - half, yy2); c.lineTo(bx3 + half, yy2); c.stroke();
+      }
+      // as janelas em espiral, acesas
+      for(let w3 = 0; w3 < 7; w3++){
+        const t5 = (w3 + 0.5)/7;
+        const yy3 = by3 - ALT*t5*0.92 - TS*0.3;
+        const half2 = TS*(3.1 - 1.6*t5)*0.55;
+        const xx3 = bx3 + Math.sin(w3*2.4)*half2;
+        c.fillStyle = '#ffdf9a';
+        c.fillRect(xx3 - TS*0.16, yy3, TS*0.32, TS*0.48);
+        c.strokeStyle = '#c9a842'; c.lineWidth = 1.5;
+        c.strokeRect(xx3 - TS*0.16, yy3, TS*0.32, TS*0.48);
+      }
+      // o grande portal ogival na base
+      c.fillStyle = '#3a3020';
+      c.beginPath();
+      c.moveTo(bx3 - TS*0.55, by3);
+      c.lineTo(bx3 - TS*0.55, by3 - TS*0.9);
+      c.quadraticCurveTo(bx3, by3 - TS*1.6, bx3 + TS*0.55, by3 - TS*0.9);
+      c.lineTo(bx3 + TS*0.55, by3);
+      c.closePath(); c.fill();
+      c.strokeStyle = '#e8c860'; c.lineWidth = 2.5; c.stroke();
+      // o TERRAÇO no topo: balaustrada e... A FLOR, visível lá de baixo
+      c.fillStyle = '#c2b89f';
+      c.fillRect(bx3 - TS*1.75, by3 - ALT - TS*0.28, TS*3.5, TS*0.3);
+      c.strokeStyle = 'rgba(60,50,40,0.6)'; c.lineWidth = 1.4;
+      for(let b4 = 0; b4 <= 10; b4++)
+        c.fillRect(bx3 - TS*1.65 + b4*TS*0.33, by3 - ALT - TS*0.55, 2, TS*0.28);
+      c.fillRect(bx3 - TS*1.75, by3 - ALT - TS*0.6, TS*3.5, 3);
+      const fx4 = bx3 + TS*0.8, fy4 = by3 - ALT - TS*0.62;
+      c.fillStyle = '#7a5aa0';                             // a flor de Valdarkram, pequenina
+      for(let p4 = 0; p4 < 5; p4++){
+        const a6 = p4*Math.PI*2/5 + Math.sin(now/1500)*0.08;
+        c.beginPath();
+        c.ellipse(fx4 + Math.cos(a6)*3.6, fy4 + Math.sin(a6)*3.6, 3.2, 1.9, a6, 0, Math.PI*2);
+        c.fill();
+      }
+      c.fillStyle = '#e8c860'; c.beginPath(); c.arc(fx4, fy4, 1.8, 0, Math.PI*2); c.fill();
+      // a cúpula dourada e a agulha
+      c.fillStyle = '#c9a842';
+      c.beginPath(); c.arc(bx3, by3 - ALT - TS*0.62, TS*1.15, Math.PI, 0); c.fill();
+      c.fillStyle = '#8a6a3a';
+      c.fillRect(bx3 - 2, by3 - ALT - TS*1.95, 4, TS*0.75);
+      c.fillStyle = '#ffe9a8';
+      c.beginPath(); c.arc(bx3, by3 - ALT - TS*2.0, 4 + Math.sin(now/300)*1.2, 0, Math.PI*2); c.fill();
+      // a AURA da Alvorada coroando tudo + o glow da flor
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.3 + 0.12*Math.sin(now/1100);
+      const ag3 = c.createRadialGradient(bx3, by3 - ALT - TS, 0, bx3, by3 - ALT - TS, TS*3.2);
+      ag3.addColorStop(0, 'rgba(232,200,96,0.85)'); ag3.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = ag3; c.beginPath(); c.arc(bx3, by3 - ALT - TS, TS*3.2, 0, Math.PI*2); c.fill();
+      c.globalAlpha = 0.4 + 0.15*Math.sin(now/800);
+      const fg4 = c.createRadialGradient(fx4, fy4, 0, fx4, fy4, TS*0.8);
+      fg4.addColorStop(0, 'rgba(155,109,255,0.9)'); fg4.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = fg4; c.beginPath(); c.arc(fx4, fy4, TS*0.8, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+  }
+
+  // ---- TRIGAL: o MOINHO do Lorde Fadogan (pás girando) ----
+  if(mapName === 'trigal_dourado'){
+    const mx2 = 31*TS - camX, my2 = 7*TS - camY;
+    if(mx2 > -TS*6 && mx2 < canvas.width + TS*6 && my2 > -TS*8 && my2 < canvas.height + TS*4){
+      c.fillStyle = '#c9b090';                             // o corpo cônico
+      c.beginPath(); c.moveTo(mx2 - TS*1.1, my2);
+      c.lineTo(mx2 - TS*0.7, my2 - TS*3.2); c.lineTo(mx2 + TS*0.7, my2 - TS*3.2);
+      c.lineTo(mx2 + TS*1.1, my2); c.closePath(); c.fill();
+      c.fillStyle = '#7a2e3a';                             // o capelo
+      c.beginPath(); c.arc(mx2, my2 - TS*3.2, TS*0.75, Math.PI, 0); c.fill();
+      c.fillStyle = '#4a3222';
+      c.fillRect(mx2 - TS*0.3, my2 - TS*0.95, TS*0.6, TS*0.95);
+      c.fillStyle = '#ffdf9a';
+      c.fillRect(mx2 - TS*0.22, my2 - TS*2.3, TS*0.44, TS*0.5);
+      c.save(); c.translate(mx2, my2 - TS*3.0); c.rotate(now/1400);   // AS PÁS
+      c.strokeStyle = '#5a4a2a'; c.lineWidth = 3;
+      c.fillStyle = 'rgba(232,224,208,0.85)';
+      for(let p2 = 0; p2 < 4; p2++){
+        c.rotate(Math.PI/2);
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -TS*1.9); c.stroke();
+        c.fillRect(-TS*0.26, -TS*1.9, TS*0.52, TS*1.4);
+        c.strokeRect(-TS*0.26, -TS*1.9, TS*0.52, TS*1.4);
+      }
+      c.restore();
+      c.fillStyle = '#e8c860';
+      c.beginPath(); c.arc(mx2, my2 - TS*3.0, TS*0.1, 0, Math.PI*2); c.fill();
+    }
+  }
+
+  // ---- VILALBINA: as gaivotas do cais ----
+  if(mapName === 'vilalbina'){
+    for(let g2 = 0; g2 < 3; g2++){
+      const a3 = now/(2800 + g2*600) + g2*2.1;
+      const gx2 = (22 + Math.cos(a3)*7 + g2*2)*TS - camX;
+      const gy2 = (23 + Math.sin(a3*1.3)*2.5 - g2)*TS - camY;
+      if(gx2 < -TS || gx2 > canvas.width + TS) continue;
+      const bat = Math.sin(now/180 + g2*3);
+      c.strokeStyle = '#f0ead8'; c.lineWidth = 2.4; c.lineCap = 'round';
+      c.beginPath();
+      c.moveTo(gx2 - TS*0.22, gy2 - bat*3);
+      c.quadraticCurveTo(gx2, gy2 + bat*2, gx2 + TS*0.22, gy2 - bat*3);
+      c.stroke();
+    }
+  }
+
+  // ---- AS SOMBRAS DAS NUVENS (toda a ilha respira) ----
+  if(_ILHA_FLORAL[mapName]){
+    c.save();
+    c.fillStyle = 'rgba(20,30,20,0.07)';
+    for(let n2 = 0; n2 < 4; n2++){
+      const spd = 14 + n2*5;
+      const cw2 = TS*(7 + n2*2.5);
+      const cx5 = ((now/1000*spd + n2*700) % (3000 + cw2*2)) - cw2 - camX;
+      const cy5 = ((n2*430) % 1400) + TS*2 - camY;
+      c.beginPath();
+      c.ellipse(cx5, cy5, cw2, cw2*0.45, 0, 0, Math.PI*2);
+      c.ellipse(cx5 + cw2*0.5, cy5 - cw2*0.15, cw2*0.6, cw2*0.3, 0, 0, Math.PI*2);
+      c.fill();
+    }
+    c.restore();
+  }
+
+  // ---- FUMAÇA NAS CHAMINÉS (todas as casas da ilha têm gente dentro) ----
+  if(_ILHA_CASAS[mapName]){
+    for(const cs2 of _ILHA_CASAS[mapName]){
+      if(cs2.length < 4) continue;
+      const hx3 = (cs2[0] + cs2[2] - 0.9)*TS - camX;
+      const hy3 = (cs2[1] - 0.55)*TS - camY;
+      if(hx3 < -TS*2 || hx3 > canvas.width + TS*2 || hy3 < -TS*3 || hy3 > canvas.height + TS*4) continue;
+      c.fillStyle = '#8a5a3a';
+      c.fillRect(hx3, hy3 - TS*0.4, TS*0.32, TS*0.5);
+      c.fillStyle = '#6a4a2a';
+      c.fillRect(hx3 - 2, hy3 - TS*0.46, TS*0.32 + 4, TS*0.1);
+      const semente = cs2[0]*31 + cs2[1]*7;
+      for(let f3 = 0; f3 < 3; f3++){
+        const ph2 = ((now/2600) + f3/3 + (semente % 10)/10) % 1;
+        const sx4 = hx3 + TS*0.16 + Math.sin(now/600 + f3*2 + semente)*TS*0.14*ph2;
+        const sy4 = hy3 - TS*0.5 - ph2*TS*1.1;
+        c.fillStyle = 'rgba(210,205,195,' + (0.3*(1 - ph2)).toFixed(2) + ')';
+        c.beginPath(); c.arc(sx4, sy4, TS*(0.07 + ph2*0.12), 0, Math.PI*2); c.fill();
+      }
+    }
+  }
+
+  // ---- O BANDO DE PÁSSAROS (cruza o céu de tempos em tempos) ----
+  if(_ILHA_FLORAL[mapName]){
+    const ciclo = 34000;
+    const tf2 = (now % ciclo)/ciclo;
+    if(tf2 < 0.34){
+      const prog = tf2/0.34;
+      const vx3 = prog*(2400) - 300 - camX*0.35;
+      const vy3 = 260 + Math.sin(prog*5)*45 - camY*0.35;
+      c.strokeStyle = 'rgba(40,36,30,0.75)'; c.lineWidth = 2; c.lineCap = 'round';
+      for(let p5 = 0; p5 < 5; p5++){
+        const off2 = p5 - 2;
+        const px5 = vx3 - Math.abs(off2)*17;
+        const py5 = vy3 + off2*11;
+        const bat3 = Math.sin(now/150 + p5)*3.2;
+        c.beginPath();
+        c.moveTo(px5 - 5.5, py5 - bat3);
+        c.quadraticCurveTo(px5, py5 + bat3, px5 + 5.5, py5 - bat3);
+        c.stroke();
+      }
+    }
+  }
+
+  // ---- OS PIRILAMPOS DO JARDIM ----
+  if(mapName === 'jardim_templo'){
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for(let v4 = 0; v4 < 7; v4++){
+      const t7 = now/(3400 + v4*520) + v4*1.9;
+      const vx4 = ((Math.sin(t7)*0.5 + 0.5)*46 + 5)*TS - camX;
+      const vy4 = ((Math.cos(t7*1.6 + v4)*0.5 + 0.5)*40 + 8)*TS - camY;
+      if(vx4 < -TS || vx4 > canvas.width + TS || vy4 < -TS || vy4 > canvas.height + TS) continue;
+      const pulso = 0.4 + 0.6*Math.abs(Math.sin(now/420 + v4*2.6));
+      c.globalAlpha = pulso*0.85;
+      const vg2 = c.createRadialGradient(vx4, vy4, 0, vx4, vy4, 6.5);
+      vg2.addColorStop(0, 'rgba(255,240,160,1)'); vg2.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = vg2;
+      c.beginPath(); c.arc(vx4, vy4, 6.5, 0, Math.PI*2); c.fill();
+    }
+    c.restore();
+  }
+
+  // ---- BORBOLETAS (jardim e vinhedo) ----
+  if(mapName === 'jardim_templo' || mapName === 'vinhedo'){
+    for(let b5 = 0; b5 < 3; b5++){
+      const t6 = now/(4200 + b5*900) + b5*2.3;
+      const bx5 = ((Math.sin(t6)*0.5 + 0.5)*40 + 6 + b5*3)*TS - camX;
+      const by5 = ((Math.cos(t6*1.4)*0.5 + 0.5)*24 + 8)*TS - camY + Math.sin(now/260 + b5)*5;
+      if(bx5 < -TS || bx5 > canvas.width + TS || by5 < -TS || by5 > canvas.height + TS) continue;
+      const bat2 = Math.abs(Math.sin(now/130 + b5*2));
+      const bc2 = ['#e8a0c8','#8ac0e8','#f0d070'][b5];
+      c.fillStyle = bc2;
+      c.save(); c.translate(bx5, by5);
+      c.beginPath(); c.ellipse(-3.4, 0, 3.4, 2 + bat2*2.6, -0.5, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(3.4, 0, 3.4, 2 + bat2*2.6, 0.5, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#3a2a1a'; c.fillRect(-0.8, -2.6, 1.6, 5.2);
+      c.restore();
+    }
+  }
+
+  // ---- JARDIM DO TEMPLO: pétalas ao vento ----
+  if(mapName === 'jardim_templo'){
+    for(let p3 = 0; p3 < 10; p3++){
+      const seed = p3*173.3;
+      const t3 = ((now/9000) + p3/10) % 1;
+      const px3 = ((seed*7 + t3*(300 + p3*40)) % (56*TS)) - camX;
+      const py3 = ((seed*13) % (56*TS)) + Math.sin(now/900 + p3)*TS*0.5 + t3*TS*3 - camY;
+      if(px3 < -TS || px3 > canvas.width + TS || py3 < -TS || py3 > canvas.height + TS) continue;
+      c.save(); c.translate(px3, py3); c.rotate(now/700 + p3);
+      c.fillStyle = ['#f0a8c0','#e8c8d8','#f8d0a8'][p3 % 3];
+      c.globalAlpha = 0.75;
+      c.beginPath(); c.ellipse(0, 0, 4, 2.2, 0, 0, Math.PI*2); c.fill();
+      c.restore(); c.globalAlpha = 1;
+    }
+  }
+
+  // ---- PROSPERA: os estandartes do trigo ----
+  if(mapName === 'prospera'){
+    for(const [ex2, ey2] of [[49, 10], [58, 25], [26, 42]]){
+      const bx2 = ex2*TS - camX, by2 = ey2*TS - camY;
+      if(bx2 < -TS*2 || bx2 > canvas.width + TS*2 || by2 < -TS*4 || by2 > canvas.height + TS) continue;
+      c.fillStyle = '#5a4a2a';
+      c.fillRect(bx2 - 2, by2 - TS*2.6, 4, TS*2.6);        // o mastro
+      c.fillStyle = '#e8c860';
+      c.beginPath(); c.arc(bx2, by2 - TS*2.6, 4, 0, Math.PI*2); c.fill();
+      const ond = Math.sin(now/500 + ex2);                  // o estandarte ondulando
+      c.fillStyle = '#7a2e3a';
+      c.beginPath();
+      c.moveTo(bx2 + 2, by2 - TS*2.5);
+      c.quadraticCurveTo(bx2 + TS*0.6, by2 - TS*2.4 + ond*3, bx2 + TS*1.05, by2 - TS*2.5 + ond*4);
+      c.lineTo(bx2 + TS*1.05, by2 - TS*1.7 + ond*4);
+      c.quadraticCurveTo(bx2 + TS*0.6, by2 - TS*1.6 + ond*3, bx2 + 2, by2 - TS*1.7);
+      c.closePath(); c.fill();
+      c.strokeStyle = '#e8c860'; c.lineWidth = 1.6;         // a espiga bordada
+      c.beginPath(); c.moveTo(bx2 + TS*0.5, by2 - TS*2.3 + ond*3);
+      c.lineTo(bx2 + TS*0.5, by2 - TS*1.9 + ond*3); c.stroke();
+      for(let e3 = 0; e3 < 3; e3++){
+        c.beginPath();
+        c.moveTo(bx2 + TS*0.5, by2 - TS*(2.25 - e3*0.12) + ond*3);
+        c.lineTo(bx2 + TS*0.4, by2 - TS*(2.32 - e3*0.12) + ond*3);
+        c.moveTo(bx2 + TS*0.5, by2 - TS*(2.25 - e3*0.12) + ond*3);
+        c.lineTo(bx2 + TS*0.6, by2 - TS*(2.32 - e3*0.12) + ond*3);
+        c.stroke();
+      }
+    }
+  }
+
+  // ---- O CONCLAVE: o círculo arcano da origem da magia ----
+  if(mapName === 'torre_conclave'){
+    const cx2 = 10.5*TS - camX, cy2 = 7*TS - camY;
+    if(cx2 > -TS*8 && cx2 < canvas.width + TS*8){
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for(let ring = 0; ring < 2; ring++){
+        const R = TS*(3.1 + ring*0.5);
+        c.globalAlpha = 0.32 - ring*0.08;
+        c.strokeStyle = '#e8c860'; c.lineWidth = 2;
+        c.beginPath(); c.arc(cx2, cy2, R, 0, Math.PI*2); c.stroke();
+        const nR = 10 + ring*4;
+        for(let k = 0; k < nR; k++){
+          const a3 = k*Math.PI*2/nR + (ring ? -1 : 1)*now/4000;
+          c.fillStyle = '#ffe9a8';
+          c.fillRect(cx2 + Math.cos(a3)*R - 2, cy2 + Math.sin(a3)*R - 2, 4, 4);
+        }
+      }
+      for(let o2 = 0; o2 < 4; o2++){                     // os ORBES flutuantes
+        const a4 = o2*Math.PI/2 + now/2600;
+        const ox2 = cx2 + Math.cos(a4)*TS*2.2, oy2 = cy2 + Math.sin(a4)*TS*1.1 - TS*0.8 + Math.sin(now/700 + o2)*4;
+        c.globalAlpha = 0.75;
+        const og2 = c.createRadialGradient(ox2, oy2, 0, ox2, oy2, TS*0.3);
+        og2.addColorStop(0, 'rgba(232,200,96,0.9)'); og2.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = og2; c.beginPath(); c.arc(ox2, oy2, TS*0.3, 0, Math.PI*2); c.fill();
+      }
+      c.restore();
+    }
+  }
+
+  // ---- O ESCRITÓRIO: a esfera armilar e o nicho de Valdarkram ----
+  if(mapName === 'torre_escritorio'){
+    const gx2 = 15.5*TS - camX, gy2 = 4.4*TS - camY;
+    if(gx2 > -TS*3 && gx2 < canvas.width + TS*3){
+      c.strokeStyle = '#c9a842'; c.lineWidth = 2;
+      c.beginPath(); c.arc(gx2, gy2 - TS*0.35, TS*0.28, 0, Math.PI*2); c.stroke();
+      c.save(); c.translate(gx2, gy2 - TS*0.35); c.rotate(now/3000);
+      c.beginPath(); c.ellipse(0, 0, TS*0.28, TS*0.1, 0, 0, Math.PI*2); c.stroke();
+      c.rotate(Math.PI/3);
+      c.beginPath(); c.ellipse(0, 0, TS*0.28, TS*0.1, 0, 0, Math.PI*2); c.stroke();
+      c.restore();
+      c.fillStyle = '#e8c860';
+      c.beginPath(); c.arc(gx2, gy2 - TS*0.35, TS*0.05, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#5a4a2a';
+      c.fillRect(gx2 - TS*0.06, gy2 - TS*0.05, TS*0.12, TS*0.3);
+    }
+    const nx2 = 9.5*TS - camX, ny2 = 10.4*TS - camY;     // o glow roxo da saudade
+    if(nx2 > -TS*4 && nx2 < canvas.width + TS*4){
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.22 + 0.08*Math.sin(now/900);
+      const ng2 = c.createRadialGradient(nx2, ny2, 0, nx2, ny2, TS*1.6);
+      ng2.addColorStop(0, 'rgba(155,109,255,0.7)'); ng2.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = ng2; c.beginPath(); c.arc(nx2, ny2, TS*1.6, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+  }
+
+  // ---- O OBSERVATÓRIO: o telescópio dourado ----
   if(mapName === 'torre_observatorio'){
     const tx2 = 8.5*TS - camX, ty2 = 3.5*TS - camY;
     if(tx2 > -TS*3 && tx2 < canvas.width + TS*3){
@@ -15298,45 +15751,42 @@ function renderOutfits(){
   // ---- A BAIXA DA ÉGUA: quebrada de mármore ----
   if(mapName === 'baixa_da_egua'){
     const sobrados = [[8,8],[14,8],[8,20],[16,20],[30,20],[38,20]];
-    sobrados.forEach((s2, i) => {                          // SOBRADOS chiques
-      const sx3 = s2[0]*TS - camX, sy3 = s2[1]*TS - camY;
-      if(sx3 < -TS*5 || sx3 > canvas.width + TS*5 || sy3 < -TS*6 || sy3 > canvas.height + TS*3) return;
-      const cor = ['#e0d8c8','#d8c8b0','#e8e0d0'][i % 3];
-      c.fillStyle = cor;
-      c.fillRect(sx3, sy3 - TS*2.4, TS*3.4, TS*2.4);
-      c.fillStyle = '#7a2e3a';
-      c.beginPath(); c.moveTo(sx3 - TS*0.2, sy3 - TS*2.4);
-      c.lineTo(sx3 + TS*1.7, sy3 - TS*3.3); c.lineTo(sx3 + TS*3.6, sy3 - TS*2.4);
-      c.closePath(); c.fill();
-      c.fillStyle = '#ffdf9a';
-      c.fillRect(sx3 + TS*0.4, sy3 - TS*2.0, TS*0.6, TS*0.7);
-      c.fillRect(sx3 + TS*2.4, sy3 - TS*2.0, TS*0.6, TS*0.7);
-      c.fillStyle = '#5a3c20';
-      c.fillRect(sx3 + TS*1.4, sy3 - TS*0.9, TS*0.6, TS*0.9);
-      c.strokeStyle = '#c9a842'; c.lineWidth = 2;          // o toque de ouro da quebrada
-      c.strokeRect(sx3 + TS*0.35, sy3 - TS*2.05, TS*0.7, TS*0.8);
-      c.strokeRect(sx3 + TS*2.35, sy3 - TS*2.05, TS*0.7, TS*0.8);
-    });
-    const ctx2 = 31*TS - camX, cty2 = 23*TS - camY;        // o CORTIÇO (varal e janelinhas)
-    if(ctx2 > -TS*10 && ctx2 < canvas.width + TS*2 && cty2 > -TS*4 && cty2 < canvas.height + TS*3){
-      c.fillStyle = '#d0c0a8';
-      c.fillRect(ctx2, cty2 - TS*1.6, TS*8, TS*1.6);
-      c.fillStyle = '#8a5a3a';
-      c.fillRect(ctx2 - TS*0.15, cty2 - TS*2.1, TS*8.3, TS*0.55);
-      c.fillStyle = '#ffdf9a';
-      for(let k = 0; k < 6; k++)
-        c.fillRect(ctx2 + TS*(0.5 + k*1.3), cty2 - TS*1.2, TS*0.5, TS*0.6);
-      c.strokeStyle = 'rgba(60,50,40,0.6)'; c.lineWidth = 1;   // o VARAL
-      c.beginPath(); c.moveTo(ctx2 + TS*0.5, cty2 - TS*2.2);
-      c.quadraticCurveTo(ctx2 + TS*4, cty2 - TS*1.8, ctx2 + TS*7.5, cty2 - TS*2.2); c.stroke();
-      for(let k = 0; k < 5; k++){
-        const t2 = (k + 0.5)/5;
-        const vx2 = ctx2 + TS*0.5 + t2*TS*7;
-        const vy2 = cty2 - TS*2.2 + 4*Math.sin(Math.PI*t2)*TS*0.1 + Math.sin(now/500 + k)*1.5;
-        c.fillStyle = ['#c43e5a','#3a6aaa','#e8e0d0','#3a8a5a','#e0a850'][k];
-        c.fillRect(vx2 - 3, vy2, 6, 9);
+    sobrados.forEach((s2, i) => {                          // MANSÕEZINHAS de 2 andares
+      const sx3 = s2[0]*TS - camX, sy3 = (s2[1] + 1)*TS - camY;
+      if(sx3 < -TS*6 || sx3 > canvas.width + TS*6 || sy3 < -TS*7 || sy3 > canvas.height + TS*3) return;
+      const corpo = ['#e8e2d4','#e2d8c4','#ece6d8'][i % 3];
+      c.fillStyle = corpo;                                 // dois andares
+      c.fillRect(sx3, sy3 - TS*3.3, TS*4, TS*3.3);
+      c.fillStyle = '#c9a842';                             // friso dourado entre andares
+      c.fillRect(sx3, sy3 - TS*1.75, TS*4, 3);
+      c.fillRect(sx3, sy3 - TS*3.3, TS*4, 2);
+      c.fillStyle = '#7a2e3a';                             // mansarda vinho
+      c.beginPath(); c.moveTo(sx3 - TS*0.25, sy3 - TS*3.3);
+      c.lineTo(sx3 + TS*0.5, sy3 - TS*4.05); c.lineTo(sx3 + TS*3.5, sy3 - TS*4.05);
+      c.lineTo(sx3 + TS*4.25, sy3 - TS*3.3); c.closePath(); c.fill();
+      c.fillStyle = '#e8c860';
+      c.fillRect(sx3 + TS*1.7, sy3 - TS*3.95, TS*0.6, TS*0.4);   // a trapeira dourada
+      c.fillStyle = '#ffdf9a';                             // janelas altas (andar de cima)
+      for(const wx of [0.4, 1.6, 2.8]){
+        c.fillRect(sx3 + TS*wx, sy3 - TS*3.05, TS*0.7, TS*0.95);
+        c.strokeStyle = '#c9a842'; c.lineWidth = 1.5;
+        c.strokeRect(sx3 + TS*wx, sy3 - TS*3.05, TS*0.7, TS*0.95);
       }
-    }
+      c.strokeStyle = 'rgba(60,50,40,0.55)'; c.lineWidth = 1.5;   // a SACADA com balaustrada
+      c.strokeRect(sx3 + TS*0.25, sy3 - TS*1.7, TS*3.5, TS*0.35);
+      for(let b2 = 0; b2 < 8; b2++)
+        c.fillRect(sx3 + TS*(0.35 + b2*0.45), sy3 - TS*1.68, 2, TS*0.3);
+      c.fillStyle = '#ffdf9a';                             // janelas do térreo
+      c.fillRect(sx3 + TS*0.45, sy3 - TS*1.25, TS*0.65, TS*0.85);
+      c.fillRect(sx3 + TS*2.9, sy3 - TS*1.25, TS*0.65, TS*0.85);
+      c.fillStyle = '#4a3222';                             // a porta com colunas
+      c.fillRect(sx3 + TS*1.65, sy3 - TS*1.05, TS*0.7, TS*1.05);
+      c.fillStyle = '#d8d0c0';
+      c.fillRect(sx3 + TS*1.45, sy3 - TS*1.15, TS*0.14, TS*1.15);
+      c.fillRect(sx3 + TS*2.41, sy3 - TS*1.15, TS*0.14, TS*1.15);
+      c.fillStyle = '#c9a842';
+      c.fillRect(sx3 + TS*1.4, sy3 - TS*1.28, TS*1.2, TS*0.14);  // o frontão
+    });
     for(const hx2 of [36, 40, 43]){                        // as ÉGUAS do haras (silhuetas vivas)
       const ex2 = hx2*TS - camX, ey2 = 9.5*TS - camY + Math.sin(now/900 + hx2)*2;
       if(ex2 < -TS*2 || ex2 > canvas.width + TS*2) continue;
@@ -15601,6 +16051,8 @@ function renderOutfits(){
 // ===========================================================================
 //  PORTAS VIVAS: as casas entráveis se anunciam (porta grande, placa, luz).
 // ===========================================================================
+var _ILHA_FLORAL = {vilalbina:1, trigal_dourado:1, vinhedo:1, pastos:1, prospera:1,
+  jardim_templo:1, cidade_alta:1, farol_margem:1, feirao_sao_celeste:1, baixa_da_egua:1};
 var _PORTAS_VIVAS = [
   {mapa: 'cidade_alta', cx: 4,  cy: 4,  w: 5, h: 3, emoji: '🍎'},
   {mapa: 'cidade_alta', cx: 4,  cy: 30, w: 5, h: 3, emoji: '🌶️'},

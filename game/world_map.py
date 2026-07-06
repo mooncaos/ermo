@@ -3015,25 +3015,30 @@ MAPS["padaria_bruno"] = {"rows": _padaria_bruno(), "spawns": [(6, 5), (5, 5), (7
 MAPS["casa_naiara"] = {"rows": _casa_naiara(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_caio"] = {"rows": _casa_caio(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 def _torre_conclave():
-    """2º andar: o Salão do Conclave (17x12). A mesa das reuniões e a
-    cadeira do Cronista, à vista, sob o véu."""
-    W, H = 17, 12
-    g = [["1" for _ in range(W)] for _ in range(H)]
+    """2º andar: o SALÃO DO CONCLAVE (21x14). A origem da magia do Ermo.
+    Mesa de mármore rúnica, os cinco assentos, colunas, vitrais e o
+    círculo arcano no piso. Mais Versalhes que Versalhes."""
+    W, H = 21, 14
+    g = [["2" for _ in range(W)] for _ in range(H)]
     for x in range(W):
-        g[0][x] = "j" if x in (4, 8, 12) else "F"
+        g[0][x] = "j" if x in (3, 6, 10, 14, 17) else "F"
         g[H - 1][x] = "F"
     for y in range(H):
         g[y][0] = "F"; g[y][W - 1] = "F"
-    for x in range(5, 12):                 # a mesa do Conclave
-        g[5][x] = "k"
-        g[4][x] = "^"; g[6][x] = "^"
-    g[5][13] = "^"                          # a cabeceira do Heron
-    g[4][3] = ";"; g[7][3] = ";"; g[4][13] = ";"
-    g[2][8] = "P"                           # o brasão da Alvorada
-    g[8][2] = "E"; g[8][14] = "E"
-    g[6][3] = "2"; g[5][3] = "2"
-    g[H - 1][2] = "D"                       # escada DESCE (oeste)
-    g[H - 1][14] = "D"                      # escada SOBE (leste)
+        if y in (3, 7, 10):
+            g[y][2] = "F"; g[y][W - 3] = "F"           # as COLUNAS
+    # a grande mesa rúnica (centro) com os 5 assentos
+    for x in range(8, 13):
+        g[6][x] = "k"; g[7][x] = "k"
+    g[5][8] = "^"; g[5][10] = "^"; g[5][12] = "^"       # Lyra, Heron, Bramir
+    g[8][9] = "^"; g[8][11] = "^"                        # Cecille e... o Cronista
+    g[4][10] = "P"                                       # o brasão da Alvorada
+    # os braseiros azuis e candelabros de honra
+    g[2][4] = ";"; g[2][16] = ";"; g[11][4] = ";"; g[11][16] = ";"
+    g[6][3] = ";"; g[7][17] = ";"
+    # as estantes dos éditos e o atril
+    g[2][8] = "E"; g[2][12] = "E"; g[10][10] = "E"
+    g[H - 1][3] = "D"; g[H - 1][17] = "D"
     return ["".join(r) for r in g]
 
 
@@ -3057,23 +3062,31 @@ def _torre_observatorio():
 
 
 def _torre_escritorio():
-    """4º andar: o Escritório do Arquimago (17x12). Mapas de Valdarkram,
-    cartas antigas e quarenta anos de saudade organizada."""
-    W, H = 17, 12
-    g = [["1" for _ in range(W)] for _ in range(H)]
+    """4º andar: o ESCRITÓRIO DO ARQUIMAGO (19x13). Estrado de honra,
+    o globo celeste, estantes catedrais e o nicho de Valdarkram."""
+    W, H = 19, 13
+    g = [["2" for _ in range(W)] for _ in range(H)]
     for x in range(W):
-        g[0][x] = "j" if x in (5, 11) else "F"
+        g[0][x] = "j" if x in (4, 9, 14) else "F"
         g[H - 1][x] = "F"
     for y in range(H):
         g[y][0] = "F"; g[y][W - 1] = "F"
-    g[3][7] = "k"; g[3][8] = "k"            # a escrivaninha
-    g[2][7] = "2"; g[2][8] = "2"
-    for x in (2, 3, 13, 14):
-        g[5][x] = "E"                       # as estantes de cartas
-    g[7][2] = "q"; g[7][3] = "q"            # os baús de Valdarkram
-    g[2][2] = "P"; g[2][14] = "P"           # os mapas emoldurados
-    g[8][8] = "2"; g[7][14] = ";"
-    g[H - 1][2] = "D"; g[H - 1][14] = "D"
+    # o ESTRADO do Arquimago (norte-centro): escrivaninha imponente
+    g[2][8] = "k"; g[2][9] = "k"; g[2][10] = "k"
+    g[1][9] = "^"
+    g[3][7] = ";"; g[3][11] = ";"
+    # o GLOBO CELESTE (leste) e a lareira (oeste)
+    g[4][15] = "_"
+    g[3][3] = "h"
+    # as estantes-catedral (paredes laterais)
+    for y in (5, 6, 8, 9):
+        g[y][2] = "E"; g[y][16] = "E"
+    # o NICHO DE VALDARKRAM (sul-centro): os baús sob os mapas da pátria
+    g[10][8] = "q"; g[10][9] = "q"; g[10][10] = "q"
+    g[9][8] = "P"; g[9][10] = "P"
+    g[10][4] = ";"; g[10][14] = ";"
+    g[6][9] = "E"                                        # o atril central
+    g[H - 1][3] = "D"; g[H - 1][15] = "D"
     return ["".join(r) for r in g]
 
 
@@ -3234,9 +3247,9 @@ MAPS["feirao_sao_celeste"] = {"rows": _feirao_sao_celeste(), "spawns": [(24, 4),
 MAPS["baixa_da_egua"] = {"rows": _baixa_da_egua(), "spawns": [(24, 4), (23, 4), (25, 4)]}
 MAPS["casa_baixa"] = {"rows": _casa_baixa(), "spawns": [(7, 6), (6, 6), (8, 6)]}
 MAPS["restaurante_jacquard"] = {"rows": _restaurante_jacquard(), "spawns": [(7, 8), (8, 8), (7, 7)]}
-MAPS["torre_conclave"] = {"rows": _torre_conclave(), "spawns": [(3, 9), (4, 9), (3, 8)]}
+MAPS["torre_conclave"] = {"rows": _torre_conclave(), "spawns": [(4, 12), (5, 12), (4, 11)]}
 MAPS["torre_observatorio"] = {"rows": _torre_observatorio(), "spawns": [(3, 9), (4, 9), (3, 8)]}
-MAPS["torre_escritorio"] = {"rows": _torre_escritorio(), "spawns": [(3, 9), (4, 9), (3, 8)]}
+MAPS["torre_escritorio"] = {"rows": _torre_escritorio(), "spawns": [(4, 11), (5, 11), (4, 10)]}
 MAPS["torre_terraco"] = {"rows": _torre_terraco(), "spawns": [(3, 9), (4, 9), (3, 8)]}
 MAPS["mansao_prosperi"] = {"rows": _mansao_prosperi(), "spawns": [(11, 13), (12, 13), (11, 12)]}
 MAPS["cortico_baixa"] = {"rows": _cortico_baixa(), "spawns": [(8, 6), (9, 6), (8, 5)]}
