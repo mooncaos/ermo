@@ -192,7 +192,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v27: BARRA 6-0 DO PALADINO consertada de verdade (06/jul)"
+BUILD_TAG = "v28: HOTFIX login + barra 6-0 blindada (06/jul)"
 
 
 def _asset_version():

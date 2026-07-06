@@ -12262,15 +12262,14 @@ var bindArcano = setInterval(()=>{
 
 // ============ BARRA DE HABILIDADES (registro IMEDIATO — v27) ============
 (function(){
+  var AB = { abils: [], abilCd: {} };   // estado PRÓPRIO (g não existe no load!)
   const ABIL_ICO = {divine_smite:'⚔️', lay_on_hands:'🙌', rage:'😤', second_wind:'💨',
                     flurry:'👊', martial_arts:'🥋', bardic:'🎵', lamina_venenosa:'🗡️',
                     some_sombras:'🌑', milesima_saida:'🐇', aurora_valiria:'🌅',
                     forma_facalan:'🐆', sopro_draconico:'🐉'};
-  g.abils = [];
-  g.abilCd = {};
   function renderAbilbar(){
     let bar = document.getElementById('abilbar');
-    if(!g.abils.length){ if(bar) bar.remove(); return; }
+    if(!AB.abils.length){ if(bar) bar.remove(); return; }
     if(!bar){
       bar = document.createElement('div');
       bar.id = 'abilbar';
@@ -12279,8 +12278,8 @@ var bindArcano = setInterval(()=>{
       document.body.appendChild(bar);
     }
     bar.innerHTML = '';
-    g.abils.slice(0, 5).forEach((ab, i) => {
-      const cdLeft = Math.max(0, Math.ceil((g.abilCd[ab.id] || 0) - Date.now()/1000));
+    AB.abils.slice(0, 5).forEach((ab, i) => {
+      const cdLeft = Math.max(0, Math.ceil((AB.abilCd[ab.id] || 0) - Date.now()/1000));
       const s = document.createElement('div');
       s.title = ab.name + ' — ' + ab.desc + (ab.mana ? ' (custo ' + ab.mana + ')' : '');
       s.style.cssText = 'width:46px;height:46px;border-radius:9px;background:rgba(20,16,30,0.88);' +
@@ -12297,22 +12296,22 @@ var bindArcano = setInterval(()=>{
   }
   (function _abilWire(){
     if(!socket){ setTimeout(_abilWire, 100); return; }      // espera o socket NASCER
-    socket.on('rt_abilities', d => { g.abils = (d && d.abilities) || [];
-      (g.abils).forEach(ab => { if(ab.cd_left) g.abilCd[ab.id] = Date.now()/1000 + ab.cd_left; });
+    socket.on('rt_abilities', d => { AB.abils = (d && d.abilities) || [];
+      (AB.abils).forEach(ab => { if(ab.cd_left) AB.abilCd[ab.id] = Date.now()/1000 + ab.cd_left; });
       renderAbilbar(); });
     socket.on('rt_ability_cd', d => {
       if(!d || !d.id) return;
-      g.abilCd[d.id] = Date.now()/1000 + (d.secs || 10);
+      AB.abilCd[d.id] = Date.now()/1000 + (d.secs || 10);
       renderAbilbar();
     });
   })();
-  setInterval(() => { if(g.abils.length) renderAbilbar(); }, 1000);
+  setInterval(() => { if(AB.abils.length) renderAbilbar(); }, 1000);
   window.addEventListener('keydown', ev => {
     if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
     const k = ev.key;
     if(['6','7','8','9','0'].includes(k)){
       const idx = (k === '0') ? 4 : (parseInt(k) - 6);
-      const ab = g.abils[idx];
+      const ab = AB.abils[idx];
       if(ab && socket) socket.emit('rt_ability', {id: ab.id});
     }
   });
