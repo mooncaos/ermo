@@ -4883,13 +4883,14 @@ def on_interact(_data=None):
        max(abs(_val.get("x", 0) - player["x"]), abs(_val.get("y", 0) - player["y"])) <= TALK_RADIUS:
         if _quest_deliver(request.sid, player, "chamado_valdris"):
             return
+    if _try_casas_ilha(player):
+        return                      # PORTA na frente: porta tem prioridade
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
         if not _try_fenda(player) and not _try_fenda_inside(player) and \
            not _try_travessia(player) and not _try_ilha_bordas(player) and \
            not _try_torre(player) and not _try_biblioteca(player) and \
            not _try_farol(player) and not _try_santuario(player) and \
-           not _try_casas_ilha(player) and \
            not _try_garden(player) and \
            not _try_ossuario(player) and not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \
