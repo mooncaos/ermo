@@ -184,7 +184,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v11: placas nas lojas + Mansao Angard rococo + 8 criados (06/jul)"
+BUILD_TAG = "v12: placas + Mansao Angard + Duque azul + barra (06/jul)"
 
 
 def _asset_version():
