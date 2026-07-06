@@ -11069,6 +11069,7 @@ function drawWorldOverlays(c, now){
     drawWeather(c, now);
     drawQuestMarks(c, now);
     drawRtAoes(c, now);
+    drawGarden(c, now);
     drawRtCombat(c, now);
     drawExitArrows(c, now);
     drawVignette(c, now);
@@ -11837,6 +11838,7 @@ var bindArcano = setInterval(()=>{
   socket.on('duel_end', d=>{ hideDuelBanner(); stopMusic(); sfx(d && d.win ? 'legend' : 'mydeath'); });
   socket.on('fenda_open', d=>{ _fendaOpen = true; if(d && d.floor) _fendaFloor = d.floor; sfx('event'); });
   socket.on('plaza', d=>{ if(d) _plazaData = d; });
+  socket.on('garden', d=>{ if(d) _gardenPlots = d.plots || []; });
   socket.on('rt_aoe', d=>{
     if(!d) return;
     rtAoes.push({x: d.x, y: d.y, r: d.r || 1, dtype: d.dtype || 'energia', t0: performance.now()});
@@ -13217,3 +13219,46 @@ var _plazaData = null;
     }
   };
 })();
+
+// ===========================================================================
+//  OS JARDINS: canteiros de terra, brotos crescendo e colheitas brilhando
+// ===========================================================================
+var _gardenPlots = [];
+function drawGarden(c, now){
+  if(!_gardenPlots.length || typeof mapName === 'undefined') return;
+  for(const p of _gardenPlots){
+    if(p.map !== mapName) continue;
+    const sx = p.x*TS - camX, sy = p.y*TS - camY;
+    if(sx < -TS*2 || sy < -TS*2 || sx > canvas.width+TS*2 || sy > canvas.height+TS*2) continue;
+    c.save();
+    c.fillStyle = '#5a4228';                                     // a terra
+    c.fillRect(sx + 2, sy + 3, TS*2 - 4, TS - 6);
+    c.strokeStyle = '#7a5a38'; c.lineWidth = 2;
+    c.strokeRect(sx + 2, sy + 3, TS*2 - 4, TS - 6);
+    c.strokeStyle = 'rgba(30,20,12,0.5)'; c.lineWidth = 1;
+    for(let i=1;i<4;i++){ c.beginPath(); c.moveTo(sx + 4, sy + 3 + i*(TS-6)/4); c.lineTo(sx + TS*2 - 4, sy + 3 + i*(TS-6)/4); c.stroke(); }
+    if(p.stage === 'broto'){
+      c.strokeStyle = '#6aa84a'; c.lineWidth = 2;
+      for(const ox of [0.4, 1.0, 1.6]){
+        const bx = sx + ox*TS, by = sy + TS*0.62;
+        c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + Math.sin(now/500+ox)*2, by - 8, bx, by - 12); c.stroke();
+      }
+    } else if(p.stage === 'pronto'){
+      for(const ox of [0.4, 1.0, 1.6]){
+        const bx = sx + ox*TS, by = sy + TS*0.6;
+        c.strokeStyle = '#4a8a3a'; c.lineWidth = 2.4;
+        c.beginPath(); c.moveTo(bx, by); c.lineTo(bx, by - 16); c.stroke();
+        c.fillStyle = '#8fe08f';
+        c.beginPath(); c.arc(bx, by - 18, 4.5, 0, Math.PI*2); c.fill();
+      }
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.3 + 0.2*Math.sin(now/350);
+      c.fillStyle = '#a0ffb0';
+      c.beginPath(); c.ellipse(sx + TS, sy + TS*0.35, TS*1.1, TS*0.5, 0, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.font = '700 9px Inter'; c.textAlign = 'center';
+      c.fillStyle = '#c9f0a0'; c.fillText('🌾 (E)', sx + TS, sy - 4);
+    }
+    c.restore();
+  }
+}

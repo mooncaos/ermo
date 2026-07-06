@@ -1153,6 +1153,7 @@ def on_quests_get(_data=None):
     _contract_refresh()
     _t_ar = max(ARENA_RECORDS.items(), key=lambda kv: kv[1].get("w", 0))[0] if ARENA_RECORDS else ""
     _t_fd = max(FENDA_RECORDS.items(), key=lambda kv: kv[1])[0] if FENDA_RECORDS else ""
+    socketio.emit("garden", _garden_payload(player.get("map")), to=request.sid)
     socketio.emit("plaza", {"arena": _t_ar, "fenda": _t_fd,
                             "pesca": FISH_RECORDS.get("name", "")}, to=request.sid)
     if not ((player.get("ficha") or {}).get("skills") or {}).get("magic"):
@@ -2373,6 +2374,125 @@ def _save_fish_records():
             json.dump(FISH_RECORDS, _fr)
     except Exception as exc:
         print("erro salvando recordes de pesca:", exc)
+
+
+
+# ===========================================================================
+#  OS JARDINS: canteiros por cidade, crescimento em tempo REAL, roubo com risco.
+# ===========================================================================
+GARDEN_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "garden.json")
+try:
+    with open(GARDEN_PATH) as _gf:
+        GARDEN = json.load(_gf)
+except Exception:
+    GARDEN = {}
+_SEEDS = {"semente_solar": ("erva_solar", 1800, (2, 3)),
+          "semente_lunar": ("erva_lunar", 2700, (2, 3)),
+          "semente_umbria": ("essencia_sombria", 5400, (1, 2))}
+
+
+def _garden_plots():
+    """Canteiros fixos: SW do Ermo + Vila Caiçara (computados do mapa, estáveis)."""
+    if hasattr(_garden_plots, "_c"):
+        return _garden_plots._c
+    plots = []
+    for (mp, x0, x1, y0, y1, n) in (("ermo", 10, 30, 70, 90, 6),
+                                    ("costa_maravai", 14, 36, 14, 34, 4)):
+        rows = wm.MAPS[mp]["rows"]
+        achou = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1, 2):
+                if achou >= n:
+                    break
+                if rows[y][x] == "." and rows[y][x + 1] == ".":
+                    plots.append({"id": "%s_%d" % (mp, achou), "map": mp, "x": x, "y": y})
+                    achou += 1
+            if achou >= n:
+                break
+    _garden_plots._c = plots
+    return plots
+
+
+def _garden_save():
+    try:
+        os.makedirs(os.path.dirname(GARDEN_PATH), exist_ok=True)
+        with open(GARDEN_PATH, "w") as _gf:
+            json.dump(GARDEN, _gf)
+    except Exception as exc:
+        print("erro salvando jardim:", exc)
+
+
+def _garden_payload(mp=None):
+    now = time.time()
+    out = []
+    for p in _garden_plots():
+        if mp and p["map"] != mp:
+            continue
+        st = GARDEN.get(p["id"]) or {}
+        stage = "vazio"
+        if st.get("seed"):
+            stage = "pronto" if now >= float(st.get("ready_at", 0)) else "broto"
+        out.append({"id": p["id"], "map": p["map"], "x": p["x"], "y": p["y"], "stage": stage})
+    return {"plots": out}
+
+
+def _try_garden(player):
+    """Perto de um canteiro: planta, espia ou colhe (roubo tem preço)."""
+    mp = player.get("map")
+    plot = next((p for p in _garden_plots() if p["map"] == mp and
+                 max(abs(player["x"] - p["x"]), abs(player["y"] - p["y"])) <= 1), None)
+    if not plot:
+        return False
+    now = time.time()
+    st = GARDEN.get(plot["id"]) or {}
+    if not st.get("seed"):
+        sem = next((s for s in _SEEDS if _bag_count(player, s) >= 1), None)
+        if not sem:
+            emit("toast", {"text": "🌱 Canteiro vazio. Plante uma semente (a Cigana vende)."})
+            return True
+        items.remove_from_bag(player["inventory"], sem, 1)
+        _persist_loadout(player)
+        emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+        GARDEN[plot["id"]] = {"owner": player.get("player_id"), "name": player.get("name", "?"),
+                              "seed": sem, "ready_at": now + _SEEDS[sem][1]}
+        _garden_save()
+        emit("toast", {"text": "🌱 %s plantada! Volte em ~%d min." %
+                       ((items.get(sem) or {}).get("name", sem), _SEEDS[sem][1] // 60)})
+        socketio.emit("garden", _garden_payload(mp), room=mp)
+        return True
+    if now < float(st.get("ready_at", 0)):
+        emit("toast", {"text": "🌿 %s de %s: pronta em %d min." %
+                       ((items.get(st["seed"]) or {}).get("name", "?"), st.get("name", "?"),
+                        max(1, int((float(st["ready_at"]) - now) / 60)))})
+        return True
+    prod, _dur, (qa, qb) = _SEEDS.get(st["seed"], ("erva_solar", 0, (1, 2)))
+    qty = random.randint(qa, qb)
+    dono = st.get("owner") == player.get("player_id")
+    if dono:
+        items.add_to_bag(player.setdefault("inventory", []), prod, qty)
+        emit("toast", {"text": "🌾 Colheita: %dx %s!" % (qty, (items.get(prod) or {}).get("name", prod))})
+    else:
+        if random.random() < 0.55:
+            items.add_to_bag(player.setdefault("inventory", []), prod, qty)
+            emit("toast", {"text": "🥷 Você ROUBOU %dx %s..." % (qty, (items.get(prod) or {}).get("name", prod))})
+            socketio.emit("toast", {"text": "😱 %s roubou a colheita de %s no jardim!" %
+                                    (player.get("name", "?"), st.get("name", "?"))})
+        else:
+            multa = min(200, int(player.get("wallet", 0)))
+            player["wallet"] = int(player.get("wallet", 0)) - multa
+            MARKET["chest"] = int(MARKET.get("chest", 0)) + multa
+            _market_save()
+            emit("wallet", {"bronze": player.get("wallet", 0)})
+            emit("toast", {"text": "🚨 A guarda te pegou no pulo! Multa de %d pro Cofre." % multa})
+            socketio.emit("toast", {"text": "🚨 %s foi PEGO roubando o jardim de %s! Que vergonha." %
+                                    (player.get("name", "?"), st.get("name", "?"))})
+            return True
+    GARDEN.pop(plot["id"], None)
+    _garden_save()
+    _persist_loadout(player)
+    emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+    socketio.emit("garden", _garden_payload(mp), room=mp)
+    return True
 
 
 def _gossip_line(npc_id=None):
@@ -4298,6 +4418,7 @@ def on_interact(_data=None):
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
         if not _try_fenda(player) and not _try_fenda_inside(player) and \
+           not _try_garden(player) and \
            not _try_ossuario(player) and not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \
            not _try_fish(player):        # no píer? joga a linha!
@@ -4405,7 +4526,8 @@ def on_interact(_data=None):
     # Cigana Vidente (Itatinga): vende Pocao de Vida por 10 pratas (1000 bronze)
     if npc.get("_spec", {}).get("sells_potion"):
         _open_shop(player, npc, "Cigana Vidente", [], 0,
-                   potions=[("pocao_vida", 1000), ("flecha", 5), ("flecha_de_ferro", 12),
+                   potions=[("pocao_vida", 1000), ("semente_solar", 40), ("semente_lunar", 60),
+                            ("semente_umbria", 120), ("flecha", 5), ("flecha_de_ferro", 12),
                             ("virote", 6), ("virote_perfurante", 16), ("runa_em_branco", 80)])
         return
 

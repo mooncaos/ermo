@@ -288,6 +288,10 @@ ITEMS = {
     "runa_cura_intensa":    {"name": "Runa: Cura Intensa",    "kind": "runa", "stackable": True, "color": "#8ae0a0", "rune": {"tier": 2, "heal": True}, "ml_req": 3, "value": 240, "desc": "Costura carne como quem remenda rede."},
     "runa_cura_suprema":    {"name": "Runa: Cura Suprema",    "kind": "runa", "stackable": True, "color": "#c0f0c9", "rune": {"tier": 4, "heal": True}, "ml_req": 11, "value": 900, "desc": "A vida volta correndo, envergonhada de ter saído."},
 
+    "semente_solar":   {"name": "Semente Solar",    "kind": "trofeu", "stackable": True, "color": "#e0c060", "value": 40, "desc": "Plante num canteiro e volte em ~30 min: vira Erva Solar (x2-3)."},
+    "semente_lunar":   {"name": "Semente Lunar",    "kind": "trofeu", "stackable": True, "color": "#a0b0e0", "value": 60, "desc": "Plante num canteiro e volte em ~45 min: vira Erva Lunar (x2-3)."},
+    "semente_umbria":  {"name": "Semente Umbría",   "kind": "trofeu", "stackable": True, "color": "#5a5a7a", "value": 120, "desc": "Plante e volte em ~90 min: vira Essência Sombria. Se ninguém roubar antes."},
+
     "isca_viva":       {"name": "Isca Viva",        "kind": "trofeu", "stackable": True, "color": "#c9a06a", "value": 25, "desc": "Se mexe no anzol. As LENDAS das águas só mordem isso."},
     "peixe_rei":       {"name": "O Peixe-Rei",      "kind": "trofeu", "stackable": False, "color": "#ffd24a", "rarity": "lendario", "value": 9000, "desc": "Só aparece na chuva, de noite, pra quem tem isca viva. Coroa de escamas e tudo."},
     "carpa_estelar":   {"name": "Carpa Estelar",    "kind": "trofeu", "stackable": False, "color": "#c9b8ff", "rarity": "lendario", "value": 7000, "desc": "Nada nas madrugadas de céu limpo. Dizem que reflete constelações que não existem mais."},
