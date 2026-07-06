@@ -11553,6 +11553,13 @@ function drawErmoDecor(c, now){
 //  MUNDO VIVO (restaurado): clima, fauna ambiente, pet e pesca
 // ===========================================================================
 var _weather = {type: null, k: 0};
+var _serverWx = 'limpo';
+function _applyWeather(t){
+  if(t === 'chuva') _weather = {type: 'chuva', k: 0.75};
+  else if(t === 'tempestade') _weather = {type: 'chuva', k: 1};
+  else if(t === 'neblina') _weather = {type: 'nevoa', k: 1};
+  else _weather = {type: null, k: 0};
+}
 var _fauna = [];
 var _petTrail = [];
 
@@ -11563,16 +11570,13 @@ var socketOnReady_weather = setInterval(()=>{
     const nm = (d && d.map && d.map.map) || 'ermo';
     _fauna = []; _petTrail = [];
     if(nm === 'fenda'){ _fendaOpen = false; } else { _fendaFloor = 0; }
-    if((nm === 'costa_maravai' || nm === 'floresta_ermo') && Math.random() < 0.3)
-      _weather = {type: 'chuva', k: 0.6 + Math.random()*0.4};
-    else if(nm === 'umbraval' && Math.random() < 0.4)
-      _weather = {type: 'nevoa', k: 1};
-    else _weather = {type: null, k: 0};
+    _applyWeather(_serverWx);       // o CLIMA agora é lei do servidor
     if(nm === 'costa_maravai'){
       for(let i=0;i<10;i++) _fauna.push({t:'borboleta', x: 20+Math.random()*260, y: 10+Math.random()*130, ph: Math.random()*9});
       for(let i=0;i<6;i++)  _fauna.push({t:'gaivota', x: 30+Math.random()*250, y: 200+Math.random()*50, ph: Math.random()*9, voa: 0});
     }
   });
+  socket.on('weather', d=>{ _serverWx = (d && d.type) || 'limpo'; _applyWeather(_serverWx); });
   socket.on('rare_drop', d=>{
     if(!d) return;
     const me = players.get(myId);

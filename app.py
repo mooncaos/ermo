@@ -2070,6 +2070,149 @@ def _ephemeris_tick(now):
                             (dias, r.get("player", "alguém"), nome_b, extra)})
 
 
+
+def _npc_travel(nid, mapa, x, y):
+    """Um morador viaja de verdade: some de um mapa e aparece no outro."""
+    ent = world.players.get(nid)
+    if not ent:
+        return
+    velho = ent.get("map")
+    if velho == mapa:
+        ent["x"], ent["y"] = x, y
+        try:
+            socketio.emit("player_moved", _npc_moved_payload(ent), room=mapa)
+        except Exception:
+            pass
+        return
+    try:
+        socketio.emit("player_left", {"id": nid}, room=velho)
+    except Exception:
+        pass
+    ent["map"] = mapa
+    ent["x"], ent["y"] = x, y
+    for spec in npcs.ROSTER:
+        if spec.get("id") == nid:
+            spec["map"] = mapa
+            spec["home"] = (x, y)
+            break
+    try:
+        _world_refresh(mapa)
+    except Exception:
+        pass
+
+
+# turno do dia pelo relógio REAL: manhã 6-11, tarde 12-18, noite 19-23, madruga 0-5
+def _turno_do_dia():
+    h = int(time.time() // 3600) % 24
+    if 6 <= h <= 11:
+        return "manha"
+    if 12 <= h <= 18:
+        return "tarde"
+    if 19 <= h <= 23:
+        return "noite"
+    return "madruga"
+
+
+_TAVERNA_SPOTS = [(4, 5), (6, 6), (8, 5), (12, 6), (14, 5), (7, 8), (13, 8), (16, 6), (11, 4)]
+_SOCIAVEIS = ["npc:mestre_bragan", "npc:mestre_bartolo", "npc:mestra_petra", "npc:maricota",
+              "npc:lazaro", "npc:cronista", "npc:chica"]
+_VIAGENS_TARDE = {
+    "npc:maricota":     ("ermo", 46, 47),
+    "npc:mestre_bragan": ("oficina_joalheiro", 5, 5),
+    "npc:chica":        ("ermo", 52, 48),
+}
+_npc_home0 = {}
+
+
+def _npc_agenda_tick():
+    """A agenda rica: dia no ofício, tarde com visitas, noite na taverna, madruga em casa."""
+    turno = _turno_do_dia()
+    for spec in npcs.ROSTER:
+        nid = spec.get("id")
+        if nid not in _SOCIAVEIS:
+            continue
+        if nid not in _npc_home0:
+            _npc_home0[nid] = (spec.get("map", "ermo"),) + tuple(spec.get("home", (5, 5)))
+        casa = _npc_home0[nid]
+        ent = world.players.get(nid)
+        if not ent:
+            continue
+        if turno == "noite":
+            destino = ("taverna",) + _TAVERNA_SPOTS[abs(hash(nid)) % len(_TAVERNA_SPOTS)]
+        elif turno == "tarde" and nid in _VIAGENS_TARDE:
+            destino = _VIAGENS_TARDE[nid]
+        else:
+            destino = casa
+        if ent.get("map") != destino[0] or \
+           max(abs(ent.get("x", 0) - destino[1]), abs(ent.get("y", 0) - destino[2])) > 6:
+            _npc_travel(nid, destino[0], destino[1], destino[2])
+            if destino[0] == "taverna":
+                socketio.emit("speech", {"id": nid, "text": random.choice(
+                    ["Jorge! A de sempre!", "Que dia... me vê UMA GELADA.",
+                     "Cheguei. Alguém pagando a rodada?"])}, room="taverna")
+
+
+# ---------- CLIMA soberano do servidor ----------
+WEATHER = {"type": "limpo", "until": 0}
+_OUTDOOR = ("ermo", "costa_maravai", "umbraval", "vespera", "brasal",
+            "floresta_ermo", "descampado", "avasham")
+
+
+def _weather_tick(now):
+    if now > WEATHER.get("until", 0):
+        WEATHER["type"] = random.choices(
+            ["limpo", "chuva", "neblina", "tempestade"], weights=[50, 25, 15, 10])[0]
+        WEATHER["until"] = now + random.randint(480, 1080)
+        socketio.emit("weather", {"type": WEATHER["type"]})
+        if WEATHER["type"] == "tempestade":
+            socketio.emit("toast", {"text": "⛈️ Uma TEMPESTADE desaba sobre o Ermo! Cuidado com os raios."})
+        elif WEATHER["type"] == "neblina":
+            socketio.emit("toast", {"text": "🌫️ Neblina densa... os umbrais gostam disso (+drop raro no Umbraval e em Véspera)."})
+    if WEATHER["type"] == "tempestade" and random.random() < 0.5:
+        alvos = [(s, p) for s, p in world.players.items()
+                 if p.get("player_id") and p.get("map") in _OUTDOOR
+                 and int((p.get("ficha") or {}).get("hp", 0)) > 0]
+        if alvos:
+            s0, p0 = random.choice(alvos)
+            rx = p0["x"] + random.randint(-3, 3)
+            ry = p0["y"] + random.randint(-3, 3)
+            socketio.emit("rt_aoe", {"x": rx, "y": ry, "r": 1, "dtype": "raio"},
+                          room=p0.get("map"))
+            for s2, p2 in list(world.players.items()):
+                if p2.get("map") != p0.get("map") or not p2.get("player_id"):
+                    continue
+                if max(abs(p2["x"] - rx), abs(p2["y"] - ry)) > 1:
+                    continue
+                f2 = p2.get("ficha") or {}
+                if int(f2.get("hp", 0)) <= 0:
+                    continue
+                dano = max(5, int(f2.get("hp_max", 20)) * 15 // 100)
+                f2["hp"] = max(1, int(f2.get("hp", 1)) - dano)
+                p2["ficha"] = f2
+                socketio.emit("rt_phit", {"dmg": dano, "by": "o RAIO",
+                                          "hp": f2["hp"], "hp_max": f2.get("hp_max")}, to=s2)
+                socketio.emit("toast", {"text": "⚡ UM RAIO CAIU DO SEU LADO!"}, to=s2)
+            for mm in list(world.monsters.values()):
+                if mm.get("map") != p0.get("map") or not mm.get("alive"):
+                    continue
+                if max(abs(mm["x"] - rx), abs(mm["y"] - ry)) > 1:
+                    continue
+                dm = random.randint(25, 60)
+                mm["hp"] = max(0, int(mm["hp"]) - dm)
+                socketio.emit("rt_hit", {"id": mm["id"], "dmg": dm, "magic": True,
+                                         "dtype": "raio", "hp": mm["hp"],
+                                         "hp_max": mm["hp_max"]}, room=p0.get("map"))
+                if mm["hp"] <= 0:
+                    mm["alive"] = False
+                    socketio.emit("rt_dead", {"id": mm["id"]}, room=p0.get("map"))
+
+
+_PREVISAO = {"limpo": "Céu limpo, bom pra caçar longe.",
+             "chuva": "Tá chovendo: dizem que as gosmas adoram.",
+             "neblina": "Neblina fechada... os umbrais ficam generosos nela.",
+             "tempestade": "TEMPESTADE! Se eu fosse você, não ficava embaixo de árvore."}
+
+
 def _gossip_line(npc_id=None):
     """Uma fofoca montada dos dados reais (boss, arena, fenda, mercado)."""
     pool = []
@@ -2311,6 +2454,8 @@ def _rt_kill(sid, pl, m):
     _rmult = 1.0 + int(spec.get("xp", 0)) / 4000.0
     if float(f.get("fortune_until", 0)) > time.time():
         _rmult *= 1.5                          # a Fortuna dos Doze sorri
+    if WEATHER.get("type") == "neblina" and m.get("map") in ("umbraval", "vespera"):
+        _rmult *= 1.3                          # os umbrais dançam na neblina
     for (_rar, _ch) in RARE_CHANCES:
         if random.random() < _ch * _rmult:
             _pool = _rarity_pool(_rar)
@@ -4141,6 +4286,16 @@ def on_interact(_data=None):
         emit("couraria_open", _marion_payload(player, greet))
         return
 
+    # JORGE: previsão do tempo + o balcão da taverna
+    if npc.get("_spec", {}).get("taverneiro"):
+        socketio.emit("speech", {"id": npc["id"],
+            "text": "%s %s" % (random.choice(["Pela janela?", "Meus joelhos dizem:", "Previsão da casa:"]),
+                               _PREVISAO.get(WEATHER.get("type", "limpo"), ""))}, room=mp)
+        _open_shop(player, npc, "Taverna do Jorge", [], 0,
+                   potions=[("caneca_de_cerveja", 40), ("hidromel_do_ermo", 100),
+                            ("prato_do_dia", 150), ("pinga_do_jorge", 60)])
+        return
+
     # QUADRO DE PROCURADOS: contratos da cidade (rotação de 6h)
     if npc.get("_spec", {}).get("contract_board"):
         _contract_refresh()
@@ -4438,6 +4593,12 @@ def on_xama_offer(data=None):
 def _open_shop(player, npc, title, sets, price, potions=None, extra=None):
     """Abre a loja: emite a fala do NPC, monta o catalogo e GUARDA os precos no
     player (pra validar a compra depois, ja que cada mercador cobra diferente)."""
+    _ent_shop = world.players.get(npc.get("id")) or {}
+    if _ent_shop.get("map") == "taverna" and potions:
+        potions = [(pi, max(1, int(pp * 85 // 100))) for (pi, pp) in potions]
+        socketio.emit("speech", {"id": npc.get("id"),
+            "text": "*hic* Tô de folga mas... pra você faço 15%% de desconto. NÃO CONTA PRO JORGE."},
+            room="taverna")
     mp = player.get("map", "ermo")
     greet = npc.get("_spec", {}).get("greetings") or ["Da uma olhada na mercadoria."]
     socketio.emit("speech", {"id": npc["id"], "text": random.choice(greet)}, room=mp)
@@ -4613,6 +4774,8 @@ def _npc_routine_loop():
             _npc_gossip_tick(time.time())
             _ephemeris_tick(time.time())
             _contract_refresh()
+            _npc_agenda_tick()
+            _weather_tick(time.time())
         except Exception:
             pass
         noite = _is_night()
@@ -4675,6 +4838,12 @@ def on_craft_make(data):
         emit("toast", {"text": "✨ %s criado! %s subiu pro nível %d!" % (nome, professions.PROFESSIONS[prof]["name"], novo_lvl)})
     else:
         emit("toast", {"text": "✨ Você criou: %s (+%d XP de ofício)." % (nome, receita["xp"])})
+    _ent_m = world.players.get(npc.get("id")) or {}
+    if not str(_ent_m.get("map", "")).startswith("oficina"):
+        socketio.emit("speech", {"id": npc["id"],
+            "text": "*hic* Bancada só AMANHÃ, na oficina. Agora é hora do descanso do artista."},
+            room=mp)
+        return
     emit("craft_open", _craft_payload(player, prof))
 
 
