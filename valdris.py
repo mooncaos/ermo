@@ -1,270 +1,208 @@
 """
-SISTEMA DE NIVEIS (D&D 5e) — o MOTOR.
+AS CLASSES — as 12 classes oficiais de D&D 5e.
 
-Tabela de XP oficial, bonus de proficiencia, vida por nivel e a concessao de XP
-por exploracao. As FEATURES e MAGIAS por classe ficam pras fases seguintes; aqui
-e so o alicerce: o nivel sobe de verdade, a vida e a proficiencia acompanham.
+Cada classe tem um MESTRE no Salao das Classes (mapa "salao") e o DEUS que esse
+mestre serve, amarrando o sistema na cosmologia do Ermo. O Mago e o unico SEM
+deus: serve ao cosmo e aos livros. (Segredo de mestre: o corvo-guia se chama
+Jeans; Vargo, deus da morte, e o corvo nao patrocinam classe.)
 
-Regras da casa ja fixadas com o Moon:
-- curva de XP: tabela 5e padrao.
-- vida por nivel: nivel 1 = MAX do dado + mod CON; cada nivel depois soma a
-  MEDIA fixa do dado + mod CON (estilo BG3, justo no multiplayer).
-- proficiencia: +2 (1-4), +3 (5-8), +4 (9-12), +5 (13-16), +6 (17-20).
-- so vira "aventureiro" (ganha nivel) depois de ter classe; sem classe o XP so
-  acumula e e aplicado quando escolhe a classe.
+Regra de bonus da classe (regra da casa):
+    +4 no atributo PRINCIPAL (fixo da classe),
+    +2 em 2 atributos a escolha do jogador,
+    +1 nos 3 restantes (teto 20).
+
+Atributos: FOR, DES, CON, INT, SAB, CAR.
 """
-from . import races
 
-MAX_LEVEL = 20
+CLASSES = [
+    {"id": "barbaro",     "name": "Bárbaro",     "principal": "FOR", "god": "Korgath",  "master": "Mestre Gorm"},
+    {"id": "guerreiro",   "name": "Guerreiro",   "principal": "FOR", "god": "Bragor",   "master": "Mestra Adila"},
+    {"id": "paladino",    "name": "Paladino",    "principal": "FOR", "god": "Valiria",  "master": "Mestre Sieg"},
+    {"id": "ladino",      "name": "Ladino",      "principal": "DES", "god": "Nharé",    "master": "Mestre Ravi"},
+    {"id": "monge",       "name": "Monge",       "principal": "DES", "god": "Martur",   "master": "Mestra Yun"},
+    {"id": "patrulheiro", "name": "Patrulheiro", "principal": "DES", "god": "Facalan",  "master": "Mestre Tark"},
+    {"id": "mago",        "name": "Mago",        "principal": "INT", "god": None,        "master": "Mestre Alaric"},
+    {"id": "feiticeiro",  "name": "Feiticeiro",  "principal": "CAR", "god": "Drazun",   "master": "Mestra Idra"},
+    {"id": "bruxo",       "name": "Bruxo",       "principal": "CAR", "god": "Nherith",  "master": "Mestre Mór"},
+    {"id": "bardo",       "name": "Bardo",       "principal": "CAR", "god": "José",     "master": "Mestre Lael"},
+    {"id": "clerigo",     "name": "Clérigo",     "principal": "SAB", "god": "Valiria",  "master": "Mestra Bena"},
+    {"id": "druida",      "name": "Druida",      "principal": "SAB", "god": "Facalan",  "master": "Mestre Sálvio"},
+]
 
-# XP ACUMULADO pra atingir cada nivel (index = nivel). Recalibrado junto com a
-# QUEDA DRASTICA do XP dos monstros (esqueleto era 1000, virou 90). Comeco (1-10)
-# baixo e gostoso; do 10 ao 20 a curva EXPLODE (1.400x do 10 ao 20) pra fazer o
-# nivel 20 ser uma maratona brutal de caca no cemiterio.
-XP_TABLE = [0, 0, 50, 150, 350, 700,
-            1300, 2300, 4000, 6500, 12000,
-            260000, 700000, 1400000, 2700000, 4800000,
-            8300000, 14400000, 24700000, 42200000, 72000000]
+CLASS_BY_ID = {c["id"]: c for c in CLASSES}
 
-# XP de DESCOBERTA por mapa (1a visita). Mundos secretos valem mais.
-MAP_XP = {
-    "salao":            30,
-    "rasharan":         150,
-    "valoran":          150,
-    "fundamento":       200,
-    "falanor":          150,
-    "fadrakor_litoral": 120,
-    "fadrakor_selva":   120,
-    "fadrakor_vulcao":  120,
-    "repouso_dama":     180,
-    "avasham":          250,
-    "valdarkram":        350,
+# Dado de vida (hit die) de cada classe, no padrao 5e. A vida no nivel 1 e o
+# MAXIMO do dado + o modificador de Constituicao.
+CLASS_HD = {
+    "barbaro": 12, "guerreiro": 10, "paladino": 10,
+    "ladino": 8,   "monge": 8,     "patrulheiro": 10,
+    "mago": 6,     "feiticeiro": 6, "bruxo": 8,
+    "bardo": 8,    "clerigo": 8,   "druida": 8,
 }
-GOD_XP = 100      # encontrar um deus (1a vez perto dele)
-SECRET_XP = 200   # benção / segredo raro (ex.: benção do Pofnir)
-
-_AVG = {6: 4, 8: 5, 10: 6, 12: 7}   # media fixa do dado (die//2 + 1)
 
 
-def proficiency_bonus(level):
-    return 2 + (max(1, min(MAX_LEVEL, level)) - 1) // 4
+def get_class(cid):
+    return CLASS_BY_ID.get(cid)
 
 
-def map_xp(mp):
-    """XP por descobrir um mapa pela 1a vez."""
-    if mp == "ermo":
-        return 0                       # o lar nao conta
-    if mp.startswith("casa_"):
-        return 15                      # entrar numa casa
-    return MAP_XP.get(mp, 40)          # mapa novo generico
+def class_ids():
+    return [c["id"] for c in CLASSES]
 
 
-def level_for_xp(xp):
-    lvl = 1
-    for L in range(2, MAX_LEVEL + 1):
-        if xp >= XP_TABLE[L]:
-            lvl = L
+def apply_class(ficha, class_id, plus2):
+    """Aplica a classe escolhida na ficha (regra da casa):
+        +4 no atributo PRINCIPAL da classe (fixo),
+        +2 em 2 atributos escolhidos pelo jogador (fora do principal),
+        +1 nos 3 restantes (teto 20).
+    Calcula a VIDA do nivel 1 (max do dado de vida + mod de Constituicao, min 1)
+    e devolve (ficha_atualizada, None) ou (None, "mensagem de erro")."""
+    from . import races  # local: evita import circular
+
+    cls = CLASS_BY_ID.get(class_id)
+    if not cls:
+        return None, "classe invalida"
+
+    base = (ficha or {}).get("attrs") or {}
+    if not base:
+        return None, "ficha sem atributos base (raca)"
+
+    principal = cls["principal"]
+    others = [a for a in races.BASE_ATTR_ORDER if a != principal]
+    chosen = [a for a in (plus2 or []) if a in others]
+    chosen = list(dict.fromkeys(chosen))   # tira repetidos preservando ordem
+    if len(chosen) != 2:
+        return None, "escolha exatamente 2 atributos (fora do principal) para +2"
+
+    final = {}
+    for a in races.BASE_ATTR_ORDER:
+        v = int(base.get(a, 10))
+        if a == principal:
+            v += 4
+        elif a in chosen:
+            v += 2
         else:
-            break
-    return lvl
+            v += 1
+        final[a] = min(20, v)
 
+    hp = max(1, CLASS_HD[class_id] + races.attr_mod(final["CON"]))
 
-def xp_progress(xp):
-    """(xp_dentro_do_nivel, xp_total_do_nivel, nivel). No 20: (0, 0, 20)."""
-    lvl = level_for_xp(xp)
-    if lvl >= MAX_LEVEL:
-        return (0, 0, MAX_LEVEL)
-    base, nxt = XP_TABLE[lvl], XP_TABLE[lvl + 1]
-    return (xp - base, nxt - base, lvl)
-
-
-def _perm_hp_bonus(ficha, level):
-    """Bonus de vida maxima PERMANENTES (fora do nivel): bencao do Pofnir (+5),
-    o talento Robusto (+2/nivel) e PV/nivel da RACA (ex.: Robustez Ana, +1/nivel)."""
-    from . import feats, races
-    b = 5 if ficha.get("blessing_pofnir") else 0
-    for fid in ficha.get("feats", []):
-        fd = feats.get(fid)
-        if fd and fd.get("hp_per_level"):
-            b += int(fd["hp_per_level"]) * max(1, level)
-    rp = races.race_passives_for(ficha.get("race_id"))
-    if rp.get("hp_lvl"):
-        b += int(rp["hp_lvl"]) * max(1, level)
-    return b
-
-
-def asi_levels(class_id):
-    from . import class_features
-    return class_features.asi_levels(class_id)
-
-
-def sync_asi(ficha):
-    """Enfileira as escolhas de ASI/talento pendentes ao cruzar os niveis certos."""
-    cid = ficha.get("class_id")
-    if not cid:
-        return
-    lvl = ficha.get("level", 1)
-    seen = ficha.setdefault("asi_seen", [])
-    pend = ficha.setdefault("pending_asi", [])
-    for L in sorted(asi_levels(cid)):
-        if L <= lvl and L not in seen:
-            seen.append(L)
-            pend.append(L)
-
-
-def hp_for_level(hd, con_mod, level):
-    """Vida total no nivel: L1 = max do dado + CON; cada nivel a mais soma a media
-    do dado + CON (minimo 1 por nivel)."""
-    hp = max(1, hd + con_mod)
-    per = max(1, _AVG.get(hd, hd // 2 + 1) + con_mod)
-    return hp + per * (max(1, level) - 1)
+    out = dict(ficha or {})
+    out["class_id"] = class_id
+    out["class_name"] = cls["name"]
+    out["god"] = cls.get("god")          # None no caso do Mago
+    out["principal"] = principal
+    out["plus2"] = chosen
+    out["attrs_final"] = final
+    out["hd"] = CLASS_HD[class_id]
+    out["level"] = 1
+    out["hp_max"] = hp
+    out["hp"] = hp
+    out.setdefault("xp", 0)
+    from . import leveling   # local: evita import circular
+    leveling.recompute(out)  # aplica XP ja acumulado (exploracao sem classe)
+    return out, None
 
 
 # ===========================================================================
-#  RECURSOS DE CLASSE (camada C): espacos de magia, Ki, Furia, etc.
-#  Recarga e por andar (temporario), feita em regen_resources().
+#  TRANSFORMACOES (menu abaixo da ficha). Classes que podem assumir outra forma.
+#  Cada forma da um bonus de combate. Comeca pela Forma Selvagem do Druida; o
+#  sistema aceita novas classes/formas so adicionando aqui.
 # ===========================================================================
-_FULL_SLOTS = {  # nivel do personagem -> [espacos por nivel de magia 1..9]
-    1: [2], 2: [3], 3: [4, 2], 4: [4, 3], 5: [4, 3, 2], 6: [4, 3, 3],
-    7: [4, 3, 3, 1], 8: [4, 3, 3, 2], 9: [4, 3, 3, 3, 1], 10: [4, 3, 3, 3, 2],
-    11: [4, 3, 3, 3, 2, 1], 12: [4, 3, 3, 3, 2, 1], 13: [4, 3, 3, 3, 2, 1, 1],
-    14: [4, 3, 3, 3, 2, 1, 1], 15: [4, 3, 3, 3, 2, 1, 1, 1], 16: [4, 3, 3, 3, 2, 1, 1, 1],
-    17: [4, 3, 3, 3, 2, 1, 1, 1, 1], 18: [4, 3, 3, 3, 3, 1, 1, 1, 1],
-    19: [4, 3, 3, 3, 3, 2, 1, 1, 1], 20: [4, 3, 3, 3, 3, 2, 2, 1, 1],
+TRANSFORMS = {
+    "druida": [
+        {"id": "lobo",  "name": "Lobo",  "icon": "🐺",
+         "desc": "Forma Selvagem do Lobo: o caçador furtivo do druida. Dano de assassino (golpe furtivo que escala com o nível), +3 para acertar e +3 deslocamento, mas a pele fina derruba a defesa (cada golpe físico te machuca bem mais). Não lança magia nesta forma.",
+         "no_spells": True,
+         "bonus": {"dmg_dice": 3, "dmg_flat": 8, "atk": 3, "speed": 3, "armor": -14, "sneak_form": True}},
+        {"id": "urso",  "name": "Urso",  "icon": "🐻",
+         "desc": "Forma Selvagem do Urso: muralha de músculo e couro. Mitigação altíssima (cada golpe físico tira bem menos vida) e +25 de vida máxima, mas os golpes pesados são lentos (-2 de dano). Não lança magia nesta forma.",
+         "no_spells": True,
+         "bonus": {"armor": 28, "dmg_flat": -2, "hp": 25}},
+        {"id": "aguia", "name": "Águia", "icon": "🦅",
+         "desc": "Forma Selvagem da Águia: ágil e certeira. +3 deslocamento, +3 para acertar e +1 de dano. Não lança magia nesta forma.",
+         "no_spells": True,
+         "bonus": {"speed": 3, "atk": 3, "dmg_flat": 1}},
+        {"id": "mainecoon", "name": "Maine Coon", "icon": "🐈",
+         "desc": "A forma abençoada por Pofnir: o grande gato Maine Coon, majestoso e equilibrado. +2 dados e +8 de dano, +5 para acertar, boa mitigação, 20% de resistência mágica, +25 de vida, +4 deslocamento e regenera 4 de vida por turno. Não lança magia nesta forma.",
+         "requires": "blessing_pofnir", "no_spells": True,
+         "bonus": {"armor": 18, "mres": 0.20, "atk": 5, "dmg_dice": 2, "dmg_flat": 8, "speed": 4, "hp": 25}, "regen": 4},
+    ],
+    "ladino": [
+        {"id": "lebre", "name": "Lebre de Nharé", "icon": "🐇",
+         "desc": "O dom de Nharé: vira uma lebre e some do mundo. Nenhum jogador ou monstro te enxerga, e os monstros não te atacam, até você atacar ou desfazer a forma. +3 de deslocamento.",
+         "requires": "dom_nhare", "invisible": True,
+         "bonus": {"speed": 3}},
+    ],
+    "bruxo": [
+        {"id": "coruja", "name": "Coruja Demoníaca", "icon": "🦉",
+         "desc": "O dom de Nherith: vira uma coruja demoníaca envolta na luz roxa do Faraó. +10 de resistência (cada golpe te tira 10 a menos), +10 de vida máxima e libera o Golpe da Morte Alada. Mas você NÃO pode lançar magias nesta forma.",
+         "requires": "dom_nherith", "no_spells": True,
+         "bonus": {"block": 10, "hp": 10}},
+    ],
 }
-_HALF_SLOTS = {  # paladino/patrulheiro (comeca no nivel 2)
-    1: [], 2: [2], 3: [3], 4: [3], 5: [4, 2], 6: [4, 2], 7: [4, 3], 8: [4, 3],
-    9: [4, 3, 2], 10: [4, 3, 2], 11: [4, 3, 3], 12: [4, 3, 3], 13: [4, 3, 3, 1],
-    14: [4, 3, 3, 1], 15: [4, 3, 3, 2], 16: [4, 3, 3, 2], 17: [4, 3, 3, 3, 1],
-    18: [4, 3, 3, 3, 1], 19: [4, 3, 3, 3, 2], 20: [4, 3, 3, 3, 2],
-}
-_PACT = {  # bruxo: (qtd de espacos, nivel deles)
-    1: (1, 1), 2: (2, 1), 3: (2, 2), 4: (2, 2), 5: (2, 3), 6: (2, 3), 7: (2, 4),
-    8: (2, 4), 9: (2, 5), 10: (2, 5), 11: (3, 5), 12: (3, 5), 13: (3, 5), 14: (3, 5),
-    15: (3, 5), 16: (3, 5), 17: (4, 5), 18: (4, 5), 19: (4, 5), 20: (4, 5),
-}
-_RAGE = {1: 2, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4, 7: 4, 8: 4, 9: 4, 10: 4, 11: 4,
-         12: 5, 13: 5, 14: 5, 15: 5, 16: 5, 17: 6, 18: 6, 19: 6, 20: 6}
-
-FULL_CASTERS = {"mago", "clerigo", "druida", "bardo", "feiticeiro"}
-HALF_CASTERS = {"paladino", "patrulheiro"}
 
 
-def _slots_for(class_id, level):
-    level = max(1, min(MAX_LEVEL, level))
-    if class_id in FULL_CASTERS:
-        row = _FULL_SLOTS.get(level, [])
-    elif class_id in HALF_CASTERS:
-        row = _HALF_SLOTS.get(level, [])
-    elif class_id == "bruxo":
-        qtd, lv = _PACT.get(level, (1, 1))
-        return {str(lv): qtd}
-    else:
-        return {}
-    return {str(i + 1): n for i, n in enumerate(row) if n > 0}
+def forms_for(class_id):
+    """Todas as formas que a classe pode assumir (sem filtrar requisitos)."""
+    return TRANSFORMS.get(class_id, [])
 
 
-def _resource_maxes(ficha):
-    cid = ficha.get("class_id")
-    lvl = max(1, min(MAX_LEVEL, int(ficha.get("level", 1))))
-    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
-    res = {}
-    if cid == "barbaro":
-        res["rage"] = _RAGE.get(lvl, 2)
-    elif cid == "guerreiro":
-        res["second_wind"] = 1
-        if lvl >= 2:
-            res["action_surge"] = 2 if lvl >= 17 else 1
-    elif cid == "monge" and lvl >= 2:
-        res["ki"] = lvl
-    elif cid == "paladino":
-        res["lay_on_hands"] = 5 * lvl
-    elif cid == "feiticeiro" and lvl >= 2:
-        res["sorcery"] = lvl
-    elif cid == "bardo":
-        res["bardic"] = max(1, races.attr_mod(int(final.get("CAR", 10))))
-    return res, _slots_for(cid, lvl)
-
-
-def compute_resources(ficha):
-    """Preenche ficha['res'] com os recursos da classe. Recurso novo nasce cheio;
-    o existente mantem o gasto atual (a recarga e por andar)."""
-    cid = ficha.get("class_id")
-    if not cid:
-        ficha.pop("res", None)
-        return ficha
-    maxes, slots = _resource_maxes(ficha)
-    old = ficha.get("res") or {}
-    res = {}
-    for k, mx in maxes.items():
-        ocur = (old.get(k) or {}).get("cur")
-        res[k] = {"cur": (mx if ocur is None else min(int(ocur), mx)), "max": mx}
-    if slots:
-        oslots = old.get("slots") or {}
-        sres = {}
-        for lv, mx in slots.items():
-            ocur = (oslots.get(lv) or {}).get("cur")
-            sres[lv] = {"cur": (mx if ocur is None else min(int(ocur), mx)), "max": mx}
-        res["slots"] = sres
-    ficha["res"] = res
-    return ficha
-
-
-def regen_resources(ficha, ticks=1):
-    """Recupera 'ticks' de cada recurso (limitado ao maximo). True se algo mudou."""
-    res = ficha.get("res")
-    if not res:
-        return False
-    changed = False
-    for k, v in res.items():
-        if k == "slots":
-            for sv in v.values():
-                if sv["cur"] < sv["max"]:
-                    sv["cur"] = min(sv["max"], sv["cur"] + ticks)
-                    changed = True
-        elif v["cur"] < v["max"]:
-            v["cur"] = min(v["max"], v["cur"] + ticks)
-            changed = True
-    return changed
-
-
-def recompute(ficha):
-    """Recalcula nivel, vida maxima e proficiencia a partir do XP e dos atributos.
-    Sem classe ainda: so guarda o XP (nivel/vida nao mudam). Ao subir de nivel, a
-    vida atual ganha o acrescimo (cura o ganho)."""
-    if not ficha:
-        return ficha
-    xp = int(ficha.get("xp", 0))
-    if not ficha.get("class_id"):
-        ficha.setdefault("level", 1)
-        return ficha
-    lvl = level_for_xp(xp)
-    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
-    con_mod = races.attr_mod(int(final.get("CON", 10)))
-    hd = int(ficha.get("hd", 8))
-    old_max = int(ficha.get("hp_max", 1))
-    new_max = hp_for_level(hd, con_mod, lvl) + _perm_hp_bonus(ficha, lvl)
-    cur = int(ficha.get("hp", new_max))
-    if new_max > old_max:
-        cur += (new_max - old_max)
-    ficha["level"] = lvl
-    ficha["hp_max"] = new_max
-    ficha["hp"] = max(0, min(new_max, cur))
-    ficha["prof"] = proficiency_bonus(lvl)
-    sync_asi(ficha)                 # enfileira escolhas de ASI/talento pendentes
-    compute_resources(ficha)        # recursos de classe (magia, Ki, Furia...)
-    return ficha
-
-
-def grant_xp(ficha, amount):
-    """Soma XP e recalcula. Devolve (ficha, subiu_de_nivel, novo_nivel, ganho)."""
+def available_forms(ficha):
+    """So as formas que ESTE jogador pode usar (filtra requisitos, ex: a benção do Pof)."""
     ficha = ficha or {}
-    amount = int(amount or 0)
-    if amount <= 0:
-        return ficha, False, ficha.get("level", 1), 0
-    before = level_for_xp(int(ficha.get("xp", 0))) if ficha.get("class_id") else None
-    ficha["xp"] = int(ficha.get("xp", 0)) + amount
-    recompute(ficha)
-    after = ficha.get("level", 1)
-    leveled = bool(ficha.get("class_id")) and before is not None and after > before
-    return ficha, leveled, after, amount
+    out = []
+    for fm in forms_for(ficha.get("class_id")):
+        req = fm.get("requires")
+        if req and not ficha.get(req):
+            continue
+        out.append(fm)
+    return out
+
+
+def get_form(class_id, form_id):
+    for fm in forms_for(class_id):
+        if fm["id"] == form_id:
+            return fm
+    return None
+
+
+def can_use_form(ficha, form_id):
+    """True se o jogador tem direito a essa forma (classe certa + requisito atendido)."""
+    ficha = ficha or {}
+    fm = get_form(ficha.get("class_id"), form_id)
+    if not fm:
+        return False
+    req = fm.get("requires")
+    if req and not ficha.get(req):
+        return False
+    return True
+
+
+# ===========================================================================
+#  POSTURAS — só do Paladino (devoção a Valíria). É um menu parecido com o de
+#  transformação, mas serve pra OUTRA coisa: posturas de combate que mudam o
+#  papel do paladino (tanque / suporte / mártir). Trocadas durante a luta.
+# ===========================================================================
+POSTURES = {
+    "paladino": [
+        {"id": "soldado", "name": "Soldado de Valíria", "icon": "🛡️",
+         "desc": "A fortaleza de Valíria: recebe E causa 75% menos dano, e os debuffs também minguam 75%. Você vira um muro."},
+        {"id": "mao", "name": "A Mão de Valíria", "icon": "✋",
+         "desc": "Você para de causar dano, mas a Imposição das Mãos passa a curar o GRUPO inteiro, e todos no grupo recebem 20% menos dano."},
+        {"id": "martir", "name": "Mártir de Valíria", "icon": "✨",
+         "desc": "Sua CA zera e você não defende mais golpes: absorve TODO o dano que iria pro grupo. Ganha a Luz da Criação, um raio radiante que soma todo o seu dano e cura o grupo a cada acerto."},
+        {"id": "combatente", "name": "Combatente Valiriano", "icon": "⚔️",
+         "desc": "Fúria sagrada ofensiva: todo ataque básico ACERTA e crava 2 Castigos Divinos, e cada golpe ainda cura uma Imposição das Mãos. Em troca, abre mão do escudo: perde o bloqueio E a armadura do escudo."},
+    ],
+}
+
+
+def postures_for(class_id):
+    return POSTURES.get(class_id, [])
+
+
+def get_posture(class_id, posture_id):
+    for p in POSTURES.get(class_id, []):
+        if p["id"] == posture_id:
+            return p
+    return None

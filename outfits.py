@@ -1,6 +1,17 @@
-// RAÇAS D&D 5e (71) — base do menu de criação. Gerado da planilha do Moon.
-// Mesma fonte do servidor (game/races.py). Não editar à mão.
-const RACES = [
+"""
+RAÇAS — base oficial de D&D 5e (71 raças/sub-raças), gerada da planilha do Moon.
+
+Cada registro tem: id, nomes (PT/EN), sub-raça, fonte, tier (+cor), bônus de
+atributo (estruturado em 'bonus' + texto cru em 'bonus_text' + regra de escolha
+em 'bonus_flex'), tamanho, deslocamento, visão no escuro, idiomas, traços,
+descrição, e 'appearance' (os traços visuais por raça, prontos pro motor de
+aparência da Etapa 2). A ficha do personagem nasce daqui (build_ficha).
+"""
+
+import json
+import re
+
+_RAW = r'''[
  {
   "id": "anao_anao_da_colina",
   "name_pt": "Anão",
@@ -2451,7 +2462,182 @@ const RACES = [
    "extra": null
   }
  }
-];
+]'''
 
-const TIER_ORDER = ["nucleo","expansao","monstruosa","cenario","avulsa"];
-const TIER_LABELS = {nucleo:"Clássicas",expansao:"Comuns",monstruosa:"Exóticas",cenario:"De outros mundos",avulsa:"Raras"};
+RACES = json.loads(_RAW)
+RACE_BY_ID = {r["id"]: r for r in RACES}
+
+
+# ===========================================================================
+#  PASSIVAS RACIAIS (mecânicas, derivadas dos traços)
+# ---------------------------------------------------------------------------
+#  Os traços vêm como TEXTO. Aqui a gente extrai o que o COMBATE entende e
+#  aplica de verdade: PV/nível, resistência a dano (DOT), proteção contra
+#  status (medo/encanto), imunidades, Sortudo, Resistência Implacável,
+#  armadura natural e deslocamento. O resto (idiomas, perícias, magias raciais)
+#  segue como texto/flavor.
+# ===========================================================================
+_DMG_PT = {"veneno": "poison", "fogo": "burning"}   # tipos de dano que o jogo tem como DOT
+_PASSIVE_CACHE = {}
+
+
+def _empty_passives():
+    return {"hp_lvl": 0, "resist": [], "ward": [], "immune": [],
+            "lucky": False, "relentless": False, "armor": 0, "speed": 0,
+            "nat_weapon": 0, "breath": False}
+
+
+def _parse_passives(r):
+    tl = (r.get("traits") or "").lower()
+    p = _empty_passives()
+    resist, ward, immune = set(), set(), set()
+
+    m = re.search(r"\+(\d+)\s*pv por n[íi]vel", tl)          # Robustez Anã etc.
+    if m:
+        p["hp_lvl"] = int(m.group(1))
+    for pt, key in _DMG_PT.items():                          # "resistência a dano de veneno/fogo"
+        if "resist" in tl and ("dano de " + pt) in tl:
+            resist.add(key)
+    if "resili" in tl or "resistência robusta" in tl:        # Resiliência Anã/Robusta -> veneno
+        resist.add("poison"); ward.add("poison")
+    if "infernal" in tl:                                     # Legado Infernal (Tiefling) -> fogo
+        resist.add("burning")
+    if "implac" in tl:                                       # Resistência Implacável (Meio-Orc)
+        p["relentless"] = True
+    if "sortudo" in tl:                                      # Sortudo (Halfling)
+        p["lucky"] = True
+    if "bravura" in tl:                                      # Bravura -> medo
+        ward.add("frightened")
+    if "feérica" in tl or "feerica" in tl:                   # Ancestralidade Feérica -> encanto + imune a sono
+        ward.add("charmed"); immune.add("sleep")
+    if "armadura natural" in tl:                             # Lagarto/Tartaruga
+        p["armor"] = 3
+    if "imune a veneno" in tl or "imunidade a veneno" in tl:
+        immune.add("poison")
+    # ATIVOS que viram mecânica:
+    if any(w in tl for w in ("mordida", "garra", "talão", "talões", "talao", "chifre", "presas")):
+        p["nat_weapon"] = 2                                  # ataque natural: +dano fixo no golpe (bite/garras/chifre)
+    if "sopro" in tl:                                        # Sopro Dracônico (Draconato) -> habilidade ativa
+        p["breath"] = True
+
+    p["resist"] = sorted(resist); p["ward"] = sorted(ward); p["immune"] = sorted(immune)
+    sp = (r.get("speed") or "").strip()                      # deslocamento (campo estruturado)
+    if sp.startswith("7,5"):
+        p["speed"] = -1
+    elif sp.startswith("10,5"):
+        p["speed"] = 1
+    elif sp.startswith("12"):
+        p["speed"] = 2
+    return p
+
+
+def race_passives_for(rid):
+    """Passivas mecânicas de uma raça (cacheado). Sempre devolve o dict completo."""
+    if rid not in _PASSIVE_CACHE:
+        r = RACE_BY_ID.get(rid)
+        _PASSIVE_CACHE[rid] = _parse_passives(r) if r else _empty_passives()
+    return _PASSIVE_CACHE[rid]
+
+
+def passive_summary(rid):
+    """Texto curtinho das passivas que REALMENTE funcionam (pro cliente mostrar)."""
+    p = race_passives_for(rid)
+    bits = []
+    if p["hp_lvl"]:
+        bits.append("+%d PV por nível" % p["hp_lvl"])
+    nm = {"poison": "veneno", "burning": "fogo"}
+    if p["resist"]:
+        bits.append("resistência a " + ", ".join(nm.get(x, x) for x in p["resist"]))
+    if p["immune"]:
+        im = {"poison": "veneno", "sleep": "sono"}
+        bits.append("imune a " + ", ".join(im.get(x, x) for x in p["immune"]))
+    if p["ward"]:
+        wd = {"frightened": "medo", "charmed": "encanto", "poison": "veneno"}
+        bits.append("defesa contra " + ", ".join(wd.get(x, x) for x in p["ward"]))
+    if p["lucky"]:
+        bits.append("Sortudo (rerrola o 1)")
+    if p["relentless"]:
+        bits.append("Implacável (cai em 1 PV, não morre)")
+    if p["armor"]:
+        bits.append("armadura natural +%d" % p["armor"])
+    if p["nat_weapon"]:
+        bits.append("ataque natural (+%d dano)" % p["nat_weapon"])
+    if p["breath"]:
+        bits.append("Sopro Dracônico (área, 1x/combate)")
+    if p["speed"] > 0:
+        bits.append("mais veloz")
+    elif p["speed"] < 0:
+        bits.append("mais lento")
+    return "; ".join(bits)
+
+# ordem e rótulos dos tiers pro menu
+TIER_ORDER = ["nucleo", "expansao", "monstruosa", "cenario", "avulsa"]
+TIER_LABELS = {
+    "nucleo": "Clássicas",
+    "expansao": "Comuns",
+    "monstruosa": "Exóticas",
+    "cenario": "De outros mundos",
+    "avulsa": "Raras",
+}
+
+
+def is_valid_race(rid):
+    """True se rid é uma raça existente na base."""
+    return rid in RACE_BY_ID
+
+
+def get_race(rid):
+    return RACE_BY_ID.get(rid)
+
+
+# ---- atributos iniciais: o personagem NASCE com os da raca ----
+BASE_ATTR_ORDER = ["FOR", "DES", "CON", "INT", "SAB", "CAR"]
+STD_ARRAY = [15, 14, 13, 12, 10, 8]
+
+
+def base_attrs(rid):
+    """Os 6 atributos com que o personagem NASCE, vindos da raca: o array padrao
+    [15,14,13,12,10,8] distribuido na ordem de prioridade da raca (quem ela
+    favorece no bonus pega os maiores valores). O numero do bonus racial NAO e
+    somado: a colocacao no array ja e o efeito da raca. (A classe da bonus depois.)"""
+    r = RACE_BY_ID.get(rid)
+    bonus = (r.get("bonus") or {}) if r else {}
+    ranked = sorted(BASE_ATTR_ORDER,
+                    key=lambda a: (-bonus.get(a, 0), BASE_ATTR_ORDER.index(a)))
+    return {a: STD_ARRAY[i] for i, a in enumerate(ranked)}
+
+
+def attr_mod(v):
+    """Modificador 5e do atributo: floor((v-10)/2)."""
+    return (v - 10) // 2
+
+
+def build_ficha(rid):
+    """Monta a ficha do personagem a partir da raça escolhida.
+
+    Hoje a ficha carrega só o que a raça define (bônus, tamanho, deslocamento,
+    visão, idiomas, traços). Quando entrarem classe/nível/atributos rolados,
+    esta função cresce — a estrutura já está pronta pra isso.
+    """
+    r = RACE_BY_ID.get(rid)
+    if not r:
+        return None
+    nome = r["name_pt"] + (f" ({r['subrace']})" if r.get("subrace") else "")
+    return {
+        "race_id": r["id"],
+        "attrs": base_attrs(rid),
+        "race_name": nome,
+        "tier": r["tier"],
+        "bonus": r["bonus"],
+        "bonus_flex": r.get("bonus_flex"),
+        "bonus_text": r["bonus_text"],
+        "size": r["size"],
+        "speed": r["speed"],
+        "darkvision": r["darkvision"],
+        "languages": r["languages"],
+        "traits": r["traits"],
+        "passives": race_passives_for(r["id"]),
+        "passives_text": passive_summary(r["id"]),
+        "desc": r["desc"],
+        "appearance": r["appearance"],
+    }

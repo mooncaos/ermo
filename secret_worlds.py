@@ -1,145 +1,198 @@
-"""
-PROFISSÕES DO ERMO — o trabalho honesto (e o nem tanto).
+# 📜 BANCO DE LORE & CÂNONE DO ERMO
+*Notas de produção para as próximas sessões: MoonCaos (autor) + Claudinho (escriba).*
+*Última atualização: Etapa de Lore 1 (julho/2026): 35 verbetes canonizados em `game/lore.py`.*
 
-Três peças:
-  NODES        pontos de coleta espalhados pelo mundo (veios, árvores nobres,
-               ervas, moitas). O jogador chega perto, interage, colhe. O node
-               esgota e volta depois de um tempo.
-  PROFESSIONS  os 7 ofícios: ferreiro, coureiro, costureiro, carpinteiro,
-               alquimista, joalheiro e cozinheiro. Cada um tem um MESTRE com
-               casa no Ermo. Craftar dá XP de ofício; XP sobe o nível; nível
-               destrava receita.
-  RECIPES      as receitas de cada ofício: ingredientes (recursos de coleta +
-               drops de criatura CORRELACIONADOS) -> produto.
+## ⚖️ A REGRA DE OURO
+**Todo novo conteúdo (mapa, boss, NPC, item raro, evento) DEVE, no mesmo passo:**
+1. Ganhar entrada no `CANON` de `game/lore.py` (origem, laço, poder)
+2. Ganhar falas próprias que ecoem o cânone (greetings / BOSS_LINES)
+3. Registrar ganchos novos NESTE arquivo
 
-Nível de ofício: 1 + xp // 120 (teto 5). O progresso vive em
-ficha["profs"] = {"ferreiro": xp, ...} e persiste com a ficha.
-"""
+## 🗼 ROADMAP MAIOR: A TORRE DA ALVORADA (futuro mapa)
+A sede dos magos, onde Varth estudou, o Cronista sonha voltar e a Marion se infiltrou.
+- **A BIBLIOTECA** (decidido): estantes interativas onde a lore do `CANON` é LIDA in-game
+  (ação de ler livro → verbete; livros especiais → a fundação do mundo, as três eras)
+- Ganchos ao construir: a vaga do Cronista; os registros da década disfarçada da Marion;
+  o que a Torre sabe sobre a queda de Véspera (e esconde); magias de Faerûn do Valdris?
 
-# ----------------------------------------------------------------- NODES DE COLETA
-# gather: quantidade (min, max) por colheita; cd: segundos até renascer.
-NODES = {
-    "veio_ferro":      {"name": "Veio de Ferro",      "item": "minerio_ferro",   "gather": (1, 3), "cd": 90,  "verb": "minerar"},
-    "veio_prata":      {"name": "Veio de Prata",      "item": "minerio_prata",   "gather": (1, 2), "cd": 120, "verb": "minerar", "bonus": ("gema_bruta", 0.22)},
-    "veio_umbrio":     {"name": "Veio Umbrío",        "item": "minerio_umbrio",  "gather": (1, 2), "cd": 180, "verb": "minerar", "bonus": ("gema_bruta", 0.12)},
-    "arvore_carvalho": {"name": "Carvalho Nobre",     "item": "madeira_carvalho","gather": (1, 3), "cd": 90,  "verb": "cortar"},
-    "arvore_rubra":    {"name": "Árvore Rubra",       "item": "madeira_rubra",   "gather": (1, 2), "cd": 120, "verb": "cortar"},
-    "arvore_umbria":   {"name": "Árvore Umbría",      "item": "madeira_umbria",  "gather": (1, 2), "cd": 150, "verb": "cortar"},
-    "erva_solar":      {"name": "Erva Solar",         "item": "erva_solar",      "gather": (1, 2), "cd": 100, "verb": "colher"},
-    "erva_lunar":      {"name": "Erva Lunar",         "item": "erva_lunar",      "gather": (1, 2), "cd": 130, "verb": "colher"},
-    "moita_fibra":     {"name": "Moita de Fibra",     "item": "fibra_capim",     "gather": (1, 3), "cd": 80,  "verb": "colher"},
-}
+## 🕳️ GANCHOS ABERTOS (usar em quests/eventos futuros)
+- **O segredo enterrado do Faraó**: nem ele lembra o quê/onde (quest de escavação épica)
+- **A última página de Valdarkram**: o Cronista guarda; ninguém leu (o que revelaria?)
+- **O plano da Marion**: quando juntar TODAS as moedas... o Faraó renasce? ELA vira ele?
+- **A BETH**: trazida por Vargo, acolhida pela Chica: QUEM é? (personagem a canonizar)
+- **MARIA CACHORRA**: amiga da Chica (a canonizar: possível NPC futura)
+- **O antigo chefão** traído pelo Maurão: morto? exilado? VOLTA um dia?
+- **"Estrangeiro" do Peteco**: estrangeiro de ONDE ele é? (mistério proposital)
+- **O que a Cigana viu na sorte da Petra** (e não conta, toda lua cheia)
+- **A dívida do Zeca com a Cigana** (viagem antiga entre andarilhos)
+- **Drazun × Bragor**: o roubo do filhote (Krezath) cobrará contas divinas?
+- **O Urso Rei cai → a muralha contra Atalech enfraquece** (consequência de farm!)
+- **As piadas do Piadista preveem desgraças**: usar como presságio de eventos (invasão?)
+- **O Galo canta à meia-noite** em Sapopemba (evento sonoro noturno?)
+- **Recados dos mortos** do Coveiro (mini-quests de entrega emocional)
 
-# onde os nodes nascem (coords aproximadas; o mundo ajusta pro tile andável mais perto)
-NODE_SPAWNS = {
-    "ermo": [
-        ("moita_fibra", 20, 80), ("moita_fibra", 82, 20), ("arvore_carvalho", 88, 84),
-    ],
-    "descampado": [
-        ("veio_ferro", 20, 20), ("veio_ferro", 80, 76), ("moita_fibra", 30, 70),
-        ("moita_fibra", 66, 24), ("arvore_carvalho", 14, 52), ("veio_ferro", 52, 84),
-    ],
-    "planaltos_ermais": [
-        ("veio_ferro", 20, 100), ("veio_ferro", 96, 96), ("veio_prata", 30, 44),
-        ("veio_prata", 90, 40), ("arvore_carvalho", 50, 100), ("arvore_carvalho", 76, 70),
-        ("arvore_carvalho", 24, 72), ("veio_ferro", 60, 44), ("veio_prata", 60, 16),
-    ],
-    "floresta_ermo": [
-        ("arvore_carvalho", 30, 30), ("arvore_carvalho", 100, 40), ("arvore_carvalho", 60, 90),
-        ("arvore_carvalho", 130, 110), ("erva_solar", 44, 64), ("moita_fibra", 90, 100),
-    ],
-    "repouso_dama": [
-        ("arvore_carvalho", 30, 30), ("arvore_carvalho", 84, 60), ("erva_lunar", 56, 44),
-    ],
-    "costa_maravai": [
-        ("arvore_rubra", 50, 40), ("arvore_rubra", 120, 80), ("arvore_rubra", 200, 60),
-        ("arvore_rubra", 250, 110), ("erva_solar", 90, 60), ("erva_solar", 160, 100),
-        ("erva_solar", 230, 40), ("moita_fibra", 60, 120), ("moita_fibra", 140, 30),
-        ("moita_fibra", 200, 130), ("moita_fibra", 110, 140), ("erva_solar", 40, 90),
-    ],
-    "umbraval": [
-        ("arvore_umbria", 100, 250), ("arvore_umbria", 150, 200), ("arvore_umbria", 90, 150),
-        ("arvore_umbria", 180, 120), ("veio_umbrio", 120, 230), ("veio_umbrio", 160, 90),
-        ("erva_lunar", 80, 220), ("erva_lunar", 140, 160), ("erva_lunar", 200, 80),
-        ("erva_lunar", 110, 60),
-    ],
-    "brasal": [
-        ("veio_ferro", 30, 30), ("veio_ferro", 120, 40), ("veio_ferro", 40, 110),
-        ("veio_ferro", 110, 120),
-    ],
-    "goela_1": [
-        ("veio_ferro", 20, 40), ("veio_prata", 50, 30),
-    ],
-    "mina_avhur": [
-        ("veio_ferro", 20, 20), ("veio_ferro", 50, 40), ("veio_prata", 36, 30),
-        ("veio_prata", 60, 16),
-    ],
-    "vespera": [
-        ("veio_prata", 30, 40), ("veio_prata", 110, 100), ("veio_umbrio", 40, 110),
-        ("veio_umbrio", 116, 36), ("erva_lunar", 70, 70), ("erva_lunar", 24, 80),
-    ],
-}
+## 👥 A CANONIZAR NAS PRÓXIMAS SESSÕES
+- Os 12 DEUSES (aprofundar: Vargo já tem papel de barqueiro de almas entre mundos;
+  Falacan criou a Miranda; Drazun/Bragor e o roubo; Atalech corruptor; Pofnir?)
+- Os 12 MESTRES DE CLASSE do Salão
+- Beth, Maria Cachorra, o antigo chefão, o corvo do Salão
+- NPCs menores restantes do ROSTER (auditar quem ficou sem verbete)
 
-# ----------------------------------------------------------------- OS 7 OFÍCIOS
-PROFESSIONS = {
-    "ferreiro":    {"name": "Ferreiro",    "master": "Mestre Bragan",   "icon": "⚒️"},
-    "coureiro":    {"name": "Coureiro",    "master": "Mestra Iolanda",  "icon": "🟤"},
-    "costureiro":  {"name": "Costureiro",  "master": "Mestra Linah",    "icon": "🧵"},
-    "carpinteiro": {"name": "Carpinteiro", "master": "Mestre Justo",    "icon": "🪵"},
-    "alquimista":  {"name": "Alquimista",  "master": "Mestre Vidal",    "icon": "⚗️"},
-    "joalheiro":   {"name": "Joalheiro",   "master": "Mestra Petra",    "icon": "💎"},
-    "cozinheiro":  {"name": "Cozinheiro",  "master": "Mestre Bartolo",  "icon": "🍲"},
-}
+## 🧭 PADRÕES DO MUNDO (consistência)
+- **Vargo traz almas de outros mundos** (Terra/Brasil e além: Faerûn!): acordam "nos braços
+  de Vargo"; segundas chances; Sapopemba = diáspora brasileira (fundada culturalmente
+  pela Chica/Dona Lucrécia)
+- **As três eras**: Império de Avhur (areia) → Valdarkram (capital) → Ermo (êxodo)
+- **A queda**: rituais de Varth → trevas/vampiros → Véspera ruiu → Valdarkram caiu →
+  refugiados fundam o Ermo → Varth = Lich Rei (barganhou com Atalech e perdeu)
+- Sobreviventes do êxodo no elenco: Bragan, Petra, Solene, Cronista, Zé do Remo, Milton
 
-LEVEL_XP = 120          # xp por nível
-LEVEL_CAP = 5
+## ✅ FEITO NESTA ETAPA
+- `game/lore.py`: 35 verbetes (10 bosses + 25 NPCs/figuras)
+- BOSS_LINES: +2 falas canônicas por chefe
+- Greetings canônicos aplicados por id no ROSTER
+- Miranda visita o Templo dos Doze na agenda (sobrinha dos tios)
 
-def level_of(xp):
-    return 1 + min(LEVEL_CAP - 1, int(xp) // LEVEL_XP)
 
-# ----------------------------------------------------------------- RECEITAS
-# need: {item: qtd}; lvl: nível mínimo do ofício; xp: xp de ofício ganho.
-RECIPES = {
-    "ferreiro": [
-        {"out": "espada_de_ferro",   "need": {"minerio_ferro": 4, "madeira_carvalho": 1}, "lvl": 1, "xp": 20},
-        {"out": "armadura_de_ferro", "need": {"minerio_ferro": 6},                        "lvl": 2, "xp": 35},
-        {"out": "lamina_de_prata",   "need": {"minerio_prata": 4, "minerio_ferro": 2},    "lvl": 3, "xp": 55},
-        {"out": "espada_umbria",     "need": {"minerio_umbrio": 3, "minerio_prata": 2},   "lvl": 4, "xp": 80},
-    ],
-    "coureiro": [
-        {"out": "couraca_de_couro",  "need": {"couro_selvagem": 3, "pele_macia": 2},      "lvl": 1, "xp": 20},
-        {"out": "botas_do_cacador",  "need": {"couro_selvagem": 2, "couro_javali": 1},    "lvl": 2, "xp": 35},
-        {"out": "calcas_de_couro",   "need": {"couro_de_leao": 2, "couro_rubro": 2},      "lvl": 3, "xp": 55},
-        {"out": "armadura_lupina",   "need": {"pelagem_lupina": 4, "couro_lobo_negro": 2},"lvl": 4, "xp": 80},
-    ],
-    "costureiro": [
-        {"out": "capa_de_fibra",     "need": {"fibra_capim": 5},                          "lvl": 1, "xp": 20},
-        {"out": "tunica_de_viagem",  "need": {"fibra_capim": 4, "pele_macia": 2},         "lvl": 2, "xp": 35},
-        {"out": "traje_nobre",       "need": {"tecido_nobre": 3, "fibra_capim": 3},       "lvl": 3, "xp": 55},
-        {"out": "manto_lupino",      "need": {"pelagem_lupina": 4, "tecido_nobre": 2},    "lvl": 4, "xp": 80},
-    ],
-    "carpinteiro": [
-        {"out": "arco_de_carvalho",  "need": {"madeira_carvalho": 4, "fibra_capim": 2},   "lvl": 1, "xp": 20},
-        {"out": "cajado_rubro",      "need": {"madeira_rubra": 4},                        "lvl": 2, "xp": 35},
-        {"out": "arco_rubro",        "need": {"madeira_rubra": 4, "fibra_capim": 2},      "lvl": 3, "xp": 55},
-        {"out": "cajado_umbrio",     "need": {"madeira_umbria": 3, "gema_bruta": 1},      "lvl": 4, "xp": 80},
-    ],
-    "alquimista": [
-        {"out": "pocao_leve",        "need": {"erva_solar": 2},                           "lvl": 1, "xp": 20},
-        {"out": "elixir_lunar",      "need": {"erva_lunar": 2, "erva_solar": 1},          "lvl": 2, "xp": 35},
-        {"out": "tonico_umbrio",     "need": {"erva_lunar": 3, "minerio_umbrio": 1},      "lvl": 3, "xp": 55},
-        {"out": "panaceia",          "need": {"erva_lunar": 3, "erva_solar": 3, "presa_vampirica": 1}, "lvl": 4, "xp": 80},
-    ],
-    "joalheiro": [
-        {"out": "anel_de_prata",     "need": {"minerio_prata": 2},                        "lvl": 1, "xp": 20},
-        {"out": "colar_de_gema",     "need": {"gema_bruta": 1, "minerio_prata": 2},       "lvl": 2, "xp": 35},
-        {"out": "anel_lunar",        "need": {"minerio_umbrio": 2, "perola": 1},          "lvl": 3, "xp": 55},
-        {"out": "diadema_umbrio",    "need": {"gema_bruta": 2, "minerio_umbrio": 3},      "lvl": 4, "xp": 80},
-    ],
-    "cozinheiro": [
-        {"out": "espeto_do_cacador", "need": {"carne_caca": 2},                           "lvl": 1, "xp": 20},
-        {"out": "ensopado_da_vila",  "need": {"carne_caca": 3},                           "lvl": 2, "xp": 35},
-        {"out": "banquete_do_maraja","need": {"carne_caca": 4, "chifre_de_bufalo": 1},    "lvl": 3, "xp": 55},
-        {"out": "festim_umbrio",     "need": {"carne_caca": 3, "presa_vampirica": 1},     "lvl": 4, "xp": 80},
-    ],
-}
+## 🏝️ PROSPERINA — PRÉ-PRODUÇÃO COMPLETA (Etapa de Região 1)
+*Inspiração: Campina/Vilavelha/Cidadela (GoT) — adaptada, NUNCA copiada. Tudo decidido por Moon.*
+
+### A ILHA (timeline canônica)
+Fundada PELOS MAGOS **antes** da queda (a Torre da Alvorada veio primeiro). Quando Valdarkram
+caiu, os **Prosperi** fugiram com a frota salvando centenas e povoaram a ilha. Hoje: aliada
+do Ermo — **o celeiro alimenta o continente**. Primeira região acessada por **BARCO**
+(Zé do Remo faz a travessia + porto oficial novo na Costa).
+
+### OS MAPAS (7 externos + interiores)
+1. **VILALBINA** — vila portuária caiada de BRANCO; lar dos Albina (vassalos); recebe todo
+   forasteiro com FESTA (tradição sagrada). Onde o barco atraca.
+2. **TRIGAL DOURADO** — campo 1 (mar de trigo)
+3. **VINHEDO & POMARES** — campo 2
+4. **PASTOS & FAZENDAS** — campo 3
+5. **PROSPERA** — a cidade grande (pedido: MUITO grande), capital dos Prosperi
+6. **JARDIM DO TEMPLO ESTRELADO** — 12 torres finas em círculo (uma por deus) ligadas por
+   pontes; vitrais coloridos sobre mármore negro (a luz pinta o chão com a cor de cada deus).
+   Histórico: unção dos Prosperi + o Juramento dos refugiados + o ÚLTIMO milagre público dos Doze.
+   Corvário: os corvos são FILHOS DO CORVO DEUS (o corvo do Salão é da linhagem!)
+7. **CIDADE ALTA** — distrito do saber, com a TORRE DA ALVORADA (externa)
++ **FAROL DA PROSPERIDADE** — margem extrema de Prospera: sede-fortaleza dos Prosperi
++ Interiores futuros: Torre (Biblioteca!), Farol, Templo
+
+### A TORRE DA ALVORADA (interior)
+- Ordem: primeiros conhecedores da magia NÃO-DIVINA; colaboram com a religião sem segui-la;
+  buscam ACOLHIMENTO (a mesma fome que perdeu Varth)
+- **Grande Biblioteca**: ESPELHOS DE BRONZE canalizam o sol (velas PROIBIDAS) — estantes
+  interativas lendo o CANON (a biblioteca prometida!)
+- Entrada: dois GRIFOS de pedra que testam com ENIGMA (mecânica de acesso!)
+
+### PENDÊNCIAS PRA PRÓXIMA SESSÃO (continuar o ritual de múltipla escolha)
+- Nome oficial da Ordem (filosofia decidida; batismo pendente)
+- O LORDE/LADY Prosperi atual (personagem!) + elenco de NPCs da ilha (Albina, arquimagos,
+  o sumo-sacerdote das 12 torres, taverneiro de Vilalbina, o mestre do corvário...)
+- Perigos/monstros da ilha (piratas? pragas no trigal? o que os campos escondem?)
+- O ENIGMA dos grifos (banco de enigmas rotativos?)
+- O barco: preço/rota/cutscene da travessia; o porto oficial na Costa
+- O último milagre público dos Doze: O QUE FOI?
+- Construção dos 7 mapas + interiores (sessão dedicada de world-building)
+
+
+## 🔑 PROSPERINA — RODADAS 7-9 (decididas)
+- **Gêmeos Prosperi**: DANTE (Farol) & DIANA (Prospera). Ela manda de verdade; ele guarda o farol.
+- **O SEGREDO DO FAROL** ⭐ QUEST PRINCIPAL DO JOGO: a pira é a luz do **ÂMBAR DE VALDRIS** —
+  perdido na queda entre mundos, achado pelos primeiros magos, ORIGEM da magia arcana dos
+  Ermos ("a Alvorada" É essa luz). Dentro do âmbar: a pessoa amada de Valdris.
+  → Arco: Valdris (tutorial) se reconstrói nível a nível para atravessar o mar e recuperá-la.
+- **O Conclave da Aurora**: nome oficial da Ordem (magia nascida da luz do âmbar).
+- **Último milagre dos Doze**: o trigo do 1º inverno cresceu EM UMA NOITE (a ilha nunca
+  passou fome; o celeiro é o eco do milagre).
+- **Piratas do mar cinzento**: descendentes dos que NÃO couberam na frota, sob a
+  **RAINHA CINZENTA** (capitã lendária). A culpa dos heróis tem armada.
+- **Enigma dos grifos**: ROTATIVO — banco de charadas girando por dia do jogo (implementável).
+
+## ⏭️ AINDA PENDENTE (próximo "segue")
+- Elenco menor da ilha (Albina, arquimago do Conclave, sumo-sacerdote, mestre do corvário,
+  taverneiro de Vilalbina, capitão do porto novo na Costa)
+- Rota/preço/experiência do barco; encontro com piratas na travessia?
+- O que Diana acha do segredo do irmão (ela SABE?)
+- A Rainha Cinzenta: rosto, nave-capitânia, exigência (o que ela QUER?)
+- CONSTRUÇÃO dos 7 mapas + interiores (sessão dedicada)
+
+
+## 👑 A DINASTIA PROSPERI (Rodadas 10-11)
+- **Rainha Mãe FIONA, a SUPREMA** — a bruxa mais forte de todos os tempos; sumiu numa
+  noite sem lua (paradeiro: MISTÉRIO ABERTO — carta na manga pra qualquer arco)
+  - **Rei Avô MARTH** (A Palavra Fértil: a terra produz onde ele ordena) ⚭
+    **Rainha Avó VALESCA** (A Diplomata Encantada: ninguém mente perto dela)
+    - **Lorde Prosperi DANTE** — O MAGO MAIS FORTE da era: Escolhido da Luz (o Âmbar o
+      aceita) + Sentinela Eterno (não dorme) + A Chama Responde (a luz é arma)
+    - **Lady da Alvorada DIANA** — O Olhar que Pesa (herança da Suprema)
+  - **CORDELIA** — irmã de Marth, filha de Fiona (⏭️ A CANONIZAR: história/poder/paradeiro!)
+
+### Pendências novas
+- Quem é CORDELIA? Onde está? Herdou o quê da mãe?
+- Diana SABE do segredo do Farol?
+- Fiona × o Âmbar: a Suprema sumiu ATRÁS de algo? (noite sem lua...)
+
+
+## 🌑 RODADA 12 — A FAMÍLIA E O SEGREDO
+- **CORDELIA rompeu com a família**: vive entre o povo, identidade ESCONDIDA
+  (⭐ gancho: ela pode ser um rosto que JÁ conhecemos... a Cigana? Marion? alguém do Ermo?)
+- **O segredo é da FAMÍLIA**: todos sabem; **MARTH foi o 1º guardião do Âmbar, criança**
+  (a Palavra Fértil pode ter nascido de crescer ao lado da luz-origem?)
+- **Referência-fonte**: Fiona = Fiona Goode (AHS: Coven); Cordelia ecoa a filha
+  (⭐ gancho: em AHS a Suprema morre quando a próxima ASCENDE — Fiona sumiu numa noite
+  sem lua... porque sentiu CORDELIA despertando?! A investigar em arco futuro.)
+
+
+## 🌊 RODADAS 13-16 — RAINHA CINZENTA, ELENCO E OS FIOS CRUZADOS
+- **Rainha Cinzenta**: anciã DEIXADA no cais na queda; quer SAQUEAR até quebrar a ilha.
+- **A TRAVESSIA (design fechado)**: barco do Zé = cadeia de missões + A JUBA DO MARAJÁ
+  (derrotar o boss é o pedágio!); intocável pelos piratas. Barco oficial: libera após a
+  1ª rota; chance de ataque pirata.
+- **Cúpula da ilha**: Arquimago HERON, o Que Ficou (colega de Varth); Dom BALTAZAR Albina
+  (patriarca festeiro); ARCEBISPO REI Celestino + 12 Sumo-Sacerdotes (um por torre).
+- **FIOS CRUZADOS ilha × continente**:
+  · Heron guarda a vaga do CRONISTA aberta em segredo
+  · DANTE sabe quem Valdris é — e TEME a travessia dele
+  · Heron descobriu a infiltração da MARION — e admirou (nunca denunciou)
+  · O ZÉ tentou voltar pela Rainha Cinzenta; o remo perdeu da maré; ela VIU (o respeito)
+  · A corte de Prospera ENCOMENDA de Bragan & Petra sem saber quem são
+  · ⭐ **CORDELIA = "ROBERTINA"**: a tia vive sob esse nome falso (definir ONDE/quem é
+    Robertina — NPC nova ou rosto existente? Próxima sessão de lore!)
+- Pendências: nomes sujeitos a veto (Heron/Baltazar/Celestino); por que o Zé pede a JUBA?
+
+
+## 🚧 CONSTRUÇÃO DE PROSPERINA — STATUS (Sessão de Obra 1)
+✅ FEITO: mapas VILALBINA (44x28, cais/praça/casario/saída leste) e TRIGAL DOURADO (56x36,
+trilha/fazendas); TRAVESSIA no píer da Costa (250,252): 1ª vez consome JUBA DO MARAJÁ +
+flag ficha["prosperina"]; depois livre com 20% de piratas no desembarque; bordas
+Vilalbina<->Trigal por interact; NPC Dom Baltazar na praça.
+⏭️ PRÓXIMA OBRA: Vinhedo + Pastos + PROSPERA (grande!) + Jardim do Templo (12 torres) +
+Cidade Alta + Farol; decor client (casario BRANCO, trigo dourado, vitrais); NPCs restantes
+(Heron, gêmeos, Celestino, taverneiro local); cadeia de missões completa do Zé; enigmas
+dos grifos; interiores (Biblioteca lendo o CANON!); mobs da ilha (piratas no trigal?).
+
+## 🌙 A GRANDE RECONSTRUÇÃO NOTURNA (Sessão de Obra 2 — Prosperina refeita)
+Diagnóstico dos erros da 1ª obra: casas OCAS (miolo '1' no overworld), transição por E
+(ignorei o EDGE_LINKS nativo), ambiente sem identidade.
+✅ REFEITO: 8 geradores novos (casas MACIÇAS estilo do jogo); tiles '+' + EDGE_LINKS
+(travessia automática de borda como ermo↔descampado); _try_ilha_bordas aposentada;
+ILHA_CASAS exportada ao cliente (JSON gerado dos próprios mapas).
+✅ DECOR COMPLETO (drawIlhaDecor): telhados de duas águas com telhas/cumeeira/beiral/
+janelas acesas (7 paletas: branca/comum/nobre/fazenda/celeiro c/ X/adega/mansão c/
+bandeira); Vilalbina: BANDEIRINHAS de festa; Trigal: overlay DOURADO + espigas ondulando;
+Vinhedo: parreiras c/ cachos; Pastos: fardos de feno; Prospera: FONTE animada + lampiões
++ bandeiras nos portões; Jardim: as 12 TORRES c/ vitrais coloridos pintando o chão + feixe
+do altar; Cidade Alta: a TORRE DA ALVORADA monumental (4 andares de janelas, alvorada no
+topo) + GRIFOS c/ asas e olhos brilhando; Farol: fuste listrado + FEIXE DO ÂMBAR girando
++ reflexo no mar.
+✅ REFINOS: fonte fora da avenida; grifos ±3; _try_farol (Dante barra: "Ainda não.");
+MAP_TITLES oficiais; spawns dos 5 NPCs validados em tiles livres.
+⏭️ Próximo: mobs da ilha (piratas!), interiores (Mansão/Farol/arco do Âmbar), missões do Zé.
+
+## 🗼 NOTA: A TORRE DA ALVORADA (estrutura atual)
+- EXTERIOR: monumento na Cidade Alta (grifos + enigma na esplanada)
+- INTERIOR (térreo): A GRANDE BIBLIOTECA — onde o ARQUIMAGO HERON mora, entre as
+  estantes que leem o CANON
+- ⏭️ Expansão futura: andares superiores (salas de estudo do Conclave, aposentos,
+  e O TOPO DA ALVORADA — de onde a luz nasce)

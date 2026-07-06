@@ -1,1 +1,1 @@
-web: python app.py
+3.12.8

@@ -1,108 +1,62 @@
-# Ermo — fundação de um JRPG multiplayer
+import sys, random, statistics
+sys.path.insert(0,'.')
+from game import combat, items, spells, monsters as monsters_lib
+from game.leveling import hp_for_level, proficiency_bonus
+from game.classes import CLASS_HD
+from game import races
+random.seed(20260628)
+SLOTS=("head","shoulder","back","chest","legs","feet")
+ATTRS={"paladino":{"FOR":18,"DES":12,"CON":16,"INT":10,"SAB":12,"CAR":13},
+       "guerreiro":{"FOR":18,"DES":14,"CON":16,"INT":10,"SAB":12,"CAR":10},
+       "mago":{"FOR":8,"DES":14,"CON":14,"INT":18,"SAB":12,"CAR":10},
+       "feiticeiro":{"FOR":8,"DES":14,"CON":14,"INT":10,"SAB":12,"CAR":18}}
+def ficha(cid,lvl):
+    hd=CLASS_HD[cid];cm=races.attr_mod(ATTRS[cid]["CON"]);hp=hp_for_level(hd,cm,lvl)
+    return {"class_id":cid,"level":lvl,"prof":proficiency_bonus(lvl),"attrs":dict(ATTRS[cid]),"attrs_final":dict(ATTRS[cid]),"hp":hp,"hp_max":hp,"feats":[],"saves":{}}
+def equip(cid,tier):
+    e={"hand_r":"%s_%s_arma"%(tier,cid)}
+    for s in SLOTS:
+        i="%s_%s_%s"%(tier,cid,s)
+        if i in items.ITEMS:e[s]=i
+    sh="%s_%s_escudo"%(tier,cid)
+    if sh in items.ITEMS:e["hand_l"]=sh
+    return e
+def comb(cid,tier,lvl):
+    return combat.make_player_combatant(cid,{"name":cid,"x":1,"y":0,"equipment":equip(cid,tier)},ficha(cid,lvl))
+def mon(mid):
+    m=dict(monsters_lib.MONSTERS[mid]);m["id"]=mid;m["hp_max"]=m["hp"];m["x"]=2;m["y"]=0
+    return combat.make_monster_combatant(m)
+def martial_dpt(maker,mid,turns=40000):
+    a=maker();tot=0
+    for _ in range(turns):
+        t=mon(mid);t["hp"]=t["hp_max"];t["alive"]=True
+        enc={"combs":{a["cid"]:a,t["cid"]:t}}
+        b=t["hp"];combat.attack(enc,a,t);tot+=b-t["hp"]
+    return tot/turns
+def spell_dpt(maker,mid,spell_id,turns=40000):
+    a=maker();tot=0
+    for _ in range(turns):
+        t=mon(mid);t["hp"]=t["hp_max"];t["alive"]=True
+        enc={"combs":{a["cid"]:a,t["cid"]:t}}
+        b=t["hp"];combat.cast_spell(enc,a,spell_id,t);tot+=b-t["hp"]
+    return tot/turns
 
-Vilarejo top-down onde vários jogadores andam ao mesmo tempo, em tempo real.
-Esta é a **Phase 1**: a fundação enxuta, já pensada pra crescer. Você entra,
-escolhe um nome, anda pelo mapa e vê os outros viajantes se mexendo ao vivo.
-
-Stack: Flask + Socket.IO no servidor (estado autoritativo), canvas HTML5 puro
-no cliente. Mesma família do FVTracking, só que num host com WebSocket.
-
----
-
-## Arquitetura (por que cresce fácil)
-
-A regra de ouro do multiplayer: separar **o mundo**, **as regras** e **a rede**.
-Se nasce organizado, feature nova entra plugando. Aqui está assim:
-
-```
-ermo/
-├── app.py                 # A REDE  — Socket.IO: recebe eventos, transmite estado
-├── game/
-│   ├── world.py           # O MUNDO — quem está dentro e onde (estado)
-│   ├── rules.py           # AS REGRAS — colisão, movimento, spawn
-│   └── world_map.py       # O MAPA   — a grade de tiles (fonte única da verdade)
-├── templates/index.html   # tela de entrada + canvas + HUD
-├── static/game.js         # motor do cliente (render, tween, input)
-├── requirements.txt
-├── render.yaml            # blueprint de deploy no Render
-└── Procfile               # fallback p/ outros hosts
-```
-
-O que isso te dá:
-- **Conteúdo novo** (NPC, item, quest, mapa, magia) mexe só em `game/`. A rede nem sente.
-- **O mapa é só dado.** Quer um vilarejo maior ou outro cenário? Edite `world_map.py`.
-  O servidor manda o mapa pro cliente no evento `init`, então os dois nunca discordam.
-- **O servidor manda na verdade.** O cliente só pede "quero andar pra cima"; quem decide
-  se pode é `rules.py`. Isso é o que evita trapaça e dessincronização.
-
-### Contrato de eventos (Socket.IO)
-
-| Direção | Evento | Dados |
-|---|---|---|
-| cliente → servidor | `join` | `{name}` |
-| cliente → servidor | `move` | `{dir}` (`up`/`down`/`left`/`right`) |
-| servidor → cliente | `init` | `{id, map, players}` (só p/ quem entrou) |
-| servidor → cliente | `player_joined` | `{id,x,y,facing,name,color}` |
-| servidor → cliente | `player_moved` | `{id,x,y,facing}` |
-| servidor → cliente | `player_left` | `{id}` |
-
----
-
-## Rodar no seu PC
-
-```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
-```
-
-Abre `http://localhost:5000` em duas abas (ou no celular pela rede local) e veja
-os dois bonecos andando ao vivo. O direcional na tela funciona no toque.
-
----
-
-## Subir no Render (recomendado)
-
-Importante: **PythonAnywhere não serve aqui** — ele não sustenta WebSocket de
-verdade. O tempo real precisa de um host com WebSocket. Render e Railway têm,
-com tier grátis.
-
-**Pelo blueprint (mais fácil):**
-1. Suba esta pasta num repositório no GitHub (`git init`, commit, push).
-2. No Render: **New > Blueprint**, aponte pro repositório. Ele lê o `render.yaml`
-   e já configura tudo (build, start, health check).
-3. Deploy. Em alguns minutos você tem a URL pública. Mande pra um amigo e joguem juntos.
-
-**Manualmente (se preferir):**
-- New > **Web Service**, conecte o repositório.
-- Build Command: `pip install -r requirements.txt`
-- Start Command: `python app.py`
-- Pronto. O Render injeta a porta na variável `PORT`, que o `app.py` já lê.
-
-### Caveats honestos (e quando viram problema)
-- **Um worker só.** O estado dos jogadores vive na memória do processo, então rode
-  com 1 worker (é o que o `python app.py` faz). Pra escalar pra centenas de pessoas
-  em várias máquinas, aí entra uma fila Redis (Flask-SocketIO suporta com 1 linha).
-  Isso é problema de gente rica; pras primeiras fases, 1 worker segura tranquilo.
-- **Tier grátis dorme.** No plano free do Render o serviço hiberna sem uso e demora
-  uns segundos pra acordar no primeiro acesso. Normal.
-- **Quer Gunicorn?** Dá, mas precisa do worker certo pra WebSocket:
-  `gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 app:app`.
-  Pro tamanho de agora, `python app.py` é mais simples e já é production-ready.
-
----
-
-## Roadmap (pequenamente grande)
-
-1. **[feito] Phase 1** — mapa compartilhado, seu boneco andando, os outros ao vivo, nome em cima.
-2. **Phase 2** — predição no cliente (passo instantâneo), comer/colidir, placar, animação de caminhada.
-3. **Phase 3** — pele (terror? arena mística?), NPC com diálogo, combate por turno, power-ups.
-4. **Phase 4** — salas/matchmaking, contas, persistência em SQLite (de novo seu quintal).
-
-A camada chata (tempo real) você sobe **uma vez**, aqui na Phase 1. Daí pra frente,
-crescer volta a parecer FVTracking: adicionar dado e um handler pequeno.
-
----
-
-Feito com o Claudinho. Renomeie "Ermo" pro nome que você quiser — é só procurar e trocar.
+print("="*86)
+print("OFENSIVA: dano por turno (já com acerto/save). marcial=espada, caster=truque/magia")
+print("="*86)
+for tier,lvl in [("t1",8),("necro",12)]:
+    pal=comb("paladino",tier,lvl); mg=comb("mago",tier,lvl)
+    wpn=items.ITEMS["%s_paladino_arma"%tier]; mwp=items.ITEMS["%s_mago_arma"%tier]
+    print("\n### %s, nível %d   (poder mágico do mago = %d)" % (tier.upper(), lvl, mg.get("spell_pow",0)))
+    print("  arma paladino: %s  | cajado mago dmg: %s" % (wpn.get("dmg"), mwp.get("dmg")))
+    # truque do mago escala: nivel 8 -> x2 dados, nivel 12 -> x3
+    for mid,nome in [("lorde_varth","Varth(forte,AC23)"),("farao_avhur","Faraó(médio,AC18)"),("dama_noite","Dama(fraco,AC15)")]:
+        mca=monsters_lib.MONSTERS[mid]
+        pm=martial_dpt(lambda:comb("paladino",tier,lvl),mid)
+        gm=martial_dpt(lambda:comb("mago",tier,lvl),mid)  # mago batendo de cajado (melee fraco)
+        truque=spell_dpt(lambda:comb("mago",tier,lvl),mid,"raio_de_fogo")
+        # melhor magia de nivel disponivel
+        best = "bola_de_fogo" if lvl>=12 else "maos_flamejantes"
+        nivelmag=spell_dpt(lambda:comb("mago",tier,lvl),mid,best)
+        print("  vs %-20s AC%2d | paladino-espada %5.1f | mago-truque %5.1f | mago-%s %5.1f" % (
+            nome, mca["ac"], pm, truque, best, nivelmag))

@@ -1,57 +1,269 @@
 """
-HABILIDADES DE CLASSE no combate (camada C). Marciais e de meio-conjurador que
-nao dependem do sistema de magia. Cada uma usa um 'slot' de turno:
-  'action'  gasta a ação
-  'bonus'   gasta a ação bônus
-  'special' não gasta ação nem bônus (ex.: Surto de Ação, armar o Castigo)
-  'passive' sempre ativa, sem botão (ex.: Ataque Furtivo)
-'target': True quando precisa escolher um inimigo (ex.: Rajada de Golpes).
+FEATURES DAS 12 CLASSES (D&D 5e) — nivel a nivel.
+
+Cada entrada e (nivel, nome, descricao_curta). Sao as caracteristicas de CLASSE
+(as de SUBCLASSE entram na Fase 3). Os niveis de "Incremento de Atributo" sao o
+gancho do feat-or-ASI. O uso ATIVO (lancar magia, usar Furia, etc.) vira de fato
+na leva de combate; aqui elas aparecem na ficha por nivel.
+
+A descricao e enxuta de proposito (cabe no painel da ficha).
 """
 
-ABILITIES = {
-    "rage":         {"name": "Fúria",              "slot": "bonus",   "desc": "+dano corpo a corpo e resistência a dano físico."},
-    "second_wind":  {"name": "Retomar o Fôlego",   "slot": "bonus",   "desc": "Cura 1d10 + nível."},
-    "action_surge": {"name": "Surto de Ação",      "slot": "special", "desc": "Ganha uma ação extra neste turno."},
-    "martial_arts": {"name": "Golpe Bônus",        "slot": "bonus", "target": True, "desc": "Um ataque desarmado bônus."},
-    "flurry":       {"name": "Rajada de Golpes",   "slot": "bonus", "target": True, "desc": "Gasta 1 Ki: dois ataques extras."},
-    "lay_on_hands": {"name": "Imposição das Mãos", "slot": "action",  "desc": "Cura você de uma reserva sagrada."},
-    "divine_smite": {"name": "Castigo Divino",     "slot": "special", "desc": "Arma: o próximo acerto corpo a corpo gasta um espaço e causa +2d6 radiante."},
-    "bardic":       {"name": "Inspiração",         "slot": "bonus",   "desc": "+1d6 na sua próxima jogada de ataque."},
-    "sneak_attack": {"name": "Ataque Furtivo",     "slot": "passive", "desc": "+Xd6 no primeiro acerto do seu turno."},
-    "lamina_venenosa": {"name": "Lâmina Venenosa", "slot": "bonus",   "desc": "Unta a lâmina com veneno: por 10 turnos, TODO acerto seu envenena o alvo (dano contínuo que escala com o nível). 1x por combate."},
-    "some_sombras": {"name": "Some nas Sombras", "slot": "bonus",     "desc": "Some nas sombras: o próximo ataque inimigo contra você ERRA, e o seu próximo golpe vem da furtividade (acerto e crítico garantidos). 1x por combate."},
-    # --- habilidades CONCEDIDAS pelos deuses (via Fagulha de Divindade) ---
-    "milesima_saida": {"name": "Milésima Saída",   "slot": "bonus",   "god": "Nhare", "desc": "Dom de Nharé. 1x por combate: some pela milésima saída — cura 2d6 e o PRÓXIMO ataque inimigo contra você erra automaticamente."},
-    "aurora_valiria": {"name": "Aurora de Valíria", "slot": "action",  "god": "Valiria", "desc": "Dom de Valíria. 1x por combate: a aurora desce sobre você. Por 6 turnos os inimigos só atacam você e nenhum golpe te tira mais de 1 de vida; em troca, por 9 turnos o seu próprio dano cai pela metade. Você brilha como a deusa."},
-    "forma_facalan":  {"name": "Forma de Facalan", "slot": "action",  "god": "Facalan", "desc": "Dom de Facalan. 1x por combate: vira uma pantera dourada por 10 turnos. Cura toda a vida, +15 de vida máxima, +2 dados de dano e +10 de armadura. Se sua vida zerar na forma, você não morre: volta ao normal com a vida cheia e fica 3 turnos sem poder cair abaixo de 1."},
-    "golpe_morte_alada": {"name": "Golpe da Morte Alada", "slot": "action", "god": "Nherith", "target": True, "form": "coruja", "desc": "Dom de Nherith (só na forma de Coruja Demoníaca). Garras necróticas que causam dano altíssimo (igual a um paladino de Força 20 com a espada do Coveiro) e curam 30% do dano causado em vida."},
-    "cancao_cabare":  {"name": "Canção do Cabaré", "slot": "action", "god": "José", "desc": "Dom de José (só Bardo). 1x por combate: o bardo canta e fica 3 turnos sem poder agir. Em troca, por 10 turnos nenhum inimigo consegue te causar dano em área nem te aplicar qualquer debuff. Pelo contrário: quem tentar leva o próprio dano e a própria maldição de volta. (No futuro, protege o grupo inteiro.)"},
-    "luz_criacao":    {"name": "Luz da Criação", "slot": "action", "target": True, "ranged": True, "posture": "martir", "desc": "Postura Mártir de Valíria: um raio radiante à distância que soma TODO o seu potencial de dano. Sempre que acerta, cura o grupo inteiro."},
-    "sopro_draconico": {"name": "Sopro Dracônico", "slot": "action", "desc": "Traço do Draconato. 1x por combate: solta o sopro da sua linhagem e atinge TODOS os inimigos com fogo em área (dano escala com o nível). Eles resistem com Destreza pra metade; quem falhar ainda fica pegando fogo."},
+ASI = "Incremento de Atributo"   # nome padrao dos niveis de ASI/talento
+
+# Niveis em que cai a escolha de ASI/talento (feat-or-ASI). Padrao 5e + extras.
+ASI_LEVELS = {
+    "barbaro": {4, 8, 12, 16, 19},
+    "guerreiro": {4, 6, 8, 12, 14, 16, 19},
+    "paladino": {4, 8, 12, 16, 19},
+    "ladino": {4, 8, 10, 12, 16, 19},
+    "monge": {4, 8, 12, 16, 19},
+    "patrulheiro": {4, 8, 12, 16, 19},
+    "mago": {4, 8, 12, 16, 19},
+    "feiticeiro": {4, 8, 12, 16, 19},
+    "bruxo": {4, 8, 12, 16, 19},
+    "bardo": {4, 8, 12, 16, 19},
+    "clerigo": {4, 8, 12, 16, 19},
+    "druida": {4, 8, 12, 16, 19},
 }
 
-CLASS_ABILITIES = {
-    "barbaro":   ["rage"],
-    "guerreiro": ["second_wind", "action_surge"],
-    "monge":     ["martial_arts", "flurry"],
-    "ladino":    ["sneak_attack", "lamina_venenosa", "some_sombras"],
-    "paladino":  ["lay_on_hands", "divine_smite"],
-    "bardo":     ["bardic"],
+# Nivel em que se escolhe a subclasse (so referencia; a escolha e Fase 3).
+SUBCLASS_LEVEL = {
+    "barbaro": 3, "guerreiro": 3, "paladino": 3, "ladino": 3, "monge": 3,
+    "patrulheiro": 3, "mago": 2, "feiticeiro": 1, "bruxo": 1, "bardo": 3,
+    "clerigo": 1, "druida": 2,
 }
 
-# Habilidades ATIVAS de raça (traços do texto que viram mecânica de verdade).
-RACE_ABILITIES = {
-    "draconato": ["sopro_draconico"],
+FEATURES = {
+    "barbaro": [
+        (1, "Fúria", "Entra em fúria: dano extra corpo a corpo, resistência a dano físico e vantagem em testes de Força. Usos limitados por descanso."),
+        (1, "Defesa sem Armadura", "Sem armadura, sua CA = 10 + mod DES + mod CON."),
+        (2, "Ataque Imprudente", "Ataca com vantagem, mas os ataques contra você também ganham vantagem até seu próximo turno."),
+        (2, "Sentido de Perigo", "Vantagem em salvaguardas de DES contra efeitos que você possa ver."),
+        (3, "Caminho Primal", "Escolhe sua subclasse de Bárbaro."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (5, "Ataque Extra", "Ataca duas vezes na ação de Ataque."),
+        (5, "Movimento Rápido", "+3 m de deslocamento sem armadura pesada."),
+        (7, "Instinto Feral", "Vantagem em iniciativa; pode agir no 1º turno mesmo surpreso se entrar em fúria."),
+        (9, "Crítico Brutal (1 dado)", "Acerto crítico rola um dado de dano extra da arma."),
+        (11, "Fúria Implacável", "Cair a 0 PV em fúria pode te deixar com 1 PV em vez de cair."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (13, "Crítico Brutal (2 dados)", "Crítico rola dois dados de dano extra."),
+        (15, "Fúria Persistente", "Sua fúria não acaba sozinha enquanto houver luta."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (17, "Crítico Brutal (3 dados)", "Crítico rola três dados de dano extra."),
+        (18, "Might Indomável", "Se tirar menos no teste de Força, usa seu valor de Força como mínimo."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Campeão Primal", "Força e Constituição sobem para 24 (máximo 24)."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+    ],
+    "guerreiro": [
+        (1, "Estilo de Luta", "Adota um estilo de combate (duelo, arco, defesa, etc.)."),
+        (1, "Retomar o Fôlego", "Como ação bônus, recupera um pouco de vida (1/descanso)."),
+        (2, "Surto de Ação", "Uma ação extra no seu turno (1/descanso)."),
+        (3, "Arquétipo Marcial", "Escolhe sua subclasse de Guerreiro."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (5, "Ataque Extra", "Ataca duas vezes na ação de Ataque."),
+        (6, ASI, "Aumente atributos ou pegue um talento."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (9, "Indomável", "Refaz uma salvaguarda falha (1/descanso)."),
+        (11, "Ataque Extra (2)", "Ataca três vezes na ação de Ataque."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (13, "Indomável (2x)", "Usa Indomável duas vezes por descanso."),
+        (14, ASI, "Aumente atributos ou pegue um talento."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (17, "Surto de Ação (2x)", "Usa Surto de Ação duas vezes por descanso."),
+        (17, "Indomável (3x)", "Usa Indomável três vezes por descanso."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Ataque Extra (3)", "Ataca quatro vezes na ação de Ataque."),
+    ],
+    "paladino": [
+        (1, "Sentido Divino", "Detecta a presença de bem e mal sobrenaturais."),
+        (1, "Cura pelas Mãos", "Reservatório de cura igual a 5 x nível, distribuído pelo toque."),
+        (2, "Estilo de Luta", "Adota um estilo de combate."),
+        (2, "Conjuração", "Conjura magias de paladino (CAR)."),
+        (2, "Castigo Divino", "Gasta espaço de magia para causar dano radiante extra no acerto."),
+        (3, "Saúde Divina", "Imune a doenças."),
+        (3, "Juramento Sagrado", "Escolhe sua subclasse (o juramento)."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (5, "Ataque Extra", "Ataca duas vezes na ação de Ataque."),
+        (6, "Aura de Proteção", "Você e aliados próximos ganham bônus em salvaguardas (mod CAR)."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (10, "Aura de Coragem", "Você e aliados próximos não podem ser amedrontados."),
+        (11, "Castigo Divino Aprimorado", "Todo acerto corpo a corpo causa dano radiante extra."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (14, "Toque Purificador", "Encerra efeitos sobre você ou aliados pelo toque."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (18, "Auras (9 m)", "O alcance das suas auras aumenta para 9 m."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Característica de Juramento", "Capacidade suprema da sua subclasse."),
+    ],
+    "ladino": [
+        (1, "Especialização", "Dobra a proficiência em duas perícias (ou ferramentas)."),
+        (1, "Ataque Furtivo", "Dano extra quando tem vantagem ou um aliado adjacente ao alvo."),
+        (1, "Ladinagem", "Bônus de ação em Esconder, Disparada e Desengajar."),
+        (1, "Gíria de Ladrão", "Idioma secreto dos ladinos."),
+        (2, "Ação Ardilosa", "Esconder, Disparar ou Desengajar como ação bônus."),
+        (3, "Arquétipo de Ladino", "Escolhe sua subclasse."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (5, "Esquiva Sobrenatural", "Reduz à metade o dano de um ataque que você veja."),
+        (6, "Especialização (mais)", "Dobra a proficiência em mais duas perícias."),
+        (7, "Evasão", "Em salvaguardas de DES por área: nada de dano se passar, metade se falhar."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (10, ASI, "Aumente atributos ou pegue um talento."),
+        (11, "Talento Confiável", "Trata 9 ou menos como 10 em testes com proficiência."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (14, "Sentido Cego", "Percebe criaturas escondidas/invisíveis próximas que você possa ouvir."),
+        (15, "Mente Escorregadia", "Ganha proficiência em salvaguardas de Sabedoria."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (18, "Elusivo", "Nenhum ataque tem vantagem contra você enquanto não estiver incapacitado."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Golpe de Sorte", "Transforma uma falha em acerto, ou um teste falho em 20, 1/descanso."),
+    ],
+    "monge": [
+        (1, "Defesa sem Armadura", "Sem armadura, CA = 10 + mod DES + mod SAB."),
+        (1, "Artes Marciais", "Ataques desarmados usam DES e escalam de dado; ataque bônus desarmado."),
+        (2, "Ki", "Pontos de Ki para Rajada de Golpes, Defesa Paciente e Passo do Vento."),
+        (2, "Movimento sem Armadura", "+3 m de deslocamento sem armadura (cresce com o nível)."),
+        (3, "Tradição Monástica", "Escolhe sua subclasse."),
+        (3, "Defletir Projéteis", "Reduz o dano de ataques à distância e pode devolvê-los."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (4, "Queda Lenta", "Reduz dano de queda usando reação."),
+        (5, "Ataque Extra", "Ataca duas vezes na ação de Ataque."),
+        (5, "Golpe Atordoante", "Gasta Ki para atordoar um alvo no acerto."),
+        (6, "Golpes de Ki", "Seus golpes desarmados contam como mágicos."),
+        (7, "Evasão", "Metade ou nenhum dano em salvaguardas de DES por área."),
+        (7, "Tranquilidade", "Acalma a mente; resistência a ser amedrontado/encantado."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (10, "Pureza do Corpo", "Imune a doenças e venenos."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (13, "Língua do Sol e da Lua", "Entende e fala qualquer idioma."),
+        (14, "Alma de Diamante", "Proficiência em todas as salvaguardas; gasta Ki para refazer."),
+        (15, "Corpo Atemporal", "Não envelhece e não precisa de comida/água."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (18, "Corpo Vazio", "Gasta Ki para ficar invisível e resistente; ou projeta a alma."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Autoperfeição", "Recupera 4 pontos de Ki ao iniciar o turno sem nenhum."),
+    ],
+    "patrulheiro": [
+        (1, "Inimigo Favorito", "Vantagem para rastrear e conhecer um tipo de criatura."),
+        (1, "Explorador Nato", "Maestria em um tipo de terreno: viagem e rastreio melhores."),
+        (2, "Estilo de Luta", "Adota um estilo de combate."),
+        (2, "Conjuração", "Conjura magias de patrulheiro (SAB)."),
+        (3, "Conclave do Patrulheiro", "Escolhe sua subclasse."),
+        (3, "Consciência Primitiva", "Sente tipos de criatura ao redor (gasta magia)."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (5, "Ataque Extra", "Ataca duas vezes na ação de Ataque."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (8, "Passo da Terra", "Terreno difícil natural não te atrasa; vantagem contra plantas mágicas."),
+        (10, "Esconder-se à Vista", "Gasta tempo para se camuflar e ficar quase indetectável."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (14, "Sumir", "Esconde-se como ação bônus; não pode ser rastreado sem magia."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (18, "Sentidos Selvagens", "Sabe a localização de criaturas próximas que não possa ver."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Matador Mortal", "Dano extra garantido por turno contra seu inimigo favorito."),
+    ],
+    "mago": [
+        (1, "Conjuração", "Conjura magias de mago de um grimório (INT)."),
+        (1, "Recuperação Arcana", "Recupera espaços de magia num descanso curto (1/dia)."),
+        (2, "Tradição Arcana", "Escolhe sua subclasse (escola de magia)."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (18, "Domínio de Magia", "Escolhe uma magia de 1º e uma de 2º que pode lançar sem gastar espaço."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Magias Distintas", "Duplica uma magia de 3º nível, sempre preparada e grátis 1/dia."),
+    ],
+    "feiticeiro": [
+        (1, "Conjuração", "Conjura magias inatas de feiticeiro (CAR)."),
+        (1, "Origem de Feitiçaria", "Escolhe sua subclasse (a fonte do seu poder)."),
+        (2, "Fonte de Magia", "Ganha Pontos de Feitiçaria; converte entre pontos e espaços de magia."),
+        (3, "Metamagia", "Dobra magias com efeitos como Gêmea, Acelerada ou Sutil."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (10, "Metamagia (mais)", "Aprende outra opção de Metamagia."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (17, "Metamagia (mais)", "Aprende outra opção de Metamagia."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Restauração Feiticeira", "Recupera 4 Pontos de Feitiçaria num descanso curto."),
+    ],
+    "bruxo": [
+        (1, "Patrono Místico", "Escolhe sua subclasse (a entidade que te dá poder)."),
+        (1, "Magia de Pacto", "Poucos espaços, mas sempre no nível mais alto, recuperados em descanso curto."),
+        (2, "Invocações Místicas", "Aprende invocações que moldam seus poderes."),
+        (3, "Dádiva do Pacto", "Lâmina, Tomo ou Corrente do pacto."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (11, "Arcano Místico (6º)", "Lança uma magia de 6º nível 1/descanso longo."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (13, "Arcano Místico (7º)", "Lança uma magia de 7º nível 1/descanso longo."),
+        (15, "Arcano Místico (8º)", "Lança uma magia de 8º nível 1/descanso longo."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (17, "Arcano Místico (9º)", "Lança uma magia de 9º nível 1/descanso longo."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Mestre Místico", "Recupera todos os espaços de Magia de Pacto 1/dia."),
+    ],
+    "bardo": [
+        (1, "Inspiração Bárdica", "Dá um dado de inspiração a um aliado (gasta por descanso)."),
+        (1, "Conjuração", "Conjura magias de bardo (CAR)."),
+        (2, "Pau pra Toda Obra", "Soma metade da proficiência em testes sem proficiência."),
+        (2, "Canção de Descanso", "Cura extra para o grupo em descansos curtos."),
+        (3, "Colégio Bárdico", "Escolhe sua subclasse."),
+        (3, "Especialização", "Dobra a proficiência em duas perícias."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (5, "Fonte de Inspiração", "Recupera Inspiração Bárdica em descanso curto; o dado cresce."),
+        (6, "Contra-encanto", "Você e aliados próximos resistem melhor a encantamento e medo."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (10, "Segredos Mágicos", "Aprende magias de qualquer classe."),
+        (10, "Especialização (mais)", "Dobra a proficiência em mais duas perícias."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (14, "Segredos Mágicos (mais)", "Aprende mais magias de qualquer classe."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (18, "Segredos Mágicos (mais)", "Aprende ainda mais magias de qualquer classe."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Inspiração Superior", "Recupera Inspiração Bárdica ao rolar iniciativa sem nenhuma."),
+    ],
+    "clerigo": [
+        (1, "Conjuração", "Conjura magias divinas (SAB)."),
+        (1, "Domínio Divino", "Escolhe sua subclasse (o domínio do seu deus)."),
+        (2, "Canalizar Divindade", "Efeito divino como Expulsar Mortos-vivos (1/descanso)."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (5, "Destruir Mortos-vivos", "Expulsar passa a destruir mortos-vivos fracos."),
+        (6, "Canalizar Divindade (2x)", "Usa Canalizar Divindade duas vezes por descanso."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (10, "Intervenção Divina", "Pede ajuda direta ao seu deus."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (17, "Destruir (mais forte)", "Expulsar destrói mortos-vivos mais poderosos."),
+        (18, "Canalizar Divindade (3x)", "Usa Canalizar Divindade três vezes por descanso."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Intervenção Divina Aprimorada", "Sua Intervenção Divina sempre funciona."),
+    ],
+    "druida": [
+        (1, "Druídico", "Idioma secreto dos druidas; sinais ocultos na natureza."),
+        (1, "Conjuração", "Conjura magias da natureza (SAB)."),
+        (2, "Forma Selvagem", "Transforma-se em animais que já estudou (2/descanso)."),
+        (2, "Círculo Druídico", "Escolhe sua subclasse."),
+        (4, ASI, "Aumente atributos ou pegue um talento."),
+        (8, ASI, "Aumente atributos ou pegue um talento."),
+        (12, ASI, "Aumente atributos ou pegue um talento."),
+        (16, ASI, "Aumente atributos ou pegue um talento."),
+        (18, "Corpo Atemporal", "Envelhece lentamente."),
+        (18, "Magias Bestiais", "Lança magias mesmo em Forma Selvagem."),
+        (19, ASI, "Aumente atributos ou pegue um talento."),
+        (20, "Arquidruida", "Forma Selvagem ilimitada; ignora componentes de magias da natureza."),
+    ],
 }
 
 
-def get(ability_id):
-    return ABILITIES.get(ability_id)
+def features_for(class_id):
+    """Lista (nivel, nome, desc) ordenada por nivel pra uma classe."""
+    feats = FEATURES.get(class_id, [])
+    return sorted(feats, key=lambda f: (f[0], f[1] != "Fúria"))
 
 
-def for_class(class_id):
-    return list(CLASS_ABILITIES.get(class_id, []))
-
-
-def for_race(race_id):
-    return list(RACE_ABILITIES.get(race_id, []))
+def asi_levels(class_id):
+    return ASI_LEVELS.get(class_id, {4, 8, 12, 16, 19})

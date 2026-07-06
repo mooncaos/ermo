@@ -1,142 +1,284 @@
 """
-VALDRIS — o excentrico do Ermo, senhor das terras do sudeste.
+SISTEMA DE NIVEIS (D&D 5e) — o MOTOR.
 
-Nada de velho, nada de confuso: o Valdris e excentrico ate o osso. Conversa com
-as pedras, guarda trovao em pote, conta o infinito por esporte. Sabe exatamente
-onde esta e o que faz; o mundo e que e estreito demais pro jeito dele. Perambula
-pelos campos e pelo lago la no sudeste murmurando coisas cosmicas pro nada;
-quando voce chega perto, ele te encara e solta um enigma, achando graca.
+Tabela de XP oficial, bonus de proficiencia, vida por nivel e a concessao de XP
+por exploracao. As FEATURES e MAGIAS por classe ficam pras fases seguintes; aqui
+e so o alicerce: o nivel sobe de verdade, a vida e a proficiencia acompanham.
 
-E tem um limite: xingou perto dele (em PT/EN/ES/FR), ele te apaga com uma magia
-cosmica. Excentrico, nao surdo: vulgaridade no campo dele, nao passa.
-
-Aqui mora so o CONTEUDO (as falas) e a deteccao de palavrao. O comportamento
-(andar, falar, punir) e orquestrado em app.py; o estado do NPC vive em world.py.
+Regras da casa ja fixadas com o Moon:
+- curva de XP: tabela 5e padrao.
+- vida por nivel: nivel 1 = MAX do dado + mod CON; cada nivel depois soma a
+  MEDIA fixa do dado + mod CON (estilo BG3, justo no multiplayer).
+- proficiencia: +2 (1-4), +3 (5-8), +4 (9-12), +5 (13-16), +6 (17-20).
+- so vira "aventureiro" (ganha nivel) depois de ter classe; sem classe o XP so
+  acumula e e aplicado quando escolhe a classe.
 """
+from . import races
 
-import unicodedata
-
-# Identidade do NPC no mundo (chave em world.players e id no protocolo).
-NPC_ID = "npc:valdris"
-NPC_NAME = "Valdris"
-
-# ------------------------------------------------------------------ falas
-
-# Murmurios soltos, cosmicos: ele fala SOZINHO enquanto perambula. Sem "voce".
-MURMURS = [
-    "guardei um trovao num pote. e melhor nao abrir o pote.",
-    "as pedras tambem sonham, so que bem devagar.",
-    "contei ate o infinito uma vez. parei no meio porque deu fome.",
-    "ontem o sol nasceu quadrado. achei elegante.",
-    "a agua daquele lago me deve dinheiro. e sabe disso.",
-    "voce tambem escuta a batata pensando, ou e privilegio meu?",
-    "uma vez fui vento por uma tarde inteira. recomendo.",
-    "ja conversei com cada espiga daquele trigo. tem uma que mente.",
-    "o lago e um espelho preguicoso: me copia sempre com atraso.",
-    "dei nome pra todas as nuvens. aquela ali e a Gertrudes.",
-    "se um corvo falar comigo, vou fingir que entendi de proposito.",
-    "plantei uma pergunta ali atras. semana que vem nasce a resposta.",
-    "o silencio daqui tem sotaque. voce nao acha?",
-    "guardo segredos que ainda nem aconteceram.",
-    "tem dias que eu ando ao contrario so pra desafiar a paisagem.",
-    "a sombra daquela arvore me deve uma desculpa.",
-    "eu nao durmo. so pisco bem devagar por umas horas.",
-]
-
-# Falas de quando VOCE chega perto e interage: forasteiro perdido, pedem um "voce".
-GREETINGS = [
-    "ah, um visitante. diga: voce ja contou os seus proprios passos hoje?",
-    "voce chegou na hora exata. eu so nao sei exata de que.",
-    "responde rapido, sem pensar: de que cor e o vento agora?",
-    "voce tem cara de quem guarda um numero secreto. eu tambem guardo.",
-    "fica entre nos: a sua sombra confia em voce?",
-    "interessante. voce anda como quem ainda nao decidiu existir direito.",
-    "se eu te emprestar um trovao, voce devolve limpo?",
-    "voce veio dos campos, ou os campos e que te cuspiram aqui? curiosidade minha.",
-    "gosto de voce. tem o peso certo pra atravessar uma quinta-feira.",
-    "me diz uma verdade que ninguem sabe, e eu te conto uma que ninguem devia.",
-]
-
-# O que ele diz no instante em que frita o engracadinho que xingou perto.
-SMITE_LINES = [
-    "essa palavra eu conheco. ela e feia em todos os idiomas que eu inventei.",
-    "nao. aqui no meu campo, isso nao se diz.",
-    "vulgaridade enferruja o cosmos. vai pensar la longe.",
-    "guardei um trovao justamente pra momentos assim.",
-    "a paisagem se ofendeu. e eu concordo com ela.",
-]
+MAX_LEVEL = 20        # fim das TABELAS 5e; o NIVEL em si nao tem mais teto
 
 
-# -------------------------------------------------------- deteccao de palavrao
-#
-# Regra: casamos PALAVRA INTEIRA, nunca pedaco. Assim "assistir", "Scunthorpe"
-# e afins nao tomam raio a toa (o classico problema do filtro burro). Tambem
-# tiramos acento antes de comparar, pra pegar "cabron"/"cabron", "conio" etc.
-#
-# De proposito ficaram DE FORA alguns homografos comuns e inocentes pra nao
-# punir frase honesta: "con" (em espanhol e "com") e "puto" (em pt-BR vira so
-# "estou puto" = irritado). Os claramente vulgares estao todos aqui, nas quatro
-# linguas que o Valdris conhece.
+def xp_for_level(n):
+    """XP acumulado pra atingir o nivel n (alem do 20: degraus crescendo 5%)."""
+    n = int(n)
+    if n < len(XP_TABLE):
+        return XP_TABLE[n]
+    total = XP_TABLE[-1]
+    delta = XP_TABLE[-1] - XP_TABLE[-2]
+    for k in range(len(XP_TABLE), n + 1):
+        delta = int(delta * 1.05)
+        total += delta
+    return total
 
-_CURSES = {
-    # ---- portugues ----
-    "merda", "bosta", "porra", "caralho", "carai", "cacete", "buceta",
-    "foder", "fodase", "foda", "fodido", "cu", "cuzao", "cuzudo",
-    "fuder", "fudido", "fudendo", "fudeu", "fude", "fudam", "fudase",
-    "viado", "veado", "corno", "puta", "putaria", "putinha",
-    "arrombado", "otario", "babaca", "desgraca", "desgracado",
-    "piranha", "vagabundo", "vagabunda", "escroto", "fdp", "pqp",
-    "krl", "vsf", "vtnc", "xexelento", "pinto", "rola",
-    # ---- ingles ----
-    "fuck", "fucking", "fucker", "fucked", "shit", "shitty", "bullshit",
-    "bitch", "asshole", "ass", "bastard", "dick", "cunt", "motherfucker",
-    "crap", "damn", "douche", "prick", "slut", "whore", "wanker",
-    "twat", "bollocks", "jerk",
-    # ---- espanhol ----
-    "mierda", "joder", "puta", "cabron", "cono", "pendejo", "gilipollas",
-    "polla", "hostia", "capullo", "follar", "verga", "chinga", "chingada",
-    "cojones", "maricon", "zorra", "culero", "pinche", "mamon", "carajo",
-    # ---- frances ----
-    "merde", "putain", "salope", "connard", "connasse", "encule", "enculer",
-    "bite", "couilles", "conne", "foutre", "bordel", "chiotte", "salaud",
-    "pute", "branleur", "niquer", "nique", "batard", "chiant", "emmerde",
+# XP ACUMULADO pra atingir cada nivel (index = nivel). Recalibrado junto com a
+# QUEDA DRASTICA do XP dos monstros (esqueleto era 1000, virou 90). Comeco (1-10)
+# baixo e gostoso; do 10 ao 20 a curva EXPLODE (1.400x do 10 ao 20) pra fazer o
+# nivel 20 ser uma maratona brutal de caca no cemiterio.
+XP_TABLE = [0, 0, 50, 150, 350, 700,
+            1300, 2300, 4000, 6500, 12000,
+            260000, 700000, 1400000, 2700000, 4800000,
+            8300000, 14400000, 24700000, 42200000, 72000000]
+
+# XP de DESCOBERTA por mapa (1a visita). Mundos secretos valem mais.
+MAP_XP = {
+    "salao":            30,
+    "rasharan":         150,
+    "valoran":          150,
+    "fundamento":       200,
+    "falanor":          150,
+    "fadrakor_litoral": 120,
+    "fadrakor_selva":   120,
+    "fadrakor_vulcao":  120,
+    "repouso_dama":     180,
+    "avasham":          250,
+    "valdarkram":        350,
 }
+GOD_XP = 100      # encontrar um deus (1a vez perto dele)
+SECRET_XP = 200   # benção / segredo raro (ex.: benção do Pofnir)
 
-# Xingoes de mais de uma palavra (checados sobre o texto normalizado).
-_CURSE_PHRASES = (
-    "puta que pariu", "filho da puta", "filha da puta", "vai se foder",
-    "vai tomar no cu", "pau no cu", "que se foda", "vai a merda",
-    "hijo de puta", "hija de puta", "me cago en", "la concha",
-    "ta gueule", "ferme ta gueule", "fils de pute", "nique ta",
-    "son of a bitch", "piece of shit", "go to hell",
-)
+_AVG = {6: 4, 8: 5, 10: 6, 12: 7}   # media fixa do dado (die//2 + 1)
 
 
-def _normalize(text):
-    """minusculo, sem acento, pontuacao virando espaco. Devolve (texto, tokens)."""
-    if not isinstance(text, str):
-        return "", []
-    # tira acentos
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(c for c in text if not unicodedata.combining(c))
-    text = text.lower()
-    # tudo que nao for letra/numero vira espaco (separa palavras de pontuacao)
-    cleaned = "".join(c if c.isalnum() else " " for c in text)
-    tokens = cleaned.split()
-    return " ".join(tokens), tokens
+def proficiency_bonus(level):
+    return 2 + (max(1, level) - 1) // 4
 
 
-def contains_curse(text):
-    """True se o texto tem palavrao (palavra inteira) em PT/EN/ES/FR."""
-    norm, tokens = _normalize(text)
-    if not tokens:
+def map_xp(mp):
+    """XP por descobrir um mapa pela 1a vez."""
+    if mp == "ermo":
+        return 0                       # o lar nao conta
+    if mp.startswith("casa_"):
+        return 15                      # entrar numa casa
+    return MAP_XP.get(mp, 40)          # mapa novo generico
+
+
+def level_for_xp(xp):
+    lvl = 1
+    for L in range(2, 999):
+        if xp >= xp_for_level(L):
+            lvl = L
+        else:
+            break
+    return lvl
+
+
+def xp_progress(xp):
+    """(xp_dentro_do_nivel, xp_total_do_nivel, nivel). No 20: (0, 0, 20)."""
+    lvl = level_for_xp(xp)
+
+    base, nxt = xp_for_level(lvl), xp_for_level(lvl + 1)
+    return (xp - base, nxt - base, lvl)
+
+
+def _perm_hp_bonus(ficha, level):
+    """Bonus de vida maxima PERMANENTES (fora do nivel): bencao do Pofnir (+5),
+    o talento Robusto (+2/nivel) e PV/nivel da RACA (ex.: Robustez Ana, +1/nivel)."""
+    from . import feats, races
+    b = 5 if ficha.get("blessing_pofnir") else 0
+    for fid in ficha.get("feats", []):
+        fd = feats.get(fid)
+        if fd and fd.get("hp_per_level"):
+            b += int(fd["hp_per_level"]) * max(1, level)
+    rp = races.race_passives_for(ficha.get("race_id"))
+    if rp.get("hp_lvl"):
+        b += int(rp["hp_lvl"]) * max(1, level)
+    return b
+
+
+def asi_levels(class_id):
+    from . import class_features
+    return class_features.asi_levels(class_id)
+
+
+def sync_asi(ficha):
+    """Enfileira as escolhas de ASI/talento pendentes ao cruzar os niveis certos."""
+    cid = ficha.get("class_id")
+    if not cid:
+        return
+    lvl = ficha.get("level", 1)
+    seen = ficha.setdefault("asi_seen", [])
+    pend = ficha.setdefault("pending_asi", [])
+    extras = [L for L in range(24, int(ficha.get("level", 1)) + 1, 4)]
+    for L in sorted(set(list(asi_levels(cid)) + extras)):
+        if L <= lvl and L not in seen:
+            seen.append(L)
+            pend.append(L)
+
+
+def hp_for_level(hd, con_mod, level):
+    """Vida total no nivel: L1 = max do dado + CON; cada nivel a mais soma a media
+    do dado + CON (minimo 1 por nivel)."""
+    hp = max(1, hd + con_mod)
+    per = max(1, _AVG.get(hd, hd // 2 + 1) + con_mod)
+    return hp + per * (max(1, level) - 1)
+
+
+# ===========================================================================
+#  RECURSOS DE CLASSE (camada C): espacos de magia, Ki, Furia, etc.
+#  Recarga e por andar (temporario), feita em regen_resources().
+# ===========================================================================
+_FULL_SLOTS = {  # nivel do personagem -> [espacos por nivel de magia 1..9]
+    1: [2], 2: [3], 3: [4, 2], 4: [4, 3], 5: [4, 3, 2], 6: [4, 3, 3],
+    7: [4, 3, 3, 1], 8: [4, 3, 3, 2], 9: [4, 3, 3, 3, 1], 10: [4, 3, 3, 3, 2],
+    11: [4, 3, 3, 3, 2, 1], 12: [4, 3, 3, 3, 2, 1], 13: [4, 3, 3, 3, 2, 1, 1],
+    14: [4, 3, 3, 3, 2, 1, 1], 15: [4, 3, 3, 3, 2, 1, 1, 1], 16: [4, 3, 3, 3, 2, 1, 1, 1],
+    17: [4, 3, 3, 3, 2, 1, 1, 1, 1], 18: [4, 3, 3, 3, 3, 1, 1, 1, 1],
+    19: [4, 3, 3, 3, 3, 2, 1, 1, 1], 20: [4, 3, 3, 3, 3, 2, 2, 1, 1],
+}
+_HALF_SLOTS = {  # paladino/patrulheiro (comeca no nivel 2)
+    1: [], 2: [2], 3: [3], 4: [3], 5: [4, 2], 6: [4, 2], 7: [4, 3], 8: [4, 3],
+    9: [4, 3, 2], 10: [4, 3, 2], 11: [4, 3, 3], 12: [4, 3, 3], 13: [4, 3, 3, 1],
+    14: [4, 3, 3, 1], 15: [4, 3, 3, 2], 16: [4, 3, 3, 2], 17: [4, 3, 3, 3, 1],
+    18: [4, 3, 3, 3, 1], 19: [4, 3, 3, 3, 2], 20: [4, 3, 3, 3, 2],
+}
+_PACT = {  # bruxo: (qtd de espacos, nivel deles)
+    1: (1, 1), 2: (2, 1), 3: (2, 2), 4: (2, 2), 5: (2, 3), 6: (2, 3), 7: (2, 4),
+    8: (2, 4), 9: (2, 5), 10: (2, 5), 11: (3, 5), 12: (3, 5), 13: (3, 5), 14: (3, 5),
+    15: (3, 5), 16: (3, 5), 17: (4, 5), 18: (4, 5), 19: (4, 5), 20: (4, 5),
+}
+_RAGE = {1: 2, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4, 7: 4, 8: 4, 9: 4, 10: 4, 11: 4,
+         12: 5, 13: 5, 14: 5, 15: 5, 16: 5, 17: 6, 18: 6, 19: 6, 20: 6}
+
+FULL_CASTERS = {"mago", "clerigo", "druida", "bardo", "feiticeiro"}
+HALF_CASTERS = {"paladino", "patrulheiro"}
+
+
+def _slots_for(class_id, level):
+    level = max(1, level)
+    level_tab = min(MAX_LEVEL, level)
+    if class_id in FULL_CASTERS:
+        row = _FULL_SLOTS.get(level, [])
+    elif class_id in HALF_CASTERS:
+        row = _HALF_SLOTS.get(level, [])
+    elif class_id == "bruxo":
+        qtd, lv = _PACT.get(level, (1, 1))
+        return {str(lv): qtd}
+    else:
+        return {}
+    return {str(i + 1): n for i, n in enumerate(row) if n > 0}
+
+
+def _resource_maxes(ficha):
+    cid = ficha.get("class_id")
+    lvl = max(1, int(ficha.get("level", 1)))
+    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
+    res = {}
+    if cid == "barbaro":
+        res["rage"] = _RAGE.get(lvl, 2)
+    elif cid == "guerreiro":
+        res["second_wind"] = 1
+        if lvl >= 2:
+            res["action_surge"] = 2 if lvl >= 17 else 1
+    elif cid == "monge" and lvl >= 2:
+        res["ki"] = lvl
+    elif cid == "paladino":
+        res["lay_on_hands"] = 5 * lvl
+    elif cid == "feiticeiro" and lvl >= 2:
+        res["sorcery"] = lvl
+    elif cid == "bardo":
+        res["bardic"] = max(1, races.attr_mod(int(final.get("CAR", 10))))
+    return res, _slots_for(cid, lvl)
+
+
+def compute_resources(ficha):
+    """Preenche ficha['res'] com os recursos da classe. Recurso novo nasce cheio;
+    o existente mantem o gasto atual (a recarga e por andar)."""
+    cid = ficha.get("class_id")
+    if not cid:
+        ficha.pop("res", None)
+        return ficha
+    maxes, slots = _resource_maxes(ficha)
+    old = ficha.get("res") or {}
+    res = {}
+    for k, mx in maxes.items():
+        ocur = (old.get(k) or {}).get("cur")
+        res[k] = {"cur": (mx if ocur is None else min(int(ocur), mx)), "max": mx}
+    if slots:
+        oslots = old.get("slots") or {}
+        sres = {}
+        for lv, mx in slots.items():
+            ocur = (oslots.get(lv) or {}).get("cur")
+            sres[lv] = {"cur": (mx if ocur is None else min(int(ocur), mx)), "max": mx}
+        res["slots"] = sres
+    ficha["res"] = res
+    return ficha
+
+
+def regen_resources(ficha, ticks=1):
+    """Recupera 'ticks' de cada recurso (limitado ao maximo). True se algo mudou."""
+    res = ficha.get("res")
+    if not res:
         return False
-    for tok in tokens:
-        if tok in _CURSES:
-            return True
-    # frases: precisa estar cercada por borda de palavra no texto normalizado
-    padded = " " + norm + " "
-    for phrase in _CURSE_PHRASES:
-        if (" " + phrase + " ") in padded:
-            return True
-    return False
+    changed = False
+    for k, v in res.items():
+        if k == "slots":
+            for sv in v.values():
+                if sv["cur"] < sv["max"]:
+                    sv["cur"] = min(sv["max"], sv["cur"] + ticks)
+                    changed = True
+        elif v["cur"] < v["max"]:
+            v["cur"] = min(v["max"], v["cur"] + ticks)
+            changed = True
+    return changed
+
+
+def recompute(ficha):
+    """Recalcula nivel, vida maxima e proficiencia a partir do XP e dos atributos.
+    Sem classe ainda: so guarda o XP (nivel/vida nao mudam). Ao subir de nivel, a
+    vida atual ganha o acrescimo (cura o ganho)."""
+    if not ficha:
+        return ficha
+    xp = int(ficha.get("xp", 0))
+    if not ficha.get("class_id"):
+        ficha.setdefault("level", 1)
+        return ficha
+    lvl = level_for_xp(xp)
+    final = ficha.get("attrs_final") or ficha.get("attrs") or {}
+    con_mod = races.attr_mod(int(final.get("CON", 10)))
+    hd = int(ficha.get("hd", 8))
+    old_max = int(ficha.get("hp_max", 1))
+    new_max = hp_for_level(hd, con_mod, lvl) + _perm_hp_bonus(ficha, lvl)
+    cur = int(ficha.get("hp", new_max))
+    if new_max > old_max:
+        cur += (new_max - old_max)
+    ficha["level"] = lvl
+    ficha["hp_max"] = new_max
+    ficha["hp"] = max(0, min(new_max, cur))
+    ficha["prof"] = proficiency_bonus(lvl)
+    sync_asi(ficha)                 # enfileira escolhas de ASI/talento pendentes
+    compute_resources(ficha)        # recursos de classe (magia, Ki, Furia...)
+    return ficha
+
+
+def grant_xp(ficha, amount):
+    """Soma XP e recalcula. Devolve (ficha, subiu_de_nivel, novo_nivel, ganho)."""
+    ficha = ficha or {}
+    amount = int(amount or 0)
+    if amount <= 0:
+        return ficha, False, ficha.get("level", 1), 0
+    before = level_for_xp(int(ficha.get("xp", 0))) if ficha.get("class_id") else None
+    ficha["xp"] = int(ficha.get("xp", 0)) + amount
+    recompute(ficha)
+    after = ficha.get("level", 1)
+    leveled = bool(ficha.get("class_id")) and before is not None and after > before
+    return ficha, leveled, after, amount

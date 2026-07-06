@@ -1,208 +1,1727 @@
 """
-AS CLASSES — as 12 classes oficiais de D&D 5e.
+O ELENCO — todos os habitantes do Ermo, como DADOS.
 
-Cada classe tem um MESTRE no Salao das Classes (mapa "salao") e o DEUS que esse
-mestre serve, amarrando o sistema na cosmologia do Ermo. O Mago e o unico SEM
-deus: serve ao cosmo e aos livros. (Segredo de mestre: o corvo-guia se chama
-Jeans; Vargo, deus da morte, e o corvo nao patrocinam classe.)
+Antes o NPC vivia grudado no Valdris. Agora cada habitante e so um registro
+nesta lista (ROSTER): nome, aparencia, onde mora, se anda ou fica parado, o que
+murmura sozinho, o que fala quando voce chega perto, se bloqueia passagem, e se
+e do tipo que frita quem xinga por perto. Pra adicionar um novo NPC, basta
+acrescentar um registro aqui. O comportamento (andar, falar, punir) e orquestrado
+em app.py; o estado vivo mora em world.py; o desenho, no cliente.
 
-Regra de bonus da classe (regra da casa):
-    +4 no atributo PRINCIPAL (fixo da classe),
-    +2 em 2 atributos a escolha do jogador,
-    +1 nos 3 restantes (teto 20).
-
-Atributos: FOR, DES, CON, INT, SAB, CAR.
+Campos de cada registro:
+    id, name, look        identidade e aparencia
+    home (x, y)           tile alvo de onde ele perambula (ajustado p/ passavel)
+    radius                quao longe de casa ele anda (tiles, Chebyshev)
+    wanders               True = perambula, False = fica parado
+    step_every            segundos entre os passos
+    solid                 True = bloqueia passagem; False = da pra atravessar
+    kind                  "person" ou "bird" (decide o desenho no cliente)
+    murmurs               falas soltas (sozinho)
+    murmur_min/max        intervalo do murmurio (s)
+    greetings             falas ao interagir (voce chega perto e fala)
+    smiter                True = frita quem xinga perto (so o Valdris)
+    smite_lines           o que ele diz ao fritar (so se smiter)
 """
 
-CLASSES = [
-    {"id": "barbaro",     "name": "Bárbaro",     "principal": "FOR", "god": "Korgath",  "master": "Mestre Gorm"},
-    {"id": "guerreiro",   "name": "Guerreiro",   "principal": "FOR", "god": "Bragor",   "master": "Mestra Adila"},
-    {"id": "paladino",    "name": "Paladino",    "principal": "FOR", "god": "Valiria",  "master": "Mestre Sieg"},
-    {"id": "ladino",      "name": "Ladino",      "principal": "DES", "god": "Nharé",    "master": "Mestre Ravi"},
-    {"id": "monge",       "name": "Monge",       "principal": "DES", "god": "Martur",   "master": "Mestra Yun"},
-    {"id": "patrulheiro", "name": "Patrulheiro", "principal": "DES", "god": "Facalan",  "master": "Mestre Tark"},
-    {"id": "mago",        "name": "Mago",        "principal": "INT", "god": None,        "master": "Mestre Alaric"},
-    {"id": "feiticeiro",  "name": "Feiticeiro",  "principal": "CAR", "god": "Drazun",   "master": "Mestra Idra"},
-    {"id": "bruxo",       "name": "Bruxo",       "principal": "CAR", "god": "Nherith",  "master": "Mestre Mór"},
-    {"id": "bardo",       "name": "Bardo",       "principal": "CAR", "god": "José",     "master": "Mestre Lael"},
-    {"id": "clerigo",     "name": "Clérigo",     "principal": "SAB", "god": "Valiria",  "master": "Mestra Bena"},
-    {"id": "druida",      "name": "Druida",      "principal": "SAB", "god": "Facalan",  "master": "Mestre Sálvio"},
+from . import valdris
+
+# Re-exporta a deteccao de palavrao pra rede (mora no valdris.py).
+contains_curse = valdris.contains_curse
+
+
+# ----------------------------------------------------------------- GÊNERO dos NPCs
+# Sexo (M/F) muda a silhueta no cliente. Mestres derivam do título (Mestra=F).
+# As meninas já marcam "sex":"F" no spec. Aqui ficam as demais NPCs femininas;
+# todo o resto é M por padrão.
+_FEMALE_NPCS = {
+    "Beth", "Dalia", "Marlene", "Cleide", "Maria Cachorra",
+    "Dona Chica", "Robetina", "Marta", "Xamã Miranda",
+    "Marion, a Bruxa", "Cigana Vidente",
+}
+
+
+def sex_of(spec):
+    """Devolve 'M' ou 'F' pro NPC. Respeita um 'sex' explícito no registro,
+    deriva mestres pelo título, e usa a lista de femininas pro resto."""
+    s = spec.get("sex")
+    if s in ("M", "F"):
+        return s
+    name = spec.get("name", "") or ""
+    if name.startswith("Mestra"):
+        return "F"
+    if name.startswith("Mestre"):
+        return "M"
+    return "F" if name in _FEMALE_NPCS else "M"
+
+
+# --------------------------------------------------------------- Bento (campones)
+# Nativo do Ermo: nasceu no barro como o pai e o avo. Cuida de um pedaco de terra
+# sob o sol torto. Ja viu forasteiros cairem do ceu por anos (o Valdris e o mais
+# novo) sempre perguntando como sair. Pra ele nao tem sair: o Ermo e o mundo, o
+# unico. Cansado do trabalho e de ver os perdidos, mas gente boa, sabedoria de
+# roca e humor seco. Fez as pazes: e duro, mas e o lar.
+
+BENTO_MURMURS = [
+    "a terra aqui e boa. teimosa, mas boa.",
+    "outro dia o sol nasceu torto de novo. a gente se acostuma.",
+    "trigo nao pergunta de onde veio. so cresce. devia aprender com ele.",
+    "meu avo plantou aqui, meu pai plantou aqui. eu planto aqui.",
+    "dizem que tem outros mundos. eu tenho esse pedaco de chao, ta bom pra mim.",
+    "o corvo de novo nas espigas. some daqui, ladrao de pena.",
+    "chuva boa essa semana. o Ermo e duro, mas nao e ingrato.",
+    "uns caem do ceu. eu nasci no barro. cada um com a sua.",
+    "do sol nascer ao sol se por. so que aqui o sol faz o que quer.",
+    "o de roxo passou de novo, falando sozinho. coitado, ainda procura.",
 ]
 
-CLASS_BY_ID = {c["id"]: c for c in CLASSES}
+BENTO_GREETINGS = [
+    "salve, viajante. veio de longe ou caiu do ceu como os outros?",
+    "se ta perdido, senta um pouco. a pressa nao acha saida nenhuma.",
+    "uns chegam aqui achando que e castigo. e so um lugar, moco. da pra viver.",
+    "ta com fome? trigo eu tenho de sobra, se quiser.",
+    "o de roxo, o Valdris, te encheu de enigma? ele e assim. bom sujeito, excentrico que so ele.",
+    "nao sei como voce chegou, nem como sair. mas sei plantar. precisa de ajuda, e so falar.",
+    "fica a vontade pela vila. so nao pisa no meu trigo... brincadeira, pode pisar, ele aguenta.",
+    "ja vi muita gente perdida passar por aqui. quase ninguem acha a saida. mas muita gente acha sossego.",
+]
 
-# Dado de vida (hit die) de cada classe, no padrao 5e. A vida no nivel 1 e o
-# MAXIMO do dado + o modificador de Constituicao.
-CLASS_HD = {
-    "barbaro": 12, "guerreiro": 10, "paladino": 10,
-    "ladino": 8,   "monge": 8,     "patrulheiro": 10,
-    "mago": 6,     "feiticeiro": 6, "bruxo": 8,
-    "bardo": 8,    "clerigo": 8,   "druida": 8,
+
+# ------------------------------------------------------------------ o corvo
+# Criptico, sabido, meio assombroso-zoeiro. Parece que viu tudo e zomba um
+# pouco. Fica empoleirado na linha de arvores do leste, coladinho no trigo, da
+# uns pulinhos, murmura raramente. As vezes so um "cras". Easter egg do proprio
+# murmurio do Valdris ("se um corvo falar comigo, vou fingir que nao entendi").
+
+CORVO_MURMURS = [
+    "vi voce chegar. vi todos chegarem.",
+    "o de roxo procura a porta. nao tem porta. cras.",
+    "tem migalha?",
+    "as espigas contam segredo. eu escuto. nao conto.",
+    "cras.",
+    "um, dois, muitos. todos caem. nenhum sobe.",
+    "o velho de roxo tem oitocentos anos e ainda nao me deu migalha.",
+    "eu estava aqui antes do caminho. estarei depois.",
+    "cras... cras...",
+    "o campones me xinga. o campones tambem nao vai embora.",
+]
+
+CORVO_GREETINGS = [
+    "fala comigo? entao responde: pra onde vai o vento quando para?",
+    "voce quer a saida. todos querem. eu quero migalha. um de nos vai se decepcionar.",
+    "te conheco. ainda nao, mas vou. cras.",
+    "o de roxo pergunta como sair. voce devia perguntar por que entrou.",
+    "sem migalha, sem profecia. sao as regras.",
+    "cras. (ele te encara com um olho so.)",
+]
+
+
+# ===================== Beth Cuzcuz (cabaré no nordeste) =====================
+# Bolsao urbano aberto no meio do mato. A casa de quem caiu no Ermo e seguiu a
+# vida: a Beth, senhora nordestina dona do cabare, e o espelho exato do Valdris
+# (ele caiu e procura a saida sem parar; ela caiu, levantou e botou o cabare pra
+# rodar). Tom boemio/noir, falas sugestivas, nada explicito; figuras adultas.
+
+BETH_MURMURS = [
+    "ai, esses Ermo... mas o movimento nao para, gracas a Deus.",
+    "Rodolfo! oia a fila ai, meu fio.",
+    "no Sao Joao la da terra e que era bom. mas aqui tambem se ajeita.",
+    "cabare bom nao dorme, meu rei.",
+    "cai nesse fim de mundo e fiz o que sabia fazer. ponto final.",
+]
+BETH_GREETINGS = [
+    "o meu rei, senta ai. num sei como vim parar nesses Ermo, mas bordel bom a gente abre em qualquer canto.",
+    "perdido? rapaz, todo mundo aqui caiu sem querer. eu cai, levantei e botei o cabare pra rodar. a vida segue.",
+    "minhas menina e tratada com respeito, viu? quem esquecer, o Rodolfo bota na memoria.",
+    "isso aqui e um pedacinho do meu Nordeste no meio do nada. fica a vontade, mas se comporta.",
+]
+
+RODOLFO_MURMURS = [
+    "fila andando. sem empurrao.",
+    "olho em todo mundo. todo mundo.",
+    "o chefe e a Beth. e o que a Beth manda, eu faco.",
+]
+RODOLFO_GREETINGS = [
+    "Ta olhando o que? Entra logo ou sai da fila!",
+    "Se arrumar confusao aqui na porta, eu arrumo uma maior!",
+    "O chefe mandou barrar, entao ta barrado. Reclama com as estrelas!",
+]
+
+DIDI_MURMURS = [
+    "ja quebrei uns quinze hoje. ontem. esses dias.",
+    "trabaia cansa. fico aqui de butuca so, viu.",
+    "meu irmao e o forte. eu sou o inteligente. e o bonito.",
+]
+DIDI_GREETINGS = [
+    "Se veio causar problema, pega a senha e entra na fila!",
+    "To de mau humor hoje. Na verdade, todo dia.",
+    "Voce tem ingresso ou so coragem mesmo?",
+]
+
+DALIA_MURMURS = [
+    "a noite e uma crianca...",
+    "todo mundo que entra aqui procura alguma coisa. eu acho rapidinho o que e.",
+]
+DALIA_GREETINGS = [
+    "o quem chegou. senta aqui, forasteiro, que do meu lado a noite passa devagarinho.",
+    "demorou pra aparecer. eu nao, eu tava te esperando.",
+]
+
+MARLENE_MURMURS = [
+    "sera que ainda tem mundo la fora? deixa, nao quero saber.",
+    "a musica boa e a triste. as outras a gente danca so pra esquecer.",
+]
+MARLENE_GREETINGS = [
+    "todo perdido do Ermo passa por aqui uma vez. uns procuram a saida a noite toda. eu ja desisti, fico bem na fumaca.",
+    "senta. fica. la fora nao tem nada que aqui dentro nao console melhor.",
+]
+
+CLEIDE_MURMURS = [
+    "que figura essa que entrou agora... credo.",
+    "se eu ganhasse moeda por cada folgado, ja tava rica.",
+]
+CLEIDE_GREETINGS = [
+    "veio gastar moeda ou gastar meu tempo? um desses eu nao tenho de sobra.",
+    "o, espelho e na parede. quer me olhar de perto, tem preco.",
+]
+
+JOSE_MURMURS = [
+    "ronrom... (ele te observa sumindo aos poucos na fumaca roxa.)",
+    "vi o velho de roxo procurando a saida. nao contei a ele. nao vou contar a voce.",
+    "todo gato preto da azar, dizem. eu dou respostas. pior, talvez.",
+    "a Beth caiu e ficou. o Valdris ficou pro lado do sudeste, excentrico do jeito dele. eu? eu sempre estive aqui.",
+]
+JOSE_GREETINGS = [
+    "As respostas sao como peixes: quanto mais voce aperta, mais rapido elas escapam.",
+    "Eu poderia lhe contar a verdade... mas ela e tao sem graca que prefiro inventar algo melhor.",
+    "No Beth Cuzcuz, todo mundo tem um segredo. Os espertos escondem o proprio. Os tolos escondem o dos outros.",
+    "Procura resposta? Tenho muitas. O preco as vezes e uma moeda, as vezes um favor, as vezes uma boa historia. Hoje... me conta uma.",
+]
+
+
+# ===================== Itatinga do Gui (vila no noroeste) =====================
+# Vilarejo de casinhas em volta da taverna-hotel. Dois moradores marcantes: o
+# Guilherme, que so encara em silencio, e a Maria Cachorra, rainha do crime do
+# mapa inicial. Exceto o Valdris, ninguem e tao poderoso quanto ela: e a unica,
+# fora dele, com poder de expulsar (mandar pro spawn) quem desacata na quebrada.
+# O castigo dela e vermelho-sangue, nao o roxo cosmico do Valdris.
+
+# --- Guilherme Indio: o mudo que so te encara (sem caricatura; "Indio" e apelido) ---
+GUI_MURMURS = [
+    "(ele encara o vazio)",
+    "(um sorriso lento se abre)",
+    "(ele nao pisca faz um tempo)",
+    "(a cabeca tomba de leve pro lado)",
+]
+GUI_GREETINGS = [
+    "...",
+    "(ele te encara em silencio)",
+    "(o sorriso nao muda)",
+    "(ele continua te olhando, sem piscar)",
+    "(ele inclina a cabeca, devagar, sem dizer nada)",
+]
+
+# --- Maria Cachorra: a rainha do crime (giria de morro) ---
+MARIA_MURMURS = [
+    "essa quebrada e minha de ponta a ponta. ninguem respira sem eu deixar.",
+    "o cara de roxo la pro sudeste... esse e o unico que eu nao mexo. cada um no seu quadrado.",
+    "cade meu bonde que sumiu... bando de vagabundo.",
+    "to de olho em todo mundo. ate no maluco que fica encarando ali.",
+    "respeito e tudo. quem nao tem, aprende na marra.",
+    "salve, salve. a patroa ta na area.",
+]
+MARIA_GREETINGS = [
+    "salve, forasteiro. tu ta pisando na MINHA quebrada, ta ligado?",
+    "novato? aqui tu anda na linha ou tu nao anda mais. simples assim.",
+    "o, eu sou a lei aqui no Itatinga. o Gui que diga... ah nao, o Gui nao diz nada. mas eu digo.",
+    "que o que na minha area? cuidado com o papo, que aqui quem manda no bonde sou eu.",
+    "tu e cria de onde, hein? nunca te vi. fica esperto que eu to de olho.",
+    "pedagio e na entrada, mane. mas pra tua cara eu abro excecao... hoje.",
+]
+MARIA_SMITE = [
+    "Falou o QUE na minha quebrada?! Some daqui, mane!",
+    "Desacato na minha area?! Ta EXPULSO, vacilao!",
+    "Aqui quem da as ordem sou eu. Roda fora!",
+    "Boca suja na MINHA cara? Pega teu corre e some!",
+]
+
+
+# ------------------------------------------------------------------- o elenco
+
+ROSTER = [
+    {
+        "id": valdris.NPC_ID,
+        "name": valdris.NPC_NAME,
+        "look": {"skin": "#f1c9a5", "cloak": "#9b6dff", "hood": "up",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (27, 27),
+        "radius": 6,
+        "wanders": True,
+        "step_every": 0.8,
+        "solid": True,
+        "kind": "person",
+        "gender": "H",
+        "murmurs": valdris.MURMURS,
+        "murmur_min": 15, "murmur_max": 20,
+        "greetings": valdris.GREETINGS,
+        "smiter": True,
+        "smite_lines": valdris.SMITE_LINES,
+        "smite_color": "#9b6dff",
+    },
+    {
+        "id": "npc:bento",
+        "name": "Bento",
+        "look": {"skin": "#c68642", "cloak": "#f4b860", "hood": "down",
+                 "hat": "cap", "hair": "#5a3f28", "staff": False},
+        "home": (33, 23),           # no meio do trigo, na frente da casa dele (SE)
+        "radius": 4,
+        "wanders": True,
+        "step_every": 1.1,
+        "solid": True,
+        "kind": "person",
+        "murmurs": BENTO_MURMURS,
+        "murmur_min": 16, "murmur_max": 24,
+        "greetings": BENTO_GREETINGS,
+        "smiter": False,
+    },
+    {
+        "id": "npc:corvo",
+        "name": "corvo",
+        "look": {"skin": "#2a2233", "cloak": "#1c1a26", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (38, 24),           # empoleirado na linha de arvores do leste
+        "radius": 1,                # so uns pulinhos no lugar
+        "wanders": True,
+        "step_every": 2.6,          # bem devagar
+        "solid": False,             # da pra atravessar (e miudo)
+        "kind": "bird",
+        "murmurs": CORVO_MURMURS,
+        "murmur_min": 22, "murmur_max": 36,
+        "greetings": CORVO_GREETINGS,
+        "smiter": False,
+    },
+    {
+        "id": "npc:beth", "name": "Beth",
+        "look": {"skin": "#8d5524", "cloak": "#e85d75", "hood": "down",
+                 "hat": "none", "hair": "#cfc7bf", "staff": False},
+        "home": (28, 7), "radius": 0, "wanders": False, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": BETH_MURMURS, "murmur_min": 16, "murmur_max": 24,
+        "greetings": BETH_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:rodolfo", "name": "Rodolfo",
+        "look": {"skin": "#c68642", "cloak": "#4a4640", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (27, 7), "radius": 0, "wanders": False, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": RODOLFO_MURMURS, "murmur_min": 20, "murmur_max": 30,
+        "greetings": RODOLFO_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:didi", "name": "Didi",
+        "look": {"skin": "#c68642", "cloak": "#5a4a3a", "hood": "down",
+                 "hat": "cap", "hair": "#2a2233", "staff": False},
+        "home": (29, 7), "radius": 0, "wanders": False, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": DIDI_MURMURS, "murmur_min": 18, "murmur_max": 26,
+        "greetings": DIDI_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:dalia", "name": "Dalia",
+        "look": {"skin": "#e8b58c", "cloak": "#f49ad0", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (27, 8), "radius": 1, "wanders": True, "step_every": 1.4,
+        "solid": True, "kind": "person",
+        "murmurs": DALIA_MURMURS, "murmur_min": 17, "murmur_max": 26,
+        "greetings": DALIA_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:marlene", "name": "Marlene",
+        "look": {"skin": "#f1c9a5", "cloak": "#9b6dff", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (29, 8), "radius": 1, "wanders": True, "step_every": 1.5,
+        "solid": True, "kind": "person",
+        "murmurs": MARLENE_MURMURS, "murmur_min": 18, "murmur_max": 28,
+        "greetings": MARLENE_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:cleide", "name": "Cleide",
+        "look": {"skin": "#c68642", "cloak": "#f4b860", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (31, 8), "radius": 1, "wanders": True, "step_every": 1.4,
+        "solid": True, "kind": "person",
+        "murmurs": CLEIDE_MURMURS, "murmur_min": 17, "murmur_max": 26,
+        "greetings": CLEIDE_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:jose", "name": "Jose",
+        "look": {"skin": "#15151b", "cloak": "#15151b", "hood": "down",
+                 "hat": "none", "hair": "#15151b", "staff": False},
+        "home": (32, 10), "radius": 2, "wanders": True, "step_every": 2.2,
+        "solid": False, "kind": "cat",
+        "murmurs": JOSE_MURMURS, "murmur_min": 20, "murmur_max": 32,
+        "greetings": JOSE_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:guilherme", "name": "Guilherme Indio",
+        "look": {"skin": "#e8b58c", "cloak": "#6a6356", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (12, 12), "radius": 0, "wanders": False, "step_every": 1.5,
+        "solid": True, "kind": "person", "gazes": True,
+        "murmurs": GUI_MURMURS, "murmur_min": 14, "murmur_max": 22,
+        "greetings": GUI_GREETINGS, "smiter": False,
+    },
+    {
+        "id": "npc:maria", "name": "Maria Cachorra",
+        "look": {"skin": "#c68642", "cloak": "#c0392b", "hood": "down",
+                 "hat": "cap", "hair": "#2a2233", "staff": False},
+        "home": (9, 8), "radius": 7, "wanders": True, "step_every": 1.0,
+        "solid": True, "kind": "person",
+        "murmurs": MARIA_MURMURS, "murmur_min": 15, "murmur_max": 22,
+        "greetings": MARIA_GREETINGS,
+        "smiter": True, "smite_lines": MARIA_SMITE, "smite_color": "#e24b4a",
+    },
+]
+
+
+# === As 9 meninas de Itatinga do Gui (valor em BRONZE, pra economia futura) ===
+# So as 3 primeiras entram agora (active=True), espalhadas perto da Maria. As
+# outras 6 ficam active=False: criadas e dormentes, prontas pra soltar quando a
+# gente fizer a moeda (provavelmente morando dentro das casas, junto com os
+# interiores que vem com a Sapopemba). O campo "bronze" ja fica guardado.
+ITATINGA_MENINAS = [
+    {"name": "Melissa", "bronze": 500, "desc": "ruiva natural, tracos marcantes (favorita da zona)",
+     "skin": "#f1c9a5", "hair": "#b5533a", "cloak": "#e85d75", "home": (10, 6), "active": True,
+     "greet": ["o, a favorita da zona em pessoa. eu custo o meu valor, e valho cada bronze, viu?",
+               "ruiva de verdade, dessas que nao se acha em outro mundo. mas aqui, com bronze, se acha."],
+     "murmur": ["numero um da quebrada. a Maria que confirma.", "ser a favorita cansa, mas paga bem."]},
+    {"name": "Yasmin", "bronze": 450, "desc": "padrao VIP, tracos simetricos, alta procura",
+     "skin": "#e8b58c", "hair": "#2a2233", "cloak": "#c9a0ff", "home": (6, 10), "active": True,
+     "greet": ["padrao VIP, meu bem. tem fila, mas pra quem tem bronze a fila anda.",
+               "alta procura por aqui. capricha no bronze que eu capricho em voce."],
+     "murmur": ["tanta gente querendo, e tao pouco bronze rolando..."]},
+    {"name": "Valentina", "bronze": 400, "desc": "loira, estilo capa de revista",
+     "skin": "#f1c9a5", "hair": "#e3b347", "cloak": "#7cc4f4", "home": (13, 10), "active": True,
+     "greet": ["loira de capa de revista, e olha que aqui nem revista tem. sortudo, ne?",
+               "elegancia tem preco, e o meu ta na tabela. paga em bronze."],
+     "murmur": ["esse fim de mundo nao merece tanto glamour. mas paga bem."]},
+    {"name": "Isabelle", "bronze": 350, "desc": "morena iluminada, simpatia e elegancia",
+     "skin": "#c68642", "hair": "#2a2233", "cloak": "#f49ad0", "home": (5, 7), "active": False,
+     "greet": ["oi, sumido. morena com simpatia e raro de achar, ainda mais nesses Ermo.",
+               "elegancia e um sorriso, e o que eu ofereco. o bronze a gente combina."],
+     "murmur": ["simpatia tambem e trabalho, viu."]},
+    {"name": "Giovanna", "bronze": 300, "desc": "alternativa, tatuada e estilosa",
+     "skin": "#e8b58c", "hair": "#2a2233", "cloak": "#5fd0c5", "home": (13, 6), "active": False,
+     "greet": ["tatuada, estilosa, e nem ai pro que acham. ce curte diferente? entao senta.",
+               "o povo paga bronze por padraozinho, mas o barato bom e o diferente, mo."],
+     "murmur": ["cada tattoo minha tem uma historia. nenhuma de graca."]},
+    {"name": "Beatriz", "bronze": 250, "desc": "universitaria, meiga e classica",
+     "skin": "#f1c9a5", "hair": "#5a3f28", "cloak": "#b6e36a", "home": (12, 9), "active": False,
+     "greet": ["oi! cai aqui faz pouco tempo, ainda to me achando nesses Ermo. mas sou de boa.",
+               "meiga e classica, sem misterio. o bronze e justo."],
+     "murmur": ["queria so terminar a facul... ai cai aqui. a vida e isso."]},
+    {"name": "Camila", "bronze": 200, "desc": "bronzeada, estilo praiana",
+     "skin": "#8d5524", "hair": "#5a3f28", "cloak": "#f4b860", "home": (8, 12), "active": False,
+     "greet": ["salve! pena que aqui nao tem praia, eu sou de praia. mas o bronzeado eu trouxe.",
+               "estilo praiana mesmo sem mar. paga o bronze e a gente finge que tem onda."],
+     "murmur": ["saudade do mar... esse Ermo nao tem nem um riacho decente."]},
+    {"name": "Amanda", "bronze": 150, "desc": "cacheada, sorriso marcante e carismatica",
+     "skin": "#c68642", "hair": "#2a2233", "cloak": "#f49ad0", "home": (10, 12), "active": False,
+     "greet": ["o esse sorriso! cacheada e carismatica, custo pouco e rendo muito, mo.",
+               "sou a mais simpatica da casa, dizem. e a mais em conta tambem."],
+     "murmur": ["um sorriso abre mais porta que bronze. quase."]},
+    {"name": "Juliana", "bronze": 100, "desc": "basica, atraente e comunicativa",
+     "skin": "#e8b58c", "hair": "#2a2233", "cloak": "#b6e36a", "home": (9, 14), "active": False,
+     "greet": ["oi, oi! eu sou a mais em conta, mas converso que e uma beleza. cem bronze e a noite rende.",
+               "basica? sou pratica. cem bronze e a gente se entende rapidinho."],
+     "murmur": ["barato e bom, papo bom de graca."]},
+]
+
+# Cada menina mora na SUA casa (interior proprio). A Juliana divide com a Amanda.
+_MENINA_CASA = {
+    "Melissa": "casa_melissa", "Yasmin": "casa_yasmin", "Valentina": "casa_valentina",
+    "Isabelle": "casa_isabelle", "Giovanna": "casa_giovanna", "Beatriz": "casa_beatriz",
+    "Camila": "casa_camila", "Amanda": "casa_amanda", "Juliana": "casa_amanda",
 }
+_MENINA_IHOME = {"Amanda": (5, 4), "Juliana": (10, 4)}   # roommates em pontos distintos
+
+def _menina_spec(m):
+    casa = _MENINA_CASA.get(m["name"], "casa_comum")
+    return {
+        "id": "npc:menina_" + m["name"].lower(),
+        "name": m["name"],
+        "look": {"skin": m["skin"], "cloak": m["cloak"], "hood": "down",
+                 "hat": "none", "hair": m["hair"], "staff": False, "sex": "F"},
+        "map": casa,                                  # mora dentro da casa dela
+        "home": _MENINA_IHOME.get(m["name"], (7, 4)), # ponto dentro do interior
+        "radius": 1, "wanders": True, "step_every": 1.6,
+        "solid": True, "kind": "person", "active": True,   # acordam todas
+        "bronze": m["bronze"], "desc": m["desc"],
+        "murmurs": m.get("murmur", []), "murmur_min": 18, "murmur_max": 28,
+        "greetings": m["greet"], "smiter": False,
+    }
+
+ROSTER.extend(_menina_spec(m) for m in ITATINGA_MENINAS)
 
 
-def get_class(cid):
-    return CLASS_BY_ID.get(cid)
+# --- Robetina: a assistente social de Itatinga (entrega o kit inicial) ---
+ROBETINA_GREETINGS = [
+    "oi, querido. ja te dei o kit, viu? cuida das suas coisas que aqui ninguem repoe.",
+    "tudo certo com voce? qualquer coisa a assistencia ta aqui. dentro do possivel.",
+    "se cuida nesses Ermo. o mundo ja e duro, nao precisa facilitar pra ele.",
+    "ja anotei seu nome na ficha. se sumir, pelo menos sei pra quem rezar.",
+]
+ROBETINA_MURMURS = [
+    "tanta gente chegando sem nada... e o orcamento e o que e.",
+    "ja preenchi formulario ate pra deus reclamar. nada muda.",
+    "um cobertor, um prato de comida. as vezes e so isso que separa a pessoa do fundo.",
+    "nao sou obrigada, mas alguem tem que ser.",
+]
+# Fala da PRIMEIRA vez (quando entrega o kit). Usada pelo servidor no on_interact.
+ROBETINA_FIRST = ("olha so, mais um chegando pelado nesses Ermo. pega esse kit aqui: uma "
+                  "roupa, um calcado, uma faca pra se virar. nao e luxo, mas cobre o corpo. "
+                  "agora vai, e se cuida la fora.")
+
+ROSTER.append({
+    "id": "npc:robetina", "name": "Robetina",
+    "look": {"skin": "#e8b58c", "cloak": "#5a8a6a", "hood": "down",
+             "hat": "none", "hair": "#cfc7bf", "staff": False},
+    "map": "ermo",
+    "home": (12, 10), "radius": 0, "wanders": False, "step_every": 2.0,
+    "solid": True, "kind": "person",
+    "murmurs": ROBETINA_MURMURS, "murmur_min": 16, "murmur_max": 26,
+    "greetings": ROBETINA_GREETINGS, "smiter": False,
+})
 
 
-def class_ids():
-    return [c["id"] for c in CLASSES]
+# ============================================================================
+#  SAPOPEMBA DO CAIQUE — regiao sudoeste (cidade satirica de quebrada)
+# ============================================================================
+# 5 comercios de madeira, uma rua de pedra, a placa I LOVE SAPOPEMBA, e uma
+# galera doida. Sem terreno e sem itens (cortados neste update). Cada NPC ja
+# carrega o campo "gender" (H/M) pro futuro update de generos. Os bichos tem
+# som TROCADO de proposito: o gato late, o cachorro mia, o canario pia.
+
+LAZARO_MURMURS = [
+    "Sapopemba do Caique. quem entra, entra por bem.",
+    "ja revistei ate a minha propria sombra hoje.",
+    "parece calmo isso aqui. parece.",
+    "de noite a cidade muda. fica esperto.",
+    "se ouvir grito, e so o Macio. relaxa.",
+]
+LAZARO_GREETINGS = [
+    "alto la. voce esta entrando em Sapopemba. comporta-se.",
+    "forasteiro? a cidade e doida, mas e nossa. seja bem-vindo.",
+    "qualquer treta, fala com o Sr Fernando. ele cuida daqui.",
+    "ta armado? deixa quieto. ninguem quer confusao na porta.",
+]
+
+FERNANDO_MURMURS = [
+    "alguem tem que varrer essa cidade, e sempre sobra pra mim.",
+    "esse cachorro mia e esse gato late. ja desisti de entender.",
+    "o canarinho do Neymar soltou pra fora de novo.",
+    "Sapopemba inteira no meu lombo, viu.",
+    "se quebrou, eu conserto. se sujou, eu limpo.",
+]
+FERNANDO_GREETINGS = [
+    "opa. eu sou o Fernando, caseiro daqui. precisa de algo?",
+    "fica a vontade, mas nao bagunca, que dai sou eu que arrumo.",
+    "se ver o sapo num canto, nao pisa. ele e antigo aqui.",
+    "essa cidade tem as esquisitices dela. voce acostuma.",
+]
+
+SUCURI_MURMURS = [
+    "calmo por fora. meteoro por dentro.",
+    "eu nao corro. o chao que se apressa quando eu passo.",
+    "barba fechada, mente aberta.",
+    "ja fui mais magro. ja fui mais bobo, tambem.",
+    "respeito aqui e de graca. so pegar.",
+]
+SUCURI_GREETINGS = [
+    "fala. eu sou o Sucuri Meteoro. nome grande pra homem grande.",
+    "anda tranquilo por aqui que eu ando tranquilo contigo.",
+    "ce teve coragem de chegar perto. gostei.",
+    "qualquer coisa eu to por aqui. sempre to.",
+]
+
+MACIO_MURMURS = [
+    "aiiii aiiii aiii aii",
+    "AIIII AIIII AIII AII",
+    "aiiiiii... aiii aii aii",
+    "ai ai ai aiiiii aii",
+    "aiii aiii AIII aiiii aii",
+]
+MACIO_GREETINGS = [
+    "aiiii aiiii aiii aii (ele te encara) ...aii",
+    "oi! aiiii aiiii aiii aii",
+    "tudo bem? AIII AII. tudo bem.",
+    "aiii aiii aii... voce tambem ouviu isso?",
+]
+
+ARMEIRO_MURMURS = [
+    "heh heh heh. o que voce vai comprar, estrangeiro?",
+    "tenho Peteco de todo tipo. Peteco curto, Peteco longo.",
+    "uma Mauser C96 raridade. so pra quem tem bom gosto.",
+    "nao vendo bala, vendo confianca.",
+    "chega mais, estrangeiro. nao mordo. quase.",
+]
+ARMEIRO_GREETINGS = [
+    "ahh, estrangeiro! o que ce vai levar hoje?",
+    "Peteco e o que nao falta. e ainda tem a Mauser, joia rara.",
+    "compra dois Peteco e leva um absinto de brinde. fechado?",
+    "sem grana? entao so olha, estrangeiro. mas olha rapido.",
+]
+
+PIADISTA_MURMURS = [
+    "meu terapeuta disse que eu tenho problema com limites. ai eu sumi com ele.",
+    "queria ser enterrado, nao plantado. mas a familia economiza.",
+    "ja morri de rir. literalmente. foi so um susto.",
+    "sou baixinho, mas meu humor e mais baixo ainda.",
+    "comprei um caixao na promocao. tava por um triz.",
+]
+PIADISTA_GREETINGS = [
+    "quer uma piada de humor negro? a resposta eu tambem fiz sumir.",
+    "sou ruivo e anao. a natureza tava de brincadeira, igual eu.",
+    "ri agora, fica triste em casa depois. e de graca.",
+    "ce tem cara de quem aguenta piada pesada. segura essa... nah, melhor nao.",
+]
+
+BALA_MURMURS = [
+    "oi, gato. e pra mim que ce olha ou pro frango?",
+    "todo mundo jura que vem pela sinuca. ta certo, ta certo.",
+    "a vitrine e so vitrine. o resto e conversa.",
+    "Galo de Ouro: entra pelo frango, fica pela bagunca.",
+    "se ce corar, eu finjo que nao vi.",
+]
+BALA_GREETINGS = [
+    "ow, parou. quer jogar uma sinuca ou so veio admirar?",
+    "entra, meu bem. tem frango quentinho e papo torto la dentro.",
+    "eu sou a Bala Shita. perigosa igual o nome, doce igual sobremesa.",
+    "olha mas nao gasta tudo, vai que ce volta amanha.",
+]
+
+# Dona Chica: anda pela cidade e se apresenta como "Lucrecia", + 23 frases
+# completamente desconexas. As 24 servem de murmurio E de saudacao.
+DONA_CHICA_LINES = [
+    "oi, meu nome e Lucrecia.",
+    "voce viu meu guarda-chuva? ele tem opiniao propria.",
+    "as quinta-feira sao todas falsificadas, eu sei disso.",
+    "deixei o feijao no fogo em 1998.",
+    "o padre me deve tres ovos e uma sombrinha.",
+    "se o pombo voltar, diz pra ele que eu mudei de nome.",
+    "amanha e o aniversario do meu sapato.",
+    "eu nao confio em escada que sobe demais.",
+    "a televisao fala de mim quando eu saio de casa.",
+    "tenho uma colher que so funciona as tercas.",
+    "meu nome hoje e outro, mas nao lembro qual.",
+    "o vento roubou minha lista de compras e leu em voz alta.",
+    "voce e o moco da lua? te esperei a noite inteira.",
+    "guardei o domingo numa lata, mas vazou.",
+    "a vizinha virou nevoeiro, foi bonito de ver.",
+    "preciso devolver esse chao pra dona dele.",
+    "tres gatos me prometeram um terreno.",
+    "o relogio anda de costas so pra me irritar.",
+    "eu ja fui rainha de um lugar que nao existe mais.",
+    "voce tambem sente gosto de quarta-feira na boca?",
+    "minha sombra foi almocar e ainda nao voltou.",
+    "o cafe de ontem me mandou um recado pelo gato.",
+    "nao pisa ai, e onde eu guardo os trovoes do Valdris.",
+    "ja te falei meu nome? e Lucrecia. ou era. tanto faz.",
+]
+
+# --- os bichos de som trocado ---
+GATO_MURMURS = ["au au!", "AU! AU AU!", "rrrau... au.", "au au au au!", "au?"]
+GATO_GREETINGS = ["au au! (ele nao abana, e gato)", "AU AU AU!", "au... au au.", "rrau! au!"]
+CACHORRO_MURMURS = ["miau...", "miAU!", "miau miau miau", "miaaau...", "miau?"]
+CACHORRO_GREETINGS = ["miau! (ele quase ronrona)", "miAU miau!", "miau... miau.", "mrrau!"]
+NEYMAR_MURMURS = ["piu piu!", "piiiu!", "piu piu piu piu!", "piu! (irritado)", "piu?"]
+NEYMAR_GREETINGS = ["piu piu piu! (o Neymar te encara feio)", "PIIIU!", "piu... piu piu.", "piu piu!"]
+SAPO_MURMURS = ["croac.", "crooac...", "blerp.", "croac croac.", "croac."]
+SAPO_GREETINGS = ["croac. (ele nao se move)", "crooac...", "blerp. croac.", "croac croac croac."]
 
 
-def apply_class(ficha, class_id, plus2):
-    """Aplica a classe escolhida na ficha (regra da casa):
-        +4 no atributo PRINCIPAL da classe (fixo),
-        +2 em 2 atributos escolhidos pelo jogador (fora do principal),
-        +1 nos 3 restantes (teto 20).
-    Calcula a VIDA do nivel 1 (max do dado de vida + mod de Constituicao, min 1)
-    e devolve (ficha_atualizada, None) ou (None, "mensagem de erro")."""
-    from . import races  # local: evita import circular
+SAPOPEMBA = [
+    {   # guarda do portao
+        "id": "npc:lazaro", "name": "Lazaro",
+        "look": {"skin": "#a86b3c", "cloak": "#3a4a3a", "hood": "down",
+                 "hat": "cap", "hair": "#2a2233", "staff": False},
+        "home": (15, 16), "radius": 1, "wanders": True, "step_every": 1.4,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": LAZARO_MURMURS, "murmur_min": 16, "murmur_max": 24,
+        "greetings": LAZARO_GREETINGS, "smiter": False,
+    },
+    {   # caseiro da cidade
+        "id": "npc:fernando", "name": "Sr Fernando",
+        "look": {"skin": "#c68642", "cloak": "#6a5a3a", "hood": "down",
+                 "hat": "cap", "hair": "#cfc7bf", "staff": False},
+        "home": (15, 26), "radius": 4, "wanders": True, "step_every": 1.2,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": FERNANDO_MURMURS, "murmur_min": 16, "murmur_max": 24,
+        "greetings": FERNANDO_GREETINGS, "smiter": False,
+    },
+    {   # presenca pesada
+        "id": "npc:sucuri", "name": "Sucuri Meteoro",
+        "look": {"skin": "#4a3b30", "cloak": "#2a2622", "hood": "down",
+                 "hat": "none", "hair": "#1a1410", "staff": False},
+        "home": (9, 23), "radius": 4, "wanders": True, "step_every": 1.3,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": SUCURI_MURMURS, "murmur_min": 18, "murmur_max": 28,
+        "greetings": SUCURI_GREETINGS, "smiter": False,
+    },
+    {   # o que grita aii o tempo todo
+        "id": "npc:macio", "name": "Macio",
+        "look": {"skin": "#a86b3c", "cloak": "#8a7a5a", "hood": "down",
+                 "hat": "cap", "hair": "#3a2f22", "staff": False},
+        "home": (11, 23), "radius": 5, "wanders": True, "step_every": 0.9,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": MACIO_MURMURS, "murmur_min": 6, "murmur_max": 12,
+        "greetings": MACIO_GREETINGS, "smiter": False,
+    },
+    {   # o mercador do RE4, vende Peteco + Mauser C96 (agora DENTRO da loja)
+        "id": "npc:armeiro", "name": "Vendedor de Arma",
+        "look": {"skin": "#8d5524", "cloak": "#3a3530", "hood": "up",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "map": "loja_armas", "home": (7, 7), "radius": 0, "wanders": False, "step_every": 1.6,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": ARMEIRO_MURMURS, "murmur_min": 14, "murmur_max": 22,
+        "greetings": ARMEIRO_GREETINGS, "smiter": False,
+    },
+    {   # anao ruivo, humor negro absurdo (original)
+        "id": "npc:piadista", "name": "Piadista",
+        "look": {"skin": "#e8b58c", "cloak": "#7a5a3a", "hood": "down",
+                 "hat": "none", "hair": "#c1440e", "staff": False},
+        "home": (6, 23), "radius": 3, "wanders": True, "step_every": 1.1,
+        "solid": True, "kind": "person", "gender": "H",
+        "murmurs": PIADISTA_MURMURS, "murmur_min": 16, "murmur_max": 26,
+        "greetings": PIADISTA_GREETINGS, "smiter": False,
+    },
+    {   # a da vitrine do Galo de Ouro
+        "id": "npc:bala", "name": "Bala Shita",
+        "look": {"skin": "#e8b58c", "cloak": "#e85d75", "hood": "down",
+                 "hat": "none", "hair": "#2a2233", "staff": False},
+        "home": (4, 21), "radius": 1, "wanders": True, "step_every": 1.5,
+        "solid": True, "kind": "person", "gender": "M",
+        "murmurs": BALA_MURMURS, "murmur_min": 15, "murmur_max": 24,
+        "greetings": BALA_GREETINGS, "smiter": False,
+    },
+    {   # Dona Chica que se apresenta como Lucrecia
+        "id": "npc:chica", "name": "Dona Chica",
+        "look": {"skin": "#d8a98c", "cloak": "#9b8fb0", "hood": "down",
+                 "hat": "none", "hair": "#cfc7bf", "staff": False},
+        "home": (10, 27), "radius": 7, "wanders": True, "step_every": 1.0,
+        "solid": True, "kind": "person", "gender": "M",
+        "murmurs": DONA_CHICA_LINES, "murmur_min": 10, "murmur_max": 18,
+        "greetings": DONA_CHICA_LINES, "smiter": False,
+    },
+    {   # gato preto que LATE
+        "id": "npc:gato", "name": "gato preto",
+        "look": {"skin": "#15151b", "cloak": "#15151b", "hood": "down",
+                 "hat": "none", "hair": "#15151b", "staff": False,
+                 "smoke": False, "grin": False},
+        "home": (14, 24), "radius": 3, "wanders": True, "step_every": 1.4,
+        "solid": False, "kind": "cat", "gender": "H",
+        "murmurs": GATO_MURMURS, "murmur_min": 12, "murmur_max": 20,
+        "greetings": GATO_GREETINGS, "smiter": False,
+    },
+    {   # cachorro caramelo que MIA
+        "id": "npc:cachorro", "name": "cachorro caramelo",
+        "look": {"skin": "#c8843a", "cloak": "#c8843a", "hood": "down",
+                 "hat": "none", "hair": "#c8843a", "staff": False},
+        "home": (16, 26), "radius": 3, "wanders": True, "step_every": 1.2,
+        "solid": False, "kind": "dog", "gender": "H",
+        "murmurs": CACHORRO_MURMURS, "murmur_min": 12, "murmur_max": 20,
+        "greetings": CACHORRO_GREETINGS, "smiter": False,
+    },
+    {   # Neymar, canarinho pistola, que PIA
+        "id": "npc:neymar", "name": "Neymar",
+        "look": {"skin": "#f4d335", "cloak": "#caa42a", "hood": "down",
+                 "hat": "none", "hair": "#f4d335", "staff": False,
+                 "feather": "#f4d335"},
+        "home": (13, 27), "radius": 2, "wanders": True, "step_every": 1.8,
+        "solid": False, "kind": "bird", "gender": "H",
+        "murmurs": NEYMAR_MURMURS, "murmur_min": 10, "murmur_max": 18,
+        "greetings": NEYMAR_GREETINGS, "smiter": False,
+    },
+    {   # sapo gordo e preto, quase sempre parado
+        "id": "npc:sapo", "name": "sapo",
+        "look": {"skin": "#1e2620", "cloak": "#1e2620", "hood": "down",
+                 "hat": "none", "hair": "#1e2620", "staff": False},
+        "home": (17, 28), "radius": 1, "wanders": True, "step_every": 3.0,
+        "solid": False, "kind": "toad", "gender": "M",
+        "murmurs": SAPO_MURMURS, "murmur_min": 16, "murmur_max": 30,
+        "greetings": SAPO_GREETINGS, "smiter": False,
+    },
+]
 
-    cls = CLASS_BY_ID.get(class_id)
-    if not cls:
-        return None, "classe invalida"
+ROSTER.extend(SAPOPEMBA)
 
-    base = (ficha or {}).get("attrs") or {}
-    if not base:
-        return None, "ficha sem atributos base (raca)"
 
-    principal = cls["principal"]
-    others = [a for a in races.BASE_ATTR_ORDER if a != principal]
-    chosen = [a for a in (plus2 or []) if a in others]
-    chosen = list(dict.fromkeys(chosen))   # tira repetidos preservando ordem
-    if len(chosen) != 2:
-        return None, "escolha exatamente 2 atributos (fora do principal) para +2"
+# ============================================================================
+#  A TEIA DE RELACOES  (falas novas: cada NPC cita os outros + medo do Valdris)
+# ============================================================================
+# Tudo aqui ESTENDE as listas ja criadas acima (mexe no MESMO objeto, entao o
+# ROSTER, que guarda a referencia, enxerga as falas novas). Os 3 sem medo do
+# Valdris (Jose, corvo, Maria) falam dele de boa; todo o resto, com receio.
 
-    final = {}
-    for a in races.BASE_ATTR_ORDER:
-        v = int(base.get(a, 10))
-        if a == principal:
-            v += 4
-        elif a in chosen:
-            v += 2
-        else:
-            v += 1
-        final[a] = min(20, v)
+# --- Bento: lavrador que SABE dos deuses; reza muito pra Martur/Valiria/Pofnir,
+#     fala do corvo so em metafora, e desvia do Valdris ---
+BENTO_MURMURS.extend([
+    "Valiria que me manda o sol da manha. eu agradeco cada alvorada, mesmo torta.",
+    "quando a colheita custa, eu peco pro velho Martur. ele tem todo o tempo do mundo, me empresta um pouco.",
+    "Pofnir que me guarde. o grande gato ve tudo, dizem. eu acredito.",
+    "esse corvo... esse corvo nao e corvo nao. e coisa antiga, de outro lugar, olhando a gente.",
+    "tem pena preta nessas espigas que ja viu mais mundo do que eu vou ver na vida.",
+    "o de roxo eu evito. faco minha reza, abaixo a cabeca e deixo ele com os enigmas dele.",
+    "Pofnir, Valiria, o velho do casco... cada um cuida de um pedaco. o de roxo nao e de cuidar de nada.",
+    "as vez eu sinto o tempo parar na roca. e o Martur passando, devagar como ele so.",
+])
+BENTO_GREETINGS.extend([
+    "se quer um conselho de roca: agradece a Valiria pela manha e nao encara muito o de roxo la pro fundo.",
+    "eu rezo pro Pofnir e pro Martur, moco. um cuida da luz, o outro do tempo. o resto a terra resolve.",
+    "aquele corvo ali? nao pergunta. tem coisa que e melhor a gente fingir que e so um passarinho.",
+])
 
-    hp = max(1, CLASS_HD[class_id] + races.attr_mod(final["CON"]))
+# --- o corvo: deus, nao teme o Valdris, reconhece o Jose, sabe dos outros ---
+CORVO_MURMURS.extend([
+    "o de roxo nao me assusta. eu ja fui embora de mundos piores que esse. cras.",
+    "o gato preto la do cabare e eu... a gente se conhece de outros ceus. ele sabe. cras.",
+    "o campones reza pros nomes certos e nem sabe. eu nao corrijo. cras.",
+    "tem uma gata branca que anda de noite. eu finjo que nao vejo. ela finge que nao existe.",
+    "a Maria nao teme ninguem. faz bem. poucos tem esse direito. cras.",
+])
+CORVO_GREETINGS.extend([
+    "quer saber do de roxo? ele e forte. tem um mais forte. esse voce nunca vai ver. cras.",
+    "o gato do cabare te mandou? nao? pena. a gente tinha o que conversar.",
+])
 
-    out = dict(ficha or {})
-    out["class_id"] = class_id
-    out["class_name"] = cls["name"]
-    out["god"] = cls.get("god")          # None no caso do Mago
-    out["principal"] = principal
-    out["plus2"] = chosen
-    out["attrs_final"] = final
-    out["hd"] = CLASS_HD[class_id]
-    out["level"] = 1
-    out["hp_max"] = hp
-    out["hp"] = hp
-    out.setdefault("xp", 0)
-    from . import leveling   # local: evita import circular
-    leveling.recompute(out)  # aplica XP ja acumulado (exploracao sem classe)
-    return out, None
+# --- Beth: teme o Valdris com respeito, rival da Maria, desconfia do Jose ---
+BETH_MURMURS.extend([
+    "o de roxo la do sudeste... esse eu respeito de longe. tem coisa nele que nem eu, que ja vi muito, encaro.",
+    "a tal da Maria Cachorra, rainha do outro lado do mapa... cada rainha no seu salao, meu rei. a gente se evita.",
+    "esse meu gato preto... tem hora que ele me olha e eu juro que tem gente velha dentro daquele bicho.",
+    "Rodolfo e Didi brigam que nem cao e gato, mas botam ordem na minha porta.",
+])
+BETH_GREETINGS.extend([
+    "no sudeste mora um tal de Valdris. faz um favor: nao xinga perto dele. eu ja vi o roxo descer. credo.",
+    "a Maria que fique com a quebrada dela, eu fico com o meu cabare. duas rainhas, dois reinos, e paz.",
+])
+
+# --- Rodolfo: leao da Beth, irmao do Didi, teme o Valdris ---
+RODOLFO_MURMURS.extend([
+    "meu irmao Didi fala demais. mas na hora do pau, ele ta do meu lado.",
+    "la pro sudeste tem um maluco de roxo. esse eu nao barro nao. esse barra a gente.",
+])
+RODOLFO_GREETINGS.extend([
+    "respeita a Beth e as menina, que a gente se entende. desrespeita, e o Didi nem precisa entrar.",
+    "dica: no sudeste, boca fechada. tem um de roxo la que nao perdoa desaforo.",
+])
+
+# --- Didi: irmao do Rodolfo, teme o Valdris ---
+DIDI_MURMURS.extend([
+    "a Beth paga em dia e trata bem. por isso eu quebro por ela.",
+    "um cara de roxo no sudeste fritou um engracadinho semana passada. eu fico no meu canto.",
+])
+DIDI_GREETINGS.extend([
+    "o Rodolfo te assustou? ignora. ele assusta todo mundo, ate a mae.",
+    "vai pro sudeste? nao testa o de roxo. confia em mim, nao testa.",
+])
+
+# --- as meninas do cabare (Dalia, Marlene, Cleide): leais a Beth, temem o Valdris ---
+DALIA_MURMURS.extend([
+    "a Beth cuida da gente. com ela, a noite e segura.",
+    "diz que tem um de roxo la longe que vira gente do avesso. eu nao vou ver pra crer.",
+])
+DALIA_GREETINGS.extend([
+    "fica aqui no quentinho do cabare. la pro sudeste tem um tal de Valdris, e aquilo nao e lugar de ninguem.",
+])
+MARLENE_MURMURS.extend([
+    "a Cleide reclama de tudo, mas e boa de casa. a gente se aguenta.",
+    "no sudeste mora o medo em pessoa, de roxo. aqui na fumaca a gente esquece dele.",
+])
+MARLENE_GREETINGS.extend([
+    "senta, esquece o mundo. e por favor nao vai bater perna no sudeste, la tem o Valdris.",
+])
+CLEIDE_MURMURS.extend([
+    "a Marlene vive na fumaca, eu vivo reclamando. cada uma com seu vicio.",
+    "um de roxo que frita gente? credo. fico bem aqui, obrigada.",
+])
+CLEIDE_GREETINGS.extend([
+    "moeda na mesa e papo reto. e nem me fala desse Valdris do sudeste, me arrepia.",
+])
+
+# --- Jose: deus selado, um dos 3 SEM medo, reconhece o corvo, na casa da Beth ---
+JOSE_MURMURS.extend([
+    "a Beth acha que eu sou o gato de estimacao dela. deixa ela achar. ronrom.",
+    "o corvo la da fazenda e eu nos cumprimentamos de longe. dois bichos que nao sao bichos.",
+    "o de roxo? excentrico, nao perigoso, pra mim. nos dois somos de fora dessa casa toda.",
+])
+JOSE_GREETINGS.extend([
+    "a Maria nao me teme, o corvo nao me teme, eu nao temo o de roxo. e um clubinho pequeno, e exclusivo.",
+    "quer um segredo da casa? a Beth sente que eu nao sou so um gato. ela e a unica. esperta, a nordestina.",
+])
+
+# --- Guilherme: o mudo que VIU o Valdris no sudeste (por isso o silencio e o medo) ---
+GUI_MURMURS.extend([
+    "(o olhar dele escapa pro sudeste, e ele estremece de leve)",
+    "(ele abre a boca como quem vai falar do que viu, e desiste)",
+    "(por um instante o sorriso some, e fica so o medo)",
+])
+GUI_GREETINGS.extend([
+    "(ele aponta devagar pro sudeste, balanca a cabeca, e volta a te encarar calado)",
+    "(ele te olha, olha pro sudeste, e leva o dedo aos labios: nao va)",
+])
+
+# --- Maria: SEM medo do Valdris, debocha do Korgath (o deus que a ama), rival da Beth ---
+MARIA_MURMURS.extend([
+    "deus da guerra fica me rondando, achando que eu volto. some, Korgath. eu fechei essa porta.",
+    "me chamam de sacerdotisa de nao-sei-que. fui. larguei. divindade nenhuma manda em mim.",
+    "tem um monte de deus por ai, gato branco, cao, coruja... e dai? nenhum paga meu pedagio.",
+    "o de roxo no sudeste e forte, mas a gente tem um trato: cada um no seu quadrado. medo? nunca.",
+    "a tal Beth do cabare que fique no salao dela. rainha de la, eu sou a daqui.",
+])
+MARIA_GREETINGS.extend([
+    "deus me ama, dizem. o da guerra. pois fica amando de longe, que eu tenho uma quebrada pra tocar.",
+    "medo do de roxo? eu nao. ele e forte, eu sou eu. cada um no seu canto, e ta tranquilo.",
+    "a Beth manda no cabare, eu mando no Itatinga. duas rainhas. so nao pisa no meu pedagio.",
+])
+
+# --- Lazaro (Sapopemba): admira e teme a Maria, teme o Valdris ---
+LAZARO_MURMURS.extend([
+    "a Maria Cachorra la do Itatinga... aquilo e que e mando. eu respeito, e olho de longe.",
+    "no sudeste tem o de roxo. portao fechado pra esse lado da conversa.",
+])
+LAZARO_GREETINGS.extend([
+    "qualquer treta com a quebrada do Itatinga, some. a Maria nao e de brincadeira, e eu nao me meto.",
+    "vai pro sudeste? cuidado com o Valdris. eu guardo o portao, mas daquilo ali ninguem guarda ninguem.",
+])
+
+# --- Sr Fernando: sabe da vida de todo mundo na cidade, teme o Valdris ---
+FERNANDO_MURMURS.extend([
+    "conheco a vida de todo mundo nessa cidade. e o onus de ser o caseiro.",
+    "o Lazaro guarda o portao, a Bala trabalha o Galo de Ouro, o Macio grita... cada um na sua.",
+    "tem um de roxo no sudeste que ate eu, que conserto tudo, nao sei consertar. desse a gente foge.",
+])
+FERNANDO_GREETINGS.extend([
+    "precisa de alguem? eu sei onde cada um se mete. menos o de roxo do sudeste, daquele a gente nao fala.",
+    "a Dona Chica vai te falar mil coisas sem pe nem cabeca. paciencia, ela e de casa.",
+])
+
+# --- Sucuri: orgulhoso, mas tambem desvia do Valdris ---
+SUCURI_MURMURS.extend([
+    "o Sr Fernando cuida da cidade. eu cuido de nao arrumar treta. da certo.",
+    "calmo por fora, meteoro por dentro. mas do de roxo no sudeste ate eu desvio.",
+])
+SUCURI_GREETINGS.extend([
+    "anda tranquilo. so nao vai pro sudeste arrumar confusao com o de roxo, que ai nem eu te seguro.",
+])
+
+# --- Macio: o medo dele tambem sai em "aii" ---
+MACIO_MURMURS.extend([
+    "aiii aiii o de roxo aii... aiii melhor nao aii",
+])
+MACIO_GREETINGS.extend([
+    "aiii aiii nao vai pro sudeste aii... o Valdris aiii aii",
+])
+
+# --- Armeiro: faz negocio com a gente da Maria, teme o Valdris ---
+ARMEIRO_MURMURS.extend([
+    "a turma da Maria Cachorra compra comigo, estrangeiro. bom negocio, gente seria.",
+    "vendo Peteco, vendo Mauser. mas pro de roxo do sudeste eu nao vendo nada. nem chego perto. heh.",
+])
+ARMEIRO_GREETINGS.extend([
+    "a Maria manda os dela aqui, estrangeiro. se e cria dela, tem desconto.",
+    "uma arma pro sudeste? heh, contra o de roxo nem a Mauser serve, estrangeiro. economiza.",
+])
+
+# --- Piadista: teme o Valdris, mas faz piada (de longe) ---
+PIADISTA_MURMURS.extend([
+    "o de roxo no sudeste fritou um cara. eu ia fazer piada, mas faco de longe. bem de longe.",
+])
+PIADISTA_GREETINGS.extend([
+    "piada sobre o Valdris do sudeste? tenho, mas conto do outro lado da cidade. instinto de sobrevivencia.",
+])
+
+# --- Bala Shita: rivalidade de casas com as meninas do cabare, teme o Valdris ---
+BALA_MURMURS.extend([
+    "as menina do cabare da Beth que fiquem la no nordeste. aqui o Galo de Ouro e meu reino.",
+    "diz que tem um de roxo no sudeste. eu so faco charme na janela, com aquilo eu nao brinco.",
+])
+BALA_GREETINGS.extend([
+    "o cabare da Beth e la longe, meu bem. aqui no Galo de Ouro o frango e mais quente.",
+    "vai pro sudeste? deixa o flerte comigo e o medo com o Valdris. cada coisa no lugar.",
+])
+
+# --- Dona Chica: SABE de todos os deuses e fala ABERTO (mas como "Lucrecia"
+#     tagarela, ninguem leva a serio). Estas entram no murmurio E na saudacao. ---
+DONA_CHICA_LINES.extend([
+    "o gato branco e grande manda em tudo, mas vive com medo de tudo. Pofnir, o ansioso, coitado do rei.",
+    "tem um gato preto preso num corpo de gato. o Jose. pecado e prazer, trancado pelo branco.",
+    "o corvo nao e corvo, e porta. anda por todo mundo e toda hora. ja tomou cafe comigo em 1998.",
+    "a lebre ninguem pega. Nhare. nem o gato rei. ela escapa ate da minha lista de compras.",
+    "o cao preto grande espera na soleira. Vargo. ele anda com a Maria Cachorra, sabia? por isso ela nao teme.",
+    "o jabuti guarda todo o tempo no casco. Martur. ele lembra do meu domingo que vazou da lata.",
+    "a onca nao se curva nem pro rei. Facalan. brava que nem eu antes do cafe.",
+    "a moca do fogo e mansa, cura e ve o amanha. Valiria. fez os elfos com a propria cara, a vaidosa boa.",
+    "o anao martela a pedra e os juramentos. Bragor. fez os outros anao tudo igual a ele, sem criatividade.",
+    "o dragao velho dorme em cima do poder. Drazun. os draconato e filho dele, escamoso que nem o pai.",
+    "o orc da guerra ama a Maria e ela nem liga. Korgath. chora, bate no peito, e nada. eu ria, mas e triste.",
+    "a coruja de prata cuida dos sonho e da loucura. Nherith. essa me visita toda lua cheia, fofa.",
+    "doze deuses, e os mais forte sao gato. quem diria. eu sempre confiei em gato.",
+    "o de roxo nao e dos doze. Valdris. veio de fora, mais forte que onze deles. so o gato rei e mais.",
+    "Pofnir prendeu o Jose porque nao queria outro gato deus. ciume de bicho, igual gente.",
+    "o corvo e o unico que sabe de onde o de roxo veio. mas corvo nao conta, corvo cobra migalha.",
+    "a Maria foi sacerdotisa do orc da guerra. largou ele. agora anda com a morte, o cao. mulher de fe trocada.",
+    "o velho jabuti e o unico que o gato rei nao consegue apressar. paciencia vence ansiedade, anota.",
+    "a onca respeita so forca. nem o gato rei ela curva o pescoco. ai que mulher, queria ser ela.",
+    "o Bento sabe de tudo isso tambem, mas so fala dos que ele reza. timido com deus, o lavrador.",
+    "a coruja tem medo do de roxo, mas nao tira o olho dele. apaixonada por loucura, a danada.",
+    "o gato rei controla esse mundo todo, esse Ermo e a caixa de areia dele. a gente e o brinquedo.",
+    "Valiria me da a manha, Vargo me leva no fim, e no meio e so eu falando sozinha. boa divisao.",
+    "tres gatos me prometeram um terreno. um era deus, eu acho. o branco. nunca entregou, sovina.",
+    "guardo os trovoes do Valdris debaixo daquele chao ali, e os segredos dos doze aqui na cabeca. tudo baguncado.",
+    "se voce entendeu alguma coisa que eu falei, parabens. ninguem nunca entende. e melhor assim.",
+])
+
+# --- as 9 meninas de Itatinga: leais a Maria, rivais do cabare, temem o Valdris ---
+_MENINA_MURMURS = [
+    "aqui e territorio da Maria. com ela por cima, ninguem encosta na gente.",
+    "as menina do cabare da Beth que fiquem la. o point bom e o nosso.",
+    "dizem de um de roxo no sudeste que frita gente. a gente nem chega perto.",
+]
+_MENINA_GREETS = [
+    "ta no pedaco da Maria Cachorra, viu? aqui a casa e dela, e a gente e protegida.",
+    "la no sudeste tem o tal Valdris. nem com bronze eu vou ali, esquece.",
+]
+for _spec in ROSTER:
+    if _spec.get("id", "").startswith("npc:menina_"):
+        _spec["murmurs"] = list(_spec.get("murmurs") or []) + _MENINA_MURMURS
+        _spec["greetings"] = list(_spec.get("greetings") or []) + _MENINA_GREETS
+
+# --- os 3 SEM medo do Valdris (e o proprio Valdris) nao fogem dele ---
+_FEARLESS = {"npc:jose", "npc:corvo", "npc:maria", valdris.NPC_ID}
+for _spec in ROSTER:
+    if _spec.get("id") in _FEARLESS:
+        _spec["fearless"] = True
 
 
 # ===========================================================================
-#  TRANSFORMACOES (menu abaixo da ficha). Classes que podem assumir outra forma.
-#  Cada forma da um bonus de combate. Comeca pela Forma Selvagem do Druida; o
-#  sistema aceita novas classes/formas so adicionando aqui.
+#  OS 12 MESTRES DO SALAO DAS CLASSES (mapa "salao")
 # ===========================================================================
-TRANSFORMS = {
-    "druida": [
-        {"id": "lobo",  "name": "Lobo",  "icon": "🐺",
-         "desc": "Forma Selvagem do Lobo: o caçador furtivo do druida. Dano de assassino (golpe furtivo que escala com o nível), +3 para acertar e +3 deslocamento, mas a pele fina derruba a defesa (cada golpe físico te machuca bem mais). Não lança magia nesta forma.",
-         "no_spells": True,
-         "bonus": {"dmg_dice": 3, "dmg_flat": 8, "atk": 3, "speed": 3, "armor": -14, "sneak_form": True}},
-        {"id": "urso",  "name": "Urso",  "icon": "🐻",
-         "desc": "Forma Selvagem do Urso: muralha de músculo e couro. Mitigação altíssima (cada golpe físico tira bem menos vida) e +25 de vida máxima, mas os golpes pesados são lentos (-2 de dano). Não lança magia nesta forma.",
-         "no_spells": True,
-         "bonus": {"armor": 28, "dmg_flat": -2, "hp": 25}},
-        {"id": "aguia", "name": "Águia", "icon": "🦅",
-         "desc": "Forma Selvagem da Águia: ágil e certeira. +3 deslocamento, +3 para acertar e +1 de dano. Não lança magia nesta forma.",
-         "no_spells": True,
-         "bonus": {"speed": 3, "atk": 3, "dmg_flat": 1}},
-        {"id": "mainecoon", "name": "Maine Coon", "icon": "🐈",
-         "desc": "A forma abençoada por Pofnir: o grande gato Maine Coon, majestoso e equilibrado. +2 dados e +8 de dano, +5 para acertar, boa mitigação, 20% de resistência mágica, +25 de vida, +4 deslocamento e regenera 4 de vida por turno. Não lança magia nesta forma.",
-         "requires": "blessing_pofnir", "no_spells": True,
-         "bonus": {"armor": 18, "mres": 0.20, "atk": 5, "dmg_dice": 2, "dmg_flat": 8, "speed": 4, "hp": 25}, "regen": 4},
+# Cada mestre fica parado na sua estacao, serve um deus (o Mago: nenhum) e, ao
+# interagir, fala da sua classe. A ESCOLHA de classe + o bonus de atributos vem
+# na proxima etapa; por ora o mestre so se apresenta. Como sao do mapa "salao",
+# nao aparecem no Ermo (so quem entra no Salao os ve).
+
+from .world_map import SALAO_MASTER_POS as _SMPOS
+from . import classes as _classes
+
+_MASTER_CLOAK = {
+    "barbaro": "#e2643f", "guerreiro": "#e2845f", "paladino": "#f4d35e",
+    "ladino": "#6fb7e8", "monge": "#7ad0c5", "patrulheiro": "#9bd06a",
+    "mago": "#9b6dff", "feiticeiro": "#c98bff", "bruxo": "#7d5bd0",
+    "bardo": "#e85d9b", "clerigo": "#f0e0a0", "druida": "#8fbf6a",
+}
+_CASTERS = {"mago", "feiticeiro", "bruxo", "bardo", "clerigo", "druida"}
+
+_MASTER_GREETS = {
+    "barbaro": [
+        "Sinto a furia de Korgath fervendo no teu peito, forasteiro. O Barbaro nao pensa: ele quebra. Quer aprender?",
+        "O Punho nao tem templo, tem campo de batalha. Eu, Gorm, ensino quem aguenta a dor a virar arma.",
+    ],
+    "guerreiro": [
+        "Bragor forjou o aco e a disciplina, e o Guerreiro e os dois. Adila te ensina a empunhar qualquer coisa e nao morrer.",
+        "Sem dom divino, sem truque. So treino, suor e a bencao do Forjador. E isso o Guerreiro.",
+    ],
+    "paladino": [
+        "Valiria, a Serena, acende a aurora em quem jura. O Paladino carrega a luz dela na lamina. Tens um juramento?",
+        "Sieg me chamo, sirvo Valiria. Quem se torna Paladino castiga o mal e cura o aliado. Pesado, mas justo.",
     ],
     "ladino": [
-        {"id": "lebre", "name": "Lebre de Nharé", "icon": "🐇",
-         "desc": "O dom de Nharé: vira uma lebre e some do mundo. Nenhum jogador ou monstro te enxerga, e os monstros não te atacam, até você atacar ou desfazer a forma. +3 de deslocamento.",
-         "requires": "dom_nhare", "invisible": True,
-         "bonus": {"speed": 3}},
+        "Nhare e a lebre que ninguem pega: sorte, fuga, a segunda chance. O Ladino vive disso. Ravi te mostra as sombras.",
+        "Nao confunda com roubo. Bem... confunda um pouco. O Ladino acerta onde doi e some. Bencao da lebre.",
+    ],
+    "monge": [
+        "Martur, o jabuti das eras, ensina a paciencia. O Monge e o corpo virado oracao. Yun te ensina a quietude que esmaga.",
+        "Pressa e fraqueza. O jabuti vence o tempo. Quem vira Monge aprende a esperar, e entao golpear.",
+    ],
+    "patrulheiro": [
+        "Facalan, a onca sem dono, corre no mato. O Patrulheiro caca com ela. Tark te ensina a ler o rastro e o vento.",
+        "Nem cidade, nem templo: o verde e meu salao de verdade. A onca aceita quem respeita a cacada.",
+    ],
+    "mago": [
+        "Magia nao pede deus, forasteiro. Pede estudo. O Mago dobra o cosmo com tinta e teimosia. Alaric te abre os livros.",
+        "Os outros mestres rezam. Eu leio. O Mago serve o saber, e o saber nao serve a ninguem. Vais aguentar?",
+    ],
+    "feiticeiro": [
+        "Drazun deixou fogo no teu sangue. O Feiticeiro nao estuda: ele EXPLODE. Idra te ensina a nao queimar a si mesma.",
+        "A magia ja esta em ti, e de nascenca, coisa de escama velha. O Feiticeiro so aprende a soltar.",
     ],
     "bruxo": [
-        {"id": "coruja", "name": "Coruja Demoníaca", "icon": "🦉",
-         "desc": "O dom de Nherith: vira uma coruja demoníaca envolta na luz roxa do Faraó. +10 de resistência (cada golpe te tira 10 a menos), +10 de vida máxima e libera o Golpe da Morte Alada. Mas você NÃO pode lançar magias nesta forma.",
-         "requires": "dom_nherith", "no_spells": True,
-         "bonus": {"block": 10, "hp": 10}},
+        "Nherith, a coruja da lua, sussurra no escuro. O Bruxo faz pacto: poder agora, conta depois. Mor te apresenta a ela... se ousar.",
+        "Todo poder tem dono, forasteiro. O Bruxo aluga o seu. Eu fiz o pacto, e olha eu aqui. Inteiro. Quase.",
+    ],
+    "bardo": [
+        "Jose, o do prazer e da arte, rege o palco. O Bardo encanta com voz e corda. Lael te ensina que a magia tambem canta.",
+        "Nem todo heroi grita. Alguns cantam, e a guerra para pra ouvir. Isso e o Bardo. Bencao do gato do cabare.",
+    ],
+    "clerigo": [
+        "Valiria cura e ilumina, e o Clerigo e a mao dela no mundo. Bena te ensina a rezar e a fazer a reza valer.",
+        "Fe nao e fraqueza, forasteiro, e a arma mais antiga. Quem vira Clerigo cura, abencoa e, quando precisa, parte o mal ao meio.",
+    ],
+    "druida": [
+        "Facalan corre selvagem, e o Druida corre com ela, de pele e de garra. Salvio te ensina a virar bicho e ouvir o verde.",
+        "A onca tem dois servos: o que caca e o que VIRA mato. O Druida e o segundo. A natureza nao e cenario, e familia.",
     ],
 }
 
+SALAO_MASTERS = []
+for _c in _classes.CLASSES:
+    _cid = _c["id"]
+    _x, _y = _SMPOS[_cid]
+    SALAO_MASTERS.append({
+        "id": "npc:mestre_" + _cid,
+        "name": _c["master"],
+        "look": {
+            "skin": "#e8b58c",
+            "cloak": _MASTER_CLOAK[_cid],
+            "hood": "up",
+            "hat": "wizard" if _cid == "mago" else "none",
+            "hair": "#2a2233",
+            "staff": _cid in _CASTERS,
+        },
+        "home": (_x, _y),
+        "map": "salao",
+        "radius": 0,
+        "wanders": False,
+        "solid": True,
+        "kind": "person",
+        "gender": "M" if _c["master"].startswith("Mestra") else "H",
+        "class_id": _cid,                 # qual classe esse mestre concede
+        "greetings": list(_MASTER_GREETS[_cid]),
+    })
 
-def forms_for(class_id):
-    """Todas as formas que a classe pode assumir (sem filtrar requisitos)."""
-    return TRANSFORMS.get(class_id, [])
-
-
-def available_forms(ficha):
-    """So as formas que ESTE jogador pode usar (filtra requisitos, ex: a benção do Pof)."""
-    ficha = ficha or {}
-    out = []
-    for fm in forms_for(ficha.get("class_id")):
-        req = fm.get("requires")
-        if req and not ficha.get(req):
-            continue
-        out.append(fm)
-    return out
-
-
-def get_form(class_id, form_id):
-    for fm in forms_for(class_id):
-        if fm["id"] == form_id:
-            return fm
-    return None
-
-
-def can_use_form(ficha, form_id):
-    """True se o jogador tem direito a essa forma (classe certa + requisito atendido)."""
-    ficha = ficha or {}
-    fm = get_form(ficha.get("class_id"), form_id)
-    if not fm:
-        return False
-    req = fm.get("requires")
-    if req and not ficha.get(req):
-        return False
-    return True
+ROSTER.extend(SALAO_MASTERS)
 
 
 # ===========================================================================
-#  POSTURAS — só do Paladino (devoção a Valíria). É um menu parecido com o de
-#  transformação, mas serve pra OUTRA coisa: posturas de combate que mudam o
-#  papel do paladino (tanque / suporte / mártir). Trocadas durante a luta.
+#  ATUALIZACAO COMERCIAL: 3 mercadores premium (1 por mapa de caca) + a cigana
+#  vidente de Itatinga (vende Pocao de Vida). Equipamento escalado por mapa.
 # ===========================================================================
-POSTURES = {
-    "paladino": [
-        {"id": "soldado", "name": "Soldado de Valíria", "icon": "🛡️",
-         "desc": "A fortaleza de Valíria: recebe E causa 75% menos dano, e os debuffs também minguam 75%. Você vira um muro."},
-        {"id": "mao", "name": "A Mão de Valíria", "icon": "✋",
-         "desc": "Você para de causar dano, mas a Imposição das Mãos passa a curar o GRUPO inteiro, e todos no grupo recebem 20% menos dano."},
-        {"id": "martir", "name": "Mártir de Valíria", "icon": "✨",
-         "desc": "Sua CA zera e você não defende mais golpes: absorve TODO o dano que iria pro grupo. Ganha a Luz da Criação, um raio radiante que soma todo o seu dano e cura o grupo a cada acerto."},
-        {"id": "combatente", "name": "Combatente Valiriano", "icon": "⚔️",
-         "desc": "Fúria sagrada ofensiva: todo ataque básico ACERTA e crava 2 Castigos Divinos, e cada golpe ainda cura uma Imposição das Mãos. Em troca, abre mão do escudo: perde o bloqueio E a armadura do escudo."},
+MASCATE_GREETINGS = [
+    "ó a pechincha, forasteiro! equipamento de verdade pro Ermo, bem melhor que a tralha da Sapopemba.",
+    "compra logo que eu sou errante: amanhã já sumi por essas estradas.",
+    "ferro honesto por preço de ladrão. é o trato do Mascate.",
+]
+NOMADE_GREETINGS = [
+    "as dunas me deram o que vendo. armas das areias, três vezes mais fortes que as da cidade.",
+    "no deserto só sobrevive quem carrega ferro bom. eu carrego o ferro bom.",
+    "a raiz aguenta o sol e a tempestade. minha mercadoria também.",
+]
+COVEIRO_GREETINGS = [
+    "cavei muita cova pra juntar essas relíquias. equipamento sepulcral, o mais forte que existe.",
+    "os mortos não precisam mais disso, forasteiro. você precisa. paga e leva.",
+    "três vezes o aço do nômade, dez vezes o medo. é o que a morte deixou.",
+]
+MARION_GREETINGS = [
+    "Moeda de Avhur... eu sinto o cheiro delas na tua mochila. Traz pra Marion, eu pago bem.",
+    "os mercadores te dão 500 por uma moeda dessas. a velha Marion te dá 2500. eu sei o que elas valem de verdade.",
+    "não pergunta pra que eu quero as moedas. pergunta só quanto eu pago: 2500 de bronze, cada uma.",
+    "*mexe num caldeirão fumegante* Avhur não cunhou aquilo só com metal, forasteiro. me vende as tuas moedas.",
+    "cinco vezes o preço de um mercador, por cada Moeda de Avhur. pega ou deixa.",
+]
+CIGANA_GREETINGS = [
+    "psiu... a cigana lê teu futuro e vende teu remédio. Poção de Vida, 10 pratas, te enche a vida toda.",
+    "bebe a poção no meio da briga e ela cura tudo. mas cuidado, meu bem: virar o copo leva DOIS turnos, e nesses dois o bicho te bate à vontade. as cartas avisaram.",
+    "fora da luta ela cura na hora, sem custo. no combate, dois turnos parado bebendo. pense bem antes de beber.",
+]
+
+ROSTER.extend([
+    {
+        "id": "npc:mascate", "name": "Mascate Errante",
+        "look": {"skin": "#a9744f", "cloak": "#7a5a3a", "hood": "down",
+                 "hat": "cap", "hair": "#3a2a1a", "staff": False},
+        "map": "descampado", "home": (45, 50), "radius": 3, "wanders": True,
+        "step_every": 1.3, "solid": True, "kind": "person",
+        "greetings": MASCATE_GREETINGS, "smiter": False, "shop_tier": "t1",
+    },
+    {
+        "id": "npc:xama", "name": "Xamã Miranda",
+        "look": {"skin": "#7a5436", "cloak": "#4a6a4a", "hood": "up",
+                 "hat": "none", "hair": "#1a1410", "staff": True},
+        "map": "descampado", "home": (41, 47), "radius": 2, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "greetings": [
+            "Eu sou Miranda. Faço amarração contra a tua própria morte, viajante.",
+            "A morte cobra caro no Ermo. Por um preço, eu adio a conta dela.",
+            "Me traz os restos dos grandes e eu te dou proteção pro além.",
+        ],
+        "smiter": False, "xama": True,
+    },
+    # ================= VILA CAIÇARA (Costa de Maravai) =================
+    {
+        "id": "npc:maricota", "name": "Dona Maricota",
+        "look": {"skin": "#8a5a38", "cloak": "#e07030", "hood": "down",
+                 "hat": "none", "hair": "#e8e0d8", "staff": False},
+        "sex": "F",
+        "map": "costa_maravai", "home": (232, 208), "radius": 3, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "murmurs": [
+            "Peixe fresco! Saiu do mar faz uma hora!",
+            "Essa moqueca leva segredo de três gerações...",
+        ],
+        "greetings": [
+            "Chega mais, benzinho! Peixe assado, moqueca, caldo que levanta defunto.",
+            "Tá magro demais pra enfrentar leão, meu filho. Come primeiro.",
+        ],
+        "smiter": False, "peixaria": True,
+    },
+    {
+        "id": "npc:mestre_bragan", "name": "Mestre Bragan",
+        "look": {"skin": "#6a4a30", "cloak": "#5a3a2a", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "oficina_ferreiro", "home": (7, 4), "radius": 2, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['O ferro não mente. Gente mente, ferro não.', 'Prata boa morde vampiro. Anota isso.'],
+        "greetings": ['Traz minério que eu te faço lâmina, viajante. A forja tá sempre quente.'],
+        "smiter": False, "prof": "ferreiro",
+    },
+    {
+        "id": "npc:mestra_iolanda", "name": "Mestra Iolanda",
+        "look": {"skin": "#8a5a38", "cloak": "#7a5030", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "sex": "F",
+        "map": "oficina_coureiro", "home": (7, 4), "radius": 2, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Couro bom se conhece pelo cheiro.', 'Pelagem de lobisomem... isso sim é material.'],
+        "greetings": ['Pele crua vira armadura fina nas minhas mãos. Traz o couro, benzinho.'],
+        "smiter": False, "prof": "coureiro",
+    },
+    {
+        "id": "npc:mestre_justo", "name": "Mestre Justo",
+        "look": {"skin": "#7a5436", "cloak": "#8a6a44", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "oficina_carpinteiro", "home": (7, 3), "radius": 2, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Madeira torta também vira arco. Só precisa de paciência.', 'Carvalho pro corpo, rubra pra alma.'],
+        "greetings": ['Madeira boa e fibra firme: é só o que peço. O resto essas mãos resolvem.'],
+        "smiter": False, "prof": "carpinteiro",
+    },
+    {
+        "id": "npc:mestre_vidal", "name": "Mestre Vidal",
+        "look": {"skin": "#9a6a48", "cloak": "#4a6a4a", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "oficina_alquimista", "home": (7, 4), "radius": 2, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Erva solar de dia, lunar de noite. O corpo agradece os dois.', 'A panaceia existe. Só não pergunta o preço.'],
+        "greetings": ['Ervas, viajante! Solar, lunar, o que tiver. Eu destilo a cura.'],
+        "smiter": False, "prof": "alquimista",
+    },
+    {
+        "id": "npc:mestra_linah", "name": "Mestra Linah",
+        "look": {"skin": "#b08a68", "cloak": "#8a3050", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "sex": "F",
+        "map": "oficina_costureiro", "home": (7, 4), "radius": 2, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Uma agulha certa vale por dez espadas.', 'Tecido nobre de Véspera... que desperdício deixar lá.'],
+        "greetings": ['Fibra, pele ou veludo: eu costuro proteção em qualquer pano, querido.'],
+        "smiter": False, "prof": "costureiro",
+    },
+    {
+        "id": "npc:mestra_petra", "name": "Mestra Petra",
+        "look": {"skin": "#7a5436", "cloak": "#d060c0", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "sex": "F",
+        "map": "oficina_joalheiro", "home": (7, 3), "radius": 2, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Toda gema bruta sonha. Eu só acordo elas.', 'Prata e pérola: casamento perfeito.'],
+        "greetings": ['Prata, gema, pérola... traz o que o mundo esconde que eu faço brilhar.'],
+        "smiter": False, "prof": "joalheiro",
+    },
+    {
+        "id": "npc:mestre_bartolo", "name": "Mestre Bartolo",
+        "look": {"skin": "#8a5a38", "cloak": "#a86a40", "hood": "down",
+                 "hat": "none", "hair": "#3a3028", "staff": False},
+        "map": "oficina_cozinheiro", "home": (7, 4), "radius": 2, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": ['Fome é o único inimigo que volta três vezes por dia.', 'Carne de caça com chifre ralado... segredo do banquete.'],
+        "greetings": ['Carne fresca aqui vira festim, amigo! Cozinho até presa de vampiro, se tiver coragem.'],
+        "smiter": False, "prof": "cozinheiro",
+    },
+    {
+        "id": "npc:irma_solene", "name": "Irmã Solene",
+        "look": {"skin": "#b08a68", "cloak": "#e8e0d0", "hood": "up",
+                 "hat": "none", "hair": "#d8d0c0", "staff": True},
+        "sex": "F",
+        "map": "templo_doze", "home": (10, 6), "radius": 2, "wanders": True,
+        "step_every": 2.0, "solid": True, "kind": "person",
+        "murmurs": [
+            "Doze nomes, um só silêncio...",
+            "Drazun ri, Atalech observa, Korgath ruge. E o templo escuta todos.",
+            "Uma oferenda sincera vale mais que cem juras.",
+        ],
+        "greetings": [
+            "Bem-vindo ao Templo dos Doze, viajante. Uma oferenda de 100 de bronze e os deuses fecham tuas feridas.",
+        ],
+        "smiter": False, "templo": True,
+    },
+    {
+        "id": "npc:cronista", "name": "Cronista Fabiano",
+        "look": {"skin": "#9a6a48", "cloak": "#4a5a7a", "hood": "down",
+                 "hat": "none", "hair": "#c8c0b8", "staff": False},
+        "map": "ermo", "home": (62, 12), "radius": 1, "wanders": True,
+        "step_every": 2.2, "solid": True, "kind": "person",
+        "murmurs": [
+            "Toda lenda começa com um nome numa página...",
+            "O Memorial não esquece. Eu não deixo.",
+        ],
+        "greetings": [
+            "Quer ouvir quem são os heróis do Ermo, viajante? O Memorial guarda cada feito.",
+        ],
+        "smiter": False, "memorial": True,
+    },
+    {
+        "id": "npc:ze_do_remo", "name": "Zé do Remo",
+        "look": {"skin": "#6a4a30", "cloak": "#3a5a7a", "hood": "down",
+                 "hat": "straw", "hair": "#4a4038", "staff": True},
+        "map": "costa_maravai", "home": (250, 250), "radius": 2, "wanders": True,
+        "step_every": 1.8, "solid": True, "kind": "person",
+        "murmurs": [
+            "Maré tá boa pra viagem, tá sim...",
+            "Esse barco já cruzou tempestade que afundava navio grande.",
+        ],
+        "greetings": [
+            "Quer carona pro Ermo, forasteiro? Meu barco corta essa costa num sopro.",
+        ],
+        "smiter": False, "barqueiro": True,
+    },
+    {
+        "id": "npc:seu_milton", "name": "Seu Milton",
+        "look": {"skin": "#7a5436", "cloak": "#8a6a2a", "hood": "down",
+                 "hat": "none", "hair": "#c8c0b8", "staff": False},
+        "map": "costa_maravai", "home": (262, 226), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "murmurs": [
+            "O búzio nunca mente... só desagrada.",
+            "Já vi homem rico virar pobre e pobre virar lenda nessa mesa.",
+        ],
+        "greetings": [
+            "Senta, forasteiro. Duzentos de bronze na mesa e o búzio decide teu dia.",
+        ],
+        "smiter": False, "buzio": True,
+    },
+    {
+        "id": "npc:conchinha", "name": "Mestra Conchinha",
+        "look": {"skin": "#9a6a48", "cloak": "#e8b8d0", "hood": "down",
+                 "hat": "none", "hair": "#2a2020", "staff": False},
+        "sex": "F",
+        "map": "costa_maravai", "home": (222, 232), "radius": 3, "wanders": True,
+        "step_every": 1.7, "solid": True, "kind": "person",
+        "murmurs": [
+            "Concha por concha, o mar me paga o aluguel.",
+            "Pérola boa é a que ninguém procurou.",
+        ],
+        "greetings": [
+            "Traz conchas raras da praia que eu te faço tesouro, querido. Bronze só não basta aqui.",
+        ],
+        "smiter": False, "concha_shop": True,
+    },
+    {
+        "id": "npc:tiao_caicara", "name": "Caiçara Tião",
+        "look": {"skin": "#6a4a30", "cloak": "#5a7a5a", "hood": "down",
+                 "hat": "straw", "hair": "#2a2420", "staff": False},
+        "map": "costa_maravai", "home": (270, 240), "radius": 6, "wanders": True,
+        "step_every": 1.4, "solid": False, "kind": "person",
+        "murmurs": [
+            "Remendando rede, remendando a vida...",
+            "O Marajá rugiu de novo ontem. Ninguém pesca no rio da savana faz mês.",
+            "Dizem que caranguejo velho guarda pérola. Eu digo que guarda dedo de curioso.",
+        ],
+        "greetings": [
+            "Bem-vindo à vila, forasteiro. Aqui o mar dá o peixe e a savana dá o susto.",
+        ],
+        "smiter": False,
+    },
+    {
+        "id": "npc:valdir", "name": "Valdir, o Coureiro",
+        "look": {"skin": "#9a6e44", "cloak": "#5a3a22", "hood": "down",
+                 "hat": "cap", "hair": "#3a2a1a", "staff": False},
+        "map": "ermo", "home": (5, 6), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "greetings": [
+            "Couro bom eu pago bem. De bicho, só. Lobo, javali, essas coisas.",
+            "Bem-vindo à couraria. Traz a pele que eu faço valer a pena.",
+            "Aqui o couro de fera vale 5 vezes mais que naquele mercado de ladrão.",
+        ],
+        "smiter": False, "couraria": True,
+    },
+    {
+        "id": "npc:marta", "name": "Marta",
+        "look": {"skin": "#c89a6a", "cloak": "#7a5a7a", "hood": "down",
+                 "hat": "none", "hair": "#2a1a12", "staff": False},
+        "map": "ermo", "home": (7, 6), "radius": 2, "wanders": True,
+        "step_every": 1.4, "solid": True, "kind": "person",
+        "greetings": [
+            "Meu pai é teimoso, mas paga o melhor preço por couro de bicho.",
+            "Se trouxer pele de lobo ou javali, fala com o Valdir ali.",
+            "A gente curte o couro aqui mesmo. O cheiro você acostuma.",
+        ],
+        "smiter": False,
+    },
+    {
+        "id": "npc:nomade", "name": "Nômade Raiz",
+        "look": {"skin": "#b07a4a", "cloak": "#c8a86a", "hood": "up",
+                 "hat": "none", "hair": "#2a2018", "staff": True},
+        "map": "avasham", "home": (50, 50), "radius": 3, "wanders": True,
+        "step_every": 1.3, "solid": True, "kind": "person",
+        "greetings": NOMADE_GREETINGS, "smiter": False, "shop_tier": "t2",
+    },
+    {
+        "id": "npc:coveiro", "name": "Coveiro Mórbido",
+        "look": {"skin": "#9a8a7a", "cloak": "#2a2a30", "hood": "up",
+                 "hat": "none", "hair": "#15131b", "staff": True},
+        "map": "valdarkram", "home": (50, 49), "radius": 3, "wanders": True,
+        "step_every": 1.4, "solid": True, "kind": "person",
+        "greetings": COVEIRO_GREETINGS, "smiter": False, "shop_tier": "t3",
+    },
+    {
+        "id": "npc:marion", "name": "Marion, a Bruxa",
+        "look": {"skin": "#b89a7a", "cloak": "#5a2a7a", "hood": "down",
+                 "hat": "wizard", "hair": "#1a1020", "staff": True},
+        "map": "valdarkram", "home": (47, 49), "radius": 2, "wanders": True,
+        "step_every": 1.6, "solid": True, "kind": "person",
+        "greetings": MARION_GREETINGS, "smiter": False, "buys_avhur": True,
+    },
+    {
+        "id": "npc:cigana", "name": "Cigana Vidente",
+        "look": {"skin": "#caa06a", "cloak": "#a0306a", "hood": "down",
+                 "hat": "none", "hair": "#1a1a22", "staff": False},
+        "map": "ermo", "home": (9, 8), "radius": 2, "wanders": True,
+        "step_every": 1.5, "solid": True, "kind": "person",
+        "greetings": CIGANA_GREETINGS, "smiter": False, "sells_potion": True,
+    },
+])
+
+# A Mesa de Confraternizações: um NPC que é uma mesa, no centro da taverna.
+# Clicar nela abre a interface de formação de party (ready check mútuo).
+ROSTER.append({
+    "id": "npc:mesa_confra", "name": "Mesa de Confraternizações",
+    "look": {"skin": "#caa06a", "cloak": "#6a4a2a"},
+    "map": "taverna", "home": (10, 7), "radius": 0, "wanders": False,
+    "step_every": 999, "solid": True, "kind": "mesa",
+    "greetings": ["..."], "party_table": True,
+})
+
+# A Mesa de Negócios: a irmã comerciante da Mesa de Confraternizações.
+# Clicar nela abre o Mercado (vendas assíncronas, taxa de 5%) e as ofertas diretas.
+ROSTER.append({
+    "id": "npc:mesa_negocios", "name": "Mesa de Negócios",
+    "look": {"skin": "#caa06a", "cloak": "#3a5a3a"},
+    "map": "taverna", "home": (5, 8), "radius": 0, "wanders": False,
+    "step_every": 999, "solid": True, "kind": "mesa",
+    "greetings": ["..."], "business_table": True,
+})
+
+# JORGE, o Taverneiro: o dono da casa, atrás do balcão, sabe de tudo.
+ROSTER.append({
+    "id": "npc:jorge", "name": "Jorge, o Taverneiro",
+    "look": {"skin": "#c9915a", "cloak": "#6a3a2a", "hat": "none", "hair": "#3a2a1a", "staff": False},
+    "map": "taverna", "home": (16, 3), "radius": 1, "wanders": True,
+    "step_every": 2.2, "solid": True, "kind": "person",
+    "greetings": ["Bem-vindo à minha casa. O que vai ser?",
+                  "Cerveja gelada, prato quente e fofoca fresca. Escolhe dois.",
+                  "Já limpei esse balcão três vezes hoje. TRÊS.",
+                  "Aqui dentro ninguém briga. Lá fora o problema é seu.",
+                  "O segredo do hidromel? Não conto nem bêbado."],
+    "taverneiro": True,
+})
+
+# O QUADRO DE PROCURADOS: contratos rotativos pagos pelo Cofre da Cidade.
+ROSTER.append({
+    "id": "npc:quadro_procurados", "name": "Quadro de Procurados",
+    "look": {"skin": "#8a6a4a", "cloak": "#5a4a3a"},
+    "map": "taverna", "home": (14, 2), "radius": 0, "wanders": False,
+    "step_every": 999, "solid": True, "kind": "mesa",
+    "greetings": ["..."], "contract_board": True,
+})
+
+
+# OS 12 SUMO-SACERDOTES do Templo Estrelado (um altar por deus).
+ROSTER.append({
+    "id": "npc:sumo_pofnir", "name": "Sumo Aurelian",
+    "look": {"skin": "#c9b090", "cloak": "#f2c14e", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (16, 4), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Pofnir vê. Pofnir SEMPRE vê. E se preocupa com tudo.', 'O Supremo é um gato branco e grande. Rir disso é heresia. E burrice.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_vargo", "name": "Suma Morwen",
+    "look": {"skin": "#c9b090", "cloak": "#5a5a6a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (21, 5), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Vargo não leva. Vargo ACOMPANHA. Há diferença.', "Toda alma que chega de outro mundo passou pela coleira d'Ele."],
+})
+ROSTER.append({
+    "id": "npc:sumo_martur", "name": "Sumo Tenaz",
+    "look": {"skin": "#c9b090", "cloak": "#7a8a5a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (25, 9), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Martur conta os séculos como você conta moedas.', 'A pressa é a única blasfêmia que o Jabuti reconhece.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_facalan", "name": "Suma Iara",
+    "look": {"skin": "#c9b090", "cloak": "#e0865a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (26, 15), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Facalan não tem dono, não tem templo, não tem paciência.', 'Este altar é vazio de propósito. Ela caça onde quer.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_drazun", "name": "Sumo Vermeer",
+    "look": {"skin": "#c9b090", "cloak": "#e05a4e", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (25, 20), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Drazun sonha em brasa. Os dragões são os sonhos que escaparam.', 'A ambição é sagrada. O que você fez com a sua hoje?'],
+})
+ROSTER.append({
+    "id": "npc:sumo_korgath", "name": "Sumo Brakk",
+    "look": {"skin": "#c9b090", "cloak": "#a83838", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (21, 24), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['KORGATH não pede reza. Pede SUOR.', 'A guerra é a oração; a cicatriz, o amém.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_corvo", "name": "Suma Pluma",
+    "look": {"skin": "#c9b090", "cloak": "#8a7ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (16, 25), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['O Corvo esteve em todos os mundos. E fofoca sobre todos.', 'Se um corvo te encarar hoje... sorria. Ele conta pra Ele.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_valiria", "name": "Suma Clara",
+    "look": {"skin": "#c9b090", "cloak": "#f2e05a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (10, 24), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Valiria acende o que a noite tentou apagar.', 'Toda aurora é a assinatura Dela.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_nherith", "name": "Suma Selene",
+    "look": {"skin": "#c9b090", "cloak": "#b06ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (6, 20), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Nherith rege os sonhos. Dormiu, é hóspede Dela.', 'A lua é o olho aberto da Coruja.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_jose", "name": "Sumo Gozo",
+    "look": {"skin": "#c9b090", "cloak": "#e08ae0", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (5, 15), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['José entende os prazeres. Por isso o acorrentaram.', 'Um brinde é uma prece curta. Saúde!'],
+})
+ROSTER.append({
+    "id": "npc:sumo_bragor", "name": "Sumo Ferro",
+    "look": {"skin": "#c9b090", "cloak": "#8a6a3a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (6, 9), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Bragor jura pelo metal. O metal não mente.', 'Todo juramento honesto ecoa na Forja Dele.'],
+})
+ROSTER.append({
+    "id": "npc:sumo_nhare", "name": "Suma Sorte",
+    "look": {"skin": "#c9b090", "cloak": "#7ac06a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "templo_estrelado", "home": (10, 5), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ['Nharé é a segunda chance que você não merecia.', 'Apostou? Ela viu. Escapou? Agradeça a Ela.'],
+})
+
+# O COMÉRCIO DA ILHA + OS EMÉRITOS
+ROSTER.append({
+    "id": "npc:rosa_albina", "name": "Rosa Albina",
+    "look": {"skin": "#c9a06a", "cloak": "#e05a6a", "hat": "none", "hair": "#3a2a1a", "staff": False},
+    "map": "taverna_vilalbina", "home": (5, 1), "radius": 1, "wanders": True,
+    "step_every": 2.6, "solid": True, "kind": "person",
+    "greetings": ["Bem-vindo à MINHA taverna! O tio Baltazar recebe no cais, eu recebo aqui.",
+                  "Cerveja gelada, peixe assado e fofoca fresca. O trio sagrado.",
+                  "Todo forasteiro tem a primeira caneca... pelo preço de sempre. TRADIÇÃO é tradição."],
+})
+ROSTER.append({
+    "id": "npc:tiao_iscas", "name": "Tião das Iscas",
+    "look": {"skin": "#a8845c", "cloak": "#4a6a5a", "hat": "none", "hair": "#d8d8d8", "staff": False},
+    "map": "iscas_cais", "home": (3, 1), "radius": 1, "wanders": True,
+    "step_every": 3.2, "solid": True, "kind": "person",
+    "greetings": ["Isca viva, fresquinha. O peixe grande não resiste.",
+                  "O Zé compra caixa fechada. Cliente há quarenta anos.",
+                  "Segredo do mar cinzento: o peixe-rei só morde com chuva. Não conta pra ninguém."],
+})
+ROSTER.append({
+    "id": "npc:otto", "name": "Mercador Otto",
+    "look": {"skin": "#c9b090", "cloak": "#5a4a8a", "hat": "none", "hair": "#8a6a3a", "staff": False},
+    "map": "mercado_prospera", "home": (5, 1), "radius": 1, "wanders": True,
+    "step_every": 2.8, "solid": True, "kind": "person",
+    "greetings": ["O Empório do Otto: se a ilha produz, eu vendo. Se não produz, eu importo.",
+                  "A corte compra aqui. A senhora Diana em pessoa já pisou neste tapete.",
+                  "Qualidade da capital, preço de... capital. Ora, estamos em Prospera!"],
+})
+ROSTER.append({
+    "id": "npc:rei_marth", "name": "Rei Avô Marth",
+    "look": {"skin": "#c9a880", "cloak": "#c9b44a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "solar_prospera", "home": (8, 5), "radius": 1, "wanders": True,
+    "step_every": 3.6, "solid": True, "kind": "person",
+    "greetings": ["Eu era criança quando me deram o Âmbar pra guardar. Criança. Imagina o medo.",
+                  "Onde eu piso e ORDENO, a terra produz. Mas a terra gosta mais de quem pede.",
+                  "Meu filho não dorme. Minha filha não descansa. Eu plantei bem.",
+                  "Minha mãe sumiu numa noite sem lua. Se a encontrar... diga que o trigo está alto."],
+})
+ROSTER.append({
+    "id": "npc:rainha_valesca", "name": "Rainha Avó Valesca",
+    "look": {"skin": "#c9a880", "cloak": "#e8e0f0", "hat": "none", "hair": "#d8d0c8", "staff": False},
+    "map": "solar_prospera", "home": (11, 5), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ["Sente-se. Ninguém mente nesta sala. Nem tenta, é constrangedor.",
+                  "A aliança com o Ermo nunca rachou. Adivinhe o motivo.",
+                  "A verdade é uma cortesia que eu... encorajo.",
+                  "Cordelia era a mais doce das duas crianças. Eu sei que ainda é. Onde quer que esteja."],
+})
+
+# A CÚPULA DE PROSPERINA
+ROSTER.append({
+    "id": "npc:heron", "name": "Arquimago Heron, o Que Ficou",
+    "look": {"skin": "#d8c0a0", "cloak": "#c9a840", "hat": "wizard", "hair": "#e8e8e8", "staff": True},
+    "map": "torre_alvorada", "home": (12, 2), "radius": 2, "wanders": True,
+    "step_every": 2.6, "solid": True, "kind": "person",
+    "greetings": ["A Torre guarda mais do que livros. Guarda arrependimentos.",
+                  "Conheci o Varth antes do título. Éramos... amigos. Éramos.",
+                  "O Conclave busca acolhimento. Os deuses não nos devem nada — e é isso que dói.",
+                  "Há uma vaga aberta aqui. Guardada. Pra alguém que ainda escreve, do outro lado do mar."],
+})
+ROSTER.append({
+    "id": "npc:lorde_dante", "name": "Lorde Prosperi Dante",
+    "look": {"skin": "#c9a880", "cloak": "#f0d890", "hat": "none", "hair": "#3a2a1a", "staff": True},
+    "map": "farol_margem", "home": (24, 17), "radius": 1, "wanders": True,
+    "step_every": 3.0, "solid": True, "kind": "person",
+    "greetings": ["O farol não se apaga. EU não durmo. Funciona.",
+                  "A luz lá em cima? Não pergunte. É a resposta que eu temo.",
+                  "Minha irmã governa a ilha. Eu governo uma porta. A minha pesa mais.",
+                  "Se um dia um mago de olhos antigos vier do mar... me avise. E reze."],
+})
+ROSTER.append({
+    "id": "npc:lady_diana", "name": "Lady da Alvorada Diana",
+    "look": {"skin": "#c9a880", "cloak": "#e8e0f0", "hat": "none", "hair": "#2a1a10", "staff": False},
+    "map": "prospera", "home": (43, 27), "radius": 2, "wanders": True,
+    "step_every": 2.4, "solid": True, "kind": "person",
+    "greetings": ["Prospera alimenta um continente. Eu alimento Prospera. Alguma pergunta?",
+                  "Meu irmão guarda o farol. Eu guardo TODO O RESTO.",
+                  "Dizem que meu olhar pesa. Só quando a conversa é leve demais.",
+                  "A vovó Fiona sumiu numa noite sem lua. Quem a encontrar... não conte a ela onde estamos."],
+})
+ROSTER.append({
+    "id": "npc:celestino", "name": "Arcebispo Rei Celestino",
+    "look": {"skin": "#c9b090", "cloak": "#f0f0f8", "hat": "none", "hair": "#f0f0f0", "staff": True},
+    "map": "templo_estrelado", "home": (16, 15), "radius": 1, "wanders": True,
+    "step_every": 3.0, "solid": True, "kind": "person",
+    "greetings": ["Doze torres, doze vozes. Eu apenas rejo o coro.",
+                  "O trigo cresceu numa noite. Eu estava lá. Nunca mais duvidei.",
+                  "Cada vitral pinta o chão com um deus. Ande devagar: você pisa em cores sagradas.",
+                  "Os Doze falam baixo. É preciso um silêncio do tamanho de um templo pra ouvir."],
+})
+
+# DOM BALTAZAR ALBINA: o patriarca festeiro de Vilalbina.
+ROSTER.append({
+    "id": "npc:dom_baltazar", "name": "Dom Baltazar Albina",
+    "look": {"skin": "#c9a06a", "cloak": "#f0ead8", "hat": "none", "hair": "#d8d8d8", "staff": False},
+    "map": "vilalbina", "home": (22, 12), "radius": 2, "wanders": True,
+    "step_every": 2.4, "solid": True, "kind": "person",
+    "greetings": ["BEM-VINDO A VILALBINA! Hoje tem festa. Hoje SEMPRE tem festa!",
+                  "Vi teu barco chegando: conheci pelo casco antes da vela.",
+                  "Forasteiro que chega é motivo de brinde. Tradição sagrada!",
+                  "A ilha inteira come do nosso trigo. E bebe do nosso vinho. ORGULHO."],
+})
+
+# ZECA, o Caravaneiro: a banca ambulante que roda a superfície inteira.
+ROSTER.append({
+    "id": "npc:zeca", "name": "Zeca, o Caravaneiro",
+    "look": {"skin": "#b98a5a", "cloak": "#7a5a2a", "hat": "straw", "hair": "#4a3a2a", "staff": True},
+    "map": "ermo", "home": (46, 46), "radius": 1, "wanders": True,
+    "step_every": 2.5, "solid": True, "kind": "person",
+    "greetings": ["Cheguei, cheguei! Mercadoria que ANDA até você!",
+                  "A estrada é longa e a banca é curta: aproveita.",
+                  "Isso aqui? Só EU tenho. Palavra de caravaneiro.",
+                  "Já fui assaltado três vezes esse mês. O preço reflete o trauma."],
+    "caravaneiro": True,
+})
+
+# A Goblin do Cofre: roubou o cofre de Lorde Varth e se escondeu no canto sudeste
+# da câmara. Vende o set Necrótico (épico, melhor que o do Coveiro) por bronze +
+# Símbolos de Varth.
+ROSTER.append({
+    "id": "npc:goblin_cofre", "name": "Goblin do Cofre",
+    "look": {"skin": "#7a9a4a", "cloak": "#243016", "hood": "up",
+             "hat": "none", "hair": "#3a2a10", "staff": False},
+    "map": "camara_varth", "home": (78, 84), "radius": 1, "wanders": True,
+    "step_every": 2.0, "solid": True, "kind": "person",
+    "greetings": [
+        "Pssiu! Aqui no cantinho... roubei o cofre do Lorde bem debaixo do nariz dele, hehe.",
+        "Tudo roxo, tudo necrótico, tudo arrancado do cofre de Varth. Quer ver a mercadoria?",
+        "O Lorde tá ocupado lá no trono. Aproveita a liquidação do cofre, forasteiro.",
+        "Os melhores trecos da Torre, um tier acima do velho Coveiro. A arma então... nem se compara.",
+        "Bronze eu aceito, mas o que eu quero MESMO são os Símbolos de Varth. Cinco por peça, sem choro.",
     ],
+    "goblin_cofre": True,
+})
+
+
+# ===========================================================================
+#  FALAS DO CÂNONE (Etapa de Lore): cada morador ecoa sua própria história.
+#  Aplicadas por substring do id — NPCs fora do cânone ficam intactos.
+# ===========================================================================
+_LORE_GREETS = {
+    "maricota":  ["O mar me contou uma coisa hoje... ah, nada não, esquece.",
+                  "Javali?! QUE javali? Nunca alimentei javali NENHUM. Próximo assunto."],
+    "bragan":    ["Tem noite que o martelo acha o ritmo sozinho... vem lá de baixo, do vale. Nem pergunta.",
+                  "Forjei pra guarda de Valdarkram, sabia? Não bastou. NUNCA mais não basta."],
+    "petra":     ["O desenho da Chave da Fenda? Eu SONHEI. Não pergunte mais.",
+                  "Lapidei pra corte de Valdarkram... essas mãos já seguraram coroas."],
+    "bartolo":   ["O Bragan aprendeu tudo comigo! Ou foi o contrário? DETALHE.",
+                  "Guardo um retalho de cada trabalho. O primeiro? Uma bainha... de um CERTO ferreiro."],
+    "solene":    ["Os ossos lá embaixo têm nome. Eu conheço todos. TODOS.",
+                  "Os Doze respondem, sabia? Baixinho. Um por vez."],
+    "cronista":  ["Um dia a Torre da Alvorada vai me aceitar de volta. Esta crônica é meu bilhete.",
+                  "A última página de Valdarkram? Está guardada. Ninguém lê. NINGUÉM."],
+    "lazaro":    ["Todo mato que eu limpo é uma dívida que eu pago.",
+                  "São Cipriano me ensinou demais. Aqui... aqui eu desaprendo."],
+    "chica":     ["Na Sapopemba de LÁ os pombos também me obedeciam, viu...",
+                  "A Beth chegou chorando, saiu rindo. Coisa minha. Segredo meu."],
+    "jorge":     ["Meu pai morreu devendo. Eu paguei TUDO. Esta casa é limpa.",
+                  "Aqui dentro é terreno neutro. Juramento antigo. Até o Maurão respeita."],
+    "zeca":      ["Eu podia ir pra QUALQUER reino, sabia? Mas... e a caravana? E a MULA?",
+                  "A mula é sócia. Metade dos preços foi ideia dela."],
+    "cigana":    ["Desci de Véspera quando a noite ficou barulhenta demais. Vocês não OUVEM como eu.",
+                  "Minhas cartas nunca mentem. Eu... às vezes."],
+    "milton":    ["Sexta tem dominó marcado. Nunca perco de vez... engraçado isso, né?",
+                  "O mar me devolveu três vezes. Deve gostar da minha teimosia."],
+    "remo":      ["Naquela noite tirei quarenta de Valdarkram. O rio ajudou.",
+                  "De quem foge de algo, eu não cobro. Regra antiga."],
+    "conchinha": ["O mar deixou presente na porta de novo hoje. Bobo, esse mar.",
+                  "Filha de sereia, eu? *sorri* Deixa o povo falar."],
+    "xama":   ["Falacan me criou, sabia? Os Doze são meus tios. Os SEUS também, ora.",
+                  "Os bichos reclamam de você. Brincadeira. Ou não."],
+    "marion":    ["Moedas de Avhur? Pago 2500. Não pergunte por quê, querido.",
+                  "Dez anos disfarçada na Torre da Alvorada. Eles nunca souberam. NUNCA."],
+    "peteco":    ["Já te contei que fui general? Ou pirata? Tanto faz, ESTRANGEIRO.",
+                  "Qualquer arma. Três dias. Não pergunta COMO, estrangeiro."],
+    "fernando":  ["O Galo cantou à meia-noite de novo. Cê ouviu? OUVIU.",
+                  "Esse bar é IGUALZINHO ao de lá. Tábua por tábua. Da memória."],
+    "sucuri":    ["Na Terra eu era MONSTRO no LoL, mano. Elo? Deixa quieto.",
+                  "Acabei de tomar banho e já tô suado. Genética, irmão."],
+    "macio":     ["AI! Pisei numa pedra... CHAMA A UPA! Chama a UPA!!",
+                  "Red pill é estilo de vida, mano. *chora baixinho*"],
+    "piadista":  ["Quer ouvir uma? Ah, essa é boa... vocês vão MORRER de rir. De rir, né?",
+                  "Minhas piadas nunca falham. É quase... profético."],
+    "bala":      ["Bala Chita, mano! Da BOA. Vargo deixou eu trazer a lembrança.",
+                  "O nome? História longa. Envolve um doce. Fim."],
 }
-
-
-def postures_for(class_id):
-    return POSTURES.get(class_id, [])
-
-
-def get_posture(class_id, posture_id):
-    for p in POSTURES.get(class_id, []):
-        if p["id"] == posture_id:
-            return p
-    return None
+for _spec in ROSTER:
+    _nid = str(_spec.get("id", ""))
+    for _k, _falas in _LORE_GREETS.items():
+        if _k in _nid:
+            _spec.setdefault("greetings", [])
+            _spec["greetings"] = list(_spec["greetings"]) + _falas
+            break
