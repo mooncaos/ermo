@@ -122,6 +122,11 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "loja_luthier": "Luthieria Mestre Corda", "loja_banca": "Banca do Zé Boato",
               "casa_valmont": "Casa Valmont", "embaixada_ermo": "Embaixada das Terras do Ermo",
               "porao_sapopemba": "Consulado de Sapopemba (?)", "casa_leiloes": "O Martelo Dourado",
+              "lar_pontual": "Lar dos Pontuais", "lar_clarice": "Lar da Clarice",
+              "lar_rosendo": "Lar de Rosendo & Rute", "lar_batista": "Lar dos Batista",
+              "lar_anselmo": "Lar do Professor", "lar_gemeas": "Ateliê das Gêmeas",
+              "lar_trovao": "Lar do Seu Trovão", "lar_firmina": "Lar da Parteira",
+              "lar_elviro": "Sótão do Poeta",
               "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
               "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
               "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
@@ -202,7 +207,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v36: PROSPERA VIVA - 31 almas, 13 lojas e nobres, LOTE DO DIA, Caiques (06/jul)"
+BUILD_TAG = "v37: A SINFONIA - 9 lares, praca geral, FESTIVAL de Sao Celeste, sumos em formacao (06/jul)"
 
 
 def _asset_version():
@@ -2942,6 +2947,24 @@ CASAS_ILHA = [
      "dest": "casa_baixa", "dx": 7, "dy": 6, "bx": 18, "by": 22},
     {"mapa": "baixa_da_egua", "cx": 31, "cy": 22, "w": 8, "h": 3,
      "dest": "cortico_baixa", "dx": 8, "dy": 6, "bx": 34, "by": 26},
+    {"mapa": "prospera", "cx": 13, "cy": 44, "w": 5, "h": 3,
+     "dest": "lar_pontual", "dx": 6, "dy": 5, "bx": 15, "by": 48},
+    {"mapa": "prospera", "cx": 50, "cy": 44, "w": 5, "h": 3,
+     "dest": "lar_clarice", "dx": 6, "dy": 5, "bx": 52, "by": 48},
+    {"mapa": "prospera", "cx": 59, "cy": 44, "w": 6, "h": 4,
+     "dest": "lar_rosendo", "dx": 6, "dy": 5, "bx": 62, "by": 49},
+    {"mapa": "prospera", "cx": 68, "cy": 44, "w": 5, "h": 3,
+     "dest": "lar_batista", "dx": 6, "dy": 5, "bx": 70, "by": 48},
+    {"mapa": "prospera", "cx": 4, "cy": 53, "w": 5, "h": 3,
+     "dest": "lar_anselmo", "dx": 6, "dy": 5, "bx": 6, "by": 57},
+    {"mapa": "prospera", "cx": 13, "cy": 53, "w": 6, "h": 3,
+     "dest": "lar_gemeas", "dx": 6, "dy": 5, "bx": 16, "by": 57},
+    {"mapa": "prospera", "cx": 50, "cy": 53, "w": 5, "h": 3,
+     "dest": "lar_trovao", "dx": 6, "dy": 5, "bx": 52, "by": 57},
+    {"mapa": "prospera", "cx": 59, "cy": 53, "w": 6, "h": 3,
+     "dest": "lar_firmina", "dx": 6, "dy": 5, "bx": 62, "by": 57},
+    {"mapa": "prospera", "cx": 68, "cy": 53, "w": 5, "h": 3,
+     "dest": "lar_elviro", "dx": 6, "dy": 5, "bx": 70, "by": 57},
     {"mapa": "prospera", "cx": 13, "cy": 4, "w": 5, "h": 3,
      "dest": "loja_barbearia", "dx": 6, "dy": 6, "bx": 15, "by": 8},
     {"mapa": "prospera", "cx": 21, "cy": 4, "w": 5, "h": 4,
@@ -6249,6 +6272,18 @@ _ILHA_ROTINA = {
     "npc:dona_bibi":    {"day": ("vilalbina", 15, 24), "night": ("casa_bibi", 3, 5)},
     "npc:lita":         {"day": ("vilalbina", 15, 23), "night": ("casa_bibi", 8, 3)},
     "npc:naiara":       {"day": ("vilalbina", 20, 22), "night": ("casa_naiara", 4, 3)},
+    "npc:familia_pontual": {"day": ("prospera", 15, 8),  "night": ("lar_pontual", 5, 4)},
+    "npc:dona_pontuala":   {"day": ("prospera", 17, 8),  "night": ("lar_pontual", 7, 4)},
+    "npc:viuva_clarice":   {"day": ("prospera", 60, 8),  "night": ("lar_clarice", 6, 4)},
+    "npc:rosendo":         {"day": ("prospera", 6, 16),  "night": ("lar_rosendo", 5, 4)},
+    "npc:rute":            {"day": ("prospera", 8, 16),  "night": ("lar_rosendo", 7, 4)},
+    "npc:pedreiro_batista": {"day": ("prospera", 15, 17), "night": ("lar_batista", 6, 4)},
+    "npc:professor_anselmo": {"day": ("prospera", 69, 16), "night": ("lar_anselmo", 6, 4)},
+    "npc:dede_costureira": {"day": ("prospera", 6, 24),  "night": ("lar_gemeas", 5, 4)},
+    "npc:didi_costureira": {"day": ("prospera", 9, 25),  "night": ("lar_gemeas", 7, 4)},
+    "npc:guarda_trovao":   {"day": ("prospera", 24, 24), "night": ("lar_trovao", 6, 4)},
+    "npc:dona_firmina":    {"day": ("prospera", 15, 48), "night": ("lar_firmina", 6, 4)},
+    "npc:moco_elviro":     {"day": ("prospera", 52, 48), "night": ("lar_elviro", 6, 4)},
     "npc:maga_lyra":    {"day": ("torre_conclave", 8, 4),  "night": ("casa_lyra", 6, 5)},
     "npc:mago_bramir":  {"day": ("torre_conclave", 12, 4), "night": ("casa_bramir", 6, 5)},
     "npc:maga_cecille": {"day": ("torre_conclave", 9, 8),  "night": ("casa_cecille", 6, 5)},
@@ -6330,11 +6365,9 @@ def _agenda_tick():
     dia = _dia_num()
     noite = _is_night()
     # ---- OS 12 SUMOS: liturgia, plantão, folga e sono ----
-    if 7 <= h < 8:                                   # LITURGIA: todos no salão
+    if 7 <= h < 9 or 18 <= h < 19:                   # LITURGIA (2h) e VÉSPERAS: formação
         for i, sid in enumerate(_SUMOS_IDS):
-            ang = i * 6.283 / 12
-            _mover_npc(sid, "templo_estrelado", int(21 + 7*__import__("math").cos(ang)),
-                       int(14 + 5*__import__("math").sin(ang)))
+            _mover_npc(sid, "templo_estrelado", 16 + (i % 6) * 2, 12 + (i // 6) * 2)
     else:
         turno = int(h // 6) % 4
         plantao = set(_SUMOS_IDS[turno*3:(turno+1)*3])
@@ -6355,9 +6388,15 @@ def _agenda_tick():
         _mover_npc("npc:heron", "torre_escritorio", 9, 3)   # ele NUNCA vai à praça
     else:
         _mover_npc("npc:heron", "torre_terraco", 4, 6)
-    # ---- A HORA DA PRAÇA 16h-18h: todos confraternizam na fonte ----
+    # ---- A HORA DA PRAÇA 16h-18h: A ILHA INTEIRA confraterniza na fonte ----
     if 16 <= h < 18 and not noite:
-        praca = list(_ILHA_ROTINA.keys()) + ["npc:rei_marth", "npc:rainha_valesca"]
+        praca = list(_ILHA_ROTINA.keys()) + ["npc:rei_marth", "npc:rainha_valesca",
+            "npc:naiara", "npc:bruno_padeiro", "npc:caio_menino", "npc:dom_baltazar",
+            "npc:colette", "npc:odette", "npc:margot", "npc:amelie", "npc:luc",
+            "npc:jacques", "npc:henri", "npc:pierre",
+            "npc:seu_fino", "npc:dona_prosa", "npc:petunia", "npc:mestre_linho",
+            "npc:almir", "npc:brigitte", "npc:sa_benta", "npc:camomilo",
+            "npc:mestre_corda", "npc:ze_boato", "npc:fadogan"]
         for i, nid in enumerate(praca):
             ang = i * 6.283 / max(1, len(praca))
             _mover_npc(nid, "prospera", int(36 + (3 + i % 3)*__import__("math").cos(ang)),
@@ -6400,8 +6439,34 @@ def _agenda_tick():
             comprador = rua[(_dia_num() * 3 + slot + k2 * 4) % len(rua)]
             loja2 = lojas2[(_dia_num() * 7 + slot * 3 + k2) % len(lojas2)]
             _mover_npc(comprador, loja2, 5, 5)
+    # ---- O FESTIVAL DE SÃO CELESTE: TODO DIA 13h-15h! ----
+    festival = 13 <= h < 15 and not noite
+    if festival:
+        folioes = ["npc:mestre_fanfarrao", "npc:ze_boato", "npc:sa_benta", "npc:petunia",
+                   "npc:caio_menino", "npc:lita", "npc:bruno_padeiro", "npc:moco_elviro",
+                   "npc:beatriz_valmont", "npc:dede_costureira", "npc:didi_costureira",
+                   "npc:gaspar", "npc:seu_juvenal", "npc:nega_luzia", "npc:luc"]
+        tendas3 = [(7, 8), (11, 8), (15, 8), (31, 8), (35, 8), (24, 10), (7, 14), (11, 14),
+                   (31, 14), (35, 14), (24, 16), (15, 20), (31, 20), (24, 22), (39, 8)]
+        for i4, nid4 in enumerate(folioes):
+            _mover_npc(nid4, "feirao_sao_celeste", *tendas3[i4 % len(tendas3)])
+        _mover_npc("npc:lorde_dante", "feirao_sao_celeste", 24, 6)   # o Dante VAI!
+        if random.random() < 0.25:
+            socketio.emit("speech", {"id": "npc:mestre_fanfarrao", "text": random.choice([
+                "SENHORAS E SENHORES: O FESTIVAL DE SÃO CELESTE!! EU DISSE QUE IA ACONTECER!",
+                "Música! Comida! O LORDE DANTE em pessoa! Chorem, céticos!",
+                "São Celeste sorri sobre nós! Ou é o sol. TANTO FAZ, FESTEJEM!"])},
+                room="feirao_sao_celeste")
+        for _fsid, _fpl in list(world.players.items()):
+            if not _fpl.get("is_npc") and _fpl.get("map") in ("feirao_sao_celeste", "cidade_alta", "prospera") \
+               and _fpl.get("_fest_toast", 0) < _dia_num():
+                _fpl["_fest_toast"] = _dia_num()
+                socketio.emit("toast", {"text": "🎪 O FESTIVAL DE SÃO CELESTE COMEÇOU! "
+                              "Música, tendas e o Lorde Dante em pessoa — no Feirão, até as 15h!"}, to=_fsid)
     # ---- DANTE: recluso, salvo evento no São Celeste (ou raro passeio) ----
-    if FEIRAO_EVENTO:
+    if festival:
+        pass                                          # já está no festival!
+    elif FEIRAO_EVENTO:
         _mover_npc("npc:lorde_dante", "feirao_sao_celeste", 24, 8)
     elif 12 <= h < 13 and (dia * 31) % 100 < 5:
         _mover_npc("npc:lorde_dante", "farol_margem", 20, 20)

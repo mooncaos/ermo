@@ -1825,7 +1825,7 @@ ROSTER.append({"id": "npc:dede_costureira", "name": "Dedé, a costureira",
 })
 ROSTER.append({"id": "npc:didi_costureira", "name": "Didi, a costureira",
     "look": {"skin": "#c9a06a", "cloak": "#6a5a4a", "hat": "none", "hood": "down", "hair": "#4a3a2a", "staff": False},
-    "map": "prospera", "home": (8, 22), "radius": 4, "wanders": True, "step_every": 2.8,
+    "map": "prospera", "home": (9, 25), "radius": 4, "wanders": True, "step_every": 2.8,
     "solid": True, "kind": "person",
     "greetings": ['...termina. É assim desde o berço. Praticamos no útero.'],
 })

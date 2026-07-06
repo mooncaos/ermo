@@ -2884,6 +2884,21 @@ def _casa_fadogan():
     return ["".join(r) for r in g]
 
 
+def _moradia(toque):
+    """Lar de Prospera (12x8): aconchego de capital, com o toque do dono."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(8)]
+    g[0] = list("FFjFFFjFFFjF")
+    g[7] = list("FFFFFDDFFFFF")
+    g[1][2] = "b"; g[1][9] = "q"; g[4][2] = "k"; g[4][3] = "^"; g[3][9] = "o"
+    if toque == "relogio":   g[1][5] = "_"
+    elif toque == "janela":  g[2][9] = "^"
+    elif toque == "atelie":  g[3][5] = "_"; g[1][7] = "b"
+    elif toque == "livros":  g[2][5] = "E"; g[3][5] = "E"
+    elif toque == "berco":   g[1][7] = "b"; g[2][7] = "q"
+    elif toque == "lareira": g[1][5] = "h"
+    return ["".join(r) for r in g]
+
+
 def _lojinha(estilo):
     """Lojinha de rua de Prospera (13x9): balcão, vitrine e o toque do ofício."""
     g = [list("F" + "1" * 11 + "F") for _ in range(9)]
@@ -3150,6 +3165,16 @@ MAPS["casa_valmont"] = {"rows": _casa_valmont(), "spawns": [(8, 9), (9, 9), (8, 
 MAPS["embaixada_ermo"] = {"rows": _embaixada(), "spawns": [(7, 8), (8, 8), (7, 7)]}
 MAPS["porao_sapopemba"] = {"rows": _porao_sapopemba(), "spawns": [(3, 5), (4, 5), (3, 4)]}
 MAPS["casa_leiloes"] = {"rows": _casa_leiloes(), "spawns": [(8, 10), (9, 10), (8, 9)]}
+MAPS["lar_pontual"] = {"rows": _moradia("relogio"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_clarice"] = {"rows": _moradia("lareira"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_rosendo"] = {"rows": _moradia("janela"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_batista"] = {"rows": _moradia("berco"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_anselmo"] = {"rows": _moradia("livros"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_gemeas"] = {"rows": _moradia("atelie"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_trovao"] = {"rows": _moradia("lareira"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_firmina"] = {"rows": _moradia("berco"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["lar_elviro"] = {"rows": _moradia("livros"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+
 def _torre_conclave():
     """2º andar: o SALÃO DO CONCLAVE (21x14). A origem da magia do Ermo.
     Mesa de mármore rúnica, os cinco assentos, colunas, vitrais e o
