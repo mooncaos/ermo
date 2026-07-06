@@ -2993,8 +2993,17 @@ def _baixa_da_egua():
     for y in (8, 10):
         for x in (36, 40, 43):
             g[y][x] = "w"                  # feno
+    # os SOBRADOS agora têm corpo (colisão!)
+    for (sx, sy) in ((8, 8), (14, 8), (8, 20), (16, 20), (30, 20), (38, 20)):
+        for yy in (sy - 1, sy):
+            for xx in range(sx, sx + 4):
+                g[yy][xx] = "H"
+    # o CORTIÇO (prédio comprido, sudeste)
+    for yy in (23, 24):
+        for xx in range(31, 39):
+            g[yy][xx] = "H"
     # luminárias da rua
-    for y in (4, 9, 14, 19, 24):
+    for y in (4, 9, 14, 19):
         g[y][21] = "L"; g[y][28] = "L"
     _borda_mais(g, "north", 23, 26)
     return ["".join(r) for r in g]
@@ -3004,8 +3013,54 @@ MAPS["casa_bibi"] = {"rows": _casa_bibi(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["padaria_bruno"] = {"rows": _padaria_bruno(), "spawns": [(6, 5), (5, 5), (7, 5)]}
 MAPS["casa_naiara"] = {"rows": _casa_naiara(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_caio"] = {"rows": _casa_caio(), "spawns": [(5, 5), (4, 5), (6, 5)]}
+def _casa_baixa():
+    """O Sobrado dos Quatro (14x9): Juvenal, Rita, Bito e Luzia sob o mesmo
+    teto de mármore. A quebrada mora junta."""
+    g = [list("F" + "1" * 12 + "F") for _ in range(9)]
+    g[0] = list("FFjFFjFFjFFjFF")
+    g[8] = list("FFFFFFDDFFFFFF")
+    for x in (4, 9):
+        for y in range(1, 4):
+            g[y][x] = "F"
+    g[4][2] = "b"; g[1][2] = "o"           # Juvenal: cama e o vinho
+    g[4][6] = "b"; g[1][6] = "o"           # Rita: cama e a sela
+    g[4][11] = "b"; g[1][11] = "q"         # Bito: cama e as ferraduras
+    g[6][2] = "b"; g[6][5] = "h"           # Luzia: cama e o forninho dos doces
+    g[6][10] = "k"; g[6][11] = "^"         # a mesa de todos
+    return ["".join(r) for r in g]
+
+
+def _cortico_baixa():
+    """O CORTIÇO da Baixa (18x12): corredor central e oito quartinhos.
+    Todo vassalo que não for dos Angard mora aqui."""
+    W, H = 18, 12
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x in (3, 8, 13) else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    for x in range(1, W - 1):
+        g[4][x] = "F"; g[7][x] = "F"
+    for cx2 in (5, 9, 13):
+        for y in range(1, 4):
+            g[y][cx2] = "F"
+        for y in range(8, 11):
+            g[y][cx2] = "F"
+    for px in (3, 7, 11, 15):              # portas dos quartos
+        g[4][px] = "1"; g[7][px] = "1"
+    # camas: 5 vassalos + 3 vagas
+    g[1][2] = "b"; g[1][6] = "b"; g[1][11] = "b"; g[1][16] = "b"
+    g[10][2] = "b"; g[10][6] = "b"; g[10][11] = "b"; g[10][16] = "b"
+    g[5][8] = "k"; g[5][9] = "k"; g[6][2] = ";"   # a mesa e o braseiro comunal
+    g[H - 1][8] = "D"; g[H - 1][9] = "D"
+    return ["".join(r) for r in g]
+
+
 MAPS["feirao_sao_celeste"] = {"rows": _feirao_sao_celeste(), "spawns": [(24, 4), (23, 4), (25, 4)]}
 MAPS["baixa_da_egua"] = {"rows": _baixa_da_egua(), "spawns": [(24, 4), (23, 4), (25, 4)]}
+MAPS["casa_baixa"] = {"rows": _casa_baixa(), "spawns": [(7, 6), (6, 6), (8, 6)]}
+MAPS["cortico_baixa"] = {"rows": _cortico_baixa(), "spawns": [(8, 6), (9, 6), (8, 5)]}
 
 
 MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(16, 29), (15, 29), (17, 29)]}

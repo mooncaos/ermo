@@ -444,6 +444,8 @@ const INT_THEMES = {
   padaria_bruno: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e0a850', kind:'loja'},
   casa_naiara:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a7a8a', kind:'quarto'},
   casa_caio:     {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e0865a', kind:'quarto'},
+  casa_baixa:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a842', kind:'quarto'},
+  cortico_baixa: {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#e0865a', kind:'quarto'},
   casa_cecille: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#b06ae0', kind:'quarto'},
   taverna_vilalbina: {f1:'#6b4f34', f2:'#75583a', wall:'#33241a', acc:'#e05a6a', kind:'loja'},
   iscas_cais:        {f1:'#5f5340', f2:'#695c47', wall:'#2e2820', acc:'#5aa9e0', kind:'loja'},
@@ -15251,6 +15253,26 @@ function renderOutfits(){
       c.strokeRect(sx3 + TS*0.35, sy3 - TS*2.05, TS*0.7, TS*0.8);
       c.strokeRect(sx3 + TS*2.35, sy3 - TS*2.05, TS*0.7, TS*0.8);
     });
+    const ctx2 = 31*TS - camX, cty2 = 23*TS - camY;        // o CORTIÇO (varal e janelinhas)
+    if(ctx2 > -TS*10 && ctx2 < canvas.width + TS*2 && cty2 > -TS*4 && cty2 < canvas.height + TS*3){
+      c.fillStyle = '#d0c0a8';
+      c.fillRect(ctx2, cty2 - TS*1.6, TS*8, TS*1.6);
+      c.fillStyle = '#8a5a3a';
+      c.fillRect(ctx2 - TS*0.15, cty2 - TS*2.1, TS*8.3, TS*0.55);
+      c.fillStyle = '#ffdf9a';
+      for(let k = 0; k < 6; k++)
+        c.fillRect(ctx2 + TS*(0.5 + k*1.3), cty2 - TS*1.2, TS*0.5, TS*0.6);
+      c.strokeStyle = 'rgba(60,50,40,0.6)'; c.lineWidth = 1;   // o VARAL
+      c.beginPath(); c.moveTo(ctx2 + TS*0.5, cty2 - TS*2.2);
+      c.quadraticCurveTo(ctx2 + TS*4, cty2 - TS*1.8, ctx2 + TS*7.5, cty2 - TS*2.2); c.stroke();
+      for(let k = 0; k < 5; k++){
+        const t2 = (k + 0.5)/5;
+        const vx2 = ctx2 + TS*0.5 + t2*TS*7;
+        const vy2 = cty2 - TS*2.2 + 4*Math.sin(Math.PI*t2)*TS*0.1 + Math.sin(now/500 + k)*1.5;
+        c.fillStyle = ['#c43e5a','#3a6aaa','#e8e0d0','#3a8a5a','#e0a850'][k];
+        c.fillRect(vx2 - 3, vy2, 6, 9);
+      }
+    }
     for(const hx2 of [36, 40, 43]){                        // as ÉGUAS do haras (silhuetas vivas)
       const ex2 = hx2*TS - camX, ey2 = 9.5*TS - camY + Math.sin(now/900 + hx2)*2;
       if(ex2 < -TS*2 || ex2 > canvas.width + TS*2) continue;
@@ -15521,6 +15543,8 @@ var _PORTAS_VIVAS = [
   {mapa: 'cidade_alta', cx: 38, cy: 30, w: 6, h: 4, emoji: '⚗️'},
   {mapa: 'cidade_alta', cx: 12, cy: 30, w: 5, h: 3, emoji: '💎'},
   {mapa: 'prospera',   cx: 4,  cy: 4,  w: 6, h: 4, emoji: '🫖'},
+  {mapa: 'baixa_da_egua', cx: 16, cy: 18, w: 4, h: 3, emoji: '🏠'},
+  {mapa: 'baixa_da_egua', cx: 31, cy: 22, w: 8, h: 3, emoji: '🛏️'},
   {mapa: 'vilalbina',  cx: 3,  cy: 15, w: 5, h: 3, emoji: '🧵'},
   {mapa: 'vilalbina',  cx: 10, cy: 3,  w: 4, h: 3, emoji: '🍞'},
   {mapa: 'vilalbina',  cx: 3,  cy: 9,  w: 4, h: 3, emoji: '🐟'},

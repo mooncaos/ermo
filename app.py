@@ -107,6 +107,7 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "casa_bibi": "Ateliê da Dona Bibi", "padaria_bruno": "Padaria do Bruno",
               "casa_naiara": "Casa da Naiara", "casa_caio": "Casa do Caio",
               "feirao_sao_celeste": "Feirão de São Celeste", "baixa_da_egua": "Baixa da Égua",
+              "casa_baixa": "Sobrado dos Quatro", "cortico_baixa": "O Cortiço da Baixa",
               "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
               "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
               "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
@@ -187,7 +188,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v15: Madre Aurora rege o Jardim do Templo (06/jul)"
+BUILD_TAG = "v16: colisao na Baixa + Sobrado dos Quatro + O CORTICO (06/jul)"
 
 
 def _asset_version():
@@ -2919,6 +2920,10 @@ CASAS_ILHA = [
      "dest": "mercado_prospera", "dx": 8, "dy": 8, "bx": 60, "by": 24},
     {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
      "dest": "solar_prospera", "dx": 10, "dy": 10, "bx": 52, "by": 9},
+    {"mapa": "baixa_da_egua", "cx": 16, "cy": 18, "w": 4, "h": 3,
+     "dest": "casa_baixa", "dx": 7, "dy": 6, "bx": 18, "by": 22},
+    {"mapa": "baixa_da_egua", "cx": 31, "cy": 22, "w": 8, "h": 3,
+     "dest": "cortico_baixa", "dx": 8, "dy": 6, "bx": 34, "by": 26},
     {"mapa": "vilalbina", "cx": 3, "cy": 15, "w": 5, "h": 3,
      "dest": "casa_bibi", "dx": 6, "dy": 5, "bx": 5, "by": 19},
     {"mapa": "vilalbina", "cx": 10, "cy": 3, "w": 4, "h": 3,
