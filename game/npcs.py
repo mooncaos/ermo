@@ -1445,6 +1445,18 @@ ROSTER.append({
     "greetings": ["..."], "contract_board": True,
 })
 
+# DOM BALTAZAR ALBINA: o patriarca festeiro de Vilalbina.
+ROSTER.append({
+    "id": "npc:dom_baltazar", "name": "Dom Baltazar Albina",
+    "look": {"skin": "#c9a06a", "cloak": "#f0ead8", "hat": "none", "hair": "#d8d8d8", "staff": False},
+    "map": "vilalbina", "home": (22, 12), "radius": 2, "wanders": True,
+    "step_every": 2.4, "solid": True, "kind": "person",
+    "greetings": ["BEM-VINDO A VILALBINA! Hoje tem festa. Hoje SEMPRE tem festa!",
+                  "Vi teu barco chegando: conheci pelo casco antes da vela.",
+                  "Forasteiro que chega é motivo de brinde. Tradição sagrada!",
+                  "A ilha inteira come do nosso trigo. E bebe do nosso vinho. ORGULHO."],
+})
+
 # ZECA, o Caravaneiro: a banca ambulante que roda a superfície inteira.
 ROSTER.append({
     "id": "npc:zeca", "name": "Zeca, o Caravaneiro",

@@ -2508,6 +2508,64 @@ def _try_garden(player):
     return True
 
 
+
+# ===========================================================================
+#  A TRAVESSIA DO MAR CINZENTO: Costa <-> Vilalbina (Prosperina).
+#  Pedágio da 1ª vez: A JUBA DO MARAJÁ. Depois: livre (com piratas de tocaia).
+# ===========================================================================
+TRAVESSIA_COSTA = (250, 252)      # o píer da Costa
+TRAVESSIA_VILA = (22, 25)         # o cais de Vilalbina
+
+
+def _try_travessia(player):
+    f = player.get("ficha") or {}
+    if player.get("map") == "costa_maravai" and \
+       max(abs(player["x"] - TRAVESSIA_COSTA[0]), abs(player["y"] - TRAVESSIA_COSTA[1])) <= 3:
+        if not f.get("prosperina"):
+            if _bag_count(player, "juba_maraja") < 1:
+                emit("toast", {"text": "🛶 O Zé olha o mar cinzento: 'Pra ESSA travessia, o preço é "
+                               "a JUBA DO LEÃO. Não pergunta por quê.'"})
+                return True
+            items.remove_from_bag(player["inventory"], "juba_maraja", 1)
+            f["prosperina"] = True
+            player["ficha"] = f
+            _quest_save(player)
+            _persist_loadout(player)
+            emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+            _go_to(request.sid, "vilalbina", TRAVESSIA_VILA[0], TRAVESSIA_VILA[1])
+            socketio.emit("toast", {"text": "⛵🦁 %s pagou a JUBA DO LEÃO e cruzou o Mar Cinzento! "
+                          "PROSPERINA à vista — e Vilalbina recebe com FESTA!" %
+                          player.get("name", "Alguém")})
+            return True
+        _go_to(request.sid, "vilalbina", TRAVESSIA_VILA[0], TRAVESSIA_VILA[1])
+        emit("toast", {"text": "⛵ O Zé rema em silêncio. Os piratas olham... e deixam passar."})
+        if random.random() < 0.2:
+            _spawn_wave("vilalbina", 22, 20, 3, "_pirate",
+                        "☠️ PIRATAS do Mar Cinzento desembarcaram atrás de você em Vilalbina!")
+        return True
+    if player.get("map") == "vilalbina" and player.get("y", 0) >= 24 and \
+       18 <= player.get("x", 0) <= 27:
+        _go_to(request.sid, "costa_maravai", TRAVESSIA_COSTA[0], TRAVESSIA_COSTA[1] - 1)
+        emit("toast", {"text": "⛵ De volta ao continente. O trigo fica na saudade."})
+        return True
+    return False
+
+
+def _try_ilha_bordas(player):
+    """As bordas de Prosperina: Vilalbina <-> Trigal Dourado."""
+    if player.get("map") == "vilalbina" and player.get("x", 0) >= 41 and \
+       12 <= player.get("y", 0) <= 15:
+        _go_to(request.sid, "trigal_dourado", 3, 17)
+        emit("toast", {"text": "🌾 O TRIGAL DOURADO se abre: um mar de espigas até o horizonte."})
+        return True
+    if player.get("map") == "trigal_dourado" and player.get("x", 0) <= 2 and \
+       16 <= player.get("y", 0) <= 19:
+        _go_to(request.sid, "vilalbina", 40, 13)
+        emit("toast", {"text": "🏘️ Vilalbina, branca contra o mar."})
+        return True
+    return False
+
+
 def _gossip_line(npc_id=None):
     """Uma fofoca montada dos dados reais (boss, arena, fenda, mercado)."""
     pool = []
@@ -4431,6 +4489,7 @@ def on_interact(_data=None):
     npc = world.nearest_npc(player, TALK_RADIUS)
     if not npc:
         if not _try_fenda(player) and not _try_fenda_inside(player) and \
+           not _try_travessia(player) and not _try_ilha_bordas(player) and \
            not _try_garden(player) and \
            not _try_ossuario(player) and not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \

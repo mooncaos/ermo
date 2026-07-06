@@ -116,3 +116,58 @@ do Ermo — **o celeiro alimenta o continente**. Primeira região acessada por *
 - O que Diana acha do segredo do irmão (ela SABE?)
 - A Rainha Cinzenta: rosto, nave-capitânia, exigência (o que ela QUER?)
 - CONSTRUÇÃO dos 7 mapas + interiores (sessão dedicada)
+
+
+## 👑 A DINASTIA PROSPERI (Rodadas 10-11)
+- **Rainha Mãe FIONA, a SUPREMA** — a bruxa mais forte de todos os tempos; sumiu numa
+  noite sem lua (paradeiro: MISTÉRIO ABERTO — carta na manga pra qualquer arco)
+  - **Rei Avô MARTH** (A Palavra Fértil: a terra produz onde ele ordena) ⚭
+    **Rainha Avó VALESCA** (A Diplomata Encantada: ninguém mente perto dela)
+    - **Lorde Prosperi DANTE** — O MAGO MAIS FORTE da era: Escolhido da Luz (o Âmbar o
+      aceita) + Sentinela Eterno (não dorme) + A Chama Responde (a luz é arma)
+    - **Lady da Alvorada DIANA** — O Olhar que Pesa (herança da Suprema)
+  - **CORDELIA** — irmã de Marth, filha de Fiona (⏭️ A CANONIZAR: história/poder/paradeiro!)
+
+### Pendências novas
+- Quem é CORDELIA? Onde está? Herdou o quê da mãe?
+- Diana SABE do segredo do Farol?
+- Fiona × o Âmbar: a Suprema sumiu ATRÁS de algo? (noite sem lua...)
+
+
+## 🌑 RODADA 12 — A FAMÍLIA E O SEGREDO
+- **CORDELIA rompeu com a família**: vive entre o povo, identidade ESCONDIDA
+  (⭐ gancho: ela pode ser um rosto que JÁ conhecemos... a Cigana? Marion? alguém do Ermo?)
+- **O segredo é da FAMÍLIA**: todos sabem; **MARTH foi o 1º guardião do Âmbar, criança**
+  (a Palavra Fértil pode ter nascido de crescer ao lado da luz-origem?)
+- **Referência-fonte**: Fiona = Fiona Goode (AHS: Coven); Cordelia ecoa a filha
+  (⭐ gancho: em AHS a Suprema morre quando a próxima ASCENDE — Fiona sumiu numa noite
+  sem lua... porque sentiu CORDELIA despertando?! A investigar em arco futuro.)
+
+
+## 🌊 RODADAS 13-16 — RAINHA CINZENTA, ELENCO E OS FIOS CRUZADOS
+- **Rainha Cinzenta**: anciã DEIXADA no cais na queda; quer SAQUEAR até quebrar a ilha.
+- **A TRAVESSIA (design fechado)**: barco do Zé = cadeia de missões + A JUBA DO MARAJÁ
+  (derrotar o boss é o pedágio!); intocável pelos piratas. Barco oficial: libera após a
+  1ª rota; chance de ataque pirata.
+- **Cúpula da ilha**: Arquimago HERON, o Que Ficou (colega de Varth); Dom BALTAZAR Albina
+  (patriarca festeiro); ARCEBISPO REI Celestino + 12 Sumo-Sacerdotes (um por torre).
+- **FIOS CRUZADOS ilha × continente**:
+  · Heron guarda a vaga do CRONISTA aberta em segredo
+  · DANTE sabe quem Valdris é — e TEME a travessia dele
+  · Heron descobriu a infiltração da MARION — e admirou (nunca denunciou)
+  · O ZÉ tentou voltar pela Rainha Cinzenta; o remo perdeu da maré; ela VIU (o respeito)
+  · A corte de Prospera ENCOMENDA de Bragan & Petra sem saber quem são
+  · ⭐ **CORDELIA = "ROBERTINA"**: a tia vive sob esse nome falso (definir ONDE/quem é
+    Robertina — NPC nova ou rosto existente? Próxima sessão de lore!)
+- Pendências: nomes sujeitos a veto (Heron/Baltazar/Celestino); por que o Zé pede a JUBA?
+
+
+## 🚧 CONSTRUÇÃO DE PROSPERINA — STATUS (Sessão de Obra 1)
+✅ FEITO: mapas VILALBINA (44x28, cais/praça/casario/saída leste) e TRIGAL DOURADO (56x36,
+trilha/fazendas); TRAVESSIA no píer da Costa (250,252): 1ª vez consome JUBA DO MARAJÁ +
+flag ficha["prosperina"]; depois livre com 20% de piratas no desembarque; bordas
+Vilalbina<->Trigal por interact; NPC Dom Baltazar na praça.
+⏭️ PRÓXIMA OBRA: Vinhedo + Pastos + PROSPERA (grande!) + Jardim do Templo (12 torres) +
+Cidade Alta + Farol; decor client (casario BRANCO, trigo dourado, vitrais); NPCs restantes
+(Heron, gêmeos, Celestino, taverneiro local); cadeia de missões completa do Zé; enigmas
+dos grifos; interiores (Biblioteca lendo o CANON!); mobs da ilha (piratas no trigal?).

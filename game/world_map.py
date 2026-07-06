@@ -2164,6 +2164,90 @@ def _ossuario_int():
 MAPS["ossuario"] = {"rows": _ossuario_int(), "spawns": [(9, 10), (8, 10), (10, 10)]}
 
 
+def _vilalbina():
+    """Vilalbina: a vila portuária caiada de branco (44x28). Cais ao sul,
+    praça central, casas dos Albina. Saída LESTE para o Trigal Dourado."""
+    W, H = 44, 28
+    g = [["." for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "T" if x % 5 == 2 else "."
+        g[H - 1][x] = "~"
+    for y in range(H):
+        g[y][0] = "~"
+    # o cais: píer de madeira entrando no mar do sul
+    for x in range(18, 27):
+        g[H - 2][x] = "="
+        g[H - 3][x] = "="
+    for y in range(H - 6, H - 3):
+        for x in range(20, 25):
+            g[y][x] = "p"
+    # casario branco: blocos de casas com portas
+    def casa(cx, cy, w=5, h=4):
+        for xx in range(cx, cx + w):
+            g[cy][xx] = "H"
+            g[cy + h - 1][xx] = "H"
+        for yy in range(cy, cy + h):
+            g[yy][cx] = "H"
+            g[yy][cx + w - 1] = "H"
+        for yy in range(cy + 1, cy + h - 1):
+            for xx in range(cx + 1, cx + w - 1):
+                g[yy][xx] = "1"
+        g[cy + h - 1][cx + w // 2] = "D"
+    for (cx, cy) in ((4, 4), (12, 4), (30, 4), (37, 4), (4, 12), (36, 12), (4, 19), (36, 19)):
+        casa(cx, cy)
+    # a praça central com braseiros festivos
+    for y in range(10, 18):
+        for x in range(16, 29):
+            g[y][x] = "p"
+    for (bx, by) in ((17, 11), (27, 11), (17, 16), (27, 16)):
+        g[by][bx] = ";"
+    # caminho do cais à praça e da praça à saída leste
+    for y in range(18, H - 6):
+        for x in range(20, 25):
+            g[y][x] = "p"
+    for x in range(29, W - 1):
+        g[13][x] = "p"
+        g[14][x] = "p"
+    return ["".join(r) for r in g]
+
+
+def _trigal_dourado():
+    """O Trigal Dourado (56x36): mar de trigo, trilha central, fazendinhas.
+    Saída OESTE para Vilalbina; leste reservado (futuro: Prospera)."""
+    import random as _r
+    rng = _r.Random(777)
+    W, H = 56, 36
+    g = [["," if rng.random() < 0.62 else "." for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "T" if x % 6 == 3 else "."
+        g[H - 1][x] = "T" if x % 7 == 2 else "."
+    # a trilha de terra cortando o trigal
+    for x in range(0, W):
+        g[17][x] = "p"
+        g[18][x] = "p"
+    # duas fazendinhas com cercas
+    def fazenda(cx, cy):
+        for xx in range(cx, cx + 7):
+            g[cy][xx] = "H"
+            g[cy + 5][xx] = "H"
+        for yy in range(cy, cy + 6):
+            g[yy][cx] = "H"
+            g[yy][cx + 6] = "H"
+        for yy in range(cy + 1, cy + 5):
+            for xx in range(cx + 1, cx + 6):
+                g[yy][xx] = "1"
+        g[cy + 5][cx + 3] = "D"
+    fazenda(8, 6)
+    fazenda(38, 24)
+    for (bx, by) in ((5, 17), (28, 16), (50, 18)):
+        g[by][bx] = ";"
+    return ["".join(r) for r in g]
+
+
+MAPS["vilalbina"] = {"rows": _vilalbina(), "spawns": [(22, 22), (21, 22), (23, 22)]}
+MAPS["trigal_dourado"] = {"rows": _trigal_dourado(), "spawns": [(3, 17), (3, 18), (4, 17)]}
+
+
 def _gotico_vespera():
     """O entorno do castelo de Varth vira um cemitério gótico: lápides, árvores
     mortas e braseiros no anel externo, entrada cerimonial com tapete de pedra."""
