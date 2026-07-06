@@ -14156,7 +14156,8 @@ function drawIlhaDecor(c, now){
 // ===========================================================================
 function drawCharacter(c, px, py, ts, look, facing, name, isSelf, moving, walk){
   _drawCharacterBase(c, px, py, ts, look, facing, name, isSelf, moving, walk);
-  try{ drawOutfitExtras(c, px, py, ts, look || {}, facing, moving, walk); }catch(e){}
+  try{ drawOutfitExtras(c, px, py, ts, look || {}, facing, moving, walk); }
+  catch(e){ if(!window._ofErr){ window._ofErr = 1; console.error('outfit render falhou:', e); } }
 }
 
 function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){

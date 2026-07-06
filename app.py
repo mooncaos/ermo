@@ -180,7 +180,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "Habilidades RT (6-0) + Rebalance Melee (06/jul v9)"
+BUILD_TAG = "v9b: habilidades + melee + outfits NPC verificados (06/jul)"
 
 
 def _asset_version():
