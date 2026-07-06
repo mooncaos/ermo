@@ -2805,10 +2805,9 @@ def on_outfit_set(data):
                       if prog.get(ch, 0) >= alvo]
     player["look"] = look
     _persist_loadout(player)
-    try:
-        _world_refresh(player.get("map"))
-    except Exception:
-        pass
+    socketio.emit("player_look", {"id": player["id"], "look": look},
+                  room=player.get("map"))
+    emit("player_look", {"id": player["id"], "look": look})
     emit("toast", {"text": "🎨 Vestindo: %s %s" % (o["nome"],
                    "(full addons!)" if len(look["addons"]) == 2 else "")})
     emit("outfits", _outfits_payload(player))
