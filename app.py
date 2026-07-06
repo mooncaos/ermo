@@ -959,6 +959,8 @@ def _quest_bump(sid, player, kind, target=None):
             continue
         if kind == "visit" and sp.get("target") != target:
             continue
+        if kind == "fenda" and int(target or 0) < int(sp.get("target", 1)):
+            continue
         st["n"] = int(st.get("n", 0)) + 1
         mudou = True
         if st["n"] >= int(sp.get("count", 1)):
@@ -1005,6 +1007,11 @@ def _quest_deliver(sid, player, qid):
     rw = q.get("reward") or {}
     if rw.get("bronze"):
         player["wallet"] = int(player.get("wallet", 0)) + int(rw["bronze"])
+        if qid.startswith("ct_"):
+            _aju = min(int(MARKET.get("chest", 0)), int(rw["bronze"]) // 2)
+            if _aju > 0:
+                MARKET["chest"] = int(MARKET.get("chest", 0)) - _aju
+                _market_save()
     if rw.get("xp"):
         f["xp"] = int(f.get("xp", 0)) + int(rw["xp"])
         leveling.recompute(f)
@@ -1142,6 +1149,10 @@ def on_quests_get(_data=None):
     if not player or not (player.get("ficha") or {}).get("class_id"):
         return
     _market_payout(request.sid, player)
+    _contract_refresh()
+    _t_ar = max(ARENA_RECORDS.items(), key=lambda kv: kv[1].get("w", 0))[0] if ARENA_RECORDS else ""
+    _t_fd = max(FENDA_RECORDS.items(), key=lambda kv: kv[1])[0] if FENDA_RECORDS else ""
+    socketio.emit("plaza", {"arena": _t_ar, "fenda": _t_fd, "pesca": ""}, to=request.sid)
     if not ((player.get("ficha") or {}).get("skills") or {}).get("magic"):
         skills.ensure(player.get("ficha") or {})
         _quest_save(player)
@@ -1871,6 +1882,7 @@ def _duel_end(win_sid, lose_sid, wo=False):
     rl = ARENA_RECORDS.setdefault(nl, {"w": 0, "l": 0})
     rl["l"] = int(rl.get("l", 0)) + 1
     _save_arena_records()
+    _quest_bump(win_sid, pw, "arena")
     fw = pw.get("ficha") or {}
     fw.setdefault("titles", [])
     for (minimo, titulo) in ((10, "Gladiador do Ermo"), (50, "Campeão da Arena")):
@@ -1958,6 +1970,134 @@ def _rt_boss_summon(m, spec, n):
             _world_refresh(m.get("map"))
         except Exception:
             pass
+
+
+
+# ===========================================================================
+#  FOFOCA VIVA: os NPCs comentam os feitos REAIS do servidor.
+# ===========================================================================
+_GOSSIP_STYLE = {
+    "npc:chica":    "Psiu... me contaram (e eu confirmei com os pombos): ",
+    "npc:cronista": "Para os registros da História: ",
+    "npc:maricota": "Minha filha, o mar me contou: ",
+    "npc:jorge":    "Ouvi no balcão ontem: ",
+    "npc:mestre_bragan": "Entre uma martelada e outra fiquei sabendo: ",
+    "npc:lazaro":   "Ô estrangeiro, notícia quente: ",
+}
+
+
+
+# ===========================================================================
+#  QUADRO DE PROCURADOS: 3 contratos rotativos (6h) injetados no motor de
+#  missões, pagos com ajuda do Cofre da Cidade.
+# ===========================================================================
+CONTRACT_PERIOD = 21600
+_contract_state = {"period": -1}
+
+
+def _contract_refresh():
+    per = int(time.time() // CONTRACT_PERIOD)
+    if per == _contract_state["period"]:
+        return
+    for k in [k for k in list(quests_def.QUESTS) if k.startswith("ct_")]:
+        quests_def.QUESTS.pop(k, None)
+    _contract_state["period"] = per
+    rng = random.Random(per)
+    kills = [t for t, s in monsters_def.MONSTERS.items()
+             if not s.get("boss") and not s.get("passive")
+             and 8 <= int(s.get("xp", 0)) <= 400]
+    mats = [i for i in ("barra_de_ferro", "couro_curtido", "essencia_lunar", "peixe_fresco",
+                        "gema_bruta", "madeira_carvalho", "essencia_solar", "erva_solar")
+            if items.exists(i)]
+    tipos = ["kill", "collect", rng.choice(["fenda", "arena", "kill", "collect"])]
+    rng.shuffle(tipos)
+    for i, tp in enumerate(tipos):
+        qid = "ct_%d_%d" % (per, i)
+        if tp == "kill":
+            t = rng.choice(kills)
+            n = rng.randint(8, 15)
+            nome = (monsters_def.MONSTERS.get(t) or {}).get("name", t)
+            q = {"npc": "npc:quadro_procurados", "name": "Procurado: %s" % nome,
+                 "story": "CONTRATO DA CIDADE: elimine %d %s. O Cofre paga." % (n, nome),
+                 "steps": [{"type": "kill", "target": t, "count": n,
+                            "text": "Derrote %d %s" % (n, nome)}],
+                 "collect": {},
+                 "reward": {"bronze": 250 + n * 25, "xp": 60 + n * 12},
+                 "done_text": "Contrato cumprido. A cidade agradece (e paga)."}
+        elif tp == "collect":
+            iid = rng.choice(mats)
+            n = rng.randint(4, 8)
+            nome = (items.get(iid) or {}).get("name", iid)
+            q = {"npc": "npc:quadro_procurados", "name": "Encomenda: %s" % nome,
+                 "story": "CONTRATO DA CIDADE: entregue %d %s no quadro." % (n, nome),
+                 "steps": [], "collect": {iid: n},
+                 "reward": {"bronze": 200 + n * int((items.get(iid) or {}).get("value", 40)) // 2,
+                            "xp": 120},
+                 "done_text": "Entrega conferida. Bronze na mão."}
+        elif tp == "fenda":
+            alvo = rng.randint(2, 5)
+            q = {"npc": "npc:quadro_procurados", "name": "Mergulho: andar %d" % alvo,
+                 "story": "CONTRATO DA CIDADE: limpe até o andar %d da Fenda do Caos." % alvo,
+                 "steps": [{"type": "fenda", "target": alvo, "count": 1,
+                            "text": "Limpe o andar %d da Fenda" % alvo}],
+                 "collect": {},
+                 "reward": {"bronze": 400 + alvo * 150, "xp": 200 + alvo * 80},
+                 "done_text": "Você olhou o abismo e cobrou por isso. Respeito."}
+        else:
+            q = {"npc": "npc:quadro_procurados", "name": "Sangue na Arena",
+                 "story": "CONTRATO DA CIDADE: vença 1 duelo na Arena do Ermo.",
+                 "steps": [{"type": "arena", "count": 1, "text": "Vença 1 duelo na Arena"}],
+                 "collect": {},
+                 "reward": {"bronze": 500, "xp": 250},
+                 "done_text": "A plateia ainda grita seu nome. O Cofre paga o show."}
+        quests_def.QUESTS[qid] = q
+
+
+def _ephemeris_tick(now):
+    """O Cronista relembra feitos antigos (a cada ~2h, um por vez)."""
+    if _contract_state.get("_eph", 0) > now:
+        return
+    _contract_state["_eph"] = now + 7200
+    velhos = [(t, r) for t, r in BOSS_RECORDS.items()
+              if now - float(r.get("when", now)) >= 86400]
+    if not velhos or random.random() < 0.4:
+        return
+    t, r = random.choice(velhos)
+    dias = int((now - float(r.get("when", now))) // 86400)
+    nome_b = (monsters_def.MONSTERS.get(t) or {}).get("name", t)
+    extra = " pela PRIMEIRA VEZ na história" if r.get("first") == r.get("player") else ""
+    socketio.emit("toast", {"text": "📜 O Cronista lembra: há %d dia(s), %s derrubava %s%s." %
+                            (dias, r.get("player", "alguém"), nome_b, extra)})
+
+
+def _gossip_line(npc_id=None):
+    """Uma fofoca montada dos dados reais (boss, arena, fenda, mercado)."""
+    pool = []
+    for t, rec in list(BOSS_RECORDS.items())[-8:]:
+        nome_b = (monsters_def.MONSTERS.get(t) or {}).get("name", t)
+        pool.append("dizem que %s derrubou %s. De novo, pela %dª vez!" %
+                    (rec.get("player", "alguém"), nome_b, int(rec.get("count", 1))))
+        if rec.get("first"):
+            pool.append("nunca esqueça: %s foi o PRIMEIRO a vencer %s. Isso ninguém tira." %
+                        (rec.get("first"), nome_b))
+    if ARENA_RECORDS:
+        top = max(ARENA_RECORDS.items(), key=lambda kv: kv[1].get("w", 0))
+        if top[1].get("w", 0) > 0:
+            pool.append("na Arena, %s já são %d vitórias. Tem gente com medo de duelar." %
+                        (top[0], top[1]["w"]))
+    if FENDA_RECORDS:
+        topf = max(FENDA_RECORDS.items(), key=lambda kv: kv[1])
+        pool.append("o mais fundo que alguém já foi na Fenda? Andar %d. Foi %s. Loucura." %
+                    (topf[1], topf[0]))
+    if MARKET.get("listings"):
+        pool.append("a Mesa de Negócios tá com %d anúncios. O comércio ferve!" %
+                    len(MARKET["listings"]))
+    if int(MARKET.get("chest", 0)) > 500:
+        pool.append("o Cofre da Cidade guarda %d de bronze das taxas. Alguém vai levar isso na Arena..." %
+                    int(MARKET.get("chest", 0)))
+    if not pool:
+        return None
+    return _GOSSIP_STYLE.get(npc_id or "", "Soube de uma boa: ") + random.choice(pool)
 
 
 def _rt_party_allies(sid, pl):
@@ -2093,6 +2233,7 @@ def _rt_kill(sid, pl, m):
             socketio.emit("fenda_open", {"floor": _flr}, room="fenda")
             for (_fs, _fp) in _fenda_players():
                 _fp["wallet"] = int(_fp.get("wallet", 0)) + 50 * _flr
+                _quest_bump(_fs, _fp, "fenda", _flr)
                 socketio.emit("wallet", {"bronze": _fp.get("wallet", 0)}, to=_fs)
                 _ffi = _fp.get("ficha") or {}
                 if _flr > int(_ffi.get("fenda_best", 0)):
@@ -4000,6 +4141,22 @@ def on_interact(_data=None):
         emit("couraria_open", _marion_payload(player, greet))
         return
 
+    # QUADRO DE PROCURADOS: contratos da cidade (rotação de 6h)
+    if npc.get("_spec", {}).get("contract_board"):
+        _contract_refresh()
+        _qf2 = (player.get("ficha") or {}).get("quests") or {}
+        _novas = 0
+        for _qid in [k for k in quests_def.QUESTS if k.startswith("ct_")]:
+            if _qid not in _qf2:
+                _quest_start(request.sid, player, _qid, silent=True)
+                _novas += 1
+        if _novas:
+            emit("toast", {"text": "📜 %d contrato(s) aceito(s)! Detalhes no Diário (J)." % _novas})
+        else:
+            emit("toast", {"text": "📜 Contratos em andamento. Novos a cada 6 horas."})
+        _emit_quests(request.sid, player)
+        return
+
     # Mesa de Negócios (taverna): Mercado + ofertas diretas
     if npc.get("_spec", {}).get("business_table"):
         emit("market_open", _market_payload(request.sid, player))
@@ -4018,7 +4175,12 @@ def on_interact(_data=None):
         return
 
     greetings = npc.get("_spec", {}).get("greetings") or ["..."]
-    socketio.emit("speech", {"id": npc["id"], "text": random.choice(greetings)}, room=mp)
+    _fala = random.choice(greetings)
+    if random.random() < 0.4:
+        _g = _gossip_line(npc.get("id"))
+        if _g:
+            _fala = _g
+    socketio.emit("speech", {"id": npc["id"], "text": _fala}, room=mp)
 
 
 def _shop_catalog(sets, price):
@@ -4425,9 +4587,34 @@ _NPC_ROUTINE = {
     "npc:seu_milton":     {"day": (272, 220), "night": (262, 226)},
     "npc:maricota":       {"day": (232, 208), "night": (251, 243)},
 }
+def _npc_gossip_tick(now):
+    """NPCs soltam fofoca sozinhos quando um jogador passa perto."""
+    for spec in npcs.ROSTER:
+        nid = spec.get("id")
+        ent = world.players.get(nid)
+        if not ent or ent.get("_gossip_cd", 0) > now:
+            continue
+        mp = ent.get("map")
+        perto = any(p.get("map") == mp and p.get("player_id") and
+                    max(abs(p["x"] - ent.get("x", 0)), abs(p["y"] - ent.get("y", 0))) <= 3
+                    for p in world.players.values())
+        if not perto or random.random() > 0.10:
+            continue
+        ent["_gossip_cd"] = now + 45
+        _g = _gossip_line(nid)
+        if _g:
+            socketio.emit("speech", {"id": nid, "text": _g}, room=mp)
+
+
 def _npc_routine_loop():
     while True:
         socketio.sleep(30)
+        try:
+            _npc_gossip_tick(time.time())
+            _ephemeris_tick(time.time())
+            _contract_refresh()
+        except Exception:
+            pass
         noite = _is_night()
         try:
             for spec in npcs.ROSTER:

@@ -11832,6 +11832,7 @@ var bindArcano = setInterval(()=>{
   socket.on('duel_start', d=>{ if(d){ showDuelBanner(d.foe, d.bet); startMusic('boss'); } });
   socket.on('duel_end', d=>{ hideDuelBanner(); stopMusic(); sfx(d && d.win ? 'legend' : 'mydeath'); });
   socket.on('fenda_open', d=>{ _fendaOpen = true; if(d && d.floor) _fendaFloor = d.floor; sfx('event'); });
+  socket.on('plaza', d=>{ if(d) _plazaData = d; });
   socket.on('rt_aoe', d=>{
     if(!d) return;
     rtAoes.push({x: d.x, y: d.y, r: d.r || 1, dtype: d.dtype || 'energia', t0: performance.now()});
@@ -13167,3 +13168,48 @@ function drawRtAoes(c, now){
     c.restore();
   }
 }
+
+// ===========================================================================
+//  A PRAÇA DOS HERÓIS: três estátuas douradas com os nomes dos maiores
+// ===========================================================================
+var _plazaData = null;
+(function(){
+  const orig6 = drawErmoDecor;
+  drawErmoDecor = function(c, now){
+    orig6(c, now);
+    const defs = [[53, 45, '⚔️ ARENA', 'arena'], [56, 45, '🌀 FENDA', 'fenda'], [59, 45, '🎣 PESCA', 'pesca']];
+    for(const [gx, gy, titulo, chave] of defs){
+      const sx = (gx + 0.5)*TS - camX, sy = (gy + 0.5)*TS - camY;
+      if(sx < -TS*2 || sy < -TS*2 || sx > canvas.width+TS*2 || sy > canvas.height+TS*2) continue;
+      c.save();
+      c.fillStyle = 'rgba(0,0,0,.3)';
+      c.beginPath(); c.ellipse(sx, sy + TS*0.45, TS*0.55, TS*0.16, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#8a8a94';                                     // o pedestal
+      c.fillRect(sx - TS*0.42, sy - TS*0.05, TS*0.84, TS*0.5);
+      c.fillStyle = '#a0a0aa';
+      c.fillRect(sx - TS*0.5, sy + TS*0.32, TS*1.0, TS*0.14);
+      const g = c.createLinearGradient(sx, sy - TS*1.15, sx, sy);   // a figura dourada
+      g.addColorStop(0, '#ffe08a'); g.addColorStop(1, '#c9931a');
+      c.fillStyle = g;
+      c.beginPath(); c.arc(sx, sy - TS*0.95, TS*0.16, 0, Math.PI*2); c.fill();
+      c.beginPath();
+      c.moveTo(sx - TS*0.26, sy - TS*0.05);
+      c.lineTo(sx - TS*0.14, sy - TS*0.75);
+      c.lineTo(sx + TS*0.14, sy - TS*0.75);
+      c.lineTo(sx + TS*0.26, sy - TS*0.05);
+      c.closePath(); c.fill();
+      c.save(); c.globalCompositeOperation = 'lighter';             // o brilho
+      c.globalAlpha = 0.25 + 0.15*Math.sin(now/600 + gx);
+      c.fillStyle = '#ffd97a';
+      c.beginPath(); c.arc(sx, sy - TS*0.55, TS*0.7, 0, Math.PI*2); c.fill();
+      c.restore();
+      c.font = '700 8.5px Inter'; c.textAlign = 'center';
+      c.fillStyle = '#c9a860';
+      c.fillText(titulo, sx, sy + TS*0.7);
+      const nome = (_plazaData && _plazaData[chave]) || '—';
+      c.fillStyle = 'rgba(0,0,0,.65)'; c.fillText(nome, sx + 0.6, sy + TS*0.99);
+      c.fillStyle = '#f0e4c0'; c.fillText(nome, sx, sy + TS*0.98);
+      c.restore();
+    }
+  };
+})();

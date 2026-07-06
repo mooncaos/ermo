@@ -1422,6 +1422,29 @@ ROSTER.append({
     "greetings": ["..."], "business_table": True,
 })
 
+# JORGE, o Taverneiro: o dono da casa, atrás do balcão, sabe de tudo.
+ROSTER.append({
+    "id": "npc:jorge", "name": "Jorge, o Taverneiro",
+    "look": {"skin": "#c9915a", "cloak": "#6a3a2a", "hat": "none", "hair": "#3a2a1a", "staff": False},
+    "map": "taverna", "home": (16, 3), "radius": 1, "wanders": True,
+    "step_every": 2.2, "solid": True, "kind": "person",
+    "greetings": ["Bem-vindo à minha casa. O que vai ser?",
+                  "Cerveja gelada, prato quente e fofoca fresca. Escolhe dois.",
+                  "Já limpei esse balcão três vezes hoje. TRÊS.",
+                  "Aqui dentro ninguém briga. Lá fora o problema é seu.",
+                  "O segredo do hidromel? Não conto nem bêbado."],
+    "taverneiro": True,
+})
+
+# O QUADRO DE PROCURADOS: contratos rotativos pagos pelo Cofre da Cidade.
+ROSTER.append({
+    "id": "npc:quadro_procurados", "name": "Quadro de Procurados",
+    "look": {"skin": "#8a6a4a", "cloak": "#5a4a3a"},
+    "map": "taverna", "home": (14, 2), "radius": 0, "wanders": False,
+    "step_every": 999, "solid": True, "kind": "mesa",
+    "greetings": ["..."], "contract_board": True,
+})
+
 # A Goblin do Cofre: roubou o cofre de Lorde Varth e se escondeu no canto sudeste
 # da câmara. Vende o set Necrótico (épico, melhor que o do Coveiro) por bronze +
 # Símbolos de Varth.
