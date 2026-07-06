@@ -2104,15 +2104,19 @@ def _npc_travel(nid, mapa, x, y):
 
 
 # turno do dia pelo relógio REAL: manhã 6-11, tarde 12-18, noite 19-23, madruga 0-5
-def _turno_do_dia():
-    h = int((time.time() - 3 * 3600) // 3600) % 24    # horário do Brasil (UTC-3)
-    if 6 <= h <= 11:
+def _turno_do_dia(now=None):
+    """O turno segue o SOL DO PRÓPRIO JOGO (a mesma conta do cliente):
+    t < 0.23 madrugada | 0.23-0.55 manhã | 0.55-0.88 tarde | >= 0.88 noite
+    (noite emenda na madrugada: exatamente a faixa em que _is_night é True)."""
+    now = time.time() if now is None else now
+    t = (now % DAY_LENGTH) / DAY_LENGTH
+    if t < 0.23:
+        return "madruga"
+    if t < 0.55:
         return "manha"
-    if 12 <= h <= 18:
+    if t < 0.88:
         return "tarde"
-    if 19 <= h <= 23:
-        return "noite"
-    return "madruga"
+    return "noite"
 
 
 _TAVERNA_SPOTS = [(4, 5), (6, 6), (8, 5), (12, 6), (14, 5), (7, 8), (13, 8), (16, 6), (11, 4)]
@@ -2139,7 +2143,7 @@ def _npc_agenda_tick():
         ent = world.players.get(nid)
         if not ent:
             continue
-        _hora = int((time.time() - 3 * 3600) // 3600)
+        _hora = int(time.time() // (DAY_LENGTH / 4))   # gira a cada quarto de dia DO JOGO
         _folga = [s for s in _SOCIAVEIS if (abs(hash(s)) + _hora) % len(_SOCIAVEIS) < 3]
         if turno == "noite" or (turno in ("manha", "tarde") and nid in _folga) or \
            (turno == "madruga" and nid == "npc:lazaro"):
@@ -4956,12 +4960,12 @@ def on_fish_hit(data):
         return
     player["_fishing"] = 0
     # PESCA LENDÁRIA: clima + hora + isca viva invocam as lendas das águas
-    _h = int((time.time() - 3 * 3600) // 3600) % 24
+    _turno_p = _turno_do_dia()
     _lend = None
     if _bag_count(player, "isca_viva") >= 1:
-        if WEATHER.get("type") in ("chuva", "tempestade") and (_h >= 19 or _h <= 4):
+        if WEATHER.get("type") in ("chuva", "tempestade") and _turno_p in ("noite", "madruga"):
             _lend = "peixe_rei"
-        elif WEATHER.get("type") == "limpo" and 0 <= _h <= 5:
+        elif WEATHER.get("type") == "limpo" and _turno_p == "madruga":
             _lend = "carpa_estelar"
         elif WEATHER.get("type") == "tempestade":
             _lend = "bagre_abissal"
