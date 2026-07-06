@@ -101,7 +101,9 @@ FACTIONS = {"cria_vampirica": "vampiro", "vampiro_nobre": "vampiro", "vampiro_an
 BOSS_RESPAWN_MIN = 3600      # bosses grandes renascem entre 1 e 2 horas REAIS
 BOSS_RESPAWN_MAX = 7200
 MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Costa de Maravaí",
-              "templo_estrelado": "Santuário dos Doze", "vilalbina": "Vilalbina", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
+              "templo_estrelado": "Santuário dos Doze", "vilalbina": "Vilalbina",
+              "taverna_vilalbina": "Taverna da Rosa", "iscas_cais": "Isqueria do Tião",
+              "mercado_prospera": "Empório do Otto", "solar_prospera": "Solar dos Eméritos", "trigal_dourado": "Trigal Dourado", "vinhedo": "Vinhedo & Pomares",
               "pastos": "Pastos & Fazendas", "prospera": "Prospera", "jardim_templo": "Jardim do Templo Estrelado",
               "cidade_alta": "Cidade Alta", "farol_margem": "Margem do Farol", "torre_alvorada": "A Grande Biblioteca",
               "umbraval": "Umbraval", "vespera": "Véspera", "brasal": "Brasal",
@@ -2532,9 +2534,60 @@ def _try_travessia(player):
     if player.get("map") == "costa_maravai" and \
        max(abs(player["x"] - TRAVESSIA_COSTA[0]), abs(player["y"] - TRAVESSIA_COSTA[1])) <= 3:
         if not f.get("prosperina"):
+            ze = int(f.get("ze", 0))
+            op = f.setdefault("op", {})
+            if ze == 0:
+                f["ze"] = 1
+                f["ze_fish0"] = int(op.get("pesca", 0))
+                player["ficha"] = f
+                _quest_save(player)
+                emit("toast", {"text": "🛶 Zé do Remo: 'Quer cruzar o Cinzento? Primeiro me mostra que "
+                               "aguenta o MAR. PROVA 1: pesque 3 peixes nestas águas e volta aqui.'"})
+                return True
+            if ze == 1:
+                pescou = int(op.get("pesca", 0)) - int(f.get("ze_fish0", 0))
+                if pescou < 3:
+                    emit("toast", {"text": "🛶 Zé: 'Peixes: %d de 3. O mar não respeita pressa.'" % max(0, pescou)})
+                    return True
+                f["ze"] = 2
+                player["ficha"] = f
+                _quest_save(player)
+                emit("toast", {"text": "🛶 Zé: 'Sabe pescar. PROVA 2: travessia come. Traz 5 PEIXES "
+                               "ASSADOS de mantimento.'"})
+                return True
+            if ze == 2:
+                if _bag_count(player, "peixe_assado") < 5:
+                    emit("toast", {"text": "🛶 Zé: 'Mantimentos: %d de 5 peixes assados. A Rosa assa, "
+                                   "a Maricota vende cru.'" % _bag_count(player, "peixe_assado")})
+                    return True
+                items.remove_from_bag(player["inventory"], "peixe_assado", 5)
+                _persist_loadout(player)
+                emit("loadout", {"bag": player["inventory"], "equipment": player["equipment"]})
+                f["ze"] = 3
+                player["ficha"] = f
+                _quest_save(player)
+                _spawn_wave("costa_maravai", TRAVESSIA_COSTA[0], TRAVESSIA_COSTA[1] - 4, 3,
+                            "_zeprova", "☠️ PIRATAS avançam sobre o barco do Zé! DEFENDA O PÍER!")
+                emit("toast", {"text": "🛶 Zé: 'PROVA 3: eles vêm roubar meu barco toda lua. HOJE não. "
+                               "DEFENDE!'"})
+                return True
+            if ze == 3:
+                vivos = any(m.get("alive") and m.get("_zeprova") and
+                            m.get("map") == "costa_maravai" for m in world.monsters.values())
+                if vivos:
+                    emit("toast", {"text": "🛶 Zé: 'AINDA TEM PIRATA DE PÉ! O barco não se defende sozinho!'"})
+                    return True
+                f["ze"] = 4
+                player["ficha"] = f
+                _quest_save(player)
+                socketio.emit("toast", {"text": "⚓ %s defendeu o barco do Zé do Remo! Falta só... o preço." %
+                              player.get("name", "Alguém")})
+                emit("toast", {"text": "🛶 Zé: 'Provado. Agora o PREÇO da travessia: a JUBA DO LEÃO. "
+                               "Não pergunta por quê.'"})
+                return True
             if _bag_count(player, "juba_maraja") < 1:
-                emit("toast", {"text": "🛶 O Zé olha o mar cinzento: 'Pra ESSA travessia, o preço é "
-                               "a JUBA DO LEÃO. Não pergunta por quê.'"})
+                emit("toast", {"text": "🛶 Zé: 'A JUBA DO LEÃO. É o preço. O Marajá anda pelas areias "
+                               "de Avasham.'"})
                 return True
             items.remove_from_bag(player["inventory"], "juba_maraja", 1)
             f["prosperina"] = True
@@ -2814,6 +2867,39 @@ def on_outfit_set(data):
     emit("toast", {"text": "🎨 Vestindo: %s %s" % (o["nome"],
                    "(full addons!)" if len(look["addons"]) == 2 else "")})
     emit("outfits", _outfits_payload(player))
+
+
+
+# ===========================================================================
+#  CASAS ENTRÁVEIS DA ILHA: portas na face sul levam a interiores de verdade.
+# ===========================================================================
+CASAS_ILHA = [
+    {"mapa": "vilalbina", "cx": 30, "cy": 3, "w": 5, "h": 3,
+     "dest": "taverna_vilalbina", "dx": 6, "dy": 7, "bx": 32, "by": 7},
+    {"mapa": "vilalbina", "cx": 30, "cy": 20, "w": 4, "h": 3,
+     "dest": "iscas_cais", "dx": 4, "dy": 5, "bx": 31, "by": 24},
+    {"mapa": "prospera", "cx": 58, "cy": 20, "w": 5, "h": 3,
+     "dest": "mercado_prospera", "dx": 6, "dy": 7, "bx": 60, "by": 24},
+    {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
+     "dest": "solar_prospera", "dx": 7, "dy": 8, "bx": 52, "by": 9},
+]
+
+
+def _try_casas_ilha(player):
+    mp = player.get("map")
+    for c in CASAS_ILHA:
+        if mp == c["mapa"] and c["cy"] + c["h"] - 1 <= player.get("y", 0) <= c["cy"] + c["h"] + 1 \
+           and c["cx"] - 1 <= player.get("x", 0) <= c["cx"] + c["w"]:
+            _go_to(request.sid, c["dest"], c["dx"], c["dy"])
+            emit("toast", {"text": "🚪 " + MAP_TITLES.get(c["dest"], c["dest"])})
+            return True
+        if mp == c["dest"]:
+            rows = wm.MAPS[c["dest"]]["rows"]
+            if player.get("y", 0) >= len(rows) - 2:
+                _go_to(request.sid, c["mapa"], c["bx"], c["by"])
+                emit("toast", {"text": "🚪 De volta à rua."})
+                return True
+    return False
 
 
 def _gossip_line(npc_id=None):
@@ -4790,6 +4876,7 @@ def on_interact(_data=None):
            not _try_travessia(player) and not _try_ilha_bordas(player) and \
            not _try_torre(player) and not _try_biblioteca(player) and \
            not _try_farol(player) and not _try_santuario(player) and \
+           not _try_casas_ilha(player) and \
            not _try_garden(player) and \
            not _try_ossuario(player) and not _try_mastro(player) and \
            not _try_bigorna(player) and not _try_altar(player) and \
@@ -5025,6 +5112,21 @@ def on_interact(_data=None):
         _open_shop(player, npc, "Taverna do Jorge", [], 0,
                    potions=[("caneca_de_cerveja", 40), ("hidromel_do_ermo", 100),
                             ("prato_do_dia", 150), ("pinga_do_jorge", 60)])
+        return
+
+    if npc.get("id") == "npc:rosa_albina":
+        _open_shop(player, npc, "Taverna da Rosa", [], 0,
+                   potions=[("caneca_de_cerveja", 40), ("hidromel_do_ermo", 100),
+                            ("prato_do_dia", 150), ("peixe_assado", 80)])
+        return
+    if npc.get("id") == "npc:tiao_iscas":
+        _open_shop(player, npc, "Isqueria do Tião", [], 0,
+                   potions=[("isca_viva", 25)])
+        return
+    if npc.get("id") == "npc:otto":
+        _open_shop(player, npc, "Empório do Otto", items.TIER_SETS["t2"],
+                   getattr(items, "TIER_PRICE", {}).get("t2", 140) if hasattr(items, "TIER_PRICE") else 140,
+                   potions=[("caneca_de_cerveja", 55)])
         return
 
     # QUADRO DE PROCURADOS: contratos da cidade (rotação de 6h)

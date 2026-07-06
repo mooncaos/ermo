@@ -2570,6 +2570,64 @@ MAPS["torre_alvorada"] = {"rows": _torre_alvorada(), "spawns": [(9, 11), (8, 11)
 MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(13, 24), (12, 24), (14, 24)]}
 
 
+def _taverna_vilalbina():
+    """A Taverna da Rosa (12x9): balcão, mesas e a festa de sempre."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(9)]
+    g[0] = list("F" * 12)
+    g[8] = list("F" * 12)
+    for x in range(2, 7):
+        g[2][x] = "H"                     # o balcão
+    g[4][3] = "H"; g[4][8] = "H"          # mesas
+    g[6][3] = "H"; g[6][8] = "H"
+    g[1][9] = ";"
+    return ["".join(r) for r in g]
+
+
+def _iscas_cais():
+    """A Isqueria do Tião (9x7): barris de iscas e cheiro de maré."""
+    g = [list("F" + "1" * 7 + "F") for _ in range(7)]
+    g[0] = list("F" * 9)
+    g[6] = list("F" * 9)
+    g[2][2] = "H"; g[2][3] = "H"          # o balcão
+    g[4][6] = "H"                          # barril
+    g[1][6] = ";"
+    return ["".join(r) for r in g]
+
+
+def _mercado_prospera():
+    """O Empório do Otto (13x9): prateleiras da capital."""
+    g = [list("F" + "1" * 11 + "F") for _ in range(9)]
+    g[0] = list("F" * 13)
+    g[8] = list("F" * 13)
+    for x in range(2, 6):
+        g[2][x] = "H"                     # balcão
+    for y in (4, 6):
+        for x in (8, 9, 10):
+            g[y][x] = "H"                 # prateleiras
+    g[1][10] = ";"
+    return ["".join(r) for r in g]
+
+
+def _solar_prospera():
+    """O Solar dos Eméritos (14x10): tapete, lareira e memória."""
+    g = [list("F" + "1" * 12 + "F") for _ in range(10)]
+    g[0] = list("F" * 14)
+    g[9] = list("F" * 14)
+    for x in (3, 4):
+        g[2][x] = "H"                     # a lareira
+    g[2][5] = ";"
+    for x in (8, 9, 10):
+        g[4][x] = "H"                     # a grande mesa
+    g[6][2] = "H"; g[6][11] = "H"         # poltronas
+    return ["".join(r) for r in g]
+
+
+MAPS["taverna_vilalbina"] = {"rows": _taverna_vilalbina(), "spawns": [(6, 7), (5, 7), (7, 7)]}
+MAPS["iscas_cais"] = {"rows": _iscas_cais(), "spawns": [(4, 5), (3, 5), (5, 5)]}
+MAPS["mercado_prospera"] = {"rows": _mercado_prospera(), "spawns": [(6, 7), (5, 7), (7, 7)]}
+MAPS["solar_prospera"] = {"rows": _solar_prospera(), "spawns": [(7, 8), (6, 8), (8, 8)]}
+
+
 def _gotico_vespera():
     """O entorno do castelo de Varth vira um cemitério gótico: lápides, árvores
     mortas e braseiros no anel externo, entrada cerimonial com tapete de pedra."""

@@ -1532,6 +1532,55 @@ ROSTER.append({
     "greetings": ['Nharé é a segunda chance que você não merecia.', 'Apostou? Ela viu. Escapou? Agradeça a Ela.'],
 })
 
+# O COMÉRCIO DA ILHA + OS EMÉRITOS
+ROSTER.append({
+    "id": "npc:rosa_albina", "name": "Rosa Albina",
+    "look": {"skin": "#c9a06a", "cloak": "#e05a6a", "hat": "none", "hair": "#3a2a1a", "staff": False},
+    "map": "taverna_vilalbina", "home": (4, 3), "radius": 1, "wanders": True,
+    "step_every": 2.6, "solid": True, "kind": "person",
+    "greetings": ["Bem-vindo à MINHA taverna! O tio Baltazar recebe no cais, eu recebo aqui.",
+                  "Cerveja gelada, peixe assado e fofoca fresca. O trio sagrado.",
+                  "Todo forasteiro tem a primeira caneca... pelo preço de sempre. TRADIÇÃO é tradição."],
+})
+ROSTER.append({
+    "id": "npc:tiao_iscas", "name": "Tião das Iscas",
+    "look": {"skin": "#a8845c", "cloak": "#4a6a5a", "hat": "none", "hair": "#d8d8d8", "staff": False},
+    "map": "iscas_cais", "home": (5, 3), "radius": 1, "wanders": True,
+    "step_every": 3.2, "solid": True, "kind": "person",
+    "greetings": ["Isca viva, fresquinha. O peixe grande não resiste.",
+                  "O Zé compra caixa fechada. Cliente há quarenta anos.",
+                  "Segredo do mar cinzento: o peixe-rei só morde com chuva. Não conta pra ninguém."],
+})
+ROSTER.append({
+    "id": "npc:otto", "name": "Mercador Otto",
+    "look": {"skin": "#c9b090", "cloak": "#5a4a8a", "hat": "none", "hair": "#8a6a3a", "staff": False},
+    "map": "mercado_prospera", "home": (5, 4), "radius": 1, "wanders": True,
+    "step_every": 2.8, "solid": True, "kind": "person",
+    "greetings": ["O Empório do Otto: se a ilha produz, eu vendo. Se não produz, eu importo.",
+                  "A corte compra aqui. A senhora Diana em pessoa já pisou neste tapete.",
+                  "Qualidade da capital, preço de... capital. Ora, estamos em Prospera!"],
+})
+ROSTER.append({
+    "id": "npc:rei_marth", "name": "Rei Avô Marth",
+    "look": {"skin": "#c9a880", "cloak": "#c9b44a", "hat": "none", "hair": "#e8e8e8", "staff": True},
+    "map": "solar_prospera", "home": (5, 5), "radius": 1, "wanders": True,
+    "step_every": 3.6, "solid": True, "kind": "person",
+    "greetings": ["Eu era criança quando me deram o Âmbar pra guardar. Criança. Imagina o medo.",
+                  "Onde eu piso e ORDENO, a terra produz. Mas a terra gosta mais de quem pede.",
+                  "Meu filho não dorme. Minha filha não descansa. Eu plantei bem.",
+                  "Minha mãe sumiu numa noite sem lua. Se a encontrar... diga que o trigo está alto."],
+})
+ROSTER.append({
+    "id": "npc:rainha_valesca", "name": "Rainha Avó Valesca",
+    "look": {"skin": "#c9a880", "cloak": "#e8e0f0", "hat": "none", "hair": "#d8d0c8", "staff": False},
+    "map": "solar_prospera", "home": (9, 5), "radius": 1, "wanders": True,
+    "step_every": 3.4, "solid": True, "kind": "person",
+    "greetings": ["Sente-se. Ninguém mente nesta sala. Nem tenta, é constrangedor.",
+                  "A aliança com o Ermo nunca rachou. Adivinhe o motivo.",
+                  "A verdade é uma cortesia que eu... encorajo.",
+                  "Cordelia era a mais doce das duas crianças. Eu sei que ainda é. Onde quer que esteja."],
+})
+
 # A CÚPULA DE PROSPERINA
 ROSTER.append({
     "id": "npc:heron", "name": "Arquimago Heron, o Que Ficou",
