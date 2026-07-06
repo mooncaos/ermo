@@ -104,6 +104,8 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "templo_estrelado": "Templo Estrelado", "ala_sumos": "Ala dos Sumos",
               "casa_lyra": "Lar da Maga Lyra", "casa_bramir": "Lar do Mago Bramir",
               "casa_cecille": "Lar da Maga Cecille",
+              "casa_bibi": "Ateliê da Dona Bibi", "padaria_bruno": "Padaria do Bruno",
+              "casa_naiara": "Casa da Naiara", "casa_caio": "Casa do Caio",
               "mosteiro_celeste": "Mosteiro de São Celeste", "salao_cha": "Salão de Chá da Rainha",
               "loja_zelia": "Quitanda da Zélia", "loja_fuao": "Especiarias do Fuão",
               "loja_elian": "Destilaria da Alvorada", "loja_dinis": "Joalheria do Dinis",
@@ -184,7 +186,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v12: placas + Mansao Angard + Duque azul + barra (06/jul)"
+BUILD_TAG = "v13: 4 casas em Vilalbina + gatos com pelagem propria (06/jul)"
 
 
 def _asset_version():
@@ -2916,6 +2918,14 @@ CASAS_ILHA = [
      "dest": "mercado_prospera", "dx": 8, "dy": 8, "bx": 60, "by": 24},
     {"mapa": "prospera", "cx": 50, "cy": 4, "w": 6, "h": 4,
      "dest": "solar_prospera", "dx": 10, "dy": 10, "bx": 52, "by": 9},
+    {"mapa": "vilalbina", "cx": 3, "cy": 15, "w": 5, "h": 3,
+     "dest": "casa_bibi", "dx": 6, "dy": 5, "bx": 5, "by": 19},
+    {"mapa": "vilalbina", "cx": 10, "cy": 3, "w": 4, "h": 3,
+     "dest": "padaria_bruno", "dx": 6, "dy": 5, "bx": 12, "by": 7},
+    {"mapa": "vilalbina", "cx": 3, "cy": 9, "w": 4, "h": 3,
+     "dest": "casa_naiara", "dx": 5, "dy": 5, "bx": 5, "by": 13},
+    {"mapa": "vilalbina", "cx": 37, "cy": 3, "w": 4, "h": 3,
+     "dest": "casa_caio", "dx": 5, "dy": 5, "bx": 39, "by": 7},
     {"mapa": "vilalbina", "cx": 36, "cy": 15, "w": 5, "h": 3,
      "dest": "mosteiro_celeste", "dx": 6, "dy": 6, "bx": 38, "by": 19},
     {"mapa": "prospera", "cx": 4, "cy": 4, "w": 6, "h": 4,
@@ -5548,6 +5558,11 @@ def on_interact(_data=None):
                 "text": "Mochila vazia? Volte quando tiver TESOUROS, não intenções."},
                 room=player.get("map"))
         return True
+
+    if npc.get("id") == "npc:bruno_padeiro":
+        _open_shop(player, npc, "Padaria do Bruno", [],
+                   0, potions=[("pao_quente", 12)])
+        return
 
     if npc.get("id") == "npc:celestino":
         _fb = player.get("ficha") or {}

@@ -440,6 +440,10 @@ const INT_THEMES = {
   casa_fadogan: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#c9a05a', kind:'comum'},
   casa_lyra:    {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#5a7ac0', kind:'quarto'},
   casa_bramir:  {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#7a6a4a', kind:'quarto'},
+  casa_bibi:     {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#d06a9a', kind:'loja'},
+  padaria_bruno: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e0a850', kind:'loja'},
+  casa_naiara:   {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#4a7a8a', kind:'quarto'},
+  casa_caio:     {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#e0865a', kind:'quarto'},
   casa_cecille: {f1:'#6b5638', f2:'#73603f', wall:'#33281c', acc:'#b06ae0', kind:'quarto'},
   taverna_vilalbina: {f1:'#6b4f34', f2:'#75583a', wall:'#33241a', acc:'#e05a6a', kind:'loja'},
   iscas_cais:        {f1:'#5f5340', f2:'#695c47', wall:'#2e2820', acc:'#5aa9e0', kind:'loja'},
@@ -4909,8 +4913,9 @@ function drawCrow(c, px, py, ts, facing, moving, walk, look){
 
 // O Jose (Mestre Cuscuz): gato preto, sorrisao de cheshire, fumaca roxa subindo.
 function drawCat(c, px, py, ts, facing, moving, walk, look){
-  const smoke = !look || look.smoke !== false;
-  const grin  = !look || look.grin  !== false;
+  const smoke = !!(look && look.smoke);            // só o José fumega
+  const grin  = !!(look && look.grin);             // só o José sorri assim
+  const fur   = (look && look.skin) || '#15151b';  // a pelagem vem do look
   const cx = px + ts*0.5;
   const t = performance.now();
   const hop = moving ? Math.abs(Math.sin((walk/WALK_CYCLE)*Math.PI*2))*2 : 0;
@@ -4930,12 +4935,12 @@ function drawCat(c, px, py, ts, facing, moving, walk, look){
   c.globalAlpha = 0.22; c.fillStyle='#000';
   c.beginPath(); c.ellipse(cx, py+ts*0.84, ts*0.2, ts*0.06, 0,0,Math.PI*2); c.fill();
   c.globalAlpha = 1;
-  c.strokeStyle = '#15151b'; c.lineWidth = ts*0.1; c.lineCap='round';   // cauda
+  c.strokeStyle = fur; c.lineWidth = ts*0.1; c.lineCap='round';   // cauda
   c.beginPath();
   c.moveTo(cx - dir*ts*0.15, baseY);
   c.quadraticCurveTo(cx - dir*ts*0.36, baseY - ts*0.1, cx - dir*ts*0.3, baseY - ts*0.34);
   c.stroke();
-  c.fillStyle = '#15151b';
+  c.fillStyle = fur;
   c.beginPath(); c.ellipse(cx, baseY, ts*0.2, ts*0.18, 0, 0, Math.PI*2); c.fill();   // corpo
   const hy = baseY - ts*0.22;
   c.beginPath(); c.arc(cx, hy, ts*0.17, 0, Math.PI*2); c.fill();                       // cabeca
@@ -15359,6 +15364,10 @@ var _PORTAS_VIVAS = [
   {mapa: 'cidade_alta', cx: 38, cy: 30, w: 6, h: 4, emoji: '⚗️'},
   {mapa: 'cidade_alta', cx: 12, cy: 30, w: 5, h: 3, emoji: '💎'},
   {mapa: 'prospera',   cx: 4,  cy: 4,  w: 6, h: 4, emoji: '🫖'},
+  {mapa: 'vilalbina',  cx: 3,  cy: 15, w: 5, h: 3, emoji: '🧵'},
+  {mapa: 'vilalbina',  cx: 10, cy: 3,  w: 4, h: 3, emoji: '🍞'},
+  {mapa: 'vilalbina',  cx: 3,  cy: 9,  w: 4, h: 3, emoji: '🐟'},
+  {mapa: 'vilalbina',  cx: 37, cy: 3,  w: 4, h: 3, emoji: '🪁'},
   {mapa: 'vilalbina',  cx: 36, cy: 15, w: 5, h: 3, emoji: '🕊️'},
   {mapa: 'vilalbina', cx: 36, cy: 15, w: 5, h: 3, emoji: '⛪'},
   {mapa: 'prospera', cx: 4, cy: 4, w: 6, h: 4, emoji: '🫖'},

@@ -2882,6 +2882,50 @@ def _casa_fadogan():
     return ["".join(r) for r in g]
 
 
+def _casa_bibi():
+    """Ateliê da Dona Bibi (12x8): teares, tecidos e a renda que esconde nós de navio."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(8)]
+    g[0] = list("FFjFF1FFjFFF")
+    g[7] = list("FFFFFDDFFFFF")
+    g[2][2] = "_"; g[2][4] = "_"          # os teares
+    g[2][8] = "E"                          # linhas e padrões
+    g[4][2] = "2"; g[4][3] = "2"; g[4][8] = "q"; g[5][8] = "q"
+    g[5][2] = "b"; g[2][9] = "b"           # ela e a Lita
+    return ["".join(r) for r in g]
+
+
+def _padaria_bruno():
+    """Padaria do Bruno (12x8): forno aceso, balcão e o cheiro que não se vende."""
+    g = [list("F" + "1" * 10 + "F") for _ in range(8)]
+    g[0] = list("FFjFFhFFjFFF")
+    g[7] = list("FFFFFDDFFFFF")
+    g[2][2] = "#"; g[2][3] = "#"; g[2][4] = "#"     # o balcão
+    g[2][8] = "o"; g[3][8] = "o"                     # sacas de farinha
+    g[4][2] = "k"; g[5][8] = "b"
+    return ["".join(r) for r in g]
+
+
+def _casa_naiara():
+    """Casa da Naiara (11x8): redes penduradas e o mar na janela."""
+    g = [list("F" + "1" * 9 + "F") for _ in range(8)]
+    g[0] = list("FFjFFFFjFFF")
+    g[7] = list("FFFFDDFFFFF")
+    g[2][2] = "b"; g[2][8] = "q"
+    g[4][8] = "o"; g[5][2] = "2"; g[4][4] = "k"
+    return ["".join(r) for r in g]
+
+
+def _casa_caio():
+    """Casa do Caio e da mãe (11x8): pequena, limpa, cheia de energia acumulada."""
+    g = [list("F" + "1" * 9 + "F") for _ in range(8)]
+    g[0] = list("FFjFFFFjFFF")
+    g[7] = list("FFFFDDFFFFF")
+    g[2][2] = "b"; g[2][4] = "b"           # mãe e filho
+    g[4][8] = "2"; g[5][8] = "2"           # o canto de brincar
+    g[2][8] = "h"; g[5][2] = "q"
+    return ["".join(r) for r in g]
+
+
 MAPS["casa_lyra"] = {"rows": _casa_lyra(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 MAPS["mosteiro_celeste"] = {"rows": _mosteiro_celeste(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 MAPS["salao_cha"] = {"rows": _salao_cha(), "spawns": [(7, 7), (6, 7), (8, 7)]}
@@ -2893,6 +2937,10 @@ MAPS["adega_angard"] = {"rows": _adega_angard(), "spawns": [(7, 7), (6, 7), (8, 
 MAPS["casa_fadogan"] = {"rows": _casa_fadogan(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 MAPS["casa_bramir"] = {"rows": _casa_bramir(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 MAPS["casa_cecille"] = {"rows": _casa_cecille(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["casa_bibi"] = {"rows": _casa_bibi(), "spawns": [(6, 5), (5, 5), (7, 5)]}
+MAPS["padaria_bruno"] = {"rows": _padaria_bruno(), "spawns": [(6, 5), (5, 5), (7, 5)]}
+MAPS["casa_naiara"] = {"rows": _casa_naiara(), "spawns": [(5, 5), (4, 5), (6, 5)]}
+MAPS["casa_caio"] = {"rows": _casa_caio(), "spawns": [(5, 5), (4, 5), (6, 5)]}
 
 
 MAPS["templo_estrelado"] = {"rows": _templo_estrelado(), "spawns": [(16, 29), (15, 29), (17, 29)]}

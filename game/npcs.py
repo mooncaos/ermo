@@ -355,7 +355,7 @@ ROSTER = [
     {
         "id": "npc:jose", "name": "Jose",
         "look": {"skin": "#15151b", "cloak": "#15151b", "hood": "down",
-                 "hat": "none", "hair": "#15151b", "staff": False},
+                 "hat": "none", "hair": "#15151b", "staff": False, "smoke": True, "grin": True},
         "home": (32, 10), "radius": 2, "wanders": True, "step_every": 2.2,
         "solid": False, "kind": "cat",
         "murmurs": JOSE_MURMURS, "murmur_min": 20, "murmur_max": 32,
@@ -1647,6 +1647,14 @@ ROSTER.append({
 
 # ============ O SEGUNDO POVOAMENTO (rodada de julho/2026) ============
 # --- Vilalbina: a rendeira-pirata, o filósofo e o mosteiro ---
+ROSTER.append({"id": "npc:dona_ceci", "name": "Dona Ceci, mãe do Caio",
+    "look": {"skin": "#c9a06a", "cloak": "#8a5a4a", "hat": "none", "hood": "down", "hair": "#3a2a1a", "staff": False},
+    "map": "casa_caio", "home": (4, 4), "radius": 3, "wanders": True, "step_every": 2.8,
+    "solid": True, "kind": "person",
+    "greetings": ["CAIO! ...desculpa, achei que fosse o menino. Entra, entra.",
+                  "Ele quer remar que nem o Zé. Eu quero que ele COMA primeiro.",
+                  "A casa é pequena, o menino é grande. Dá certo, sempre deu."],
+})
 ROSTER.append({"id": "npc:dona_bibi", "name": "Dona Bibi, a Rendeira",
     "look": {"skin": "#a8845c", "cloak": "#5a4a6a", "hat": "none", "hood": "down", "hair": "#d8d8d8", "staff": False, "sex": "F"},
     "map": "vilalbina", "home": (8, 21), "radius": 2, "wanders": True, "step_every": 4.0,

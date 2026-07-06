@@ -125,6 +125,7 @@ ITEMS = {
     "anel_da_fornalha":    {"name": "Anel da Fornalha", "kind": "trinket", "stackable": False, "color": "#ff8a40", "slot": "ring", "visual": "ring", "rarity": "epico", "atk": 5, "spell_pow": 6, "dmg_flat": 6, "value": 6000, "desc": "Um aro forjado no calor da Goela, quente ao toque pra sempre. Alimenta o braço e a mente: +5 para acertar, +6 de poder mágico e +6 de dano fixo por golpe."},
 
     # --- Costa de Maravai: comida de praia, tesouros do mar, artesanato caiçara ---
+    "pao_quente": {"name": "Pão Quente", "kind": "consumivel", "stackable": True, "color": "#d8a860", "visual": "potion", "rarity": "comum", "heal": 8, "value": 12, "sell_value": 4, "desc": "Saiu do forno do Bruno agora. Cura 8 de vida e um pouco da saudade de casa."},
     "peixe_assado":        {"name": "Peixe Assado", "kind": "consumivel", "stackable": True, "color": "#d8a868", "visual": "potion", "heal": 0.22, "value": 80, "desc": "Peixe fresco na brasa, com sal grosso e limão. Cura 22% da vida e a saudade de casa."},
     "moqueca_capixaba":    {"name": "Moqueca da Vila", "kind": "consumivel", "stackable": True, "color": "#e07030", "visual": "potion", "heal": 0.45, "value": 260, "desc": "A panela de barro da Dona Maricota, com dendê, leite de coco e segredo de família. Restaura 45% da vida. Vale a viagem."},
     "caldo_de_sururu":     {"name": "Caldo de Sururu", "kind": "consumivel", "stackable": True, "color": "#c9885a", "visual": "potion", "heal": 0.30, "value": 150, "desc": "Quente, temperado e levanta defunto, como dizem na vila. Cura 30% da vida."},
