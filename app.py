@@ -209,7 +209,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v40: ALA DOS 72 QUARTOS + armadura de paladino + A SAUDACAO DA AURORA (07/jul)"
+BUILD_TAG = "v41: degrau visivel p/ Ala + folga no quartel + praca espalhada (07/jul)"
 
 
 def _asset_version():
@@ -6493,10 +6493,14 @@ def _agenda_tick():
         else:
             _mover_npc(sid_noite, pmp, px, py)
             _postar(sid_noite)
-            # o do dia "vive a vida": circula por um mapa social
-            social = ["prospera", "vilalbina", "baixa_da_egua", "feirao_sao_celeste"][i5 % 4]
-            sp = wm.MAPS[social]["spawns"][0] if social in wm.MAPS else (10, 10)
-            _mover_npc(sid_dia, social, sp[0] + (i5 % 5), sp[1] + (i5 % 3))
+            # o do dia descansa NO QUARTEL (refeitório, pátio ou quarto — sem lotar a cidade)
+            zona = i5 % 3
+            if zona == 0:
+                _mover_npc(sid_dia, "quartel_alvorada", 3 + (i5 % 8), 16)      # refeitório
+            elif zona == 1:
+                _mover_npc(sid_dia, "quartel_alvorada", 12 + (i5 % 6), 10 + (i5 // 6) % 3)  # pátio
+            else:
+                _mover_npc(sid_dia, "quartel_ala", 2 + (i5 % 36) * 3, 3 if i5 % 2 == 0 else 9)  # quarto
             _soltar(sid_dia)
     # ---- OS 12 SUMOS: liturgia, plantão, folga e sono ----
     if 7 <= h < 9 or 18 <= h < 19:                   # LITURGIA (2h) e VÉSPERAS: formação
@@ -6551,9 +6555,10 @@ def _agenda_tick():
             "npc:almir", "npc:brigitte", "npc:sa_benta", "npc:camomilo",
             "npc:mestre_corda", "npc:ze_boato", "npc:fadogan"]
         for i, nid in enumerate(praca):
-            ang = i * 6.283 / max(1, len(praca))
-            _mover_npc(nid, "prospera", int(36 + (3 + i % 3)*__import__("math").cos(ang)),
-                       int(23 + (3 + i % 3)*__import__("math").sin(ang)))
+            # espalha pela praça GRANDE: fonte, ruas e frentes de loja (sem aglomerar)
+            gx2 = 22 + (i * 7) % 34                       # x: 22..55
+            gy2 = 13 + (i * 5) % 22                       # y: 13..34
+            _mover_npc(nid, "prospera", gx2, gy2)
     # ---- A VALESCA no Chá das 17h (sagrado) ----
     if 17 <= h < 18:
         _mover_npc("npc:rainha_valesca", "salao_cha", 5, 4)

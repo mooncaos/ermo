@@ -2974,6 +2974,9 @@ def _quartel_alvorada():
         g[7][x] = "F"
     g[7][25] = "1"; g[6][25] = "1"
     g[2][21] = "P"; g[5][21] = "b"; g[5][22] = "b"; g[3][21] = "2"; g[2][28] = ";"
+    # a ESCADA para a Ala dos Quartos (canto SE, com tapete sinalizando)
+    g[20][28] = "D"
+    g[20][26] = "2"; g[20][27] = "2"; g[19][28] = "2"
     # a porta grande (sul-centro)
     g[H - 1][14] = "D"; g[H - 1][15] = "D"
     return ["".join(r) for r in g]
