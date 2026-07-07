@@ -490,6 +490,7 @@ const INT_THEMES = {
 
   cortico_baixa: {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#e0865a', kind:'quarto'},
   quartel_alvorada: {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
+  quartel_ala: {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
   restaurante_jacquard: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e8c860', kind:'marmore'},
   torre_conclave:     {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#e8c860', kind:'marmore'},
   torre_observatorio: {f1:'#3a3a4e', f2:'#42425a', wall:'#22222e', acc:'#cfe0ff', kind:'comum'},
@@ -14491,6 +14492,73 @@ function drawOutfitExtras(c, px, py, ts, look, facing, moving, walk){
   }
 
   // ================= ALDEÃO =================
+  // ===== A GUARDA DA ALVORADA: armadura de paladino de verdade =====
+  if(oid === 'guarda_alvorada' || oid === 'oficial_alvorada' || oid === 'guarda_real'){
+    const real2 = (oid === 'guarda_real');
+    const ofc2 = (oid === 'oficial_alvorada');
+    const aco = real2 ? '#d4af37' : (ofc2 ? '#e8e4d8' : '#b8bcc8');
+    const acoEsc = real2 ? '#a8871f' : (ofc2 ? '#c0bcae' : '#8a8e9a');
+    const detalhe = real2 ? '#fff0c0' : '#c9a842';
+    // PEITORAL: placa metálica com brilho
+    const pg = c.createLinearGradient(cx - bodyW*0.5, bodyTop, cx + bodyW*0.5, bodyTop);
+    pg.addColorStop(0, acoEsc); pg.addColorStop(0.5, aco); pg.addColorStop(1, acoEsc);
+    c.fillStyle = pg;
+    c.fillRect(cx - bodyW*0.48, bodyTop + bodyH*0.05, bodyW*0.96, bodyH*0.72);
+    c.strokeStyle = 'rgba(30,30,40,0.55)'; c.lineWidth = u*0.8;
+    c.strokeRect(cx - bodyW*0.48, bodyTop + bodyH*0.05, bodyW*0.96, bodyH*0.72);
+    // O SOL DE VALIRIA no peito
+    c.fillStyle = detalhe;
+    c.beginPath(); c.arc(cx, bodyTop + bodyH*0.34, u*2.4, 0, Math.PI*2); c.fill();
+    c.strokeStyle = detalhe; c.lineWidth = u*0.7;
+    for(let r8 = 0; r8 < 8; r8++){
+      const a8 = r8*Math.PI/4;
+      c.beginPath();
+      c.moveTo(cx + Math.cos(a8)*u*3.0, bodyTop + bodyH*0.34 + Math.sin(a8)*u*3.0);
+      c.lineTo(cx + Math.cos(a8)*u*4.4, bodyTop + bodyH*0.34 + Math.sin(a8)*u*4.4);
+      c.stroke();
+    }
+    // OMBREIRAS
+    c.fillStyle = aco;
+    c.beginPath(); c.arc(cx - bodyW*0.52, bodyTop + bodyH*0.12, u*3.2, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(cx + bodyW*0.52, bodyTop + bodyH*0.12, u*3.2, 0, Math.PI*2); c.fill();
+    c.strokeStyle = detalhe; c.lineWidth = u*0.6;
+    c.beginPath(); c.arc(cx - bodyW*0.52, bodyTop + bodyH*0.12, u*3.2, 0, Math.PI*2); c.stroke();
+    c.beginPath(); c.arc(cx + bodyW*0.52, bodyTop + bodyH*0.12, u*3.2, 0, Math.PI*2); c.stroke();
+    // CINTO com fivela dourada
+    cinto('#4a3a28', detalhe);
+    // O ELMO: casco metálico com crista
+    c.fillStyle = aco;
+    c.beginPath(); c.arc(cx, hy - hr*0.1, hr*1.08, Math.PI*0.95, Math.PI*2.05); c.fill();
+    c.fillStyle = acoEsc;
+    c.fillRect(cx - hr*1.02, hy - hr*0.18, hr*2.04, u*1.6);   // a viseira erguida
+    c.fillStyle = real2 ? '#c43e5a' : detalhe;                 // a CRISTA
+    c.beginPath();
+    c.moveTo(cx - u*1.0, topY - u*0.5);
+    c.quadraticCurveTo(cx, topY - u*4.2, cx + u*1.0, topY - u*0.5);
+    c.closePath(); c.fill();
+    // capa curta dos oficiais e da guarda real
+    if(ofc2 || real2){
+      c.fillStyle = real2 ? 'rgba(201,168,66,0.85)' : 'rgba(42,58,90,0.9)';
+      c.beginPath();
+      c.moveTo(backX, bodyTop + u);
+      c.quadraticCurveTo(backX + (facing === 'left' ? 1 : -1)*u*4 + sway, beltY,
+                         backX + sway, bodyBot + u*3);
+      c.lineTo(backX + (facing === 'left' ? -1 : 1)*u*2, bodyBot + u*2);
+      c.closePath(); c.fill();
+    }
+    // a AURA da guarda real (dourados brilham!)
+    if(real2){
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.10 + 0.05*Math.sin(now/500);
+      const rg2 = c.createRadialGradient(cx, bodyTop + bodyH*0.4, 0, cx, bodyTop + bodyH*0.4, ts*0.7);
+      rg2.addColorStop(0, 'rgba(255,220,120,0.9)'); rg2.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = rg2; c.beginPath(); c.arc(cx, bodyTop + bodyH*0.4, ts*0.7, 0, Math.PI*2); c.fill();
+      c.restore();
+    }
+    c.restore();
+    return;
+  }
+
   if(oid === 'aldeao'){
     c.fillStyle = 'rgba(232,221,194,0.95)';                // peitilho de linho
     c.fillRect(cx - bodyW*0.18, bodyTop + u, bodyW*0.36, bodyH*0.55);

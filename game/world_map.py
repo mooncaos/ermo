@@ -2884,6 +2884,39 @@ def _casa_fadogan():
     return ["".join(r) for r in g]
 
 
+def _ala_quartos():
+    """A ALA DOS QUARTOS (112x13): o corredor monumental da Guarda. 72 quartos
+    de verdade (36 ao norte, 36 ao sul), cada um com cama, baú e porta pro
+    corredor. Os 12 primeiros (oeste) são da GUARDA REAL: tapete e vitral."""
+    W, H = 112, 13
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "F"; g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    for i in range(36):
+        x0 = 2 + i * 3
+        # divisória à direita de cada quarto (norte e sul)
+        for y in (1, 2, 3):
+            g[y][x0 + 2] = "F"
+        for y in (9, 10, 11):
+            g[y][x0 + 2] = "F"
+        # NORTE: cama + baú; a soleira (y4) fica aberta pro corredor
+        g[1][x0] = "b"; g[1][x0 + 1] = "q" if i % 3 else "o"
+        # SUL
+        g[11][x0] = "b"; g[11][x0 + 1] = "q" if i % 3 else "o"
+        if i < 6:                                        # GUARDA REAL: luxo
+            g[2][x0] = "2"; g[2][x0 + 1] = "2"
+            g[10][x0] = "2"; g[10][x0 + 1] = "2"
+            g[0][x0] = "j"; g[12][x0] = "j" if x0 < W - 1 else "F"
+    for x in range(1, W - 1):
+        g[6][x] = "2"                                    # o tapete do corredor
+    for x in range(6, W - 6, 12):
+        g[5][x] = ";"; g[7][x + 6] = ";"
+    g[6][2] = "D"                                        # a escada de volta
+    return ["".join(r) for r in g]
+
+
 def _quartel_alvorada():
     """O GRANDE QUARTEL DA GUARDA DA ALVORADA (30x22): o coração militar de
     Prospera. Pátio de honra, refeitório para a legião, dormitório da tropa,
@@ -3237,6 +3270,7 @@ MAPS["lar_trovao"] = {"rows": _moradia("lareira"), "spawns": [(6, 5), (5, 5), (6
 MAPS["lar_firmina"] = {"rows": _moradia("berco"), "spawns": [(6, 5), (5, 5), (6, 4)]}
 MAPS["lar_elviro"] = {"rows": _moradia("livros"), "spawns": [(6, 5), (5, 5), (6, 4)]}
 MAPS["quartel_alvorada"] = {"rows": _quartel_alvorada(), "spawns": [(14, 13), (15, 13), (14, 12)]}
+MAPS["quartel_ala"] = {"rows": _ala_quartos(), "spawns": [(6, 6), (5, 6), (7, 6)]}
 
 def _torre_conclave():
     """2º andar: o SALÃO DO CONCLAVE (21x14). A origem da magia do Ermo.

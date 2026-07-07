@@ -109,6 +109,7 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "feirao_sao_celeste": "Feirão de São Celeste", "baixa_da_egua": "Baixa da Égua",
               "casa_baixa": "Sobrado dos Quatro", "cortico_baixa": "O Cortiço da Baixa",
               "quartel_alvorada": "Quartel da Guarda da Alvorada",
+              "quartel_ala": "Ala dos Quartos — Guarda da Alvorada",
               "restaurante_jacquard": "Restaurante Jacquard ✶✶✶✶✶✶",
               "torre_conclave": "Salão do Conclave", "torre_observatorio": "O Observatório",
               "torre_escritorio": "Escritório do Arquimago", "torre_terraco": "Terraço da Alvorada",
@@ -208,7 +209,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v39: A GUARDA DA ALVORADA - QG + 72 soldados + Demetrius + rotina de sentinela (06/jul)"
+BUILD_TAG = "v40: ALA DOS 72 QUARTOS + armadura de paladino + A SAUDACAO DA AURORA (07/jul)"
 
 
 def _asset_version():
@@ -3067,6 +3068,8 @@ TORRE_ESCADAS = [
     ("torre_terraco",      2, 11,  "torre_escritorio",  14, 11),
     ("embaixada_ermo",     12, 7,  "porao_sapopemba",    3, 5),
     ("porao_sapopemba",    2, 6,   "embaixada_ermo",    11, 7),
+    ("quartel_alvorada",   28, 20, "quartel_ala",        4, 6),
+    ("quartel_ala",        2, 6,   "quartel_alvorada",  27, 20),
 ]
 
 
@@ -6295,7 +6298,8 @@ _ILHA_ROTINA = {
 
 # ============ A AGENDA VIVA DE PROSPERINA (v35, aprovada pelo Moon) ============
 FEIRAO_EVENTO = False
-_FEST_ANUNCIADO = -1    # gancho: eventos futuros no São Celeste setam True (o Dante VAI!)
+_FEST_ANUNCIADO = -1
+_AURORA_ATE = 0.0    # a Saudação da Aurora em curso (o tick não desfaz a formação)    # gancho: eventos futuros no São Celeste setam True (o Dante VAI!)
 
 _SUMOS_IDS = ["npc:sumo_pofnir", "npc:sumo_vargo", "npc:sumo_martur", "npc:sumo_facalan",
               "npc:sumo_drazun", "npc:sumo_korgath", "npc:sumo_corvo", "npc:sumo_valiria",
@@ -6318,6 +6322,20 @@ def _hora_ciclo():
 
 def _dia_num():
     return int(time.time() // DAY_LENGTH)
+
+
+def _postar(nid):
+    """Sentinela em vigília: paralisa o vaguear (guarda de verdade fica PARADO)."""
+    ent = world.players.get(nid)
+    if ent:
+        ent["_wanders"] = False
+        ent["facing"] = "down"
+
+
+def _soltar(nid):
+    ent = world.players.get(nid)
+    if ent:
+        ent["_wanders"] = True
 
 
 def _mover_npc(nid, mp, ax, ay):
@@ -6407,25 +6425,79 @@ GUARDA_POSTOS = [
 ]
 
 
+def _saudacao_da_aurora():
+    """O EVENTO: a Guarda inteira em formação no Feirão. Fileiras perfeitas,
+    comandantes à frente, dignitários no palco. Curto, marcial, inesquecível."""
+    global _AURORA_ATE
+    _AURORA_ATE = time.time() + 50
+    socketio.emit("toast", {"text": "⚔️☀️ A GUARDA DA ALVORADA SE REÚNE NO FEIRÃO! "
+                  "A SAUDAÇÃO DA AURORA vai começar!"})
+    # os 72 em fileiras 9x8 (o corpo da praça do feirão)
+    for i in range(36):
+        for turno, off in (("dia", 0), ("noite", 36)):
+            n = i + off
+            fx = 10 + (n % 9) * 3
+            fy = 12 + (n // 9) * 2
+            _mover_npc("npc:guarda_%s_%d" % (turno, i), "feirao_sao_celeste", fx, fy)
+            _postar("npc:guarda_%s_%d" % (turno, i))
+    # os comandantes à FRENTE
+    _mover_npc("npc:demetrius", "feirao_sao_celeste", 22, 9); _postar("npc:demetrius")
+    _mover_npc("npc:maria_valmont", "feirao_sao_celeste", 25, 9); _postar("npc:maria_valmont")
+    _mover_npc("npc:mago_var", "feirao_sao_celeste", 19, 9); _postar("npc:mago_var")
+    _mover_npc("npc:clerigo_bat", "feirao_sao_celeste", 28, 9); _postar("npc:clerigo_bat")
+    # os DIGNITÁRIOS no palco
+    _mover_npc("npc:celestino", "feirao_sao_celeste", 21, 6)
+    _mover_npc("npc:lorde_dante", "feirao_sao_celeste", 24, 6)
+    _mover_npc("npc:lady_diana", "feirao_sao_celeste", 26, 6)
+    _mover_npc("npc:heron", "feirao_sao_celeste", 23, 5)
+    def _roteiro():
+        socketio.sleep(4)
+        socketio.emit("speech", {"id": "npc:demetrius",
+                      "text": "GUARDA DA ALVORADA! Em nome de Prospera: SAUDAÇÃO!"},
+                      room="feirao_sao_celeste")
+        socketio.sleep(4)
+        socketio.emit("speech", {"id": "npc:guarda_dia_0",
+                      "text": "☀️ SALVE A AURORA PROSPERINA! POR VALIRIA! POR PROSPERA! ☀️"},
+                      room="feirao_sao_celeste")
+        socketio.emit("toast", {"text": "⚔️ Setenta e duas lâminas erguidas como uma só. "
+                      "A luz de Valiria brilha sobre a formação!"}, room="feirao_sao_celeste")
+        socketio.sleep(5)
+        socketio.emit("speech", {"id": "npc:celestino",
+                      "text": "Valiria vos contempla, filhos da Alvorada. Que a luz guarde quem nos guarda."},
+                      room="feirao_sao_celeste")
+        socketio.sleep(5)
+        socketio.emit("speech", {"id": "npc:demetrius",
+                      "text": "Guarda! DISPENSAR! De volta aos postos. Prospera não se protege sozinha."},
+                      room="feirao_sao_celeste")
+    socketio.start_background_task(_roteiro)
+
+
 def _agenda_tick():
     """A Agenda Viva: sobrepõe a rotina base em horários especiais."""
     h = _hora_ciclo()
     dia = _dia_num()
     noite = _is_night()
     # ---- A GUARDA DA ALVORADA: sentinelas nos postos, revezamento dia/noite ----
+    if time.time() < _AURORA_ATE:
+        return                                            # cerimônia em curso: formação intocável
     turno_dia = 5 <= h < 17
     for i5, (pmp, px, py) in enumerate(GUARDA_POSTOS):
         sid_dia = "npc:guarda_dia_%d" % i5
         sid_noite = "npc:guarda_noite_%d" % i5
+        qx = 2 + (i5 % 36) * 3                            # o quarto DELE na Ala
         if turno_dia:
-            _mover_npc(sid_dia, pmp, px, py)              # o do dia guarda o posto
-            _mover_npc(sid_noite, "quartel_alvorada", 19 + (i5 % 9), 15 + (i5 // 9) % 3 * 2)  # o da noite descansa
+            _mover_npc(sid_dia, pmp, px, py)
+            _postar(sid_dia)                              # VIGÍLIA: parado, firme
+            _mover_npc(sid_noite, "quartel_ala", qx, 3 if i5 % 2 == 0 else 9)  # dorme no SEU quarto
+            _soltar(sid_noite)
         else:
-            _mover_npc(sid_noite, pmp, px, py)            # o da noite assume o posto
+            _mover_npc(sid_noite, pmp, px, py)
+            _postar(sid_noite)
             # o do dia "vive a vida": circula por um mapa social
             social = ["prospera", "vilalbina", "baixa_da_egua", "feirao_sao_celeste"][i5 % 4]
             sp = wm.MAPS[social]["spawns"][0] if social in wm.MAPS else (10, 10)
             _mover_npc(sid_dia, social, sp[0] + (i5 % 5), sp[1] + (i5 % 3))
+            _soltar(sid_dia)
     # ---- OS 12 SUMOS: liturgia, plantão, folga e sono ----
     if 7 <= h < 9 or 18 <= h < 19:                   # LITURGIA (2h) e VÉSPERAS: formação
         for i, sid in enumerate(_SUMOS_IDS):
@@ -7408,6 +7480,16 @@ def on_chat(data):
     text = text.strip()[:120]
     if not text:
         return
+    # A SAUDAÇÃO DA AURORA: a frase sagrada perto do Fanfarrão
+    if "qual o poder da aurora" in text.lower() and player.get("map") == "feirao_sao_celeste":
+        fanf = world.players.get("npc:mestre_fanfarrao")
+        if fanf and fanf.get("map") == "feirao_sao_celeste" and \
+           abs(fanf["x"] - player["x"]) + abs(fanf["y"] - player["y"]) <= 6 and \
+           time.time() >= _AURORA_ATE:
+            socketio.emit("speech", {"id": "npc:mestre_fanfarrao",
+                          "text": "SALVE A AURORA PROSPERINA!!"}, room="feirao_sao_celeste")
+            _saudacao_da_aurora()
+            return
     # resposta pro enigma dos grifos
     if player.get("_enigma") is not None:
         _idx = player.pop("_enigma")
