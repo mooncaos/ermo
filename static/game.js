@@ -489,6 +489,7 @@ const INT_THEMES = {
 
 
   cortico_baixa: {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#e0865a', kind:'quarto'},
+  quartel_alvorada: {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
   restaurante_jacquard: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e8c860', kind:'marmore'},
   torre_conclave:     {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#e8c860', kind:'marmore'},
   torre_observatorio: {f1:'#3a3a4e', f2:'#42425a', wall:'#22222e', acc:'#cfe0ff', kind:'comum'},
@@ -16148,6 +16149,7 @@ var _PORTAS_VIVAS = [
 
   {mapa: 'baixa_da_egua', cx: 16, cy: 18, w: 4, h: 3, emoji: '🏠'},
   {mapa: 'baixa_da_egua', cx: 31, cy: 22, w: 8, h: 3, emoji: '🛏️'},
+  {mapa: 'baixa_da_egua', cx: 38, cy: 19, w: 4, h: 2, emoji: '⚔️'},
   {mapa: 'vilalbina',  cx: 3,  cy: 15, w: 5, h: 3, emoji: '🧵'},
   {mapa: 'vilalbina',  cx: 10, cy: 3,  w: 4, h: 3, emoji: '🍞'},
   {mapa: 'vilalbina',  cx: 3,  cy: 9,  w: 4, h: 3, emoji: '🐟'},

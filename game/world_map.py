@@ -2884,6 +2884,68 @@ def _casa_fadogan():
     return ["".join(r) for r in g]
 
 
+def _quartel_alvorada():
+    """O GRANDE QUARTEL DA GUARDA DA ALVORADA (30x22): o coração militar de
+    Prospera. Pátio de honra, refeitório para a legião, dormitório da tropa,
+    armaria, sala de estratégia, escritórios dos chefes e os aposentos de
+    luxo do Lorde Comandante e da Tenente."""
+    W, H = 30, 22
+    g = [["1" for _ in range(W)] for _ in range(H)]
+    for x in range(W):
+        g[0][x] = "j" if x % 4 == 2 else "F"
+        g[H - 1][x] = "F"
+    for y in range(H):
+        g[y][0] = "F"; g[y][W - 1] = "F"
+    # ---- O PÁTIO DE HONRA (centro): tapete e o brasão do sol nascente ----
+    for y in range(9, 13):
+        for x in range(12, 18):
+            g[y][x] = "2"
+    g[8][14] = "P"; g[8][15] = "P"                    # o brasão da Alvorada
+    g[10][12] = ";"; g[10][17] = ";"; g[9][13] = ";"; g[9][16] = ";"
+    # ---- O REFEITÓRIO (ala oeste-sul): mesas longas para a legião ----
+    for my in (15, 17, 19):
+        for mx in range(2, 11):
+            if mx != 6:                                # corredor central de acesso
+                g[my][mx] = "k"
+    for my in (14, 16, 18):
+        for mx in range(2, 11):
+            if mx != 6:
+                g[my][mx] = "^"
+    g[20][2] = "h"; g[20][3] = "#"; g[20][4] = "#"    # a cozinha do refeitório
+    # ---- O DORMITÓRIO DA TROPA (ala leste-sul): fileiras de beliches ----
+    for by in (15, 17, 19):
+        for bx in range(19, 28):
+            if bx != 23:                               # corredor entre os beliches
+                g[by][bx] = "b"
+    g[14][27] = "q"; g[16][27] = "q"; g[18][27] = "q"
+    # ---- A ARMARIA (norte-oeste): armas nas paredes ----
+    for ay in range(2, 6):
+        g[ay][2] = "E"; g[ay][3] = "q"
+    g[2][5] = "q"; g[3][5] = "q"
+    # ---- A SALA DE ESTRATÉGIA (norte-centro): a mesa com o mapa ----
+    g[3][13] = "k"; g[3][14] = "k"; g[3][15] = "k"; g[3][16] = "k"
+    g[2][14] = "_"; g[4][13] = "^"; g[4][16] = "^"
+    # ---- ESCRITÓRIOS DOS CHEFES (norte-leste): 3 salas ----
+    for oy in range(2, 6):
+        g[oy][22] = "F"                                # divisória
+    g[2][25] = "k"; g[3][25] = "^"; g[2][27] = "E"     # escritório 1
+    g[5][25] = "k"; g[5][27] = "E"                     # escritório 2 (mago/clérigo)
+    # ---- APOSENTO DE LUXO DO LORDE COMANDANTE (NO canto, murado) ----
+    for x in range(1, 9):
+        g[7][x] = "F"
+    g[7][4] = "1"; g[6][4] = "1"                       # porta do aposento (vão duplo)
+    g[2][2] = "b"; g[2][3] = "b"; g[1][2] = "P"        # cama de dossel + retrato
+    g[4][2] = "2"; g[5][2] = "2"; g[3][6] = "h"; g[5][6] = "_"; g[2][6] = ";"
+    # ---- APOSENTO DE LUXO DA TENENTE (NE canto, murado) ----
+    for x in range(21, 29):
+        g[7][x] = "F"
+    g[7][25] = "1"; g[6][25] = "1"
+    g[2][21] = "P"; g[5][21] = "b"; g[5][22] = "b"; g[3][21] = "2"; g[2][28] = ";"
+    # a porta grande (sul-centro)
+    g[H - 1][14] = "D"; g[H - 1][15] = "D"
+    return ["".join(r) for r in g]
+
+
 def _moradia(toque):
     """Lar de Prospera (12x8): aconchego de capital, com o toque do dono."""
     g = [list("F" + "1" * 10 + "F") for _ in range(8)]
@@ -3174,6 +3236,7 @@ MAPS["lar_gemeas"] = {"rows": _moradia("atelie"), "spawns": [(6, 5), (5, 5), (6,
 MAPS["lar_trovao"] = {"rows": _moradia("lareira"), "spawns": [(6, 5), (5, 5), (6, 4)]}
 MAPS["lar_firmina"] = {"rows": _moradia("berco"), "spawns": [(6, 5), (5, 5), (6, 4)]}
 MAPS["lar_elviro"] = {"rows": _moradia("livros"), "spawns": [(6, 5), (5, 5), (6, 4)]}
+MAPS["quartel_alvorada"] = {"rows": _quartel_alvorada(), "spawns": [(14, 13), (15, 13), (14, 12)]}
 
 def _torre_conclave():
     """2º andar: o SALÃO DO CONCLAVE (21x14). A origem da magia do Ermo.

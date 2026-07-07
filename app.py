@@ -108,6 +108,7 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "casa_naiara": "Casa da Naiara", "casa_caio": "Casa do Caio",
               "feirao_sao_celeste": "Feirão de São Celeste", "baixa_da_egua": "Baixa da Égua",
               "casa_baixa": "Sobrado dos Quatro", "cortico_baixa": "O Cortiço da Baixa",
+              "quartel_alvorada": "Quartel da Guarda da Alvorada",
               "restaurante_jacquard": "Restaurante Jacquard ✶✶✶✶✶✶",
               "torre_conclave": "Salão do Conclave", "torre_observatorio": "O Observatório",
               "torre_escritorio": "Escritório do Arquimago", "torre_terraco": "Terraço da Alvorada",
@@ -207,7 +208,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v37: A SINFONIA - 9 lares, praca geral, FESTIVAL de Sao Celeste, sumos em formacao (06/jul)"
+BUILD_TAG = "v39: A GUARDA DA ALVORADA - QG + 72 soldados + Demetrius + rotina de sentinela (06/jul)"
 
 
 def _asset_version():
@@ -2943,6 +2944,8 @@ CASAS_ILHA = [
      "dest": "mansao_prosperi", "dx": 11, "dy": 13, "bx": 10, "by": 15},
     {"mapa": "prospera", "cx": 67, "cy": 4, "w": 6, "h": 4,
      "dest": "restaurante_jacquard", "dx": 7, "dy": 8, "bx": 70, "by": 9},
+    {"mapa": "baixa_da_egua", "cx": 38, "cy": 19, "w": 4, "h": 2,
+     "dest": "quartel_alvorada", "dx": 14, "dy": 13, "bx": 40, "by": 21},
     {"mapa": "baixa_da_egua", "cx": 16, "cy": 18, "w": 4, "h": 3,
      "dest": "casa_baixa", "dx": 7, "dy": 6, "bx": 18, "by": 22},
     {"mapa": "baixa_da_egua", "cx": 31, "cy": 22, "w": 8, "h": 3,
@@ -6291,7 +6294,8 @@ _ILHA_ROTINA = {
 
 
 # ============ A AGENDA VIVA DE PROSPERINA (v35, aprovada pelo Moon) ============
-FEIRAO_EVENTO = False    # gancho: eventos futuros no São Celeste setam True (o Dante VAI!)
+FEIRAO_EVENTO = False
+_FEST_ANUNCIADO = -1    # gancho: eventos futuros no São Celeste setam True (o Dante VAI!)
 
 _SUMOS_IDS = ["npc:sumo_pofnir", "npc:sumo_vargo", "npc:sumo_martur", "npc:sumo_facalan",
               "npc:sumo_drazun", "npc:sumo_korgath", "npc:sumo_corvo", "npc:sumo_valiria",
@@ -6359,11 +6363,69 @@ def _lote_do_dia():
     return (it, int(items.ITEMS[it].get("value", 100) * 3))
 
 
+GUARDA_POSTOS = [
+    ("vilalbina", 10, 10),
+    ("vilalbina", 30, 10),
+    ("vilalbina", 10, 22),
+    ("vilalbina", 30, 18),
+    ("trigal_dourado", 6, 8),
+    ("trigal_dourado", 8, 8),
+    ("trigal_dourado", 40, 8),
+    ("trigal_dourado", 42, 8),
+    ("prospera", 13, 9),
+    ("prospera", 49, 9),
+    ("prospera", 76, 9),
+    ("prospera", 4, 17),
+    ("prospera", 67, 17),
+    ("prospera", 22, 25),
+    ("prospera", 49, 25),
+    ("prospera", 4, 49),
+    ("prospera", 68, 49),
+    ("prospera", 49, 58),
+    ("prospera", 30, 30),
+    ("prospera", 60, 35),
+    ("jardim_templo", 48, 27),
+    ("jardim_templo", 48, 29),
+    ("jardim_templo", 5, 27),
+    ("jardim_templo", 5, 29),
+    ("jardim_templo", 27, 8),
+    ("jardim_templo", 27, 46),
+    ("templo_doze", 8, 8),
+    ("templo_doze", 12, 8),
+    ("cidade_alta", 4, 22),
+    ("cidade_alta", 44, 22),
+    ("cidade_alta", 24, 6),
+    ("cidade_alta", 24, 36),
+    ("cidade_alta", 12, 12),
+    ("cidade_alta", 36, 12),
+    ("prospera", 34, 21),
+    ("prospera", 38, 21),
+    ("farol_margem", 24, 20),
+    ("farol_margem", 26, 20),
+    ("prospera", 51, 9),
+    ("prospera", 53, 9),
+]
+
+
 def _agenda_tick():
     """A Agenda Viva: sobrepõe a rotina base em horários especiais."""
     h = _hora_ciclo()
     dia = _dia_num()
     noite = _is_night()
+    # ---- A GUARDA DA ALVORADA: sentinelas nos postos, revezamento dia/noite ----
+    turno_dia = 5 <= h < 17
+    for i5, (pmp, px, py) in enumerate(GUARDA_POSTOS):
+        sid_dia = "npc:guarda_dia_%d" % i5
+        sid_noite = "npc:guarda_noite_%d" % i5
+        if turno_dia:
+            _mover_npc(sid_dia, pmp, px, py)              # o do dia guarda o posto
+            _mover_npc(sid_noite, "quartel_alvorada", 19 + (i5 % 9), 15 + (i5 // 9) % 3 * 2)  # o da noite descansa
+        else:
+            _mover_npc(sid_noite, pmp, px, py)            # o da noite assume o posto
+            # o do dia "vive a vida": circula por um mapa social
+            social = ["prospera", "vilalbina", "baixa_da_egua", "feirao_sao_celeste"][i5 % 4]
+            sp = wm.MAPS[social]["spawns"][0] if social in wm.MAPS else (10, 10)
+            _mover_npc(sid_dia, social, sp[0] + (i5 % 5), sp[1] + (i5 % 3))
     # ---- OS 12 SUMOS: liturgia, plantão, folga e sono ----
     if 7 <= h < 9 or 18 <= h < 19:                   # LITURGIA (2h) e VÉSPERAS: formação
         for i, sid in enumerate(_SUMOS_IDS):
@@ -6380,6 +6442,25 @@ def _agenda_tick():
                 mp = _PASSEIO_SUMOS[(dia*7 + i*3) % len(_PASSEIO_SUMOS)]
                 sp = wm.MAPS[mp]["spawns"][0] if mp in wm.MAPS else (10, 10)
                 _mover_npc(sid, mp, sp[0], sp[1])
+    # ---- OS CHEFES DA GUARDA: mago ao Conclave, clériga ao Templo, funcionários visitam família ----
+    if 9 <= h < 11:
+        _mover_npc("npc:mago_var", "torre_conclave", 8, 8)       # o mago É do Conclave
+    else:
+        _mover_npc("npc:mago_var", "quartel_alvorada", 25, 3)
+    if 7 <= h < 9:
+        _mover_npc("npc:clerigo_bat", "templo_estrelado", 18, 13)  # a clériga vai ao Templo
+    else:
+        _mover_npc("npc:clerigo_bat", "quartel_alvorada", 2, 5)
+    if 16 <= h < 18 and not noite:                            # a folga: visitar a família!
+        _mover_npc("npc:mordomo_gil", "adega_angard", 12, 4)       # visita o tio Jacques
+        _mover_npc("npc:mordomo_val", "casa_baixa", 2, 5)          # visita o pai Juvenal
+        _mover_npc("npc:cozinheiro_lau", "casa_baixa", 3, 6)       # visita a mãe Luzia
+        _mover_npc("npc:chefe_armas", "casa_baixa", 11, 5)         # visita o irmão Bito
+    else:
+        _mover_npc("npc:mordomo_gil", "quartel_alvorada", 2, 2)
+        _mover_npc("npc:mordomo_val", "quartel_alvorada", 28, 2)
+        _mover_npc("npc:cozinheiro_lau", "quartel_alvorada", 3, 20)
+        _mover_npc("npc:chefe_armas", "quartel_alvorada", 3, 3)
     # ---- CONCLAVE EM SESSÃO 9h-11h (Heron desce e preside) ----
     if 9 <= h < 11:
         _mover_npc("npc:heron", "torre_conclave", 13, 5)
@@ -6439,8 +6520,8 @@ def _agenda_tick():
             comprador = rua[(_dia_num() * 3 + slot + k2 * 4) % len(rua)]
             loja2 = lojas2[(_dia_num() * 7 + slot * 3 + k2) % len(lojas2)]
             _mover_npc(comprador, loja2, 5, 5)
-    # ---- O FESTIVAL DE SÃO CELESTE: TODO DIA 13h-15h! ----
-    festival = 13 <= h < 15 and not noite
+    # ---- O FESTIVAL DE SÃO CELESTE: A CADA 7 DIAS, 13h-15h (decreto do Moon!) ----
+    festival = (dia % 7 == 0) and 13 <= h < 15 and not noite
     if festival:
         folioes = ["npc:mestre_fanfarrao", "npc:ze_boato", "npc:sa_benta", "npc:petunia",
                    "npc:caio_menino", "npc:lita", "npc:bruno_padeiro", "npc:moco_elviro",
@@ -6451,18 +6532,19 @@ def _agenda_tick():
         for i4, nid4 in enumerate(folioes):
             _mover_npc(nid4, "feirao_sao_celeste", *tendas3[i4 % len(tendas3)])
         _mover_npc("npc:lorde_dante", "feirao_sao_celeste", 24, 6)   # o Dante VAI!
+        _mover_npc("npc:celestino", "feirao_sao_celeste", 26, 6)     # e o ARCEBISPO abençoa!
         if random.random() < 0.25:
             socketio.emit("speech", {"id": "npc:mestre_fanfarrao", "text": random.choice([
                 "SENHORAS E SENHORES: O FESTIVAL DE SÃO CELESTE!! EU DISSE QUE IA ACONTECER!",
                 "Música! Comida! O LORDE DANTE em pessoa! Chorem, céticos!",
                 "São Celeste sorri sobre nós! Ou é o sol. TANTO FAZ, FESTEJEM!"])},
                 room="feirao_sao_celeste")
-        for _fsid, _fpl in list(world.players.items()):
-            if not _fpl.get("is_npc") and _fpl.get("map") in ("feirao_sao_celeste", "cidade_alta", "prospera") \
-               and _fpl.get("_fest_toast", 0) < _dia_num():
-                _fpl["_fest_toast"] = _dia_num()
-                socketio.emit("toast", {"text": "🎪 O FESTIVAL DE SÃO CELESTE COMEÇOU! "
-                              "Música, tendas e o Lorde Dante em pessoa — no Feirão, até as 15h!"}, to=_fsid)
+        global _FEST_ANUNCIADO
+        if _FEST_ANUNCIADO != dia:                    # DIVULGAÇÃO GLOBAL: o servidor todo!
+            _FEST_ANUNCIADO = dia
+            socketio.emit("toast", {"text": "🎪📯 HOJE É DIA DE FESTIVAL DE SÃO CELESTE! "
+                          "Música, tendas, o Arcebispo Celestino E o Lorde Dante em pessoa — "
+                          "no Feirão (sul da Cidade Alta), até as 15h! NÃO PERCA!"})
     # ---- DANTE: recluso, salvo evento no São Celeste (ou raro passeio) ----
     if festival:
         pass                                          # já está no festival!
@@ -6470,6 +6552,9 @@ def _agenda_tick():
         _mover_npc("npc:lorde_dante", "feirao_sao_celeste", 24, 8)
     elif 12 <= h < 13 and (dia * 31) % 100 < 5:
         _mover_npc("npc:lorde_dante", "farol_margem", 20, 20)
+    else:
+        _mover_npc("npc:lorde_dante", "farol_margem", 25, 22)     # de volta à vigília
+        _mover_npc("npc:celestino", "templo_estrelado", 16, 15)    # e o Arcebispo ao seu templo
     # ---- HERON: aparição rara na porta externa (nunca longe) ----
     if 15 <= h < 15.5 and (dia * 17) % 100 < 5:
         _mover_npc("npc:heron", "cidade_alta", 25, 14)
