@@ -2884,6 +2884,20 @@ def _casa_fadogan():
     return ["".join(r) for r in g]
 
 
+def _termas():
+    """As Termas de Prospera (18x12): vapor, mármore e a fofoca mais sincera da ilha."""
+    g = [list("F" + "1" * 16 + "F") for _ in range(12)]
+    g[0] = list("FFjFFFjFFFFjFFFjFF")
+    g[11] = list("FFFFFFFFDDFFFFFFFF")
+    for (px, py, w2, h2) in ((3, 3, 5, 3), (10, 3, 5, 3), (6, 8, 6, 2)):
+        for yy in range(py, py + h2):
+            for xx in range(px, px + w2):
+                g[yy][xx] = "~"                          # as piscinas termais
+    g[2][2] = ";"; g[2][15] = ";"; g[7][2] = ";"; g[7][15] = ";"
+    g[6][2] = "^"; g[6][15] = "^"; g[2][8] = "q"; g[2][9] = "q"
+    return ["".join(r) for r in g]
+
+
 def _ala_quartos():
     """A ALA DOS QUARTOS (112x13): o corredor monumental da Guarda. 72 quartos
     de verdade (36 ao norte, 36 ao sul), cada um com cama, baú e porta pro
@@ -3274,6 +3288,14 @@ MAPS["lar_firmina"] = {"rows": _moradia("berco"), "spawns": [(6, 5), (5, 5), (6,
 MAPS["lar_elviro"] = {"rows": _moradia("livros"), "spawns": [(6, 5), (5, 5), (6, 4)]}
 MAPS["quartel_alvorada"] = {"rows": _quartel_alvorada(), "spawns": [(14, 13), (15, 13), (14, 12)]}
 MAPS["quartel_ala"] = {"rows": _ala_quartos(), "spawns": [(6, 6), (5, 6), (7, 6)]}
+MAPS["termas_prospera"] = {"rows": _termas(), "spawns": [(9, 10), (8, 10), (9, 9)]}
+
+# o cais pescável de Vilalbina (deck '=' na beira do mar — Torneio de Pesca!)
+_vrows = MAPS["vilalbina"]["rows"]
+MAPS["vilalbina"]["rows"] = [
+    (r[:12] + "=======" + r[19:]) if y == 25 else r
+    for y, r in enumerate(_vrows)
+]
 
 def _torre_conclave():
     """2º andar: o SALÃO DO CONCLAVE (21x14). A origem da magia do Ermo.

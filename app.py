@@ -110,6 +110,7 @@ MAP_TITLES = {"ermo": "Ermo", "descampado": "Descampado", "costa_maravai": "Cost
               "casa_baixa": "Sobrado dos Quatro", "cortico_baixa": "O Cortiço da Baixa",
               "quartel_alvorada": "Quartel da Guarda da Alvorada",
               "quartel_ala": "Ala dos Quartos — Guarda da Alvorada",
+              "termas_prospera": "As Termas de Prospera",
               "restaurante_jacquard": "Restaurante Jacquard ✶✶✶✶✶✶",
               "torre_conclave": "Salão do Conclave", "torre_observatorio": "O Observatório",
               "torre_escritorio": "Escritório do Arquimago", "torre_terraco": "Terraço da Alvorada",
@@ -209,7 +210,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v43: O RESPLENDOR DE VOLTA - pentagramas, drenos, raios negros e o Varth falante (07/jul)"
+BUILD_TAG = "v45: AS 10 NOVIDADES DA ILHA - calendario, termas, correio, gato branco (07/jul)"
 
 
 def _asset_version():
@@ -2945,6 +2946,8 @@ CASAS_ILHA = [
      "dest": "mansao_prosperi", "dx": 11, "dy": 13, "bx": 10, "by": 15},
     {"mapa": "prospera", "cx": 67, "cy": 4, "w": 6, "h": 4,
      "dest": "restaurante_jacquard", "dx": 7, "dy": 8, "bx": 70, "by": 9},
+    {"mapa": "cidade_alta", "cx": 11, "cy": 11, "w": 4, "h": 3,
+     "dest": "termas_prospera", "dx": 9, "dy": 10, "bx": 13, "by": 15},
     {"mapa": "baixa_da_egua", "cx": 38, "cy": 19, "w": 4, "h": 2,
      "dest": "quartel_alvorada", "dx": 14, "dy": 13, "bx": 40, "by": 21},
     {"mapa": "baixa_da_egua", "cx": 16, "cy": 18, "w": 4, "h": 3,
@@ -3809,6 +3812,24 @@ def _rt_combat_loop():
                 if pl.get("_rt_sec", 0) > now:
                     continue
                 pl["_rt_sec"] = now + 1.0
+
+                _ct = pl.get("_carta")
+                if _ct and _ct.get("dia", 0) < _dia_num():
+                    pl.pop("_carta", None)
+                    _RESP = {
+                        "diana": "📜 De Lady Diana: 'Li tua carta. Duas vezes, o que é uma honra. Escreve melhor do que metade da corte fala. Continua.'",
+                        "valesca": "📜 Da Rainha-mãe: 'Que doçura de carta, meu bem. Apareça no chá das cinco — leva biscoito, traz fofoca.'",
+                        "caiques": "📜 Do Cônsul Caiquês: 'RECEBAAA TUA CARTA! Li em voz alta pro porão inteiro. O porão sou eu. CHOREI. Tmj demais!'",
+                        "beth": "📜 Da Beth: 'Recebi tua carta, meu fio. Guardei na caixa das coisas boas. Vem tomar um café que carta não abraça.'",
+                        "demetrius": "📜 Do Lorde Comandante: 'Carta recebida. Direta, sem floreio. Gostei. A Guarda observa quem escreve assim.'",
+                        "chef": "📜 Do Chef Jacquard: 'PUTAIN! Uma carta! Para MOI! Está... está BEM ESCRITA. Non chore, Gaston. NINGUÉM está chorando.'",
+                    }
+                    socketio.emit("toast", {"text": _RESP.get(_ct.get("npc"), "📜 O Correio perdeu tua carta. O Sr. Protocolo pede o formulário 9-B.")}, to=sid)
+                if pl.get("map") == "termas_prospera":       # o vapor cura o corpo
+                    _ft = pl.get("ficha") or {}
+                    if 0 < int(_ft.get("hp", 0)) < int(_ft.get("hp_max", 1)):
+                        _ft["hp"] = min(int(_ft["hp_max"]), int(_ft["hp"]) + 2)
+                        pl["ficha"] = _ft
                 _ppid = _player_party.get(sid)
                 if _ppid:
                     _snap = []
@@ -6292,7 +6313,7 @@ def _try_fish(player):
     """Parado no píer da Vila Caiçara? Joga a linha e abre o minigame."""
     if player.get("map") != "costa_maravai":
         return False
-    rows = wm.MAPS["costa_maravai"]["rows"]
+    rows = wm.MAPS.get(player.get("map"), {}).get("rows") or wm.MAPS["costa_maravai"]["rows"]
     x, y = player.get("x", 0), player.get("y", 0)
     if not (0 <= y < len(rows)) or rows[y][x] != "=":
         return False
@@ -6309,6 +6330,12 @@ def on_fish_hit(data):
         return
     player["_fishing"] = 0
     _op(player, "pesca")
+    if TORNEIO_PESCA.get("dia") is not None and not TORNEIO_PESCA.get("fim") \
+       and player.get("map") == "vilalbina":
+        _plc = TORNEIO_PESCA.setdefault("placar", {})
+        _plc[request.sid] = _plc.get(request.sid, 0) + 1
+        socketio.emit("toast", {"text": "🎣 Torneio: %d peixe(s) no seu balaio!" %
+                      _plc[request.sid]}, to=request.sid)
     # PESCA LENDÁRIA: clima + hora + isca viva invocam as lendas das águas
     _turno_p = _turno_do_dia()
     _lend = None
@@ -6540,6 +6567,189 @@ GUARDA_POSTOS = [
 ]
 
 
+_ULTIMA_BADALADA = -1
+_ILHA_ROOMS = ["vilalbina", "trigal_dourado", "vinhedo", "pastos", "prospera", "jardim_templo",
+               "cidade_alta", "farol_margem", "feirao_sao_celeste", "baixa_da_egua"]
+_LENDAS_AURORA = [
+    ["Reúnam-se, pequenos vaga-lumes... esta é a lenda da PRIMEIRA NOITE.",
+     "Antes dos Doze, havia só o escuro. E no escuro, um ronronar. Pofnir sonhava — e o sonho VAZAVA.",
+     "Cada pirilampo que vocês veem é um pedacinho de sonho que escapou. Por isso eles fogem da mão: sonho não se agarra.",
+     "Durmam bem. E se sonharem com um gato branco... agradeçam."],
+    ["Cheguem perto... esta é a lenda de NHARÉ E A SEGUNDA CHANCE.",
+     "A lebre apostou corrida com a morte. Perdeu. Mas Vargo riu tanto que deixou ela correr de novo.",
+     "Desde então, Nharé nunca mais parou. Segunda chance não se guarda no bolso: se GASTA correndo.",
+     "Se um dia tudo der errado, corram. A lebre corre junto."],
+    ["Silêncio, corações... esta é a lenda do JABUTI QUE ENGOLIU UM SÉCULO.",
+     "Martur andava tão devagar que um século inteiro tropeçou nele. E ele... engoliu.",
+     "Por isso o tempo às vezes parece parado no jardim: é o século, digerindo.",
+     "Quem tem pressa perde a lenda. Vocês ficaram. Ganharam."],
+]
+
+
+def _calendario_tick(h, dia, noite):
+    """Os eventos da semana e as aparições raras da ilha (v45)."""
+    global _ULTIMA_BADALADA
+    # ---- O SINO DAS HORAS ----
+    hora_int = int(h)
+    if hora_int != _ULTIMA_BADALADA:
+        _ULTIMA_BADALADA = hora_int
+        toque = hora_int % 12 or 12
+        for r in _ILHA_ROOMS:
+            socketio.emit("toast", {"text": "🔔 O sino do Templo badala %d hora%s." %
+                          (toque, "s" if toque > 1 else "")}, room=r)
+    # ---- TORNEIO DE PESCA (dia 1, 10h-11h) ----
+    global TORNEIO_PESCA
+    if dia % 7 == 1 and 10 <= h < 11:
+        if TORNEIO_PESCA.get("dia") != dia:
+            TORNEIO_PESCA = {"dia": dia, "placar": {}}
+            socketio.emit("toast", {"text": "🎣 O TORNEIO DE PESCA DE VILALBINA COMEÇOU! "
+                          "Pesque no cais até as 11h — o Tião é o juiz. Quem fisgar mais, LEVA!"})
+        _mover_npc("npc:tiao_pescador", "vilalbina", 14, 27)
+    elif TORNEIO_PESCA.get("dia") == dia and h >= 11 and not TORNEIO_PESCA.get("fim"):
+        TORNEIO_PESCA["fim"] = True
+        pl2 = TORNEIO_PESCA.get("placar") or {}
+        if pl2:
+            venc = max(pl2, key=pl2.get)
+            vp = world.players.get(venc)
+            premio = 250
+            if vp:
+                vp["wallet"] = int(vp.get("wallet", 0)) + premio
+                socketio.emit("wallet", {"wallet": vp["wallet"]}, to=venc)
+            socketio.emit("toast", {"text": "🏆 TORNEIO DE PESCA: %s venceu com %d peixes! Prêmio: %d moedas!" %
+                          ((vp or {}).get("name", "um pescador"), pl2[venc], premio)})
+        else:
+            socketio.emit("toast", {"text": "🎣 O torneio terminou sem um só peixe. O Tião está DECEPCIONADO."},
+                          room="vilalbina")
+    # ---- CORRIDA DE ÉGUAS (dia 2, 15h) ----
+    global CORRIDA
+    if dia % 7 == 2 and 14 <= h < 15 and CORRIDA.get("dia") != dia:
+        CORRIDA = {"dia": dia, "apostas": {}, "correu": False}
+        socketio.emit("toast", {"text": "🐎 HOJE TEM CORRIDA NA BAIXA DA ÉGUA (15h)! Aposte com "
+                      "/apostar <relampago|cocada|valente|estrela> <valor> — banca do Lord Fagnin (paga 3x)!"})
+    if dia % 7 == 2 and 15 <= h < 16 and CORRIDA.get("dia") == dia and not CORRIDA.get("correu"):
+        CORRIDA["correu"] = True
+        socketio.start_background_task(_correr_eguas, dia)
+    # ---- PIQUENIQUE REAL (dia 3, 12h-14h) ----
+    if dia % 7 == 3 and 12 <= h < 14:
+        _mover_npc("npc:rei_marth", "pastos", 20, 12)
+        _mover_npc("npc:rainha_valesca", "pastos", 22, 12)
+        _mover_npc("npc:lady_diana", "pastos", 21, 14)
+        _mover_npc("npc:guarda_dia_38", "pastos", 18, 13); _postar("npc:guarda_dia_38")
+        _mover_npc("npc:guarda_dia_39", "pastos", 24, 13); _postar("npc:guarda_dia_39")
+    # ---- TEATRO DO ELVIRO (dia 5, 15h) ----
+    global TEATRO_DIA
+    if dia % 7 == 5 and 15 <= h < 16 and TEATRO_DIA != dia:
+        TEATRO_DIA = dia
+        socketio.start_background_task(_teatro_elviro)
+    # ---- FESTA DO CELEIRO (dia 6, 14h-15h) ----
+    if dia % 7 == 6 and 14 <= h < 15:
+        for i6, nid6 in enumerate(["npc:dora_fazendeira", "npc:grum", "npc:ana_semeadora",
+                                    "npc:tono", "npc:beto_carro", "npc:lia_sacos", "npc:pastor_elias"]):
+            _mover_npc(nid6, "celeiro_colheita", 5 + (i6 % 5) * 2, 4 + (i6 // 5) * 3)
+        if _FEST_ANUNCIADO != -dia:                       # reusa como flag da festa (negativo)
+            globals()["_FEST_ANUNCIADO"] = -dia
+            socketio.emit("toast", {"text": "🌾 FESTA DO CELEIRO! A colheita da semana se celebra "
+                          "no Celeiro dos Pastos — música, trigo e a Dona Justa descansando."})
+    # ---- A NOITE DOS PIRILAMPOS (raro, 22h) ----
+    global PIRILAMPOS_DIA
+    if noite and 22 <= h < 23 and (dia * 13) % 100 < 4 and PIRILAMPOS_DIA != dia:
+        PIRILAMPOS_DIA = dia
+        socketio.emit("toast", {"text": "🕯️ A NOITE DOS PIRILAMPOS! O Jardim do Templo está em chamas "
+                      "de luz — e a Madre Aurora vai contar uma lenda dos Doze. CORRA."})
+        socketio.start_background_task(_lenda_da_madre, dia)
+    # ---- O GATO BRANCO E GRANDE (raríssimo, noite) ----
+    global GATO_DIA
+    if noite and (dia * 29) % 100 < 3 and GATO_DIA != dia and 23 <= h < 24:
+        GATO_DIA = dia
+        mp7 = _ILHA_ROOMS[dia % len(_ILHA_ROOMS)]
+        sp7 = wm.MAPS[mp7]["spawns"][0]
+        _mover_npc("npc:gato_branco", mp7, sp7[0] + 2, sp7[1] + 2)
+    elif world.players.get("npc:gato_branco", {}).get("map") != "limbo_pofnir" and (not noite or h < 22):
+        _mover_npc("npc:gato_branco", "limbo_pofnir", 5, 5)   # ele nunca fica até o dia
+
+
+TORNEIO_PESCA = {}
+CORRIDA = {}
+TEATRO_DIA = -1
+PIRILAMPOS_DIA = -1
+GATO_DIA = -1
+
+
+def _correr_eguas(dia):
+    """A corrida: 4 éguas, 20 tiles de pista, narração do Fanfarrão da Baixa."""
+    eguas = ["npc:egua_relampago", "npc:egua_cocada", "npc:egua_valente", "npc:egua_estrela"]
+    nomes = {"npc:egua_relampago": "Relâmpago", "npc:egua_cocada": "Cocada",
+             "npc:egua_valente": "Valente", "npc:egua_estrela": "Estrela"}
+    y0 = 10
+    pos = {}
+    for i, e in enumerate(eguas):
+        _mover_npc(e, "baixa_da_egua", 6, y0 + i * 2)
+        _postar(e)
+        pos[e] = 6
+    socketio.emit("toast", {"text": "🐎 LARGARAM! A corrida da Baixa está em curso!"}, room="baixa_da_egua")
+    socketio.sleep(2)
+    venc = None
+    while not venc:
+        socketio.sleep(1.2)
+        for e in eguas:
+            pos[e] += random.randint(1, 3)
+            ent = world.players.get(e)
+            if ent:
+                ent["x"] = min(6 + 20, pos[e])
+                socketio.emit("player_moved", _npc_moved_payload(ent), room="baixa_da_egua")
+            if pos[e] >= 26 and not venc:
+                venc = e
+    socketio.emit("toast", {"text": "🏁 %s VENCEU A CORRIDA!" % nomes[venc]})
+    chave = nomes[venc].lower().replace("â", "a")
+    for sid8, ap8 in list((CORRIDA.get("apostas") or {}).items()):
+        nome8, valor8 = ap8
+        p8 = world.players.get(sid8)
+        if not p8:
+            continue
+        if nome8 == chave:
+            ganho = valor8 * 3
+            p8["wallet"] = int(p8.get("wallet", 0)) + ganho
+            socketio.emit("wallet", {"wallet": p8["wallet"]}, to=sid8)
+            socketio.emit("toast", {"text": "💰 APOSTA VENCEDORA! %s pagou %d moedas (3x)!" %
+                          (nomes[venc], ganho)}, to=sid8)
+        else:
+            socketio.emit("toast", {"text": "🎲 A banca agradece. %s não era o seu dia." % nomes[venc]}, to=sid8)
+    for i, e in enumerate(eguas):
+        _soltar(e)
+        _mover_npc(e, "baixa_da_egua", 20 + i * 2, 12)
+
+
+def _teatro_elviro():
+    """A QUEDA DE VALDARKRAM — peça em um ato, na praça, com narração dupla."""
+    _mover_npc("npc:moco_elviro", "prospera", 36, 19)
+    _mover_npc("npc:mestre_fanfarrao", "prospera", 34, 19)
+    plateia = ["npc:rosendo", "npc:rute", "npc:viuva_clarice", "npc:dona_prosa",
+               "npc:petunia", "npc:professor_anselmo"]
+    for i, nid in enumerate(plateia):
+        _mover_npc(nid, "prospera", 32 + (i % 3) * 3, 23 + (i // 3) * 2)
+    socketio.emit("toast", {"text": "🎭 O TEATRO DO ELVIRO apresenta: A QUEDA DE VALDARKRAM! "
+                  "Na praça de Prospera, AGORA!"})
+    falas = [
+        ("npc:mestre_fanfarrao", "SENHORAS E SENHORES... a cidade que brilhou demais!"),
+        ("npc:moco_elviro", "Valdarkram, coroa de torres! Teu mago quis ler o que a noite escreveu..."),
+        ("npc:mestre_fanfarrao", "E A NOITE... RESPONDEU! *trovão feito com a boca*"),
+        ("npc:moco_elviro", "Caíram as torres, calou-se o sino. Mas de todo êxodo nasce um destino:"),
+        ("npc:moco_elviro", "...o Ermo. E desta ilha, Prospera. A queda de uns é o amanhecer de outros."),
+        ("npc:mestre_fanfarrao", "FIM! Aplausos! Moedas são aceitas! Lágrimas também!"),
+    ]
+    for nid, txt in falas:
+        socketio.sleep(5)
+        socketio.emit("speech", {"id": nid, "text": txt}, room="prospera")
+
+
+def _lenda_da_madre(dia):
+    lenda = _LENDAS_AURORA[dia % len(_LENDAS_AURORA)]
+    _mover_npc("npc:madre_aurora", "jardim_templo", 27, 24)
+    for fala in lenda:
+        socketio.sleep(7)
+        socketio.emit("speech", {"id": "npc:madre_aurora", "text": fala}, room="jardim_templo")
+
+
 def _saudacao_da_aurora():
     """O EVENTO: a Guarda inteira em formação no Feirão. Fileiras perfeitas,
     comandantes à frente, dignitários no palco. Curto, marcial, inesquecível."""
@@ -6617,6 +6827,7 @@ def _agenda_tick():
             else:
                 _mover_npc(sid_dia, "quartel_ala", 2 + (i5 % 36) * 3, 3 if i5 % 2 == 0 else 9)  # quarto
             _soltar(sid_dia)
+    _calendario_tick(h, dia, noite)
     # ---- OS 12 SUMOS: liturgia, plantão, folga e sono ----
     if 7 <= h < 9 or 18 <= h < 19:                   # LITURGIA (2h) e VÉSPERAS: formação
         for i, sid in enumerate(_SUMOS_IDS):
@@ -6689,6 +6900,11 @@ def _agenda_tick():
         if presentes and random.random() < 0.2:
             socketio.emit("speech", {"id": "npc:chef_jacquard",
                           "text": random.choice(_CHEF_SURTOS)}, room="restaurante_jacquard")
+    # ---- AS TERMAS 20h-22h: a fofoca molhada da ilha ----
+    if 20 <= h < 22 and not noite:
+        for i9, nid9 in enumerate(["npc:seu_fino", "npc:ze_boato", "npc:pedreiro_batista",
+                                    "npc:henri", "npc:almir"]):
+            _mover_npc(nid9, "termas_prospera", 4 + i9 * 2, 6)
     # ---- O CHÁ DAS 17h LOTADO: a corte paparica a Rainha-mãe ----
     if 17 <= h < 18:
         corte = ["npc:isolda_valmont", "npc:beatriz_valmont", "npc:dona_prosa",
@@ -7599,6 +7815,42 @@ def on_chat(data):
         return
     text = text.strip()[:120]
     if not text:
+        return
+    # /apostar <egua> <valor> — a banca do Lord Fagnin
+    if text.lower().startswith("/apostar "):
+        parts = text.split()
+        if len(parts) >= 3 and CORRIDA.get("dia") is not None and not CORRIDA.get("correu"):
+            egua9 = parts[1].lower()
+            if egua9 in ("relampago", "cocada", "valente", "estrela"):
+                try:
+                    val9 = max(1, int(parts[2]))
+                except Exception:
+                    val9 = 0
+                if val9 and int(player.get("wallet", 0)) >= val9:
+                    player["wallet"] = int(player["wallet"]) - val9
+                    CORRIDA.setdefault("apostas", {})[request.sid] = (egua9, val9)
+                    socketio.emit("wallet", {"wallet": player["wallet"]}, to=request.sid)
+                    socketio.emit("toast", {"text": "🎲 Aposta registrada: %d em %s. A banca agradece." %
+                                  (val9, egua9.capitalize())}, to=request.sid)
+                else:
+                    socketio.emit("toast", {"text": "🎲 Moedas insuficientes (ou valor inválido)."}, to=request.sid)
+        else:
+            socketio.emit("toast", {"text": "🎲 Não há corrida aberta agora. Dia de corrida: a cada 7 dias, apostas até as 15h."}, to=request.sid)
+        return
+    # /carta <npc> <mensagem> — o Correio da Ilha (resposta no dia seguinte!)
+    if text.lower().startswith("/carta "):
+        resto = text[7:].strip()
+        alvo9 = resto.split(" ", 1)[0].lower() if resto else ""
+        DEST = {"diana": "npc:lady_diana", "valesca": "npc:rainha_valesca", "caiques": "npc:caiques",
+                "beth": "npc:beth", "demetrius": "npc:demetrius", "chef": "npc:chef_jacquard"}
+        if alvo9 in DEST:
+            player["_carta"] = {"npc": alvo9, "dia": _dia_num()}
+            _persist_loadout(player)
+            socketio.emit("toast", {"text": "💌 Carta enviada a %s! O Correio da Ilha entrega a "
+                          "resposta amanhã." % alvo9.capitalize()}, to=request.sid)
+        else:
+            socketio.emit("toast", {"text": "💌 Destinatários do Correio: diana, valesca, caiques, "
+                          "beth, demetrius, chef. Use: /carta <nome> <mensagem>"}, to=request.sid)
         return
     # A SAUDAÇÃO DA AURORA: a frase sagrada perto do Fanfarrão
     if "qual o poder da aurora" in text.lower() and player.get("map") == "feirao_sao_celeste":

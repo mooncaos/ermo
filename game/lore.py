@@ -15,6 +15,67 @@ brasileira fundou culturalmente Sapopemba do Caique.
 """
 
 CANON = {
+    # ============ A ERA DA ALVORADA (canonizada em 07/jul/2026) ============
+    "guarda_alvorada": {
+        "nome": "A Guarda da Alvorada — a Legião dos Oitenta",
+        "origem": "Fundada por decreto do Rei Marth para que Prospera nunca conhecesse uma manhã sem proteção. O Quartel-General ergue-se na Baixa da Égua, ao lado do haras; sob ele, a Ala dos Quartos: um corredor monumental onde cada soldado tem cama, baú e nome.",
+        "laco": "Oitenta lâminas em dois turnos: quarenta postos guarnecidos do amanhecer ao amanhecer, de Vilalbina ao Septo dos Doze.",
+        "poder": "A disciplina. Um soldado da Alvorada parado no posto é uma promessa: a de que o amanhã chega inteiro.",
+    },
+    "demetrius_prosperi": {
+        "nome": "Lorde Comandante Demétrius Prosperi",
+        "origem": "Irmão do Rei Marth, tio de Dante e Diana. Enquanto o irmão aprendia a governar com o trigo, Demétrius aprendia com o aço.",
+        "laco": "Prosperi de sangue e de posto: 'cada Prosperi tem sua torre'. A dele tem oitenta espadas dentro.",
+        "poder": "Nunca perdeu um duelo. Dorme com a espada ao alcance e a legião no coração.",
+    },
+    "maria_valmont": {
+        "nome": "Tenente Maria Valmont",
+        "origem": "A Valmont que trocou o salão de chá pela sala de armas. A corte comenta; ela não escuta — está ocupada treinando novatos na base do grito e do exemplo.",
+        "laco": "Prima de Isolda e Fagnin. Braço-direito de Demétrius, e a única pessoa do quartel que ele nunca precisa corrigir.",
+        "poder": "A confiança do Lorde Comandante — e uma paciência que dói nos recrutas.",
+    },
+    "guarda_real": {
+        "nome": "A Guarda Real Dourada",
+        "origem": "Os doze melhores da Alvorada, vestidos em ouro da cabeça aos pés: dois com a Lady Diana, dois com o Lorde Dante no farol, dois à porta do Solar — dia e noite.",
+        "laco": "O ouro chama a atenção de propósito: olhem para eles, não para quem protegem.",
+        "poder": "Entre um dourado e um perigo até seu protegido há exatamente: nada.",
+    },
+    "saudacao_da_aurora": {
+        "nome": "A Saudação da Aurora",
+        "origem": "O rito marcial da Guarda. Quem pergunta ao Mestre Fanfarrão, no Feirão, 'qual o poder da aurora?' recebe o brado: 'SALVE A AURORA PROSPERINA!' — e a legião inteira se forma em fileiras perfeitas.",
+        "laco": "Comparecem o Arcebispo Celestino, o Lorde Dante, a Lady Diana e o Heron. Curto, marcial, inesquecível.",
+        "poder": "Por mais que seja simples, é incrível o poder da aurora: fazer oitenta homens acreditarem na mesma manhã.",
+    },
+    "festival_sao_celeste": {
+        "nome": "O Festival de São Celeste",
+        "origem": "A cada sete dias, o Feirão explode em música e tendas. Dizem que São Celeste era um gato; dizem que era um santo. O festival não escolhe lado.",
+        "laco": "O único chamado que tira o Lorde Dante do farol. O Arcebispo Celestino abençoa; o Mestre Fanfarrão grita.",
+        "poder": "Um dia inteiro em que a ilha esquece que já teve medo.",
+    },
+    "prospera_capital": {
+        "nome": "Prospera, a Capital Viva",
+        "origem": "Dez lojinhas de rua (do barbeiro Seu Fino ao Zé Boato), nove lares, a Casa Valmont, o Martelo Dourado dos leilões e a Embaixada das Terras do Ermo — cujo porão, oficialmente, não existe. RECEBA.",
+        "laco": "Às 17h a corte inteira paparica a Rainha-mãe no Salão de Chá. Às 16h, a ilha INTEIRA confraterniza na praça.",
+        "poder": "Uma capital que trabalha, reza, fofoca e leiloa — tudo no mesmo dia.",
+    },
+    "restaurante_jacquard": {
+        "nome": "O Restaurante Jacquard ✶✶✶✶✶✶",
+        "origem": "Seis estrelas porque cinco 'era pouco pra minha arte', segundo o Chef. A nobreza janta lá entre 19h e 21h — e quando há nobre presente, o Chef SURTA em francês.",
+        "laco": "Gaston, o sous-chef, leva os berros e ama o Chef como um pai. 'OUI, CHEF!' é ao mesmo tempo cargo, oração e diagnóstico.",
+        "poder": "O bife ancho que já fez um bárbaro chorar. De emoção. E de pimenta.",
+    },
+    "varth_arsenal": {
+        "nome": "O Arsenal do Lich Rei",
+        "origem": "No terceiro andar da torre, Varth não golpeia: CONJURA. O Raio do Fim, a Colheita de Almas, o Sigilo de Varth — e a RUÍNA, o pentagrama em área que marca todos ao redor.",
+        "laco": "Ele fala enquanto mata: 'Ajoelhem. Poupem meu tempo e o chão.' A Rainha Cinzenta sussurra os nomes; ele risca da lista.",
+        "poder": "Cada alma drenada o remenda. 'Tragam mais heróis. Meus corredores precisam de decoração.'",
+    },
+    "lady_diana_herdeira": {
+        "nome": "Lady Diana Prosperi, a Herdeira de Fogo",
+        "origem": "Nasceu de madrugada, chorando forte e olhando a janela — o mar já chamava (palavra da parteira Firmina). Primeira na linha do trono de Prosperina por direito e por VONTADE: o irmão escolheu o farol; ela escolheu a coroa.",
+        "laco": "Doce com os leais, cortante com quem a subestima. A corte sussurra sobre seus amores e suas cavalgadas solitárias; ela não se digna a esconder nenhum dos dois. As rosas brancas anônimas da floricultura? Todo mundo sabe. Ninguém ousa dizer.",
+        "poder": "A vontade. Diana não pede o que é dela por nascimento — e não será questionada. Nem pela corte, nem pelo conselho, nem pelo próprio mar (com quem, aliás, conversa).",
+    },
     # ======================= BOSSES =======================
     "velho_bob": {
         "nome": "O Velho Bob",

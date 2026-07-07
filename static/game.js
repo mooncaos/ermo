@@ -491,6 +491,7 @@ const INT_THEMES = {
   cortico_baixa: {f1:'#5f5340', f2:'#665a46', wall:'#2c2418', acc:'#e0865a', kind:'quarto'},
   quartel_alvorada: {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
   quartel_ala: {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#c9a842', kind:'marmore'},
+  termas_prospera: {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#7ab8c8', kind:'marmore'},
   restaurante_jacquard: {f1:'#7a5f3e', f2:'#856a46', wall:'#3a2c1c', acc:'#e8c860', kind:'marmore'},
   torre_conclave:     {f1:'#b7b2a6', f2:'#c2bcae', wall:'#3a3428', acc:'#e8c860', kind:'marmore'},
   torre_observatorio: {f1:'#3a3a4e', f2:'#42425a', wall:'#22222e', acc:'#cfe0ff', kind:'comum'},
@@ -1455,6 +1456,49 @@ function _drawTileInner(c, mapName, ch, px, py, ts, gx, gy){
     const lg2 = c.createRadialGradient(px + ts/2, py + 4, 0, px + ts/2, py + 4, ts*0.7);
     lg2.addColorStop(0, 'rgba(255,223,154,0.75)'); lg2.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = lg2; c.beginPath(); c.arc(px + ts/2, py + 4, ts*0.7, 0, Math.PI*2); c.fill();
+    return;
+  }
+  if(mapName === 'termas_prospera' && ch === '~'){
+    // ÁGUA TERMAL: azul leitoso com vapor subindo
+    c.fillStyle = (gx + gy) % 2 ? '#7ab8c8' : '#88c4d2';
+    c.fillRect(px, py, ts, ts);
+    c.fillStyle = 'rgba(255,255,255,0.25)';
+    const vph = ((Date.now()/2400) + (gx*7 + gy*3) % 10 / 10) % 1;
+    if((gx*5 + gy*11) % 3 === 0)
+      c.beginPath(), c.arc(px + ts*0.5 + Math.sin(Date.now()/700 + gx)*4, py + ts*0.6 - vph*ts*0.5, ts*(0.08 + vph*0.1), 0, Math.PI*2), c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(px + 3, py + ts*0.4 + Math.sin(Date.now()/900 + gx + gy)*2);
+    c.lineTo(px + ts - 3, py + ts*0.4 + Math.cos(Date.now()/900 + gx)*2); c.stroke();
+    return;
+  }
+  if(mapName === 'trigal_dourado' && ch === 'w'){
+    // O CICLO DA COLHEITA: o trigo cresce com a semana (0-2 verde, 3-5 dourado, 6 colhido)
+    const diaN = Math.floor(((Date.now()/1000) + dayOffset) / dayLength);
+    const fase = ((diaN % 7) + 7) % 7;
+    c.fillStyle = (gx + gy) % 2 ? '#79a25c' : '#6f9854';
+    c.fillRect(px, py, ts, ts);
+    if(fase === 6){
+      c.strokeStyle = '#a8894a'; c.lineWidth = 1.6;       // o restolho da colheita
+      for(let s3 = 0; s3 < 4; s3++){
+        const sx3 = px + 4 + s3*(ts - 8)/3;
+        c.beginPath(); c.moveTo(sx3, py + ts - 3); c.lineTo(sx3, py + ts - 8); c.stroke();
+      }
+      return;
+    }
+    const verde = fase <= 2;
+    const alt = verde ? (0.35 + fase*0.1) : (0.62 + (fase - 3)*0.1);
+    c.strokeStyle = verde ? '#8ab86a' : '#d8b85a'; c.lineWidth = 2;
+    for(let s3 = 0; s3 < 3; s3++){
+      const sx3 = px + 6 + s3*(ts - 12)/2;
+      const sw3 = Math.sin(Date.now()/800 + gx + s3)*2;
+      c.beginPath(); c.moveTo(sx3, py + ts - 2);
+      c.quadraticCurveTo(sx3 + sw3, py + ts*(1 - alt*0.6), sx3 + sw3*1.5, py + ts*(1 - alt));
+      c.stroke();
+      if(!verde){
+        c.fillStyle = '#e8c860';
+        c.beginPath(); c.ellipse(sx3 + sw3*1.5, py + ts*(1 - alt), 2.2, 4.5, 0.3, 0, Math.PI*2); c.fill();
+      }
+    }
     return;
   }
   if(mapName === 'cidade_alta' && ch === 'H' && gx >= 20 && gx <= 29 && gy >= 8 && gy <= 10){
@@ -16218,6 +16262,7 @@ var _PORTAS_VIVAS = [
   {mapa: 'baixa_da_egua', cx: 16, cy: 18, w: 4, h: 3, emoji: '🏠'},
   {mapa: 'baixa_da_egua', cx: 31, cy: 22, w: 8, h: 3, emoji: '🛏️'},
   {mapa: 'baixa_da_egua', cx: 38, cy: 19, w: 4, h: 2, emoji: '⚔️'},
+  {mapa: 'cidade_alta', cx: 11, cy: 11, w: 4, h: 3, emoji: '🛁'},
   {mapa: 'vilalbina',  cx: 3,  cy: 15, w: 5, h: 3, emoji: '🧵'},
   {mapa: 'vilalbina',  cx: 10, cy: 3,  w: 4, h: 3, emoji: '🍞'},
   {mapa: 'vilalbina',  cx: 3,  cy: 9,  w: 4, h: 3, emoji: '🐟'},
