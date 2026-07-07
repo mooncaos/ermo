@@ -209,7 +209,7 @@ GATO_ESPERA   = 20    # segundos de descanso depois de sumir, antes de poder vol
 
 # ----------------------------------------------------------------- paginas
 
-BUILD_TAG = "v41: degrau visivel p/ Ala + folga no quartel + praca espalhada (07/jul)"
+BUILD_TAG = "v43: O RESPLENDOR DE VOLTA - pentagramas, drenos, raios negros e o Varth falante (07/jul)"
 
 
 def _asset_version():
@@ -3683,6 +3683,119 @@ def _rt_kill(sid, pl, m):
     pl["rt_target"] = None
 
 
+# ============ AS HABILIDADES DOS MONSTROS (v43): o resplendor de volta ============
+# O cliente sempre soube desenhar (pentagramas, drenos, raios negros); o servidor
+# tinha emudecido. Cada tipo tem seu repertório; o Varth tem um ARSENAL.
+MON_ABILITIES = {
+    "necromante_torre":  [("Raio Necrótico", "bolt", "darkbolt"), ("Dreno de Alma", "drain", None)],
+    "profanador_torre":  [("Sigilo Profano", "gaze", "cursesigil")],
+    "tumular_torre":     [("Golpe Tumular", "heavy", None)],
+    "carniceiro_torre":  [("Talho Brutal", "heavy", None)],
+    "algoz_torre":       [("Sentença", "heavy", None)],
+    "cavaleiro_torre":   [("Investida Sombria", "heavy", None)],
+    "espectro":          [("Toque Espectral", "drain", None)],
+    "vulto":             [("Toque Espectral", "drain", None)],
+    "assombracao":       [("Sopro Gélido", "drain", None)],
+    "alma_penada":       [("Lamento", "drain", None)],
+    "alma_errante":      [("Lamento", "drain", None)],
+    "dama_noite":        [("Olhar da Dama", "fear", None), ("Beijo Umbral", "drain", None)],
+    "bruxa_louca":       [("Gargalhada Demente", "fear", None)],
+    "colosso_avasham":   [("Pisão do Colosso", "heavy", None)],
+    "lorde_varth":       [("Raio do Fim", "bolt", "darkbolt"), ("Colheita de Almas", "drain", None),
+                          ("SIGILO DE VARTH", "gaze", "cursesigil"), ("RUÍNA", "aoe", None)],
+}
+VARTH_FALAS = [
+    "Ajoelhem. Poupem meu tempo e o chão.",
+    "Esta torre é meu trono. Vocês são a poeira nele.",
+    "Eu já morri uma vez. Foi TEDIOSO. Vocês serão mais rápidos.",
+    "A Rainha Cinzenta sussurra seus nomes. Eu apenas... risco da lista.",
+    "Necromancia é paciência. E eu tenho TODA a eternidade.",
+    "Seus deuses têm doze nomes. Minha resposta tem um: NÃO.",
+    "O Âmbar do farol pisca. Eu APAGO.",
+    "Tragam mais heróis. Meus corredores precisam de decoração.",
+    "Sintam o sigilo. Ele já sabia que vocês viriam.",
+    "Quando eu erguer a última torre, nem a Alvorada nascerá.",
+]
+
+
+def _mon_ability_strike(m, mid, alvo_sid, alvo_pl, f, dmg, crit):
+    """Tenta executar uma habilidade especial no lugar do golpe básico.
+    Devolve True se executou (o chamador dá continue)."""
+    reps = MON_ABILITIES.get(m.get("type"))
+    if not reps or random.random() > 0.30:
+        return False
+    nome, atype, vfx = random.choice(reps)
+    mapa = m.get("map")
+    base = {"id": alvo_sid, "target": alvo_sid, "by": mid, "attacker": mid,
+            "mon_ability": True, "ability": nome, "atype": atype, "vfx": vfx,
+            "dtype": "necrotico"}
+    # o Varth fala quando conjura (o medo também é uma arma)
+    if m.get("type") == "lorde_varth" and random.random() < 0.5:
+        socketio.emit("toast", {"text": "🟣 VARTH: \"%s\"" % random.choice(VARTH_FALAS)},
+                      room=mapa)
+    if atype == "aoe":                                   # RUÍNA: o pentagrama em área
+        socketio.emit("rt_aoe", {"x": m["x"], "y": m["y"], "r": 2, "dtype": "necrotico"},
+                      room=mapa)
+        for s2, p2 in list(world.players.items()):
+            if p2.get("map") != mapa or not p2.get("player_id"):
+                continue
+            if max(abs(p2["x"] - m["x"]), abs(p2["y"] - m["y"])) > 2:
+                continue
+            f2 = p2.get("ficha") or {}
+            if int(f2.get("hp", 0)) <= 0 or p2.get("gm_god"):
+                continue
+            d2 = max(8, int(dmg * 1.2))
+            f2["hp"] = max(0, int(f2.get("hp", 1)) - d2)
+            p2["ficha"] = f2
+            socketio.emit("rt_phit", {"dmg": d2, "by": "%s · RUÍNA" % m.get("name", "?"),
+                                      "hp": f2["hp"], "hp_max": f2.get("hp_max")}, to=s2)
+            socketio.emit("rt_hit", dict(base, id=s2, target=s2, vfx="cursesigil",
+                                         atype="gaze", gaze=True, applied="marcado",
+                                         hp=f2["hp"], hp_max=f2.get("hp_max")), room=mapa)
+            if f2["hp"] <= 0:
+                p2.pop("rt_target", None)
+                _player_death(s2)
+        return True
+    if atype == "fear" or atype == "gaze":               # medo/sigilo: efeito no alvo
+        d2 = max(1, dmg // 2)
+        f["hp"] = max(0, int(f.get("hp", 1)) - d2)
+        alvo_pl["ficha"] = f
+        socketio.emit("rt_hit", dict(base, gaze=True, applied="medo" if atype == "fear" else "maldição",
+                                     hp=f["hp"], hp_max=f.get("hp_max")), room=mapa)
+        socketio.emit("rt_phit", {"dmg": d2, "by": "%s · %s" % (m.get("name", "?"), nome),
+                                  "hp": f["hp"], "hp_max": f.get("hp_max")}, to=alvo_sid)
+    elif atype == "drain":                               # dreno: rouba vida (wisps!)
+        d2 = max(1, dmg)
+        f["hp"] = max(0, int(f.get("hp", 1)) - d2)
+        alvo_pl["ficha"] = f
+        cura = max(1, d2 // 2)
+        m["hp"] = min(int(m.get("hp_max", m.get("hp", 1) + cura)), int(m.get("hp", 1)) + cura)
+        socketio.emit("rt_hit", dict(base, dmg=d2, hp=f["hp"], hp_max=f.get("hp_max")), room=mapa)
+        socketio.emit("rt_hit", {"id": mid, "attacker": mid, "self": True, "self_heal": cura,
+                                 "mon_ability": True, "ability": nome}, room=mapa)
+        socketio.emit("rt_phit", {"dmg": d2, "by": "%s · %s" % (m.get("name", "?"), nome),
+                                  "hp": f["hp"], "hp_max": f.get("hp_max")}, to=alvo_sid)
+    elif atype == "bolt":                                # raio negro: projétil com rastro
+        d2 = max(1, int(dmg * 1.1))
+        f["hp"] = max(0, int(f.get("hp", 1)) - d2)
+        alvo_pl["ficha"] = f
+        socketio.emit("rt_hit", dict(base, dmg=d2, hp=f["hp"], hp_max=f.get("hp_max")), room=mapa)
+        socketio.emit("rt_phit", {"dmg": d2, "by": "%s · %s" % (m.get("name", "?"), nome),
+                                  "hp": f["hp"], "hp_max": f.get("hp_max")}, to=alvo_sid)
+    else:                                                # heavy: pancada com onda de choque
+        d2 = max(1, int(dmg * 1.4))
+        f["hp"] = max(0, int(f.get("hp", 1)) - d2)
+        alvo_pl["ficha"] = f
+        socketio.emit("rt_hit", dict(base, dmg=d2, crit=crit,
+                                     hp=f["hp"], hp_max=f.get("hp_max")), room=mapa)
+        socketio.emit("rt_phit", {"dmg": d2, "crit": crit, "by": "%s · %s" % (m.get("name", "?"), nome),
+                                  "hp": f["hp"], "hp_max": f.get("hp_max")}, to=alvo_sid)
+    if f["hp"] <= 0:
+        alvo_pl.pop("rt_target", None)
+        _player_death(alvo_sid)
+    return True
+
+
 def _rt_combat_loop():
     """O coração do tempo real: a cada 0.4s, resolve quem está pronto pra bater."""
     while True:
@@ -4406,6 +4519,8 @@ def _rt_combat_loop():
                         _mp2.pop("rt_target", None)
                         _player_death(_ms)
                     continue
+                if _mon_ability_strike(m, mid, alvo_sid, alvo_pl, f, dmg, crit):
+                    continue                              # a habilidade brilhou no lugar do golpe
                 # a Mão de um aliado por perto protege o grupo (20%% a menos)
                 if post_alvo != "mao":
                     for _s2 in _rt_party_allies(alvo_sid, alvo_pl):
@@ -6484,7 +6599,7 @@ def _agenda_tick():
     for i5, (pmp, px, py) in enumerate(GUARDA_POSTOS):
         sid_dia = "npc:guarda_dia_%d" % i5
         sid_noite = "npc:guarda_noite_%d" % i5
-        qx = 2 + (i5 % 36) * 3                            # o quarto DELE na Ala
+        qx = 2 + (i5 % 36) * 3                            # o quarto (postos 36+ dividem ala)
         if turno_dia:
             _mover_npc(sid_dia, pmp, px, py)
             _postar(sid_dia)                              # VIGÍLIA: parado, firme
